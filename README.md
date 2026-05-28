@@ -20,7 +20,7 @@ Open http://localhost:8080
 
 ## Development
 
-Requires: Go 1.22+, Node 20+, [just](https://just.systems), [overmind](https://github.com/DarthSim/overmind)
+Requires: Go 1.26+, Node 20+, Docker, [just](https://just.systems), [overmind](https://github.com/DarthSim/overmind)
 
 ```bash
 just dev        # start frontend + backend

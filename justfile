@@ -86,13 +86,7 @@ docker-down:
 
 # Report i18n keys in en.json missing from de.json
 i18n-check:
-	node -e " \
-	  const en = require('./frontend/i18n/locales/en.json'); \
-	  const de = require('./frontend/i18n/locales/de.json'); \
-	  const missing = Object.keys(en).filter(k => !(k in de)); \
-	  if (missing.length) { console.log('Missing in de.json:', missing); process.exit(1); } \
-	  else console.log('All keys present in de.json'); \
-	"
+	node -e "const en=require('./frontend/i18n/locales/en.json'),de=require('./frontend/i18n/locales/de.json'),m=Object.keys(en).filter(k=>de[k]===undefined);m.length?(console.log('Missing in de.json:',m),process.exit(1)):console.log('All keys present in de.json')"
 
 # Remove build artifacts
 clean:
