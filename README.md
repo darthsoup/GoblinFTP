@@ -13,7 +13,7 @@ Clean rewrite of [Monsta FTP](https://www.monstaftp.com/) v2.14.x with full feat
 ## Quick start
 
 ```bash
-docker run -p 8080:80 goblintools/gftp
+docker run -p 8080:80 darthsoup/goblinftp
 ```
 
 Open http://localhost:8080

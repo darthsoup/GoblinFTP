@@ -64,15 +64,15 @@ fmt:
 
 # Build Docker image
 docker-build:
-	docker build -t goblintools/gftp .
+	docker build -t darthsoup/goblinftp .
 
 # Run Docker image
 docker-run:
-	docker run -p 8080:80 goblintools/gftp
+	docker run -p 8080:80 darthsoup/goblinftp
 
 # Push Docker image
 docker-push:
-	docker push goblintools/gftp
+	docker push darthsoup/goblinftp
 
 # Start with docker compose
 docker-up:

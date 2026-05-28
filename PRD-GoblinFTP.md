@@ -46,7 +46,7 @@ GoblinFTP ships as a single Docker image. Configuration is via environment varia
 
 ```bash
 # Minimal run
-docker run -p 8080:80 goblintools/gftp
+docker run -p 8080:80 darthsoup/goblinftp
 
 # With custom config
 docker run -p 8080:80 \
@@ -54,14 +54,14 @@ docker run -p 8080:80 \
   -e GFTP_SSO_SECRET="your-shared-secret" \
   -e GFTP_SENTRY_DSN="https://..." \
   -v ./settings.json:/app/settings.json:ro \
-  goblintools/gftp
+  darthsoup/goblinftp
 ```
 
 **docker-compose.yml:**
 ```yaml
 services:
   gftp:
-    image: goblintools/gftp
+    image: darthsoup/goblinftp
     ports:
       - "8080:80"
     environment:
@@ -245,9 +245,9 @@ lint-be:      # golangci-lint run ./...
 fmt:          # cd frontend && prettier --write .  &&  gofmt -w .
 
 # ── Docker ─────────────────────────────────────────────────────────────────────
-docker-build: # docker build -t goblintools/gftp .
-docker-run:   # docker run -p 8080:80 goblintools/gftp
-docker-push:  # docker push goblintools/gftp
+docker-build: # docker build -t darthsoup/goblinftp .
+docker-run:   # docker run -p 8080:80 darthsoup/goblinftp
+docker-push:  # docker push darthsoup/goblinftp
 docker-up:    # docker compose up --build
 docker-down:  # docker compose down
 

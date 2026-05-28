@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: goblintools/gftp
+    image: darthsoup/goblinftp
     ports:
       - "8080:80"
     environment:
