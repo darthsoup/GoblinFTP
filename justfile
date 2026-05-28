@@ -9,7 +9,7 @@ dev:
 
 # Start frontend dev server only
 dev-fe:
-	cd frontend && npm run dev
+	cd frontend && pnpm run dev
 
 # Start backend dev server only
 dev-be:
@@ -22,7 +22,7 @@ build: build-fe build-be
 
 # Build Nuxt SPA → frontend/.output/public/
 build-fe:
-	cd frontend && npm run generate
+	cd frontend && pnpm run generate
 
 # Build Go binary → bin/gftp
 build-be:
@@ -36,7 +36,7 @@ test: test-fe test-be
 
 # Run frontend tests
 test-fe:
-	cd frontend && npm test
+	cd frontend && pnpm test
 
 # Run backend tests
 test-be:
@@ -49,7 +49,7 @@ lint: lint-fe lint-be
 
 # Type-check frontend (no eslint config yet — added in Phase 5)
 lint-fe:
-	cd frontend && npm run typecheck
+	cd frontend && pnpm run typecheck
 
 # Lint backend (requires golangci-lint: https://golangci-lint.run)
 lint-be:
@@ -57,7 +57,7 @@ lint-be:
 
 # Format all code
 fmt:
-	cd frontend && npx prettier --write .
+	cd frontend && pnpm exec prettier --write .
 	cd backend && gofmt -w .
 
 # ── Docker ─────────────────────────────────────────────────────────────────────
@@ -90,4 +90,4 @@ i18n-check:
 
 # Remove build artifacts
 clean:
-	rm -rf frontend/.output frontend/node_modules bin/
+	rm -rf frontend/.output frontend/node_modules bin/ frontend/.pnpm-store

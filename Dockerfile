@@ -3,10 +3,11 @@
 # ── Stage 1: Build Nuxt SPA ────────────────────────────────────────────────────
 FROM node:24-alpine AS frontend-builder
 WORKDIR /build/frontend
-COPY frontend/package*.json ./
-RUN npm ci --prefer-offline
+RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY frontend/ ./
-RUN npm run generate
+RUN pnpm run generate
 
 # ── Stage 2: Build Go binary ───────────────────────────────────────────────────
 FROM golang:1.26-alpine AS backend-builder
