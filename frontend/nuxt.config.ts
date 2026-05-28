@@ -8,13 +8,11 @@ export default defineNuxtConfig({
   ],
 
   i18n: {
-    restructureDir: false,
     locales: [
       { code: 'en', file: 'en.json' },
       { code: 'de', file: 'de.json' },
     ],
     defaultLocale: 'en',
-    langDir: 'i18n/locales/',
     strategy: 'no_prefix',
   },
 
@@ -24,5 +22,5 @@ export default defineNuxtConfig({
     strict: true,
   },
 
-  compatibilityDate: '2024-11-01',
+  compatibilityDate: '2025-05-01',
 })
