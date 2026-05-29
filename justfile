@@ -1,6 +1,9 @@
 # GoblinFTP task runner — https://just.systems
 set dotenv-load
 
+default:
+    @just --list
+
 # ── Development ────────────────────────────────────────────────────────────────
 
 # Start frontend + backend together (requires overmind: https://github.com/DarthSim/overmind)
