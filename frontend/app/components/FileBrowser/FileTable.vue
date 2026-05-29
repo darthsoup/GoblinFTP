@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { FileInfo } from '~/types/api'
-
 const filesStore = useFilesStore()
 const { t } = useI18n()
 
@@ -9,15 +7,21 @@ const sortKey = ref<SortKey>('name')
 const sortAsc = ref(true)
 
 function toggleSort(key: SortKey) {
-  if (sortKey.value === key) sortAsc.value = !sortAsc.value
-  else { sortKey.value = key; sortAsc.value = true }
+  if (sortKey.value === key) {
+    sortAsc.value = !sortAsc.value
+  }
+  else {
+    sortKey.value = key
+    sortAsc.value = true
+  }
 }
 
 const sortedFiles = computed(() => {
   const arr = [...filesStore.files]
   // Directories always first
   arr.sort((a, b) => {
-    if (a.isDir !== b.isDir) return a.isDir ? -1 : 1
+    if (a.isDir !== b.isDir)
+      return a.isDir ? -1 : 1
     const av = a[sortKey.value]
     const bv = b[sortKey.value]
     const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
@@ -33,7 +37,7 @@ const sortedFiles = computed(() => {
       <thead class="bg-gray-100 dark:bg-gray-800 sticky top-0">
         <tr>
           <th class="w-8 px-3 py-2">
-            <input type="checkbox" class="rounded" @change="filesStore.clearSelection()" />
+            <input type="checkbox" class="rounded" @change="filesStore.clearSelection()">
           </th>
           <th class="px-3 py-2 cursor-pointer hover:text-primary-500 font-medium" @click="toggleSort('name')">
             {{ t('files.name') }}
@@ -47,7 +51,9 @@ const sortedFiles = computed(() => {
             {{ t('files.modified') }}
             <UIcon v-if="sortKey === 'modified'" :name="sortAsc ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'" class="w-3 h-3 inline ml-1" />
           </th>
-          <th class="px-3 py-2 font-medium w-28 hidden sm:table-cell">{{ t('files.permissions') }}</th>
+          <th class="px-3 py-2 font-medium w-28 hidden sm:table-cell">
+            {{ t('files.permissions') }}
+          </th>
           <th class="w-16" />
         </tr>
       </thead>
