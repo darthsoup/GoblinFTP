@@ -4,6 +4,7 @@ package api_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,13 +16,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newTestApp(cfg *config.Config) (*echo.Echo, *auth.Store, *auth.Throttle) {
+func newTestApp(t *testing.T, cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle) {
+	t.Helper()
 	e := echo.New()
 	e.HideBanner = true
-	store := auth.NewStore(10 * time.Minute)
-	throttle := auth.NewThrottle()
-	api.Register(e, cfg, store, throttle)
-	return e, store, throttle
+	store := auth.NewStore(time.Duration(cfg.SessionTTLSeconds) * time.Second)
+	thr := auth.NewThrottle()
+	api.Register(e, cfg, store, thr, opts...)
+	return e, store, thr
 }
 
 func defaultTestConfig() *config.Config {
@@ -33,6 +35,8 @@ func defaultTestConfig() *config.Config {
 		LoginMaxAttempts:     5,
 		LoginCooldownSeconds: 300,
 		SessionTTLSeconds:    7200,
+		ChunkSize:            5 * 1024 * 1024,
+		DataDir:              os.TempDir(),
 		Settings: config.Settings{
 			Connection: config.ConnectionSettings{
 				AllowedTypes:          []string{"ftp", "sftp"},
@@ -47,7 +51,7 @@ func defaultTestConfig() *config.Config {
 }
 
 func TestRequireSessionMiddlewareRejectsUnauthenticated(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/files", nil)
@@ -58,7 +62,7 @@ func TestRequireSessionMiddlewareRejectsUnauthenticated(t *testing.T) {
 }
 
 func TestRequireSessionMiddlewareAllowsValidSession(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	sess, err := store.New()
@@ -74,7 +78,7 @@ func TestRequireSessionMiddlewareAllowsValidSession(t *testing.T) {
 }
 
 func TestCSRFMiddlewareBlocksMutatingRequestsWithoutToken(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	sess, err := store.New()
@@ -95,7 +99,7 @@ func TestCSRFMiddlewareBlocksMutatingRequestsWithoutToken(t *testing.T) {
 }
 
 func TestCSRFMiddlewareAllowsMutatingRequestsWithValidToken(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	sess, err := store.New()
@@ -116,7 +120,7 @@ func TestCSRFMiddlewareAllowsMutatingRequestsWithValidToken(t *testing.T) {
 }
 
 func TestCSRFMiddlewareSkipsGETRequests(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	sess, err := store.New()
@@ -132,7 +136,7 @@ func TestCSRFMiddlewareSkipsGETRequests(t *testing.T) {
 }
 
 func TestHealthzNotAffectedByAPIMiddleware(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)

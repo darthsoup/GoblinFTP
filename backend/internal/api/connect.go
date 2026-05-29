@@ -2,36 +2,40 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
 // ConnectRequest is the JSON body for POST /api/auth/connect.
 type ConnectRequest struct {
-	Type     string `json:"type"`
+	Protocol string `json:"protocol"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Passive  bool   `json:"passive"`
 }
 
 // ConnectData is the successful response payload for POST /api/auth/connect.
 // Populated in Phase 3 once the FTP/SFTP connection is established.
 type ConnectData struct {
-	Capabilities     ConnectCapabilities `json:"capabilities"`
-	InitialDirectory string              `json:"initialDirectory"`
-	CSRFToken        string              `json:"csrfToken"`
+	Capabilities     Capabilities `json:"capabilities"`
+	InitialDirectory string       `json:"initialDirectory"`
+	CSRFToken        string       `json:"csrfToken"`
 }
 
-// ConnectCapabilities describes what the connected server supports.
-type ConnectCapabilities struct {
-	Chmod bool `json:"chmod"`
+// Capabilities describes what the connected server supports.
+type Capabilities struct {
+	DisableChmod bool `json:"disableChmod"`
 }
 
 // Connect handles POST /api/auth/connect.
@@ -44,9 +48,9 @@ func (h *Handler) Connect(c echo.Context) error {
 	}
 
 	// Validate connection type
-	if !isAllowedType(req.Type, h.cfg.Settings.Connection.AllowedTypes) {
+	if !isAllowedType(req.Protocol, h.cfg.Settings.Connection.AllowedTypes) {
 		return Fail(c, gftperrors.New(gftperrors.ErrInvalidType,
-			fmt.Sprintf("connection type %q is not allowed", req.Type)))
+			fmt.Sprintf("connection type %q is not allowed", req.Protocol)))
 	}
 
 	// Validate required fields
@@ -69,15 +73,62 @@ func (h *Handler) Connect(c echo.Context) error {
 			"too many failed login attempts, please try again later"))
 	}
 
-	// Phase 3: FTP/SFTP connection goes here.
-	return Fail(c, gftperrors.New(gftperrors.ErrNotImplemented,
-		"FTP/SFTP connection not implemented in this phase"))
+	addr := fmt.Sprintf("%s:%d", req.Host, req.Port)
+	client, dialErr := h.dial(req.Protocol, addr, req.Username, req.Password, req.Passive)
+	if dialErr != nil {
+		h.throttle.Record(throttleKey, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
+		if errors.Is(dialErr, transfer.ErrAuthFailed) {
+			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed"))
+		}
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server"))
+	}
+	h.throttle.Reset(throttleKey)
+
+	initialDir, wdErr := client.WorkingDir()
+	if wdErr != nil {
+		_ = client.Close()
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory"))
+	}
+
+	disableChmod := detectChmod(client, req.Protocol, initialDir)
+
+	csrfToken, csrfErr := auth.GenerateCSRFToken()
+	if csrfErr != nil {
+		_ = client.Close()
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not generate CSRF token"))
+	}
+
+	sess, sessErr := h.store.New()
+	if sessErr != nil {
+		_ = client.Close()
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session"))
+	}
+	sess.Data["client"] = client
+	sess.Data[auth.CSRFSessionKey] = csrfToken
+	sess.Data["initialDir"] = initialDir
+
+	c.SetCookie(&http.Cookie{
+		Name:     SessionCookieName,
+		Value:    sess.ID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	return OK(c, ConnectData{
+		Capabilities:     Capabilities{DisableChmod: disableChmod},
+		InitialDirectory: initialDir,
+		CSRFToken:        csrfToken,
+	})
 }
 
 // Disconnect handles POST /api/auth/disconnect.
 // Requires a valid session (enforced by requireSession middleware in router.go).
 func (h *Handler) Disconnect(c echo.Context) error {
 	sess := c.Get("session").(*auth.Session)
+	if client, ok := sess.Data["client"].(transfer.Client); ok {
+		_ = client.Close()
+	}
 	h.store.Delete(sess.ID)
 	c.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,
@@ -114,4 +165,13 @@ func (h *Handler) checkIPAllowlist(c echo.Context) *gftperrors.GFTPError {
 		}
 	}
 	return gftperrors.New(gftperrors.ErrForbidden, "client IP address is not in the allowlist")
+}
+
+// detectChmod probes whether the server supports chmod operations.
+func detectChmod(client transfer.Client, protocol, dir string) bool {
+	if protocol == "ftp" {
+		return false // assume FTP servers support SITE CHMOD
+	}
+	err := client.Chmod(dir, 0o755)
+	return errors.Is(err, transfer.ErrPermissionsNotSupported)
 }

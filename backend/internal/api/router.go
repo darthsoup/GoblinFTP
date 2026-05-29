@@ -18,7 +18,7 @@ const (
 )
 
 // Register adds the /healthz route, global middleware, and all /api/* routes to e.
-func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, throttle *auth.Throttle) {
+func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts ...HandlerOption) {
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
 	e.Use(cspMiddleware())
@@ -27,7 +27,10 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, throttle *aut
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	h := &Handler{cfg: cfg, store: store, throttle: throttle}
+	// Public routes (no auth required)
+	e.GET("/api/system/vars", NotImplemented)
+
+	h := newHandler(cfg, store, thr, opts)
 
 	apiGroup := e.Group("/api")
 	apiGroup.Use(csrfMiddleware(store))
@@ -44,6 +47,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, throttle *aut
 	apiGroup.PATCH("/files/copy", requireSession(store)(NotImplemented))
 	apiGroup.PATCH("/files/permissions", requireSession(store)(NotImplemented))
 	apiGroup.GET("/files/download", requireSession(store)(NotImplemented))
+	apiGroup.POST("/files/download-token", requireSession(store)(NotImplemented))
 	apiGroup.POST("/files/download-zip", requireSession(store)(NotImplemented))
 	apiGroup.POST("/files/upload", requireSession(store)(NotImplemented))
 	apiGroup.POST("/files/upload/reserve", requireSession(store)(NotImplemented))
@@ -53,7 +57,6 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, throttle *aut
 	apiGroup.POST("/files/zip", requireSession(store)(NotImplemented))
 
 	// System — Phase 3
-	apiGroup.GET("/system/vars", requireSession(store)(NotImplemented))
 	apiGroup.POST("/system/settings", requireSession(store)(NotImplemented))
 }
 

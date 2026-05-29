@@ -12,12 +12,14 @@ import (
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/transfer"
+	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type connectPayload struct {
-	Type     string `json:"type"`
+	Protocol string `json:"protocol"`
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
 	Username string `json:"username"`
@@ -39,17 +41,17 @@ func newConnectRequest(t *testing.T, p connectPayload) *http.Request {
 }
 
 func validPayload() connectPayload {
-	return connectPayload{Type: "ftp", Host: "ftp.example.com", Port: 21, Username: "user", Password: "pass"}
+	return connectPayload{Protocol: "ftp", Host: "ftp.example.com", Port: 21, Username: "user", Password: "pass"}
 }
 
 func TestConnectDisallowedType(t *testing.T) {
 	cfg := defaultTestConfig()
 	cfg.Settings.Connection.AllowedTypes = []string{"ftp"} // sftp not allowed
-	e, store, _ := newTestApp(cfg)
+	e, store, _ := newTestApp(t, cfg)
 	defer store.Close()
 
 	p := validPayload()
-	p.Type = "sftp"
+	p.Protocol = "sftp"
 	req := newConnectRequest(t, p)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -62,7 +64,7 @@ func TestConnectDisallowedType(t *testing.T) {
 }
 
 func TestConnectMissingHost(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	p := validPayload()
@@ -75,7 +77,7 @@ func TestConnectMissingHost(t *testing.T) {
 }
 
 func TestConnectMissingUsername(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	p := validPayload()
@@ -88,7 +90,7 @@ func TestConnectMissingUsername(t *testing.T) {
 }
 
 func TestConnectInvalidPort(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	p := validPayload()
@@ -103,7 +105,7 @@ func TestConnectInvalidPort(t *testing.T) {
 func TestConnectIPNotAllowlisted(t *testing.T) {
 	cfg := defaultTestConfig()
 	cfg.Settings.Access.AllowedClientAddresses = []string{"10.0.0.1"} // only 10.0.0.1 allowed
-	e, store, _ := newTestApp(cfg)
+	e, store, _ := newTestApp(t, cfg)
 	defer store.Close()
 
 	req := newConnectRequest(t, validPayload())
@@ -120,7 +122,7 @@ func TestConnectIPNotAllowlisted(t *testing.T) {
 func TestConnectThrottled(t *testing.T) {
 	cfg := defaultTestConfig()
 	cfg.LoginMaxAttempts = 2
-	e, store, throttle := newTestApp(cfg)
+	e, store, throttle := newTestApp(t, cfg)
 	defer store.Close()
 
 	key := "ftp.example.com:user"
@@ -137,20 +139,36 @@ func TestConnectThrottled(t *testing.T) {
 	assert.Equal(t, string(gftperrors.ErrLoginThrottled), resp.Errors[0].Code)
 }
 
-func TestConnectValidReturns501(t *testing.T) {
-	// All validation passes; FTP/SFTP not implemented until Phase 3.
-	e, store, _ := newTestApp(defaultTestConfig())
-	defer store.Close()
+func TestConnectSuccess(t *testing.T) {
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/home/user", nil },
+		ChmodFn:      func(path string, mode uint32) error { return nil },
+	}
+	dialFn := func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
+		return mock, nil
+	}
 
-	req := newConnectRequest(t, validPayload())
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
+	body := `{"protocol":"ftp","host":"ftp.example.com","port":21,"username":"user","password":"pass"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/connect", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+	app.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusNotImplemented, rec.Code)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Success bool `json:"success"`
+		Data    struct {
+			InitialDirectory string `json:"initialDirectory"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.True(t, resp.Success)
+	assert.Equal(t, "/home/user", resp.Data.InitialDirectory)
 }
 
 func TestDisconnect(t *testing.T) {
-	e, store, _ := newTestApp(defaultTestConfig())
+	e, store, _ := newTestApp(t, defaultTestConfig())
 	defer store.Close()
 
 	sess, err := store.New()
