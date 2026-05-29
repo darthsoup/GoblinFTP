@@ -35,3 +35,26 @@ func TestSystemVarsNoSession(t *testing.T) {
 	app.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
+
+func TestSystemVarsSSOFields(t *testing.T) {
+	cfg := defaultTestConfig()
+	cfg.SSOEnabled = true
+	cfg.SSOSecret = []byte("testsecret32byteslong_xxxxxxxxxxx")
+	cfg.DisableLoginForm = true
+
+	app, _, _ := newTestApp(t, cfg)
+	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Data struct {
+			SSOEnabled        bool `json:"ssoEnabled"`
+			LoginFormDisabled bool `json:"loginFormDisabled"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.True(t, resp.Data.SSOEnabled)
+	assert.True(t, resp.Data.LoginFormDisabled)
+}

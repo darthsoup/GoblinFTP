@@ -6,10 +6,12 @@ import (
 )
 
 type systemVarsData struct {
-	Language   string           `json:"language"`
-	UI         systemUIVars     `json:"ui"`
-	Upload     systemUploadVars `json:"upload"`
-	Connection systemConnVars   `json:"connection"`
+	Language         string           `json:"language"`
+	UI               systemUIVars     `json:"ui"`
+	Upload           systemUploadVars `json:"upload"`
+	Connection       systemConnVars   `json:"connection"`
+	LoginFormDisabled bool            `json:"loginFormDisabled"`
+	SSOEnabled       bool             `json:"ssoEnabled"`
 }
 
 type systemUIVars struct {
@@ -42,5 +44,7 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			AllowedTypes: h.cfg.Settings.Connection.AllowedTypes,
 			DisableChmod: h.cfg.Settings.Connection.DisableChmod,
 		},
+		LoginFormDisabled: h.cfg.DisableLoginForm,
+		SSOEnabled:        h.cfg.SSOEnabled,
 	})
 }

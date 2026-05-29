@@ -63,6 +63,7 @@ type Config struct {
 	SessionTTLSeconds     int
 	SentryDSN             string
 	LoginDisabledRedirect string
+	DisableLoginForm      bool
 	Settings              Settings
 }
 
@@ -105,6 +106,7 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 		SessionTTLSeconds:     7200,
 		SentryDSN:             os.Getenv("GFTP_SENTRY_DSN"),
 		LoginDisabledRedirect: os.Getenv("GFTP_LOGIN_DISABLED_REDIRECT"),
+		DisableLoginForm:      os.Getenv("GFTP_DISABLE_LOGIN_FORM") == "true",
 		Settings:              defaultSettings(),
 	}
 
