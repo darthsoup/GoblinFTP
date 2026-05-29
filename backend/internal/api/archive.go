@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"path"
 	"strings"
@@ -16,6 +17,19 @@ import (
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
+
+const maxZipSize = 512 * 1024 * 1024 // 512 MB
+
+// safeJoin joins destination and name, returning an error if the result escapes destination.
+func safeJoin(destination, name string) (string, error) {
+	outPath := path.Clean(path.Join(destination, name))
+	cleanDest := path.Clean(destination)
+	// Ensure outPath is inside cleanDest (add trailing slash to avoid prefix matching "/dir" vs "/dir2")
+	if outPath != cleanDest && !strings.HasPrefix(outPath, cleanDest+"/") {
+		return "", fmt.Errorf("archive entry %q escapes destination", name)
+	}
+	return outPath, nil
+}
 
 // ExtractArchive extracts an uploaded archive (zip/tar/tar.gz/tar.bz2) to a remote destination.
 func (h *Handler) ExtractArchive(c echo.Context) error {
@@ -40,9 +54,13 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 	filename := strings.ToLower(fh.Filename)
 	switch {
 	case strings.HasSuffix(filename, ".zip"):
-		data, err := io.ReadAll(f)
+		limited := io.LimitReader(f, maxZipSize+1)
+		data, err := io.ReadAll(limited)
 		if err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to read archive"))
+		}
+		if int64(len(data)) > maxZipSize {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "archive exceeds maximum size"))
 		}
 		zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 		if err != nil {
@@ -76,7 +94,10 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 
 func extractZip(client transfer.Client, zr *zip.Reader, destination string) error {
 	for _, entry := range zr.File {
-		outPath := path.Join(destination, entry.Name)
+		outPath, err := safeJoin(destination, entry.Name)
+		if err != nil {
+			return err
+		}
 		if entry.FileInfo().IsDir() {
 			_ = client.MakeDir(outPath)
 			continue
@@ -104,7 +125,10 @@ func extractTar(client transfer.Client, tr *tar.Reader, destination string) erro
 		if err != nil {
 			return err
 		}
-		outPath := path.Join(destination, hdr.Name)
+		outPath, err := safeJoin(destination, hdr.Name)
+		if err != nil {
+			return err
+		}
 		switch hdr.Typeflag {
 		case tar.TypeDir:
 			_ = client.MakeDir(outPath)
