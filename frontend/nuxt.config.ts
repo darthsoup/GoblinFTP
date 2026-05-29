@@ -23,4 +23,15 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2026-05-01',
+
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
+      },
+    },
+  },
 })

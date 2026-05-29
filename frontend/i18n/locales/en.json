@@ -1,1 +1,30 @@
-{}
+{
+  "login": {
+    "protocol": "Protocol",
+    "host": "Host",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Username",
+    "usernamePlaceholder": "username",
+    "password": "Password",
+    "connect": "Connect"
+  },
+  "header": {
+    "connected": "Connected",
+    "disconnect": "Disconnect"
+  },
+  "breadcrumb": {
+    "root": "Root"
+  },
+  "files": {
+    "name": "Name",
+    "size": "Size",
+    "modified": "Modified",
+    "permissions": "Permissions",
+    "loading": "Loading...",
+    "empty": "This directory is empty"
+  },
+  "error": {
+    "connectionFailed": "Connection failed"
+  }
+}
