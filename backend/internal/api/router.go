@@ -40,12 +40,12 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	apiGroup.POST("/auth/disconnect", requireSession(store)(h.Disconnect))
 
 	// File operations — Phase 3
-	apiGroup.GET("/files", requireSession(store)(NotImplemented))
-	apiGroup.POST("/files/directory", requireSession(store)(NotImplemented))
-	apiGroup.DELETE("/files", requireSession(store)(NotImplemented))
-	apiGroup.PATCH("/files/rename", requireSession(store)(NotImplemented))
-	apiGroup.PATCH("/files/copy", requireSession(store)(NotImplemented))
-	apiGroup.PATCH("/files/permissions", requireSession(store)(NotImplemented))
+	apiGroup.GET("/files", requireSession(store)(h.ListFiles))
+	apiGroup.POST("/files/directory", requireSession(store)(h.CreateDirectory))
+	apiGroup.DELETE("/files", requireSession(store)(h.DeleteFiles))
+	apiGroup.PATCH("/files/rename", requireSession(store)(h.RenameFile))
+	apiGroup.PATCH("/files/copy", requireSession(store)(h.CopyFile))
+	apiGroup.PATCH("/files/permissions", requireSession(store)(h.SetPermissions))
 	apiGroup.GET("/files/download", requireSession(store)(NotImplemented))
 	apiGroup.POST("/files/download-token", requireSession(store)(NotImplemented))
 	apiGroup.POST("/files/download-zip", requireSession(store)(NotImplemented))

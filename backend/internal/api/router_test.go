@@ -73,8 +73,8 @@ func TestRequireSessionMiddlewareAllowsValidSession(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	// 501 means the route was reached (Phase 3 stub), not 401
-	assert.Equal(t, http.StatusNotImplemented, rec.Code)
+	// Session exists, but no client -> handler returns 401 (no active connection)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
 func TestCSRFMiddlewareBlocksMutatingRequestsWithoutToken(t *testing.T) {
@@ -131,8 +131,8 @@ func TestCSRFMiddlewareSkipsGETRequests(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	// 501 = route reached, no auth issue
-	assert.Equal(t, http.StatusNotImplemented, rec.Code)
+	// GET doesn't need CSRF token. Session exists but no client -> 401
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
 func TestHealthzNotAffectedByAPIMiddleware(t *testing.T) {
