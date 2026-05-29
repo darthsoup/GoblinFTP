@@ -57,6 +57,7 @@ type Config struct {
 	SSOEnabled            bool
 	SSOSecret             []byte
 	ChunkSize             int64
+	DataDir               string
 	LoginMaxAttempts      int
 	LoginCooldownSeconds  int
 	SessionTTLSeconds     int
@@ -98,6 +99,7 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 		Port:                  envOr("GFTP_PORT", "8080"),
 		LogLevel:              envOr("GFTP_LOG_LEVEL", "info"),
 		ChunkSize:             5 * 1024 * 1024,
+		DataDir:               envOr("GFTP_DATA_DIR", "/app/data"),
 		LoginMaxAttempts:      5,
 		LoginCooldownSeconds:  300,
 		SessionTTLSeconds:     7200,

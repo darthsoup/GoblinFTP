@@ -25,6 +25,11 @@ const (
 	ErrCSRFInvalid      Code = "ERR_CSRF_INVALID"
 	ErrSessionNotFound  Code = "ERR_SESSION_NOT_FOUND"
 	ErrQuotaExceeded    Code = "ERR_QUOTA_EXCEEDED"
+	ErrConnectionTimeout      Code = "ERR_CONNECTION_TIMEOUT"
+	ErrPermissionsNotSupported Code = "ERR_PERMISSIONS_NOT_SUPPORTED"
+	ErrUploadNotFound         Code = "ERR_UPLOAD_NOT_FOUND"
+	ErrInvalidToken           Code = "ERR_INVALID_TOKEN"
+	ErrArchiveFormat          Code = "ERR_ARCHIVE_FORMAT"
 )
 
 // GFTPError is a typed error with a machine-readable code and human-readable message.
@@ -81,6 +86,16 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusConflict
 	case ErrNotImplemented:
 		return http.StatusNotImplemented
+	case ErrConnectionTimeout:
+		return http.StatusGatewayTimeout
+	case ErrPermissionsNotSupported:
+		return http.StatusUnprocessableEntity
+	case ErrUploadNotFound:
+		return http.StatusNotFound
+	case ErrInvalidToken:
+		return http.StatusUnauthorized
+	case ErrArchiveFormat:
+		return http.StatusUnprocessableEntity
 	default:
 		return http.StatusInternalServerError
 	}
