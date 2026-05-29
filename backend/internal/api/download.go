@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,18 @@ import (
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
+
+// sanitizeFilename removes characters that could break HTTP header values.
+func sanitizeFilename(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		if r == '"' || r == '\\' || r == '\r' || r == '\n' || r == '\t' {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
 
 // IssueDownloadToken issues a signed short-lived token for downloading a file.
 func (h *Handler) IssueDownloadToken(c echo.Context) error {
@@ -58,7 +71,7 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	}
 	defer r.Close()
 
-	filename := path.Base(filePath)
+	filename := sanitizeFilename(path.Base(filePath))
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
 	c.Response().Header().Set("Content-Type", "application/octet-stream")
 	c.Response().WriteHeader(http.StatusOK)
