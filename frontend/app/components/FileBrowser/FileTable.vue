@@ -23,6 +23,7 @@ function toggleSort(key: SortKey) {
 
 const sortedFiles = computed(() => {
   const arr = [...filesStore.files]
+  // Directories always first
   arr.sort((a, b) => {
     if (a.isDir !== b.isDir)
       return a.isDir ? -1 : 1
