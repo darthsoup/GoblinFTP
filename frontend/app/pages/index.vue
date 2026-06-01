@@ -30,5 +30,13 @@ onMounted(async () => {
     <template v-else>
       <LoginForm />
     </template>
+
+    <!-- Modals -->
+    <RenameModal />
+    <DeleteModal />
+    <NewFolderModal />
+    <NewFileModal />
+    <ChmodModal />
+    <PropertiesModal />
   </div>
 </template>

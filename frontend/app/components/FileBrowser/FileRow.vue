@@ -11,6 +11,7 @@ const emit = defineEmits<{
   select: [name: string]
   navigate: [path: string]
   download: [path: string]
+  contextmenu: [file: FileInfo, x: number, y: number]
 }>()
 
 const icon = computed(() =>
@@ -57,9 +58,10 @@ function handleDownload() {
 
 <template>
   <tr
-    class="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer select-none"
+    class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-default"
     :class="{ 'bg-primary-50 dark:bg-primary-900/20': selected }"
     @click="handleClick"
+    @contextmenu.prevent="emit('contextmenu', props.file, $event.clientX, $event.clientY)"
   >
     <td class="w-8 px-3 py-2">
       <input
