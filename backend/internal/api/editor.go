@@ -2,7 +2,6 @@ package api
 
 import (
 	"io"
-	"net/http"
 	"path/filepath"
 	"strings"
 
@@ -93,10 +92,13 @@ func (h *Handler) WriteFile(c echo.Context) error {
 	if !h.isEditableExtension(ext) {
 		return Fail(c, gftperrors.New(gftperrors.ErrEditorDisabled, "file type not editable"))
 	}
+	if int64(len(req.Content)) > maxEditorReadSize {
+		return Fail(c, gftperrors.New(gftperrors.ErrFileTooLarge, "content exceeds 1 MB editor limit"))
+	}
 
 	if err := client.Upload(req.Path, strings.NewReader(req.Content)); err != nil {
 		return Fail(c, gftperrors.Wrap(gftperrors.ErrOperationFailed, err))
 	}
 
-	return c.JSON(http.StatusOK, map[string]bool{"success": true})
+	return OK(c, nil)
 }

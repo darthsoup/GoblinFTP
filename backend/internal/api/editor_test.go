@@ -126,6 +126,22 @@ func TestWriteFile(t *testing.T) {
 	assert.Equal(t, "updated content", uploadedContent)
 }
 
+func TestWriteFileTooLarge(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{}))
+	sess := connectAndGetSession(t, app)
+
+	huge := strings.Repeat("x", 1*1024*1024+1)
+	body := `{"path":"/remote/file.txt","content":"` + huge + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/files/write", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Contains(t, rec.Body.String(), "ERR_FILE_TOO_LARGE")
+}
+
 func TestWriteFileViewOnly(t *testing.T) {
 	cfg := editorTestConfig()
 	cfg.Settings.Editor.ViewOnly = true
