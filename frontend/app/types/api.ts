@@ -40,7 +40,10 @@ export interface SystemVars {
     showDotFiles: boolean
     showNavigationHistory: boolean
   }
-  upload: { chunkSize: number }
+  upload: {
+    chunkSize: number
+    maxConcurrentUploads: number
+  }
   connection: { allowedTypes: string[], disableChmod: boolean }
   loginFormDisabled: boolean
   ssoEnabled: boolean

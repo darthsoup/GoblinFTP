@@ -91,6 +91,26 @@ export const useFilesStore = defineStore('files', () => {
     await list()
   }
 
+  async function downloadZip(paths: string[]): Promise<void> {
+    const authStore = useAuthStore()
+    const csrf = authStore.csrfToken
+    const resp = await $fetch.raw('/api/files/download-zip', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrf },
+      body: { paths },
+      responseType: 'blob',
+    })
+    const blob = resp._data as Blob
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'archive.zip'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   function $reset() {
     currentPath.value = '/'
     files.value = []
@@ -128,6 +148,7 @@ export const useFilesStore = defineStore('files', () => {
     mkdir,
     chmod,
     createFile,
+    downloadZip,
     $reset,
   }
 })
