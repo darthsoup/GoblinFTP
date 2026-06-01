@@ -85,6 +85,14 @@ docker-up:
 docker-down:
 	docker compose down
 
+# Start FTP test server (garethflowers/ftp-server — default: ftpuser/ftppass on localhost:21)
+ftp-up:
+	docker compose --profile testing up ftp -d
+
+# Stop FTP test server
+ftp-down:
+	docker compose --profile testing down ftp
+
 # ── Utilities ──────────────────────────────────────────────────────────────────
 
 # Report i18n keys in en.json missing from de.json
