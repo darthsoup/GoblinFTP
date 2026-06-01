@@ -73,13 +73,16 @@ func TestListFiles(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	var resp struct {
 		Success bool `json:"success"`
-		Data    struct {
-			Files []transfer.FileInfo `json:"files"`
+		Data    []struct {
+			Name  string `json:"name"`
+			IsDir bool   `json:"isDir"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.True(t, resp.Success)
-	assert.Len(t, resp.Data.Files, 2)
+	assert.Len(t, resp.Data, 2)
+	assert.Equal(t, "file.txt", resp.Data[0].Name)
+	assert.Equal(t, "subdir", resp.Data[1].Name)
 }
 
 func TestCreateDirectory(t *testing.T) {

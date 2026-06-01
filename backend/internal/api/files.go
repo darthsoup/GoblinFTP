@@ -4,6 +4,7 @@ package api
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -11,6 +12,25 @@ import (
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
+
+// fileInfoJSON is the API wire representation of a remote filesystem entry.
+type fileInfoJSON struct {
+	Name     string `json:"name"`
+	Size     int64  `json:"size"`
+	IsDir    bool   `json:"isDir"`
+	Modified string `json:"modified"` // RFC3339
+	Mode     string `json:"mode"`     // e.g. "drwxr-xr-x"
+}
+
+func toFileInfoJSON(fi transfer.FileInfo) fileInfoJSON {
+	return fileInfoJSON{
+		Name:     fi.Name,
+		Size:     fi.Size,
+		IsDir:    fi.IsDir,
+		Modified: time.Unix(fi.ModTime, 0).UTC().Format(time.RFC3339),
+		Mode:     fi.Permissions,
+	}
+}
 
 // clientFromContext extracts the transfer.Client from the session stored by requireSession middleware.
 func clientFromContext(c echo.Context) (transfer.Client, bool) {
@@ -35,7 +55,11 @@ func (h *Handler) ListFiles(c echo.Context) error {
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrListFailed, err.Error()))
 	}
-	return OK(c, map[string]interface{}{"files": files})
+	result := make([]fileInfoJSON, len(files))
+	for i, f := range files {
+		result[i] = toFileInfoJSON(f)
+	}
+	return OK(c, result)
 }
 
 func (h *Handler) CreateDirectory(c echo.Context) error {
