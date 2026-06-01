@@ -6,12 +6,12 @@ import (
 )
 
 type systemVarsData struct {
-	Language         string           `json:"language"`
-	UI               systemUIVars     `json:"ui"`
-	Upload           systemUploadVars `json:"upload"`
-	Connection       systemConnVars   `json:"connection"`
-	LoginFormDisabled bool            `json:"loginFormDisabled"`
-	SSOEnabled       bool             `json:"ssoEnabled"`
+	Language          string           `json:"language"`
+	UI                systemUIVars     `json:"ui"`
+	Upload            systemUploadVars `json:"upload"`
+	Connection        systemConnVars   `json:"connection"`
+	LoginFormDisabled bool             `json:"loginFormDisabled"`
+	SSOEnabled        bool             `json:"ssoEnabled"`
 }
 
 type systemUIVars struct {
@@ -21,7 +21,8 @@ type systemUIVars struct {
 }
 
 type systemUploadVars struct {
-	ChunkSize int64 `json:"chunkSize"`
+	ChunkSize            int64 `json:"chunkSize"`
+	MaxConcurrentUploads int   `json:"maxConcurrentUploads"`
 }
 
 type systemConnVars struct {
@@ -38,7 +39,8 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			ShowNavigationHistory: h.cfg.Settings.UI.ShowNavigationHistory,
 		},
 		Upload: systemUploadVars{
-			ChunkSize: h.cfg.ChunkSize,
+			ChunkSize:            h.cfg.ChunkSize,
+			MaxConcurrentUploads: h.cfg.MaxConcurrentUploads,
 		},
 		Connection: systemConnVars{
 			AllowedTypes: h.cfg.Settings.Connection.AllowedTypes,

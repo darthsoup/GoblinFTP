@@ -2,6 +2,8 @@
 package api_test
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -34,7 +36,7 @@ func TestIssueDownloadToken(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	var resp struct {
-		Success bool   `json:"success"`
+		Success bool `json:"success"`
 		Data    struct {
 			Token string `json:"token"`
 		} `json:"data"`
@@ -67,7 +69,9 @@ func TestDownloadFile(t *testing.T) {
 	require.Equal(t, http.StatusOK, tokenRec.Code)
 
 	var tokenResp struct {
-		Data struct{ Token string `json:"token"` } `json:"data"`
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(tokenRec.Body.Bytes(), &tokenResp))
 	token := tokenResp.Data.Token
@@ -79,4 +83,91 @@ func TestDownloadFile(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, dlRec.Code)
 	assert.Equal(t, content, dlRec.Body.String())
+}
+
+func TestDownloadZip(t *testing.T) {
+	content := "zip-me"
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn: func(path string) (transfer.FileInfo, error) {
+			return transfer.FileInfo{Name: "file.txt", Size: int64(len(content)), IsDir: false}, nil
+		},
+		DownloadFn: func(path string) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader(content)), nil
+		},
+	}
+	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
+	sess := connectAndGetSession(t, app)
+
+	body := `{"paths":["/file.txt"]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/files/download-zip", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "application/zip", rec.Header().Get("Content-Type"))
+	assert.Contains(t, rec.Header().Get("Content-Disposition"), "archive.zip")
+
+	// The response should be a valid ZIP containing "file.txt"
+	body2 := rec.Body.Bytes()
+	zr, err := zip.NewReader(bytes.NewReader(body2), int64(len(body2)))
+	require.NoError(t, err)
+	require.Len(t, zr.File, 1)
+	assert.Equal(t, "file.txt", zr.File[0].Name)
+	rc, err := zr.File[0].Open()
+	require.NoError(t, err)
+	defer rc.Close()
+	got, _ := io.ReadAll(rc)
+	assert.Equal(t, content, string(got))
+}
+
+func TestDownloadZipMissingPaths(t *testing.T) {
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(func(p, a, u, pw string, passive bool) (transfer.Client, error) {
+		return &testutil.MockClient{
+			WorkingDirFn: func() (string, error) { return "/", nil },
+			ChmodFn:      func(string, uint32) error { return nil },
+		}, nil
+	}))
+	sess := connectAndGetSession(t, app)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/files/download-zip", strings.NewReader(`{"paths":[]}`))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestDownloadZipRejectsOversizedArchive(t *testing.T) {
+	const oversizedFile = 512*1024*1024 + 1
+	calledDownload := false
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn: func(path string) (transfer.FileInfo, error) {
+			return transfer.FileInfo{Name: "large.bin", Size: oversizedFile, IsDir: false}, nil
+		},
+		DownloadFn: func(path string) (io.ReadCloser, error) {
+			calledDownload = true
+			return io.NopCloser(strings.NewReader("unexpected")), nil
+		},
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(func(p, a, u, pw string, passive bool) (transfer.Client, error) {
+		return mock, nil
+	}))
+	sess := connectAndGetSession(t, app)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/files/download-zip", strings.NewReader(`{"paths":["/large.bin"]}`))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.False(t, calledDownload)
 }

@@ -13,7 +13,7 @@ func clearEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
 		"GFTP_PORT", "GFTP_LOG_LEVEL", "GFTP_SESSION_SECRET", "GFTP_DOWNLOAD_TOKEN_SECRET",
-		"GFTP_SSO_ENABLED", "GFTP_SSO_SECRET", "GFTP_CHUNK_SIZE",
+		"GFTP_SSO_ENABLED", "GFTP_SSO_SECRET", "GFTP_CHUNK_SIZE", "GFTP_MAX_CONCURRENT_UPLOADS",
 		"GFTP_LOGIN_MAX_ATTEMPTS", "GFTP_LOGIN_COOLDOWN_SECS", "GFTP_SESSION_TTL_SECS",
 		"GFTP_SENTRY_DSN", "GFTP_PAGE_TITLE", "GFTP_LOGIN_DISABLED_REDIRECT", "GFTP_SETTINGS_PATH",
 	} {
@@ -31,6 +31,7 @@ func TestLoadDefaults(t *testing.T) {
 	assert.NotEmpty(t, cfg.SessionSecret)
 	assert.NotEmpty(t, cfg.DownloadTokenSecret)
 	assert.Equal(t, int64(5*1024*1024), cfg.ChunkSize)
+	assert.Equal(t, 3, cfg.MaxConcurrentUploads)
 	assert.Equal(t, 5, cfg.LoginMaxAttempts)
 	assert.Equal(t, 300, cfg.LoginCooldownSeconds)
 	assert.Equal(t, 7200, cfg.SessionTTLSeconds)
@@ -52,6 +53,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("GFTP_SSO_ENABLED", "true")
 	t.Setenv("GFTP_SSO_SECRET", "sso-secret")
 	t.Setenv("GFTP_CHUNK_SIZE", "1048576")
+	t.Setenv("GFTP_MAX_CONCURRENT_UPLOADS", "7")
 	t.Setenv("GFTP_LOGIN_MAX_ATTEMPTS", "3")
 	t.Setenv("GFTP_LOGIN_COOLDOWN_SECS", "60")
 	t.Setenv("GFTP_SESSION_TTL_SECS", "3600")
@@ -66,6 +68,7 @@ func TestLoadFromEnv(t *testing.T) {
 	assert.Equal(t, []byte("my-token-secret"), cfg.DownloadTokenSecret)
 	assert.True(t, cfg.SSOEnabled)
 	assert.Equal(t, int64(1048576), cfg.ChunkSize)
+	assert.Equal(t, 7, cfg.MaxConcurrentUploads)
 	assert.Equal(t, 3, cfg.LoginMaxAttempts)
 	assert.Equal(t, 60, cfg.LoginCooldownSeconds)
 	assert.Equal(t, 3600, cfg.SessionTTLSeconds)
@@ -151,6 +154,13 @@ func TestLoadInvalidChunkSize(t *testing.T) {
 func TestLoadRejectsNonPositiveChunkSize(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("GFTP_CHUNK_SIZE", "0")
+	_, err := config.Load(nil, "")
+	assert.Error(t, err)
+}
+
+func TestLoadInvalidMaxConcurrentUploads(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_MAX_CONCURRENT_UPLOADS", "0")
 	_, err := config.Load(nil, "")
 	assert.Error(t, err)
 }

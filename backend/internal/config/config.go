@@ -57,6 +57,7 @@ type Config struct {
 	SSOEnabled            bool
 	SSOSecret             []byte
 	ChunkSize             int64
+	MaxConcurrentUploads  int
 	DataDir               string
 	LoginMaxAttempts      int
 	LoginCooldownSeconds  int
@@ -127,6 +128,18 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid GFTP_CHUNK_SIZE: must be positive, got %d", n)
 		}
 		cfg.ChunkSize = n
+	}
+
+	cfg.MaxConcurrentUploads = 3
+	if raw := os.Getenv("GFTP_MAX_CONCURRENT_UPLOADS"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GFTP_MAX_CONCURRENT_UPLOADS: %w", err)
+		}
+		if n <= 0 {
+			return nil, fmt.Errorf("invalid GFTP_MAX_CONCURRENT_UPLOADS: must be positive, got %d", n)
+		}
+		cfg.MaxConcurrentUploads = n
 	}
 
 	if raw := os.Getenv("GFTP_LOGIN_MAX_ATTEMPTS"); raw != "" {

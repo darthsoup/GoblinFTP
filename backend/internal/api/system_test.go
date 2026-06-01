@@ -12,7 +12,9 @@ import (
 )
 
 func TestSystemVarsPublic(t *testing.T) {
-	app, _, _ := newTestApp(t, defaultTestConfig())
+	cfg := defaultTestConfig()
+	cfg.MaxConcurrentUploads = 4
+	app, _, _ := newTestApp(t, cfg)
 	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
 	rec := httptest.NewRecorder()
 	app.ServeHTTP(rec, req)
@@ -20,11 +22,18 @@ func TestSystemVarsPublic(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	var resp struct {
-		Success bool            `json:"success"`
-		Data    json.RawMessage `json:"data"`
+		Success bool `json:"success"`
+		Data    struct {
+			Upload struct {
+				ChunkSize            int64 `json:"chunkSize"`
+				MaxConcurrentUploads int   `json:"maxConcurrentUploads"`
+			} `json:"upload"`
+		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.True(t, resp.Success)
+	assert.Equal(t, cfg.ChunkSize, resp.Data.Upload.ChunkSize)
+	assert.Equal(t, cfg.MaxConcurrentUploads, resp.Data.Upload.MaxConcurrentUploads)
 }
 
 func TestSystemVarsNoSession(t *testing.T) {

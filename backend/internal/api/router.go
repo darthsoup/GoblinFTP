@@ -53,7 +53,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	apiGroup.PATCH("/files/copy", requireSession(store)(h.CopyFile))
 	apiGroup.PATCH("/files/permissions", requireSession(store)(h.SetPermissions))
 	apiGroup.POST("/files/download-token", requireSession(store)(h.IssueDownloadToken))
-	apiGroup.POST("/files/download-zip", requireSession(store)(NotImplemented))
+	apiGroup.POST("/files/download-zip", requireSession(store)(h.DownloadZip))
 	apiGroup.POST("/files/upload", requireSession(store)(h.UploadSimple))
 	apiGroup.POST("/files/upload/reserve", requireSession(store)(h.UploadReserve))
 	apiGroup.POST("/files/upload/chunk", requireSession(store)(h.UploadChunk))
