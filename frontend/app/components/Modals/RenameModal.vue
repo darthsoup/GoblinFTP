@@ -16,11 +16,20 @@ watch(() => modalStore.active, (v) => {
 })
 
 async function submit() {
-  if (!file.value || !newName.value.trim())
+  if (!file.value)
     return
+  const trimmed = newName.value.trim()
+  if (!trimmed) {
+    error.value = t('modal.rename.errorEmpty')
+    return
+  }
+  if (trimmed === file.value.name) {
+    modalStore.close()
+    return
+  }
   const dir = filesStore.currentPath.replace(/\/$/, '')
   const from = `${dir}/${file.value.name}`
-  const to = `${dir}/${newName.value.trim()}`
+  const to = `${dir}/${trimmed}`
   loading.value = true
   error.value = null
   try {

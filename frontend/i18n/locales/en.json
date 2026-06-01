@@ -45,7 +45,8 @@
       "title": "Rename",
       "label": "New name",
       "confirm": "Rename",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorEmpty": "Please enter a name"
     },
     "delete": {
       "title": "Delete",
