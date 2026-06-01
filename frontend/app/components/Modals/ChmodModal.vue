@@ -36,13 +36,14 @@ function isValidOctal(s: string): boolean {
 }
 
 async function submit() {
-  if (!file.value || !isValidOctal(octal.value)) {
-    error.value = t('modal.chmod.note')
+  const trimmedOctal = octal.value.trim()
+  if (!file.value || !isValidOctal(trimmedOctal)) {
+    error.value = t('modal.chmod.errorInvalid')
     return
   }
   const dir = filesStore.currentPath.replace(/\/$/, '')
   const path = `${dir}/${file.value.name}`
-  const mode = Number.parseInt(octal.value, 8)
+  const mode = Number.parseInt(trimmedOctal, 8)
   loading.value = true
   error.value = null
   try {

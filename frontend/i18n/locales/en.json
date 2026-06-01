@@ -76,6 +76,7 @@
       "label": "Octal mode",
       "placeholder": "755",
       "note": "Enter 3-digit octal (e.g. 755, 644)",
+      "errorInvalid": "Please enter a valid octal mode (e.g. 755)",
       "confirm": "Apply",
       "cancel": "Cancel"
     },
