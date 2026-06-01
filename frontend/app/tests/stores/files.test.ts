@@ -1,0 +1,34 @@
+import { createTestingPinia } from '@pinia/testing'
+import { setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FileInfo } from '~/types/api'
+
+const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() }
+vi.mock('~/composables/useApi', () => ({ useApi: () => mockApi }))
+
+describe('useFilesStore', () => {
+  beforeEach(() => {
+    setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
+    vi.clearAllMocks()
+  })
+
+  it('lists files and updates state', async () => {
+    const files: FileInfo[] = [{ name: 'a.txt', size: 10, isDir: false, modTime: 0, permissions: '-rw-r--r--' }]
+    mockApi.get.mockResolvedValue(files)
+    const store = useFilesStore()
+
+    await store.list('/home')
+
+    expect(store.files).toEqual(files)
+    expect(store.currentPath).toBe('/home')
+    expect(store.loading).toBe(false)
+  })
+
+  it('toggleSelection adds and removes names', () => {
+    const store = useFilesStore()
+    store.toggleSelection('a.txt')
+    expect(store.selected.has('a.txt')).toBe(true)
+    store.toggleSelection('a.txt')
+    expect(store.selected.has('a.txt')).toBe(false)
+  })
+})
