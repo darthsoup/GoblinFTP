@@ -21,16 +21,23 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const menuRef = ref<HTMLElement | null>(null)
+const menuStyle = ref<Record<string, string>>({})
 
-// Clamp position so menu stays inside viewport
-const style = computed(() => {
-  const w = menuRef.value?.offsetWidth ?? 160
-  const h = menuRef.value?.offsetHeight ?? 200
+watch(() => props.visible, async (v) => {
+  if (!v)
+    return
+  await nextTick()
+  if (!menuRef.value)
+    return
+  const w = menuRef.value.offsetWidth
+  const h = menuRef.value.offsetHeight
   const vw = window.innerWidth
   const vh = window.innerHeight
-  const left = props.x + w > vw ? props.x - w : props.x
-  const top = props.y + h > vh ? props.y - h : props.y
-  return { left: `${left}px`, top: `${top}px` }
+  let left = props.x + w > vw ? props.x - w : props.x
+  let top = props.y + h > vh ? props.y - h : props.y
+  left = Math.max(0, Math.min(left, vw - w))
+  top = Math.max(0, Math.min(top, vh - h))
+  menuStyle.value = { left: `${left}px`, top: `${top}px` }
 })
 
 function onClickOutside(e: MouseEvent) {
@@ -63,7 +70,7 @@ const chmodEnabled = computed(() => !authStore.systemVars?.connection.disableChm
       v-if="visible && file"
       ref="menuRef"
       class="fixed z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-40"
-      :style="style"
+      :style="menuStyle"
     >
       <button
         class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
