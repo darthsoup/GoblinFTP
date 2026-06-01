@@ -10,6 +10,7 @@ type systemVarsData struct {
 	UI                systemUIVars     `json:"ui"`
 	Upload            systemUploadVars `json:"upload"`
 	Connection        systemConnVars   `json:"connection"`
+	Editor            systemEditorVars `json:"editor"`
 	LoginFormDisabled bool             `json:"loginFormDisabled"`
 	SSOEnabled        bool             `json:"ssoEnabled"`
 }
@@ -30,6 +31,12 @@ type systemConnVars struct {
 	DisableChmod bool     `json:"disableChmod"`
 }
 
+type systemEditorVars struct {
+	Disabled          bool     `json:"disabled"`
+	ViewOnly          bool     `json:"viewOnly"`
+	AllowedExtensions []string `json:"allowedExtensions"`
+}
+
 func (h *Handler) SystemVars(c echo.Context) error {
 	return OK(c, systemVarsData{
 		Language: h.cfg.Settings.Language,
@@ -45,6 +52,11 @@ func (h *Handler) SystemVars(c echo.Context) error {
 		Connection: systemConnVars{
 			AllowedTypes: h.cfg.Settings.Connection.AllowedTypes,
 			DisableChmod: h.cfg.Settings.Connection.DisableChmod,
+		},
+		Editor: systemEditorVars{
+			Disabled:          h.cfg.Settings.Editor.Disabled,
+			ViewOnly:          h.cfg.Settings.Editor.ViewOnly,
+			AllowedExtensions: h.cfg.Settings.Editor.AllowedExtensions,
 		},
 		LoginFormDisabled: h.cfg.DisableLoginForm,
 		SSOEnabled:        h.cfg.SSOEnabled,
