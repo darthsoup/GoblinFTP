@@ -1,6 +1,6 @@
 # GoblinFTP — Copilot Instructions
 
-GoblinFTP is a self-hosted web-based FTP/SFTP client (rewrite of MonstaFTP). Go backend + Nuxt 4 SPA frontend, deployed as a single Docker container.
+GoblinFTP is a self-hosted web-based FTP/SFTP client. Go backend + Nuxt 4 SPA frontend, deployed as a single Docker container.
 
 ## Commands
 
