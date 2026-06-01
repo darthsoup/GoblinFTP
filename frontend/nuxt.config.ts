@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
   ssr: false,
 
@@ -20,7 +22,7 @@ export default defineNuxtConfig({
     strategy: 'no_prefix',
   },
 
-  devtools: { enabled: false },
+  devtools: { enabled: true },
 
   typescript: {
     strict: true,
@@ -28,7 +30,12 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-05-01',
 
+  css: ['./app/assets/css/main.css'],
+
   vite: {
+    plugins: [
+      tailwindcss(),
+    ],
     server: {
       proxy: {
         '/api': {
