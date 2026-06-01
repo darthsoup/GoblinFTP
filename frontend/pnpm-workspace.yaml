@@ -1,6 +1,11 @@
 shellEmulator: true
 
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - semver@6.3.1
+  - tinyclip@0.1.13
+  - tinyexec@1.2.2
 
 allowBuilds:
   '@parcel/watcher': true
