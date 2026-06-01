@@ -24,7 +24,72 @@
     "loading": "Loading...",
     "empty": "This directory is empty"
   },
+  "toolbar": {
+    "newFolder": "New Folder",
+    "newFile": "New File",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "delete": "Delete",
+    "selected": "{n} selected"
+  },
+  "context": {
+    "download": "Download",
+    "rename": "Rename",
+    "copy": "Copy",
+    "delete": "Delete",
+    "permissions": "Permissions",
+    "properties": "Properties"
+  },
+  "modal": {
+    "rename": {
+      "title": "Rename",
+      "label": "New name",
+      "confirm": "Rename",
+      "cancel": "Cancel"
+    },
+    "delete": {
+      "title": "Delete",
+      "message": "Delete \"{name}\"? This cannot be undone.",
+      "messageMulti": "Delete {n} items? This cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "newFolder": {
+      "title": "New Folder",
+      "label": "Folder name",
+      "placeholder": "my-folder",
+      "confirm": "Create",
+      "cancel": "Cancel"
+    },
+    "newFile": {
+      "title": "New File",
+      "label": "File name",
+      "placeholder": "file.txt",
+      "confirm": "Create",
+      "cancel": "Cancel"
+    },
+    "chmod": {
+      "title": "Permissions",
+      "label": "Octal mode",
+      "placeholder": "755",
+      "note": "Enter 3-digit octal (e.g. 755, 644)",
+      "confirm": "Apply",
+      "cancel": "Cancel"
+    },
+    "properties": {
+      "title": "Properties",
+      "name": "Name",
+      "size": "Size",
+      "modified": "Modified",
+      "permissions": "Permissions",
+      "type": "Type",
+      "typeFile": "File",
+      "typeDir": "Directory",
+      "close": "Close"
+    }
+  },
   "error": {
-    "connectionFailed": "Connection failed"
+    "connectionFailed": "Connection failed",
+    "operationFailed": "Operation failed"
   }
 }
