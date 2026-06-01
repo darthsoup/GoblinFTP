@@ -17,3 +17,20 @@ services:
     # volumes:
     #   - ./settings.json:/app/settings.json:ro
     restart: unless-stopped
+
+  ftp:
+    image: garethflowers/ftp-server:latest
+    environment:
+      FTP_USER: "${FTP_USER:-ftpuser}"
+      FTP_PASS: "${FTP_PASS:-ftppass}"
+      PUBLIC_IP: "${PUBLIC_IP:-127.0.0.1}"
+    ports:
+      - "20-21:20-21/tcp"
+      - "40000-40009:40000-40009/tcp"
+    volumes:
+      - ftp-data:/home/ftpuser
+    profiles:
+      - testing
+
+volumes:
+  ftp-data:
