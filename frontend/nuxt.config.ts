@@ -14,6 +14,12 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
   ],
 
+  runtimeConfig: {
+    public: {
+      sentryDsn: process.env.NUXT_PUBLIC_SENTRY_DSN ?? '',
+    },
+  },
+
   i18n: {
     locales: [
       { code: 'en', file: 'en.json' },
