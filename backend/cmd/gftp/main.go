@@ -3,6 +3,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -11,11 +12,13 @@ import (
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
 	"github.com/darthsoup/goblinftp/internal/logging"
+	gftpsentry "github.com/darthsoup/goblinftp/internal/sentry"
 )
 
 func newApp(cfg *config.Config) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
+	e.Use(gftpsentry.Middleware())
 
 	store := auth.NewStore(time.Duration(cfg.SessionTTLSeconds) * time.Second)
 	throttle := auth.NewThrottle()
@@ -42,6 +45,17 @@ func main() {
 	// Re-init logger with configured level.
 	logger = logging.Init(cfg.LogLevel)
 	logger.Info("starting GoblinFTP", "port", cfg.Port, "log_level", cfg.LogLevel)
+
+	sentryRate, _ := strconv.ParseFloat(os.Getenv("GFTP_SENTRY_SAMPLE_RATE"), 64)
+	if initErr := gftpsentry.Init(
+		cfg.SentryDSN,
+		os.Getenv("GFTP_SENTRY_ENVIRONMENT"),
+		os.Getenv("GFTP_SENTRY_RELEASE"),
+		sentryRate,
+	); initErr != nil {
+		logger.Warn("sentry init failed", "error", initErr.Error())
+	}
+	defer gftpsentry.Flush()
 
 	e := newApp(cfg)
 	logger.Error("server stopped", "error", e.Start(":"+cfg.Port).Error())
