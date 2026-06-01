@@ -15,7 +15,15 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(locale.value)
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime()))
+      return iso
+    return d.toLocaleString(locale.value || 'en-US')
+  }
+  catch {
+    return iso
+  }
 }
 
 const rows = computed(() => {
