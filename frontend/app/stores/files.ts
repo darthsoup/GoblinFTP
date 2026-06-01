@@ -58,6 +58,39 @@ export const useFilesStore = defineStore('files', () => {
     selected.value = new Set()
   }
 
+  async function rename(from: string, to: string): Promise<void> {
+    const api = useApi()
+    await api.patch('/api/files/rename', { from, to })
+    await list()
+  }
+
+  async function deleteFiles(paths: string[]): Promise<void> {
+    const api = useApi()
+    await api.del('/api/files', { paths })
+    await list()
+  }
+
+  async function mkdir(path: string): Promise<void> {
+    const api = useApi()
+    await api.post('/api/files/directory', { path })
+    await list()
+  }
+
+  async function chmod(path: string, mode: number): Promise<void> {
+    const api = useApi()
+    await api.patch('/api/files/permissions', { path, mode })
+    await list()
+  }
+
+  async function createFile(path: string): Promise<void> {
+    const api = useApi()
+    const form = new FormData()
+    form.append('path', path)
+    form.append('file', new Blob([]), 'empty')
+    await api.post('/api/files/upload', form)
+    await list()
+  }
+
   function $reset() {
     currentPath.value = '/'
     files.value = []
@@ -90,6 +123,11 @@ export const useFilesStore = defineStore('files', () => {
     downloadFile,
     toggleSelection,
     clearSelection,
+    rename,
+    deleteFiles,
+    mkdir,
+    chmod,
+    createFile,
     $reset,
   }
 })
