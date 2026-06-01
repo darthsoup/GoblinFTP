@@ -10,4 +10,5 @@ trustPolicyExclude:
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true
+  unrs-resolver: false
   vue-demi: true
