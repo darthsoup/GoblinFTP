@@ -60,14 +60,16 @@
       "label": "Folder name",
       "placeholder": "my-folder",
       "confirm": "Create",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorEmpty": "Please enter a name"
     },
     "newFile": {
       "title": "New File",
       "label": "File name",
       "placeholder": "file.txt",
       "confirm": "Create",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorEmpty": "Please enter a name"
     },
     "chmod": {
       "title": "Permissions",

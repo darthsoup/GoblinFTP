@@ -15,8 +15,10 @@ watch(() => modalStore.active, (v) => {
 })
 
 async function submit() {
-  if (!name.value.trim())
+  if (!name.value.trim()) {
+    error.value = t('modal.newFile.errorEmpty')
     return
+  }
   const dir = filesStore.currentPath.replace(/\/$/, '')
   loading.value = true
   error.value = null
