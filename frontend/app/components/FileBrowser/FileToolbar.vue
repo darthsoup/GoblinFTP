@@ -29,7 +29,8 @@ function triggerUpload() {
 
 function onFilesSelected(event: Event) {
   const input = event.target as HTMLInputElement
-  if (!input.files || input.files.length === 0) return
+  if (!input.files || input.files.length === 0)
+    return
   uploadStore.addFiles(input.files, filesStore.currentPath)
   // Reset input so the same file can be re-selected later
   input.value = ''

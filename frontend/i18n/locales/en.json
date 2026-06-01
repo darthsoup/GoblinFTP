@@ -22,15 +22,25 @@
     "modified": "Modified",
     "permissions": "Permissions",
     "loading": "Loading...",
-    "empty": "This directory is empty"
+    "empty": "This directory is empty",
+    "dropToUpload": "Drop files to upload"
   },
   "toolbar": {
     "newFolder": "New Folder",
     "newFile": "New File",
+    "upload": "Upload Files",
+    "downloadZip": "Download ZIP",
     "selectAll": "Select All",
     "deselectAll": "Deselect All",
     "delete": "Delete",
     "selected": "{n} selected"
+  },
+  "upload": {
+    "title": "Uploads ({n})",
+    "cancelAll": "Cancel All",
+    "clear": "Clear",
+    "cancel": "Cancel upload",
+    "queued": "Queued"
   },
   "context": {
     "download": "Download",

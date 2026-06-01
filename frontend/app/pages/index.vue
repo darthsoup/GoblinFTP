@@ -38,5 +38,8 @@ onMounted(async () => {
     <NewFileModal />
     <ChmodModal />
     <PropertiesModal />
+
+    <!-- Upload progress -->
+    <UploadProgressPanel />
   </div>
 </template>
