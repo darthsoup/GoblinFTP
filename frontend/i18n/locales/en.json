@@ -48,7 +48,17 @@
     "copy": "Copy",
     "delete": "Delete",
     "permissions": "Permissions",
-    "properties": "Properties"
+    "properties": "Properties",
+    "edit": "Edit",
+    "view": "View"
+  },
+  "editor": {
+    "loading": "Loading file...",
+    "noFile": "No file open",
+    "save": "Save",
+    "autoSave": "Auto-save",
+    "closeTab": "Close tab",
+    "unsavedChanges": "You have unsaved changes"
   },
   "modal": {
     "rename": {
