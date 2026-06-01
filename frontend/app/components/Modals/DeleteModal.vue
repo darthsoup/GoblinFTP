@@ -24,7 +24,7 @@ const message = computed(() => {
 })
 
 async function confirm() {
-  if (!paths.value.length)
+  if (!paths.value.length || loading.value)
     return
   loading.value = true
   error.value = null
