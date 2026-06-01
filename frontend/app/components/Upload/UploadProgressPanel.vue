@@ -87,7 +87,7 @@ function formatBytes(n: number): string {
         <!-- Progress bar for active uploads -->
         <UProgress
           v-if="item.status === 'uploading'"
-          :value="item.progress"
+          :model-value="item.progress"
           class="mt-1"
           size="sm"
         />

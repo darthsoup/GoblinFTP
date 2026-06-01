@@ -13,7 +13,7 @@ describe('useFilesStore', () => {
   })
 
   it('lists files and updates state', async () => {
-    const files: FileInfo[] = [{ name: 'a.txt', size: 10, isDir: false, modTime: 0, permissions: '-rw-r--r--' }]
+    const files: FileInfo[] = [{ name: 'a.txt', size: 10, isDir: false, modified: '2024-01-01T00:00:00Z', mode: '-rw-r--r--' }]
     mockApi.get.mockResolvedValue(files)
     const store = useFilesStore()
 
