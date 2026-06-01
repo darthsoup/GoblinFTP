@@ -1,1 +1,119 @@
-{}
+{
+  "login": {
+    "protocol": "Protokoll",
+    "host": "Host",
+    "hostPlaceholder": "ftp.beispiel.de",
+    "port": "Port",
+    "username": "Benutzername",
+    "usernamePlaceholder": "benutzername",
+    "password": "Passwort",
+    "connect": "Verbinden"
+  },
+  "header": {
+    "connected": "Verbunden",
+    "disconnect": "Trennen"
+  },
+  "breadcrumb": {
+    "root": "Wurzel"
+  },
+  "files": {
+    "name": "Name",
+    "size": "Größe",
+    "modified": "Geändert",
+    "permissions": "Berechtigungen",
+    "loading": "Laden...",
+    "empty": "Dieses Verzeichnis ist leer",
+    "dropToUpload": "Dateien zum Hochladen ablegen"
+  },
+  "toolbar": {
+    "newFolder": "Neuer Ordner",
+    "newFile": "Neue Datei",
+    "upload": "Dateien hochladen",
+    "downloadZip": "ZIP herunterladen",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Alle abwählen",
+    "delete": "Löschen",
+    "selected": "{n} ausgewählt"
+  },
+  "upload": {
+    "title": "Uploads ({n})",
+    "cancelAll": "Alle abbrechen",
+    "clear": "Leeren",
+    "cancel": "Upload abbrechen",
+    "queued": "In der Warteschlange"
+  },
+  "context": {
+    "download": "Herunterladen",
+    "rename": "Umbenennen",
+    "copy": "Kopieren",
+    "delete": "Löschen",
+    "permissions": "Berechtigungen",
+    "properties": "Eigenschaften",
+    "edit": "Bearbeiten",
+    "view": "Anzeigen"
+  },
+  "editor": {
+    "loading": "Datei wird geladen...",
+    "noFile": "Keine Datei geöffnet",
+    "save": "Speichern",
+    "autoSave": "Automatisch speichern",
+    "closeTab": "Tab schließen",
+    "unsavedChanges": "Sie haben ungespeicherte Änderungen"
+  },
+  "modal": {
+    "rename": {
+      "title": "Umbenennen",
+      "label": "Neuer Name",
+      "confirm": "Umbenennen",
+      "cancel": "Abbrechen",
+      "errorEmpty": "Bitte einen Namen eingeben"
+    },
+    "delete": {
+      "title": "Löschen",
+      "message": "\"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
+      "messageMulti": "{n} Elemente löschen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen",
+      "cancel": "Abbrechen"
+    },
+    "newFolder": {
+      "title": "Neuer Ordner",
+      "label": "Ordnername",
+      "placeholder": "mein-ordner",
+      "confirm": "Erstellen",
+      "cancel": "Abbrechen",
+      "errorEmpty": "Bitte einen Namen eingeben"
+    },
+    "newFile": {
+      "title": "Neue Datei",
+      "label": "Dateiname",
+      "placeholder": "datei.txt",
+      "confirm": "Erstellen",
+      "cancel": "Abbrechen",
+      "errorEmpty": "Bitte einen Namen eingeben"
+    },
+    "chmod": {
+      "title": "Berechtigungen",
+      "label": "Oktalmodus",
+      "placeholder": "755",
+      "note": "3-stellige Oktalzahl eingeben (z. B. 755, 644)",
+      "errorInvalid": "Bitte einen gültigen Oktalmodus eingeben (z. B. 755)",
+      "confirm": "Anwenden",
+      "cancel": "Abbrechen"
+    },
+    "properties": {
+      "title": "Eigenschaften",
+      "name": "Name",
+      "size": "Größe",
+      "modified": "Geändert",
+      "permissions": "Berechtigungen",
+      "type": "Typ",
+      "typeFile": "Datei",
+      "typeDir": "Verzeichnis",
+      "close": "Schließen"
+    }
+  },
+  "error": {
+    "connectionFailed": "Verbindung fehlgeschlagen",
+    "operationFailed": "Vorgang fehlgeschlagen"
+  }
+}
