@@ -16,6 +16,7 @@ const emit = defineEmits<{
   delete: [file: FileInfo]
   chmod: [file: FileInfo]
   properties: [file: FileInfo]
+  edit: [file: FileInfo]
 }>()
 
 const { t } = useI18n()
@@ -62,6 +63,17 @@ onUnmounted(() => {
 
 const authStore = useAuthStore()
 const chmodEnabled = computed(() => !authStore.systemVars?.connection.disableChmod)
+const editEnabled = computed(() => {
+  const editor = authStore.systemVars?.editor
+  if (!editor || editor.disabled)
+    return (_file: FileInfo) => false
+  return (file: FileInfo) => {
+    if (file.isDir)
+      return false
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    return editor.allowedExtensions.some(a => a.toLowerCase() === ext)
+  }
+})
 </script>
 
 <template>
@@ -86,6 +98,14 @@ const chmodEnabled = computed(() => !authStore.systemVars?.connection.disableChm
       >
         <UIcon name="i-heroicons-pencil" class="w-4 h-4" />
         {{ t('context.rename') }}
+      </button>
+      <button
+        v-if="file && !file.isDir && editEnabled(file)"
+        class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+        @click="emit('edit', file); emit('close')"
+      >
+        <UIcon name="i-heroicons-pencil-square" class="w-4 h-4" />
+        {{ authStore.systemVars?.editor?.viewOnly ? t('context.view') : t('context.edit') }}
       </button>
       <button
         v-if="chmodEnabled && !file.isDir"

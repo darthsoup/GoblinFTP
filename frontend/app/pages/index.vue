@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
+const editorStore = useEditorStore()
 
 onMounted(async () => {
   await authStore.init()
@@ -20,7 +21,8 @@ onMounted(async () => {
     <template v-if="authStore.connected">
       <AppHeader />
       <Breadcrumb />
-      <FileTable />
+      <EditorPane v-if="editorStore.hasOpenTabs" />
+      <FileTable v-else />
     </template>
     <template v-else-if="authStore.loading">
       <div class="flex items-center justify-center min-h-screen">

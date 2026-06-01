@@ -3,6 +3,7 @@ import type { FileInfo } from '~/types/api'
 
 const filesStore = useFilesStore()
 const modalStore = useModalStore()
+const editorStore = useEditorStore()
 const { t } = useI18n()
 
 type SortKey = 'name' | 'size' | 'modified'
@@ -48,6 +49,10 @@ function onContextMenuDownload(file: FileInfo) {
 }
 function onContextMenuRename(file: FileInfo) {
   modalStore.open('rename', { file })
+}
+function onContextMenuEdit(file: FileInfo) {
+  const dir = filesStore.currentPath.replace(/\/$/, '')
+  editorStore.openFile(`${dir}/${file.name}`)
 }
 function onContextMenuDelete(file: FileInfo) {
   modalStore.open('delete', { file })
@@ -188,6 +193,7 @@ function onDrop(e: DragEvent) {
       @delete="onContextMenuDelete"
       @chmod="onContextMenuChmod"
       @properties="onContextMenuProperties"
+      @edit="onContextMenuEdit"
     />
   </div>
 </template>
