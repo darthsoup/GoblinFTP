@@ -7,3 +7,4 @@ frontend/.output/
 frontend/node_modules/
 frontend/.nuxt/
 frontend/dist
+backend/gftp
