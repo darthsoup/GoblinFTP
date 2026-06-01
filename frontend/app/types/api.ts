@@ -45,6 +45,11 @@ export interface SystemVars {
     maxConcurrentUploads: number
   }
   connection: { allowedTypes: string[], disableChmod: boolean }
+  editor: {
+    disabled: boolean
+    viewOnly: boolean
+    allowedExtensions: string[]
+  }
   loginFormDisabled: boolean
   ssoEnabled: boolean
 }
