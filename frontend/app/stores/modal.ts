@@ -5,7 +5,7 @@ export type ModalType = 'rename' | 'delete' | 'chmod' | 'newFolder' | 'newFile' 
 
 export interface ModalContext {
   file?: FileInfo
-  files?: string[]  // absolute paths for bulk delete
+  files?: string[] // absolute paths for bulk delete
 }
 
 export const useModalStore = defineStore('modal', () => {
