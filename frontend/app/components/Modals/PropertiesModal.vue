@@ -31,7 +31,7 @@ const rows = computed(() => {
     return []
   return [
     { label: t('modal.properties.name'), value: file.value.name },
-    { label: t('modal.properties.type'), value: file.value.type },
+    { label: t('modal.properties.type'), value: file.value.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') },
     { label: t('modal.properties.size'), value: formatSize(file.value.size) },
     { label: t('modal.properties.modified'), value: formatDate(file.value.modified) },
     { label: t('modal.properties.permissions'), value: file.value.mode },

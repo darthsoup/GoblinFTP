@@ -8,7 +8,7 @@ export function useApi() {
     return authStore.csrfToken
   }
 
-  async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  async function call<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = {}
     const upper = method.toUpperCase()
     if (upper !== 'GET' && upper !== 'HEAD') {

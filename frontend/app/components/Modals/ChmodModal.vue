@@ -18,9 +18,9 @@ function modeStringToOctal(mode: string): string {
   function triplet(r: string, w: string, x: string): number {
     return (r !== '-' ? 4 : 0) + (w !== '-' ? 2 : 0) + (x !== '-' ? 1 : 0)
   }
-  const u = triplet(perms[0], perms[1], perms[2])
-  const g = triplet(perms[3], perms[4], perms[5])
-  const o = triplet(perms[6], perms[7], perms[8])
+  const u = triplet(perms[0]!, perms[1]!, perms[2]!)
+  const g = triplet(perms[3]!, perms[4]!, perms[5]!)
+  const o = triplet(perms[6]!, perms[7]!, perms[8]!)
   return `${u}${g}${o}`
 }
 

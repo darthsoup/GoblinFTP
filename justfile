@@ -50,9 +50,9 @@ test-be:
 # Run all linters
 lint: lint-fe lint-be
 
-# Type-check frontend (no eslint config yet — added in Phase 5)
+# Lint + type-check frontend
 lint-fe:
-	cd frontend && pnpm run typecheck
+	cd frontend && pnpm run lint && pnpm run typecheck
 
 # Lint backend (requires golangci-lint: https://golangci-lint.run)
 lint-be:
