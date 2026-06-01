@@ -58,10 +58,56 @@ function onContextMenuChmod(file: FileInfo) {
 function onContextMenuProperties(file: FileInfo) {
   modalStore.open('properties', { file })
 }
+
+const uploadStore = useUploadStore()
+const isDragOver = ref(false)
+let dragCounter = 0 // counter to handle child element enter/leave events
+
+function onDragEnter(e: DragEvent) {
+  if (!e.dataTransfer?.types.includes('Files'))
+    return
+  dragCounter++
+  isDragOver.value = true
+}
+
+function onDragLeave() {
+  dragCounter--
+  if (dragCounter <= 0) {
+    dragCounter = 0
+    isDragOver.value = false
+  }
+}
+
+function onDrop(e: DragEvent) {
+  dragCounter = 0
+  isDragOver.value = false
+  const files = e.dataTransfer?.files
+  if (files && files.length > 0)
+    uploadStore.addFiles(files, filesStore.currentPath)
+}
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 overflow-hidden">
+  <div
+    class="relative flex flex-col flex-1 overflow-hidden"
+    :class="{ 'ring-2 ring-inset ring-primary-500': isDragOver }"
+    @dragenter.prevent="onDragEnter"
+    @dragover.prevent
+    @dragleave="onDragLeave"
+    @drop.prevent="onDrop"
+  >
+    <Transition name="fade">
+      <div
+        v-if="isDragOver"
+        class="absolute inset-0 z-10 flex items-center justify-center bg-primary-50/80 dark:bg-primary-900/40 pointer-events-none"
+      >
+        <div class="flex flex-col items-center gap-2 text-primary-600 dark:text-primary-400">
+          <UIcon name="i-heroicons-arrow-up-tray" class="size-12" />
+          <span class="text-lg font-medium">{{ t('files.dropToUpload') }}</span>
+        </div>
+      </div>
+    </Transition>
+
     <FileToolbar />
 
     <div class="flex-1 overflow-auto">
@@ -145,3 +191,14 @@ function onContextMenuProperties(file: FileInfo) {
     />
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
