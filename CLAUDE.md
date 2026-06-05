@@ -4,8 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GoblinFTP is a self-hosted web-based FTP/SFTP client: Go + Echo v4 backend, Nuxt 4 SPA frontend, deployed as a single Docker container (Caddy + Go binary).
 
-See also `.github/copilot-instructions.md` — kept in sync with this file.
-
 ## Commands
 
 All commands run via [just](https://just.systems). `.env` is auto-loaded.
