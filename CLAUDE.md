@@ -28,6 +28,8 @@ just s3-up        # local MinIO for S3 chunk staging (minioadmin/minioadmin on :
 just build        # build-fe (nuxt generate) + build-be (go build → bin/gftp)
 ```
 
+Running the app (e.g. for visual verification): prefer `just dev` for the full stack — but check first whether the dev servers are already up (the user often has them running: frontend :3000, backend :8080). If only one half is missing, start just that half (`just dev-fe` / `just dev-be`) to avoid port conflicts; never kill the user's processes. For a backend with special env (custom port, SSO, S3), run `cd backend && GFTP_PORT=… go run ./cmd/gftp` directly on a free port instead.
+
 ## Architecture
 
 ```
@@ -71,6 +73,9 @@ frontend/app/
 
 ### Frontend conventions
 
+- **Design system**: "Goblin Tech-Dark" (`DESIGN.md` at repo root) — dark-only (colorMode forced to dark). Nuxt UI tokens are overridden in `app/assets/css/main.css`: primary alias is the custom `goblin` green scale, the `neutral` scale is overridden to charcoal-navy surfaces. Style with token utilities (`bg-default/muted/elevated/accented`, `text-muted/dimmed/highlighted`, `border-default/accented`) — never `gray-*` or `dark:` variants.
+- Fonts are self-hosted via `@fontsource-variable` (Inter = `font-sans`, JetBrains Mono = `font-mono`). Mono is used for all data: paths, sizes, dates, permissions, breadcrumbs, status bar. `label-caps` utility (defined in main.css) for column headers / field labels.
+- Icons: `i-lucide-*` (plus `i-simple-icons-*` for file types in `FileRow.vue`) — both icon sets installed locally; do not use heroicons.
 - All API calls go through `useApi()` — never `$fetch` directly, except `authStore.init()` / `authStore.connect()` which intentionally bypass CSRF.
 - Components use `pathPrefix: false` — `Auth/LoginForm.vue` is `<LoginForm />`, not `<AuthLoginForm />`.
 - Pinia stores use **Composition API style**: `defineStore('id', () => { ... })`.

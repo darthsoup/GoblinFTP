@@ -1,3 +1,4 @@
+import process from 'node:process'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
@@ -18,6 +19,12 @@ export default defineNuxtConfig({
     public: {
       sentryDsn: process.env.NUXT_PUBLIC_SENTRY_DSN ?? '',
     },
+  },
+
+  // The Goblin Tech-Dark design is dark-only
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark',
   },
 
   i18n: {

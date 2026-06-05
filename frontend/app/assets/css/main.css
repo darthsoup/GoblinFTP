@@ -1,2 +1,106 @@
-@import "tailwindcss";
-@import "@nuxt/ui";
+/* Goblin Tech-Dark design system (see /DESIGN.md) */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+
+  /* Goblin Green — primary brand scale */
+  --color-goblin-50: #ebffe2;
+  --color-goblin-100: #d2fcc2;
+  --color-goblin-200: #aefa9d;
+  --color-goblin-300: #83fc89;
+  --color-goblin-400: #67df70;
+  --color-goblin-500: #00e639;
+  --color-goblin-600: #00c230;
+  --color-goblin-700: #008f23;
+  --color-goblin-800: #00530e;
+  --color-goblin-900: #003907;
+  --color-goblin-950: #002203;
+
+  /* Charcoal-navy surface tiers (Level 0 #0d1117 → popovers #21262d) */
+  --color-neutral-50: #f0f3fa;
+  --color-neutral-100: #dfe2eb;
+  --color-neutral-200: #c9cdd8;
+  --color-neutral-300: #9aa3b2;
+  --color-neutral-400: #707a8a;
+  --color-neutral-500: #4d5560;
+  --color-neutral-600: #30363d;
+  --color-neutral-700: #21262d;
+  --color-neutral-800: #161b22;
+  --color-neutral-900: #10141a;
+  --color-neutral-950: #0d1117;
+}
+
+/* The app is dark-only by design — force the tonal tokens regardless of color mode. */
+:root,
+.light,
+.dark {
+  --ui-radius: 0.25rem;
+
+  --ui-text-dimmed: var(--color-neutral-500);
+  --ui-text-muted: var(--color-neutral-400);
+  --ui-text-toned: var(--color-neutral-300);
+  --ui-text: var(--color-neutral-200);
+  --ui-text-highlighted: var(--color-neutral-100);
+  --ui-text-inverted: var(--color-neutral-950);
+
+  --ui-bg: var(--color-neutral-950);
+  --ui-bg-muted: var(--color-neutral-900);
+  --ui-bg-elevated: var(--color-neutral-800);
+  --ui-bg-accented: var(--color-neutral-700);
+  --ui-bg-inverted: var(--color-neutral-100);
+
+  --ui-border: var(--color-neutral-700);
+  --ui-border-muted: var(--color-neutral-800);
+  --ui-border-accented: var(--color-neutral-600);
+  --ui-border-inverted: var(--color-neutral-100);
+
+  --ui-primary: var(--color-goblin-400);
+}
+
+/* Label-caps type style from the design system (11px / 700 / 0.05em) */
+@utility label-caps {
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+body {
+  background-color: var(--ui-bg);
+  color: var(--ui-text);
+}
+
+::selection {
+  background-color: color-mix(in oklab, var(--color-goblin-500) 30%, transparent);
+  color: var(--color-goblin-50);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--ui-primary);
+}
+
+/* Thin custom scrollbars — dark tracks, subtle thumbs */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-600) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-600);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-500);
+}

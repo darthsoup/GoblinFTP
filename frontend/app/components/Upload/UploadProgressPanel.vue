@@ -1,13 +1,21 @@
 <script setup lang="ts">
+import type { UploadStatus } from '~/stores/upload'
+
 const uploadStore = useUploadStore()
 const { t } = useI18n()
 
-const statusIcon: Record<string, string> = {
-  done: 'i-heroicons-check-circle',
-  error: 'i-heroicons-x-circle',
-  cancelled: 'i-heroicons-minus-circle',
-  uploading: '',
-  queued: '',
+const collapsed = ref(false)
+
+const STATUS_CLASS: Record<UploadStatus, string> = {
+  uploading: 'text-primary font-medium',
+  queued: 'text-dimmed',
+  done: 'text-muted',
+  error: 'text-error font-medium',
+  cancelled: 'text-dimmed',
+}
+
+function statusLabel(status: UploadStatus): string {
+  return t(`upload.status.${status}`)
 }
 
 function formatBytes(n: number): string {
@@ -22,19 +30,40 @@ function formatBytes(n: number): string {
 <template>
   <div
     v-if="uploadStore.items.length > 0"
-    class="fixed bottom-4 right-4 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden"
+    class="flex flex-col border-t border-default bg-elevated/40 shrink-0"
   >
     <!-- Header -->
-    <div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-      <span class="text-sm font-medium">
-        {{ t('upload.title', { n: uploadStore.items.length }) }}
-      </span>
+    <div
+      class="flex items-center justify-between px-4 h-10 bg-muted shrink-0"
+      :class="{ 'border-b border-default': !collapsed }"
+    >
+      <div class="flex items-center gap-2 select-none">
+        <button
+          class="p-1 rounded text-muted hover:text-primary hover:bg-accented/50 transition-colors"
+          :title="t('upload.toggle')"
+          :aria-label="t('upload.toggle')"
+          @click="collapsed = !collapsed"
+        >
+          <UIcon
+            name="i-lucide-chevron-down"
+            class="size-4 block transition-transform"
+            :class="{ '-rotate-90': collapsed }"
+          />
+        </button>
+        <UIcon name="i-lucide-arrow-up-down" class="size-4 text-primary" />
+        <span class="label-caps text-highlighted">{{ t('upload.queue') }}</span>
+        <span class="bg-primary/20 text-primary text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-full">
+          {{ uploadStore.items.length }}
+        </span>
+      </div>
+
       <div class="flex items-center gap-1">
         <UButton
           v-if="uploadStore.hasActive"
           size="xs"
           variant="ghost"
           color="error"
+          icon="i-lucide-circle-pause"
           @click="uploadStore.cancelAll()"
         >
           {{ t('upload.cancelAll') }}
@@ -43,6 +72,8 @@ function formatBytes(n: number): string {
           v-else
           size="xs"
           variant="ghost"
+          color="neutral"
+          icon="i-lucide-list-x"
           @click="uploadStore.clearDone()"
         >
           {{ t('upload.clear') }}
@@ -51,71 +82,61 @@ function formatBytes(n: number): string {
     </div>
 
     <!-- Item list -->
-    <div class="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+    <div v-show="!collapsed" class="max-h-44 overflow-y-auto">
       <div
         v-for="item in uploadStore.items"
         :key="item.id"
-        class="px-3 py-2"
+        class="flex items-center gap-4 px-4 py-2 border-b border-muted last:border-b-0 even:bg-elevated/40 font-mono text-xs"
       >
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm truncate flex-1" :title="item.file.name">{{ item.file.name }}</span>
+        <!-- Name + progress -->
+        <div class="flex flex-col gap-1.5 flex-1 min-w-0 sm:max-w-md">
+          <span class="truncate text-default" :title="item.file.name">{{ item.file.name }}</span>
+          <UProgress
+            :model-value="item.progress"
+            size="sm"
+            :color="item.status === 'error' ? 'error' : 'primary'"
+          />
+        </div>
+
+        <!-- Status -->
+        <span class="w-24 shrink-0 hidden sm:inline" :class="STATUS_CLASS[item.status]">
+          {{ statusLabel(item.status) }}
+        </span>
+
+        <!-- Bytes -->
+        <span class="w-36 shrink-0 text-right text-muted hidden md:inline">
+          <template v-if="item.status === 'uploading'">
+            {{ formatBytes(item.bytesUploaded) }} / {{ formatBytes(item.file.size) }}
+          </template>
+          <template v-else>
+            {{ formatBytes(item.file.size) }}
+          </template>
+        </span>
+
+        <!-- Error message (mobile-friendly inline) -->
+        <span
+          v-if="item.status === 'error' && item.error"
+          class="text-error truncate max-w-48 hidden lg:inline"
+          :title="item.error"
+        >
+          {{ item.error }}
+        </span>
+
+        <!-- Action / state icon -->
+        <span class="w-7 shrink-0 flex justify-center">
           <UButton
             v-if="item.status === 'uploading' || item.status === 'queued'"
             size="xs"
             variant="ghost"
-            icon="i-heroicons-x-mark"
+            color="neutral"
+            icon="i-lucide-x"
             :aria-label="t('upload.cancel')"
             @click="uploadStore.cancelItem(item.id)"
           />
-          <UIcon
-            v-else-if="item.status === 'done'"
-            :name="statusIcon.done"
-            class="text-green-500 shrink-0"
-          />
-          <UIcon
-            v-else-if="item.status === 'error'"
-            :name="statusIcon.error"
-            class="text-red-500 shrink-0"
-          />
-          <UIcon
-            v-else-if="item.status === 'cancelled'"
-            :name="statusIcon.cancelled"
-            class="text-gray-400 shrink-0"
-          />
-        </div>
-
-        <!-- Progress bar for active uploads -->
-        <UProgress
-          v-if="item.status === 'uploading'"
-          :model-value="item.progress"
-          class="mt-1"
-          size="sm"
-        />
-
-        <!-- Bytes transferred for active uploads -->
-        <div
-          v-if="item.status === 'uploading'"
-          class="text-xs text-gray-500 mt-0.5"
-        >
-          {{ formatBytes(item.bytesUploaded) }} / {{ formatBytes(item.file.size) }}
-        </div>
-
-        <!-- Queued label -->
-        <div
-          v-if="item.status === 'queued'"
-          class="text-xs text-gray-400 mt-0.5"
-        >
-          {{ t('upload.queued') }}
-        </div>
-
-        <!-- Error message -->
-        <p
-          v-if="item.status === 'error'"
-          class="text-xs text-red-500 mt-0.5 truncate"
-          :title="item.error"
-        >
-          {{ item.error }}
-        </p>
+          <UIcon v-else-if="item.status === 'done'" name="i-lucide-circle-check" class="size-4 text-primary" />
+          <UIcon v-else-if="item.status === 'error'" name="i-lucide-circle-x" class="size-4 text-error" />
+          <UIcon v-else name="i-lucide-circle-minus" class="size-4 text-dimmed" />
+        </span>
       </div>
     </div>
   </div>

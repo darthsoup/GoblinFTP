@@ -51,6 +51,15 @@ function getLanguageExtension(filename: string): LanguageSupport | readonly Exte
   return map[ext] ?? []
 }
 
+// Align CodeMirror's chrome with the Goblin Tech-Dark surfaces (layered over oneDark)
+const goblinTheme = EditorView.theme({
+  '&': { backgroundColor: '#0d1117' },
+  '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
+  '.cm-gutters': { backgroundColor: '#10141a', borderRight: '1px solid #21262d' },
+  '.cm-activeLine': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
+  '.cm-activeLineGutter': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
+}, { dark: true })
+
 function buildExtensions(filename: string, readOnly: boolean): Extension[] {
   return [
     lineNumbers(),
@@ -59,6 +68,7 @@ function buildExtensions(filename: string, readOnly: boolean): Extension[] {
     history(),
     syntaxHighlighting(defaultHighlightStyle),
     oneDark,
+    goblinTheme,
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
@@ -139,20 +149,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 overflow-hidden">
+  <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
     <EditorTabBar :auto-save="autoSave" @toggle-auto-save="autoSave = !autoSave" />
 
-    <div v-if="editorStore.activeTab?.loading" class="flex items-center justify-center flex-1 text-gray-400">
-      <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin mr-2" />
+    <div v-if="editorStore.activeTab?.loading" class="flex items-center justify-center flex-1 text-muted font-mono text-sm">
+      <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
       {{ t('editor.loading') }}
     </div>
 
-    <div v-else-if="editorStore.activeTab?.error" class="flex items-center justify-center flex-1 text-red-500">
-      <UIcon name="i-heroicons-exclamation-circle" class="w-5 h-5 mr-2" />
+    <div v-else-if="editorStore.activeTab?.error" class="flex items-center justify-center flex-1 text-error font-mono text-sm">
+      <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
       {{ editorStore.activeTab.error }}
     </div>
 
-    <div v-else-if="!editorStore.hasOpenTabs" class="flex items-center justify-center flex-1 text-gray-400">
+    <div v-else-if="!editorStore.hasOpenTabs" class="flex items-center justify-center flex-1 text-dimmed font-mono text-sm">
       {{ t('editor.noFile') }}
     </div>
 
@@ -163,6 +173,11 @@ onUnmounted(() => {
 <style>
 .cm-editor {
   height: 100%;
+}
+
+/* Doubled class beats the theme-generated selectors (oneDark ties with goblinTheme otherwise) */
+.cm-editor.cm-editor {
+  background-color: #0d1117;
 }
 
 .cm-scroller {

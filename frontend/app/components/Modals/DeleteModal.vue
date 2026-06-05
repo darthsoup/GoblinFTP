@@ -44,16 +44,34 @@ async function confirm() {
 <template>
   <UModal :open="modalStore.active === 'delete'" @update:open="modalStore.close()">
     <template #content>
-      <div class="p-6 space-y-4 min-w-80">
-        <h2 class="text-lg font-semibold">
-          {{ t('modal.delete.title') }}
-        </h2>
-        <p class="text-gray-600 dark:text-gray-400">
-          {{ message }}
-        </p>
-        <UAlert v-if="error" color="error" :description="error" />
-        <div class="flex justify-end gap-2">
-          <UButton variant="ghost" @click="modalStore.close()">
+      <div class="flex flex-col min-w-96">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-default bg-elevated/60">
+          <h2 class="text-base font-semibold text-highlighted flex items-center gap-2">
+            <UIcon name="i-lucide-triangle-alert" class="size-5 text-error" />
+            {{ t('modal.delete.title') }}
+          </h2>
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-x"
+            :aria-label="t('modal.delete.cancel')"
+            @click="modalStore.close()"
+          />
+        </div>
+
+        <!-- Body -->
+        <div class="p-5 space-y-4">
+          <p class="text-muted">
+            {{ message }}
+          </p>
+          <UAlert v-if="error" color="error" variant="soft" :description="error" />
+        </div>
+
+        <!-- Footer -->
+        <div class="flex justify-end gap-2 px-4 py-3 border-t border-default bg-elevated/60">
+          <UButton color="neutral" variant="subtle" @click="modalStore.close()">
             {{ t('modal.delete.cancel') }}
           </UButton>
           <UButton color="error" :loading="loading" @click="confirm">

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const filter = defineModel<string>('filter', { default: '' })
+
 const filesStore = useFilesStore()
 const uploadStore = useUploadStore()
 const modalStore = useModalStore()
@@ -44,7 +46,7 @@ async function downloadZip() {
 </script>
 
 <template>
-  <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+  <div class="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-default bg-elevated/50 shrink-0">
     <!-- Hidden file input for uploads -->
     <input
       ref="fileInputRef"
@@ -56,40 +58,56 @@ async function downloadZip() {
 
     <UButton
       size="sm"
-      variant="ghost"
-      icon="i-heroicons-folder-plus"
+      color="primary"
+      icon="i-lucide-folder-plus"
       @click="openNewFolder"
     >
       {{ t('toolbar.newFolder') }}
     </UButton>
     <UButton
       size="sm"
-      variant="ghost"
-      icon="i-heroicons-document-plus"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-file-plus"
       @click="openNewFile"
     >
       {{ t('toolbar.newFile') }}
     </UButton>
+
+    <div class="h-5 w-px bg-accented mx-1" />
+
     <UButton
       size="sm"
-      variant="ghost"
-      icon="i-heroicons-arrow-up-tray"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-refresh-cw"
+      :aria-label="t('toolbar.refresh')"
+      :title="t('toolbar.refresh')"
+      :loading="filesStore.loading"
+      @click="filesStore.list()"
+    />
+    <UButton
+      size="sm"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-upload"
+      :aria-label="t('toolbar.upload')"
+      :title="t('toolbar.upload')"
       @click="triggerUpload"
-    >
-      {{ t('toolbar.upload') }}
-    </UButton>
+    />
 
     <div class="flex-1" />
 
     <template v-if="selectedCount > 0">
-      <span class="text-sm text-gray-500">
+      <span class="text-xs font-mono text-muted">
         {{ t('toolbar.selected', { n: selectedCount }) }}
       </span>
       <UButton
         v-if="selectedCount >= 2"
         size="sm"
-        variant="ghost"
-        icon="i-heroicons-archive-box-arrow-down"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-file-archive"
         @click="downloadZip"
       >
         {{ t('toolbar.downloadZip') }}
@@ -97,12 +115,20 @@ async function downloadZip() {
       <UButton
         size="sm"
         color="error"
-        variant="ghost"
-        icon="i-heroicons-trash"
+        variant="soft"
+        icon="i-lucide-trash-2"
         @click="deleteSelected"
       >
         {{ t('toolbar.delete') }}
       </UButton>
     </template>
+
+    <UInput
+      v-model="filter"
+      size="sm"
+      icon="i-lucide-search"
+      :placeholder="t('toolbar.filter')"
+      class="w-44 md:w-56 font-mono"
+    />
   </div>
 </template>

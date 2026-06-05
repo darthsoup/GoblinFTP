@@ -6,22 +6,23 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="flex items-center border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-x-auto shrink-0">
+  <div class="flex items-center border-b border-default bg-muted overflow-x-auto shrink-0">
     <div
       v-for="tab in editorStore.tabs"
       :key="tab.id"
-      class="flex items-center gap-1 px-3 py-2 text-sm cursor-pointer border-r border-gray-200 dark:border-gray-700 shrink-0 select-none"
+      class="flex items-center gap-1 px-3 py-1.5 text-sm font-mono cursor-pointer border-r border-default border-t-2 shrink-0 select-none transition-colors"
       :class="tab.id === editorStore.activeId
-        ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400'
-        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'"
+        ? 'bg-default text-primary border-t-primary'
+        : 'border-t-transparent text-muted hover:bg-elevated hover:text-default'"
       @click="editorStore.setActive(tab.id)"
     >
       <span class="max-w-32 truncate">{{ tab.name }}</span>
-      <span v-if="tab.content !== tab.savedContent" class="text-amber-500 leading-none" title="Unsaved changes">•</span>
+      <span v-if="tab.content !== tab.savedContent" class="text-amber-400 leading-none" title="Unsaved changes">•</span>
       <UButton
         size="xs"
+        color="neutral"
         variant="ghost"
-        icon="i-heroicons-x-mark"
+        icon="i-lucide-x"
         class="-mr-1"
         :aria-label="t('editor.closeTab')"
         @click.stop="editorStore.closeTab(tab.id)"
@@ -30,8 +31,8 @@ const { t } = useI18n()
 
     <div class="flex-1 min-w-4" />
 
-    <div class="px-3 flex items-center gap-2 shrink-0">
-      <label class="text-xs text-gray-500 flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+    <div class="px-3 flex items-center gap-3 shrink-0">
+      <label class="text-xs font-mono text-muted flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
         <input
           type="checkbox"
           :checked="props.autoSave"
@@ -44,8 +45,9 @@ const { t } = useI18n()
       <UButton
         v-if="editorStore.activeId && !editorStore.activeTab?.loading"
         size="xs"
-        variant="ghost"
-        icon="i-heroicons-arrow-down-tray"
+        color="primary"
+        variant="subtle"
+        icon="i-lucide-save"
         :loading="editorStore.activeTab?.saving"
         :disabled="editorStore.activeTab?.content === editorStore.activeTab?.savedContent"
         @click="editorStore.saveTab(editorStore.activeId!)"

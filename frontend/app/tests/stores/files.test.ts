@@ -1,7 +1,7 @@
+import type { FileInfo } from '~/types/api'
 import { createTestingPinia } from '@pinia/testing'
 import { setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FileInfo } from '~/types/api'
 
 const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() }
 vi.mock('~/composables/useApi', () => ({ useApi: () => mockApi }))

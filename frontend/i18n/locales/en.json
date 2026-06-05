@@ -7,28 +7,38 @@
     "username": "Username",
     "usernamePlaceholder": "username",
     "password": "Password",
-    "connect": "Connect"
+    "connect": "Connect",
+    "tagline": "Self-hosted file transfer"
   },
   "header": {
     "connected": "Connected",
     "disconnect": "Disconnect"
   },
   "breadcrumb": {
-    "root": "Root"
+    "root": "Root",
+    "back": "Back",
+    "forward": "Forward"
+  },
+  "status": {
+    "queue": "Queue: {n}"
   },
   "files": {
+    "type": "Type",
     "name": "Name",
     "size": "Size",
     "modified": "Modified",
     "permissions": "Permissions",
     "loading": "Loading...",
     "empty": "This directory is empty",
+    "noMatches": "No files match your filter",
     "dropToUpload": "Drop files to upload"
   },
   "toolbar": {
     "newFolder": "New Folder",
     "newFile": "New File",
     "upload": "Upload Files",
+    "refresh": "Refresh",
+    "filter": "Filter files...",
     "downloadZip": "Download ZIP",
     "selectAll": "Select All",
     "deselectAll": "Deselect All",
@@ -36,18 +46,24 @@
     "selected": "{n} selected"
   },
   "upload": {
-    "title": "Uploads ({n})",
+    "queue": "Transfer Queue",
+    "toggle": "Toggle transfer queue",
     "cancelAll": "Cancel All",
-    "clear": "Clear",
+    "clear": "Clear Completed",
     "cancel": "Cancel upload",
-    "queued": "Queued"
+    "status": {
+      "queued": "Queued",
+      "uploading": "Uploading",
+      "done": "Completed",
+      "error": "Failed",
+      "cancelled": "Cancelled"
+    }
   },
   "context": {
     "download": "Download",
     "rename": "Rename",
     "copy": "Copy",
     "delete": "Delete",
-    "permissions": "Permissions",
     "properties": "Properties",
     "edit": "Edit",
     "view": "View"
@@ -91,17 +107,8 @@
       "cancel": "Cancel",
       "errorEmpty": "Please enter a name"
     },
-    "chmod": {
-      "title": "Permissions",
-      "label": "Octal mode",
-      "placeholder": "755",
-      "note": "Enter 3-digit octal (e.g. 755, 644)",
-      "errorInvalid": "Please enter a valid octal mode (e.g. 755)",
-      "confirm": "Apply",
-      "cancel": "Cancel"
-    },
     "properties": {
-      "title": "Properties",
+      "title": "File Properties",
       "name": "Name",
       "size": "Size",
       "modified": "Modified",
@@ -109,7 +116,17 @@
       "type": "Type",
       "typeFile": "File",
       "typeDir": "Directory",
-      "close": "Close"
+      "chmodTitle": "Permissions (CHMOD)",
+      "permGroup": "Group",
+      "owner": "Owner",
+      "group": "Group",
+      "public": "Public",
+      "read": "Read",
+      "write": "Write",
+      "execute": "Execute",
+      "numeric": "Numeric value:",
+      "apply": "Apply Changes",
+      "cancel": "Cancel"
     }
   },
   "error": {

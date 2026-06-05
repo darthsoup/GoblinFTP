@@ -6,6 +6,7 @@ export const useAuthStore = defineStore('auth', () => {
   const csrfToken = ref('')
   const connected = ref(false)
   const ssoAutoConnect = ref(false)
+  const serverHost = ref('') // known only for manual connects; empty for SSO/restored sessions
   const initialDirectory = ref('/')
   const capabilities = ref<{ disableChmod: boolean }>({ disableChmod: false })
   const systemVars = ref<SystemVars | null>(null)
@@ -72,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
       const data = res.data!
       csrfToken.value = data.csrfToken
       connected.value = true
+      serverHost.value = req.host
       initialDirectory.value = data.initialDirectory
       capabilities.value = data.capabilities
     }
@@ -94,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
     csrfToken.value = ''
     connected.value = false
     ssoAutoConnect.value = false
+    serverHost.value = ''
     initialDirectory.value = '/'
   }
 
@@ -105,6 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
     csrfToken,
     connected,
     ssoAutoConnect,
+    serverHost,
     initialDirectory,
     capabilities,
     systemVars,

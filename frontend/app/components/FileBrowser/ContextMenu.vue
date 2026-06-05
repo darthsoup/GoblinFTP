@@ -14,7 +14,6 @@ const emit = defineEmits<{
   download: [file: FileInfo]
   rename: [file: FileInfo]
   delete: [file: FileInfo]
-  chmod: [file: FileInfo]
   properties: [file: FileInfo]
   edit: [file: FileInfo]
 }>()
@@ -62,7 +61,6 @@ onUnmounted(() => {
 })
 
 const authStore = useAuthStore()
-const chmodEnabled = computed(() => !authStore.systemVars?.connection.disableChmod)
 const editEnabled = computed(() => {
   const editor = authStore.systemVars?.editor
   if (!editor || editor.disabled)
@@ -81,53 +79,45 @@ const editEnabled = computed(() => {
     <div
       v-if="visible && file"
       ref="menuRef"
-      class="fixed z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-40"
+      class="fixed z-50 min-w-48 bg-accented border border-accented rounded-md shadow-lg py-1 px-1 text-sm text-default"
       :style="menuStyle"
     >
       <button
-        class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+        class="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-neutral-600/50 transition-colors flex items-center gap-2"
         @click="emit('download', file); emit('close')"
       >
-        <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4" />
+        <UIcon name="i-lucide-download" class="size-4 text-muted" />
         {{ t('context.download') }}
       </button>
-      <div class="border-t border-gray-100 dark:border-gray-800 my-1" />
+      <div class="border-t border-accented/60 my-1 mx-1" />
       <button
-        class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+        class="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-neutral-600/50 transition-colors flex items-center gap-2"
         @click="emit('rename', file); emit('close')"
       >
-        <UIcon name="i-heroicons-pencil" class="w-4 h-4" />
+        <UIcon name="i-lucide-pencil-line" class="size-4 text-muted" />
         {{ t('context.rename') }}
       </button>
       <button
         v-if="file && !file.isDir && editEnabled(file)"
-        class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+        class="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-neutral-600/50 transition-colors flex items-center gap-2"
         @click="emit('edit', file); emit('close')"
       >
-        <UIcon name="i-heroicons-pencil-square" class="w-4 h-4" />
+        <UIcon name="i-lucide-pencil" class="size-4 text-muted" />
         {{ authStore.systemVars?.editor?.viewOnly ? t('context.view') : t('context.edit') }}
       </button>
       <button
-        v-if="chmodEnabled && !file.isDir"
-        class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-        @click="emit('chmod', file); emit('close')"
-      >
-        <UIcon name="i-heroicons-lock-closed" class="w-4 h-4" />
-        {{ t('context.permissions') }}
-      </button>
-      <button
-        class="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+        class="w-full text-left px-2.5 py-1.5 rounded-sm hover:bg-neutral-600/50 transition-colors flex items-center gap-2"
         @click="emit('properties', file); emit('close')"
       >
-        <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
+        <UIcon name="i-lucide-info" class="size-4 text-muted" />
         {{ t('context.properties') }}
       </button>
-      <div class="border-t border-gray-100 dark:border-gray-800 my-1" />
+      <div class="border-t border-accented/60 my-1 mx-1" />
       <button
-        class="w-full text-left px-4 py-1.5 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+        class="w-full text-left px-2.5 py-1.5 rounded-sm text-error hover:bg-error/10 transition-colors flex items-center gap-2"
         @click="emit('delete', file); emit('close')"
       >
-        <UIcon name="i-heroicons-trash" class="w-4 h-4" />
+        <UIcon name="i-lucide-trash-2" class="size-4" />
         {{ t('context.delete') }}
       </button>
     </div>

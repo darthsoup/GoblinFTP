@@ -9,6 +9,12 @@ export const useFilesStore = defineStore('files', () => {
   const error = ref<string | null>(null)
   const selected = ref<Set<string>>(new Set())
 
+  // Navigation history (back/forward) — only `navigate()` pushes entries
+  const history = ref<string[]>([])
+  const historyIndex = ref(-1)
+  const canGoBack = computed(() => historyIndex.value > 0)
+  const canGoForward = computed(() => historyIndex.value >= 0 && historyIndex.value < history.value.length - 1)
+
   async function list(path?: string) {
     const api = useApi()
     const target = path ?? currentPath.value
@@ -19,6 +25,11 @@ export const useFilesStore = defineStore('files', () => {
       files.value = result
       currentPath.value = target
       selected.value = new Set()
+      // Seed history with the first successfully listed directory
+      if (history.value.length === 0) {
+        history.value = [target]
+        historyIndex.value = 0
+      }
     }
     catch (e) {
       error.value = e instanceof ApiError ? e.message : 'Failed to list directory'
@@ -30,6 +41,31 @@ export const useFilesStore = defineStore('files', () => {
 
   async function navigate(path: string) {
     await list(path)
+    // Record only successful navigations; skip refreshes of the current entry
+    if (error.value || currentPath.value !== path)
+      return
+    if (history.value[historyIndex.value] === path)
+      return
+    history.value = [...history.value.slice(0, historyIndex.value + 1), path]
+    historyIndex.value = history.value.length - 1
+  }
+
+  async function goBack() {
+    if (!canGoBack.value)
+      return
+    const target = history.value[historyIndex.value - 1]!
+    await list(target)
+    if (!error.value && currentPath.value === target)
+      historyIndex.value--
+  }
+
+  async function goForward() {
+    if (!canGoForward.value)
+      return
+    const target = history.value[historyIndex.value + 1]!
+    await list(target)
+    if (!error.value && currentPath.value === target)
+      historyIndex.value++
   }
 
   async function navigateUp() {
@@ -56,6 +92,10 @@ export const useFilesStore = defineStore('files', () => {
 
   function clearSelection() {
     selected.value = new Set()
+  }
+
+  function setSelection(names: string[]) {
+    selected.value = new Set(names)
   }
 
   async function rename(from: string, to: string): Promise<void> {
@@ -117,6 +157,8 @@ export const useFilesStore = defineStore('files', () => {
     loading.value = false
     error.value = null
     selected.value = new Set()
+    history.value = []
+    historyIndex.value = -1
   }
 
   const pathSegments = computed(() => {
@@ -137,12 +179,17 @@ export const useFilesStore = defineStore('files', () => {
     error,
     selected,
     pathSegments,
+    canGoBack,
+    canGoForward,
     list,
     navigate,
     navigateUp,
+    goBack,
+    goForward,
     downloadFile,
     toggleSelection,
     clearSelection,
+    setSelection,
     rename,
     deleteFiles,
     mkdir,

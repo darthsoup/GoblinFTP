@@ -14,17 +14,13 @@ const emit = defineEmits<{
   contextmenu: [file: FileInfo, x: number, y: number]
 }>()
 
-const icon = computed(() =>
-  props.file.isDir ? 'i-heroicons-folder' : 'i-heroicons-document',
-)
+const { locale } = useI18n()
 
-const iconColor = computed(() =>
-  props.file.isDir ? 'text-yellow-400' : 'text-gray-400',
-)
+const iconDef = computed(() => getFileIcon(props.file))
 
 function formatSize(bytes: number): string {
   if (props.file.isDir)
-    return '—'
+    return '--'
   if (bytes < 1024)
     return `${bytes} B`
   if (bytes < 1024 * 1024)
@@ -35,12 +31,13 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString()
-  }
-  catch {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime()))
     return iso
-  }
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  return new Intl.DateTimeFormat(locale.value, sameYear
+    ? { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }
+    : { year: 'numeric', month: 'short', day: '2-digit' }).format(d)
 }
 
 function handleClick() {
@@ -58,42 +55,52 @@ function handleDownload() {
 
 <template>
   <tr
-    class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-default"
-    :class="{ 'bg-primary-50 dark:bg-primary-900/20': selected }"
+    class="group h-11 border-b border-muted hover:bg-accented/40 transition-colors text-[13px]"
+    :class="[
+      selected ? 'bg-primary/10' : 'even:bg-elevated/40',
+      file.isDir ? 'cursor-pointer' : 'cursor-default',
+    ]"
     @click="handleClick"
     @contextmenu.prevent="emit('contextmenu', props.file, $event.clientX, $event.clientY)"
   >
-    <td class="w-8 px-3 py-2">
+    <td class="w-10 px-3 text-center">
       <input
         type="checkbox"
         :checked="selected"
-        class="rounded"
+        class="rounded align-middle transition-opacity"
+        :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
         @click.stop
         @change="emit('select', file.name)"
       >
     </td>
-    <td class="px-3 py-2">
-      <div class="flex items-center gap-2">
-        <UIcon :name="icon" class="w-4 h-4 shrink-0" :class="iconColor" />
-        <span class="truncate">{{ file.name }}</span>
-      </div>
+    <td class="w-12 px-2 text-center">
+      <UIcon
+        :name="iconDef.icon"
+        class="size-5 align-middle"
+        :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+        :style="iconDef.color ? { color: iconDef.color } : undefined"
+      />
     </td>
-    <td class="px-3 py-2 text-right text-sm text-gray-500 dark:text-gray-400 w-24">
+    <td class="px-3 truncate max-w-0">
+      <span :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'">{{ file.name }}</span>
+    </td>
+    <td class="w-24 px-3 text-right text-muted whitespace-nowrap">
       {{ formatSize(file.size) }}
     </td>
-    <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 w-40">
+    <td class="w-40 px-3 text-right text-muted whitespace-nowrap">
       {{ formatDate(file.modified) }}
     </td>
-    <td class="px-3 py-2 font-mono text-xs text-gray-500 dark:text-gray-400 w-28 hidden sm:table-cell">
-      {{ file.mode }}
+    <td class="w-28 px-3 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
+      {{ file.mode || '--' }}
     </td>
-    <td class="px-3 py-2 w-16 text-center">
+    <td class="w-14 px-2 text-center">
       <UButton
         v-if="!file.isDir"
         size="xs"
         color="neutral"
         variant="ghost"
-        icon="i-heroicons-arrow-down-tray"
+        icon="i-lucide-download"
+        class="opacity-0 group-hover:opacity-100 transition-opacity"
         @click.stop="handleDownload"
       />
     </td>
