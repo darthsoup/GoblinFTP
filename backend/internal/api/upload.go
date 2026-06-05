@@ -2,14 +2,26 @@
 package api
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/staging"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
+
+// stagingError maps chunk-store failures to API errors: connection-level
+// storage outages become ERR_STORAGE_UNAVAILABLE (503), everything else
+// keeps the handler's usual code.
+func stagingError(err error, fallback gftperrors.Code, msg string) *gftperrors.GFTPError {
+	if errors.Is(err, staging.ErrUnavailable) {
+		return gftperrors.New(gftperrors.ErrStorageUnavailable, "chunk storage unavailable")
+	}
+	return gftperrors.New(fallback, msg)
+}
 
 func (h *Handler) UploadSimple(c echo.Context) error {
 	client, ok := clientFromContext(c)
@@ -49,9 +61,9 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || req.Path == "" || req.TotalChunks < 1 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path and totalChunks are required"))
 	}
-	meta, err := transfer.NewUpload(h.dataDir, req.Path, req.TotalChunks, req.ChunkSize)
+	meta, err := h.chunks.NewUpload(c.Request().Context(), req.Path, req.TotalChunks, req.ChunkSize)
 	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to reserve upload"))
+		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to reserve upload"))
 	}
 	uploads := getUploadsMap(sess)
 	uploads[meta.ID] = meta
@@ -90,8 +102,8 @@ func (h *Handler) UploadChunk(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to open chunk"))
 	}
 	defer f.Close()
-	if err := transfer.WriteChunk(h.dataDir, uploadID, chunkIndex, f); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to write chunk"))
+	if err := h.chunks.WriteChunk(c.Request().Context(), uploadID, chunkIndex, fh.Size, f); err != nil {
+		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to write chunk"))
 	}
 	return OK(c, nil)
 }
@@ -116,15 +128,21 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
 	}
-	r, err := transfer.AssembleReader(h.dataDir, meta.ID, meta.TotalChunks)
+	ctx := c.Request().Context()
+	r, err := h.chunks.AssembleReader(ctx, meta.ID, meta.TotalChunks)
 	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to assemble chunks"))
+		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to assemble chunks"))
 	}
 	defer r.Close()
 	if err := client.Upload(meta.Destination, r); err != nil {
+		// The frontend never retries a failed commit, so the staged chunks
+		// are unreachable — clean them up instead of leaving them behind.
+		_ = h.chunks.Cleanup(ctx, meta.ID)
+		delete(uploads, req.UploadID)
+		sess.Data[transfer.SessionUploadsKey] = uploads
 		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
 	}
-	_ = transfer.Cleanup(h.dataDir, meta.ID)
+	_ = h.chunks.Cleanup(ctx, meta.ID)
 	delete(uploads, req.UploadID)
 	sess.Data[transfer.SessionUploadsKey] = uploads
 	return OK(c, nil)

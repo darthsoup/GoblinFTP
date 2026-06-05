@@ -16,6 +16,9 @@ func clearEnv(t *testing.T) {
 		"GFTP_SSO_ENABLED", "GFTP_SSO_SECRET", "GFTP_CHUNK_SIZE", "GFTP_MAX_CONCURRENT_UPLOADS",
 		"GFTP_LOGIN_MAX_ATTEMPTS", "GFTP_LOGIN_COOLDOWN_SECS", "GFTP_SESSION_TTL_SECS",
 		"GFTP_SENTRY_DSN", "GFTP_PAGE_TITLE", "GFTP_LOGIN_DISABLED_REDIRECT", "GFTP_SETTINGS_PATH",
+		"GFTP_S3_ENABLED", "GFTP_S3_ENDPOINT", "GFTP_S3_BUCKET", "GFTP_S3_REGION",
+		"GFTP_S3_ACCESS_KEY", "GFTP_S3_SECRET_KEY", "GFTP_S3_USE_PATH_STYLE",
+		"GFTP_S3_PREFIX", "GFTP_S3_TIMEOUT_SECS",
 	} {
 		t.Setenv(k, "")
 	}
@@ -198,4 +201,76 @@ func TestLoadMissingSettingsFileIsNotAnError(t *testing.T) {
 	cfg, err := config.Load(nil, "./does-not-exist/settings.json")
 	require.NoError(t, err)
 	assert.Equal(t, "GoblinFTP", cfg.Settings.UI.PageTitle)
+}
+
+func setS3Env(t *testing.T) {
+	t.Helper()
+	t.Setenv("GFTP_S3_ENABLED", "true")
+	t.Setenv("GFTP_S3_ENDPOINT", "http://localhost:9000")
+	t.Setenv("GFTP_S3_BUCKET", "gftp-chunks")
+	t.Setenv("GFTP_S3_ACCESS_KEY", "minioadmin")
+	t.Setenv("GFTP_S3_SECRET_KEY", "minioadmin")
+}
+
+func TestLoadS3Defaults(t *testing.T) {
+	clearEnv(t)
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+
+	assert.False(t, cfg.S3Enabled)
+	assert.Equal(t, "us-east-1", cfg.S3Region)
+	assert.True(t, cfg.S3UsePathStyle)
+	assert.Equal(t, "gftp-uploads", cfg.S3Prefix)
+	assert.Equal(t, 60, cfg.S3TimeoutSeconds)
+}
+
+func TestLoadS3FromEnv(t *testing.T) {
+	clearEnv(t)
+	setS3Env(t)
+	t.Setenv("GFTP_S3_REGION", "eu-central-1")
+	t.Setenv("GFTP_S3_USE_PATH_STYLE", "false")
+	t.Setenv("GFTP_S3_PREFIX", "staging")
+	t.Setenv("GFTP_S3_TIMEOUT_SECS", "120")
+
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+
+	assert.True(t, cfg.S3Enabled)
+	assert.Equal(t, "http://localhost:9000", cfg.S3Endpoint)
+	assert.Equal(t, "gftp-chunks", cfg.S3Bucket)
+	assert.Equal(t, "eu-central-1", cfg.S3Region)
+	assert.Equal(t, "minioadmin", cfg.S3AccessKey)
+	assert.Equal(t, "minioadmin", cfg.S3SecretKey)
+	assert.False(t, cfg.S3UsePathStyle)
+	assert.Equal(t, "staging", cfg.S3Prefix)
+	assert.Equal(t, 120, cfg.S3TimeoutSeconds)
+}
+
+func TestLoadS3EnabledMissingRequiredVarsIsError(t *testing.T) {
+	for _, missing := range []string{
+		"GFTP_S3_ENDPOINT", "GFTP_S3_BUCKET", "GFTP_S3_ACCESS_KEY", "GFTP_S3_SECRET_KEY",
+	} {
+		t.Run(missing, func(t *testing.T) {
+			clearEnv(t)
+			setS3Env(t)
+			t.Setenv(missing, "")
+			_, err := config.Load(nil, "")
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestLoadS3EndpointWithoutSchemeIsError(t *testing.T) {
+	clearEnv(t)
+	setS3Env(t)
+	t.Setenv("GFTP_S3_ENDPOINT", "localhost:9000")
+	_, err := config.Load(nil, "")
+	assert.Error(t, err)
+}
+
+func TestLoadS3InvalidTimeoutIsError(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_S3_TIMEOUT_SECS", "0")
+	_, err := config.Load(nil, "")
+	assert.Error(t, err)
 }

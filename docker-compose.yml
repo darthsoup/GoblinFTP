@@ -13,6 +13,12 @@ services:
       GFTP_SSO_ENABLED: "${GFTP_SSO_ENABLED:-false}"
       GFTP_SSO_SECRET: "${GFTP_SSO_SECRET:-}"
       GFTP_SENTRY_DSN: "${GFTP_SENTRY_DSN:-}"
+      # Optional S3 chunk staging (see README "S3 chunk staging"):
+      GFTP_S3_ENABLED: "${GFTP_S3_ENABLED:-false}"
+      GFTP_S3_ENDPOINT: "${GFTP_S3_ENDPOINT:-}"
+      GFTP_S3_BUCKET: "${GFTP_S3_BUCKET:-}"
+      GFTP_S3_ACCESS_KEY: "${GFTP_S3_ACCESS_KEY:-}"
+      GFTP_S3_SECRET_KEY: "${GFTP_S3_SECRET_KEY:-}"
     # Uncomment to mount custom settings:
     # volumes:
     #   - ./settings.json:/app/settings.json:ro
@@ -32,5 +38,38 @@ services:
     profiles:
       - testing
 
+  # Local S3-compatible server for the optional S3 chunk staging (just s3-up).
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "${GFTP_S3_ACCESS_KEY:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${GFTP_S3_SECRET_KEY:-minioadmin}"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    profiles:
+      - testing
+
+  # One-shot job that creates the staging bucket on the minio service.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 \"$${MINIO_USER}\" \"$${MINIO_PASS}\"; do sleep 1; done;
+      mc mb --ignore-existing local/$${MINIO_BUCKET};
+      "
+    environment:
+      MINIO_USER: "${GFTP_S3_ACCESS_KEY:-minioadmin}"
+      MINIO_PASS: "${GFTP_S3_SECRET_KEY:-minioadmin}"
+      MINIO_BUCKET: "${GFTP_S3_BUCKET:-gftp-chunks}"
+    profiles:
+      - testing
+
 volumes:
   ftp-data:
+  minio-data:

@@ -93,6 +93,14 @@ ftp-up:
 ftp-down:
 	docker compose --profile testing down ftp
 
+# Start local S3 server for chunk staging (MinIO — default: minioadmin/minioadmin on localhost:9000, console on :9001)
+s3-up:
+	docker compose --profile testing up minio minio-init -d
+
+# Stop local S3 server
+s3-down:
+	docker compose --profile testing down minio minio-init
+
 # ── Utilities ──────────────────────────────────────────────────────────────────
 
 # Report i18n keys in en.json missing from de.json

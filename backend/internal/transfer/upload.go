@@ -14,8 +14,8 @@ import (
 
 var uuidRe = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
-// validateUploadID returns an error if id is not a valid UUID.
-func validateUploadID(id string) error {
+// ValidateUploadID returns an error if id is not a valid UUID.
+func ValidateUploadID(id string) error {
 	if !uuidRe.MatchString(id) {
 		return fmt.Errorf("invalid upload ID: %q", id)
 	}
@@ -97,7 +97,7 @@ func NewUpload(dataDir, destination string, totalChunks int, chunkSize int64) (*
 
 // WriteChunk writes a chunk to the upload directory.
 func WriteChunk(dataDir, uploadID string, index int, r io.Reader) error {
-	if err := validateUploadID(uploadID); err != nil {
+	if err := ValidateUploadID(uploadID); err != nil {
 		return err
 	}
 	name := filepath.Join(dataDir, uploadID, fmt.Sprintf("%04d", index))
@@ -112,7 +112,7 @@ func WriteChunk(dataDir, uploadID string, index int, r io.Reader) error {
 
 // AssembleReader returns an io.ReadCloser that reads all chunks in order.
 func AssembleReader(dataDir, uploadID string, totalChunks int) (io.ReadCloser, error) {
-	if err := validateUploadID(uploadID); err != nil {
+	if err := ValidateUploadID(uploadID); err != nil {
 		return nil, err
 	}
 	// Verify all chunks exist before opening any
@@ -159,7 +159,7 @@ func (m *multiReadCloser) Close() error {
 
 // Cleanup removes the upload directory.
 func Cleanup(dataDir, uploadID string) error {
-	if err := validateUploadID(uploadID); err != nil {
+	if err := ValidateUploadID(uploadID); err != nil {
 		return err
 	}
 	return os.RemoveAll(filepath.Join(dataDir, uploadID))

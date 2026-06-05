@@ -50,6 +50,56 @@ docker run -p 8080:80 \
   darthsoup/goblinftp
 ```
 
+### Optional: S3 chunk staging
+
+By default, chunked uploads are staged on local disk (`GFTP_DATA_DIR`) before being streamed to the connected FTP/SFTP server. Optionally, chunks can be staged in an S3-compatible bucket (MinIO, AWS S3, …) instead — useful for read-only containers, offloading disk I/O, or multi-replica deployments. This works identically for FTP and SFTP connections; nothing changes in the browser.
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_S3_ENABLED` | `false` | Enable S3 chunk staging |
+| `GFTP_S3_ENDPOINT` | — | Full endpoint URL incl. scheme, e.g. `http://minio:9000` or `https://s3.amazonaws.com` |
+| `GFTP_S3_BUCKET` | — | Bucket for staged chunks (must already exist) |
+| `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` | — | Credentials (object read/write/delete + list is enough — no bucket-create needed) |
+| `GFTP_S3_REGION` | `us-east-1` | Bucket region |
+| `GFTP_S3_USE_PATH_STYLE` | `true` | Path-style addressing — keep `true` for MinIO, set `false` for AWS S3 |
+| `GFTP_S3_PREFIX` | `gftp-uploads` | Key prefix for staged chunks |
+| `GFTP_S3_TIMEOUT_SECS` | `60` | Per-request timeout for S3 calls |
+
+Endpoint, bucket, and credentials are required when enabled — the server refuses to start without them. Credentials are env-only and never read from `settings.json`; use your orchestrator's secrets mechanism in production.
+
+```bash
+docker run -p 8080:80 \
+  -e GFTP_S3_ENABLED=true \
+  -e GFTP_S3_ENDPOINT=http://minio:9000 \
+  -e GFTP_S3_BUCKET=gftp-chunks \
+  -e GFTP_S3_ACCESS_KEY=minioadmin \
+  -e GFTP_S3_SECRET_KEY=minioadmin \
+  darthsoup/goblinftp
+```
+
+Chunks live under `{prefix}/{uploadId}/` only for the duration of an upload and are deleted after the file is committed to the FTP/SFTP server. Uploads abandoned mid-flight (closed browser tab, cancelled transfer) are not reaped automatically — add a bucket lifecycle rule that expires objects under the prefix after a day:
+
+```bash
+# MinIO
+mc ilm rule add --expire-days 1 --prefix "gftp-uploads/" local/gftp-chunks
+```
+
+```bash
+# AWS S3 — save the JSON below as lifecycle.json, then:
+aws s3api put-bucket-lifecycle-configuration --bucket gftp-chunks --lifecycle-configuration file://lifecycle.json
+```
+
+```json
+{
+  "Rules": [{
+    "ID": "expire-abandoned-gftp-uploads",
+    "Status": "Enabled",
+    "Filter": { "Prefix": "gftp-uploads/" },
+    "Expiration": { "Days": 1 }
+  }]
+}
+```
+
 ### settings.json
 
 Key options (full schema in `settings.example.json`):
@@ -92,6 +142,8 @@ just i18n-check   # verify German translations are complete
 
 just ftp-up       # start local FTP test server (garethflowers/ftp-server)
 just ftp-down     # stop local FTP test server
+just s3-up        # start local S3 server for chunk staging (MinIO)
+just s3-down      # stop local S3 server
 ```
 
 ### Testing with a local FTP server
@@ -100,6 +152,22 @@ just ftp-down     # stop local FTP test server
 just ftp-up
 # Connect with: localhost:21, ftpuser / ftppass
 just ftp-down
+```
+
+### Testing with a local S3 server (MinIO)
+
+```bash
+just s3-up   # MinIO on localhost:9000 (console: localhost:9001, minioadmin/minioadmin)
+             # the gftp-chunks bucket is created automatically
+
+GFTP_S3_ENABLED=true GFTP_S3_ENDPOINT=http://localhost:9000 \
+GFTP_S3_BUCKET=gftp-chunks GFTP_S3_ACCESS_KEY=minioadmin \
+GFTP_S3_SECRET_KEY=minioadmin just dev-be
+
+# S3 integration tests:
+cd backend && GFTP_TEST_S3_ENDPOINT=http://localhost:9000 go test ./internal/staging/...
+
+just s3-down
 ```
 
 ## License

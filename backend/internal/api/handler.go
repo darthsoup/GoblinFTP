@@ -5,6 +5,7 @@ import (
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
 	"github.com/darthsoup/goblinftp/internal/sso"
+	"github.com/darthsoup/goblinftp/internal/staging"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
@@ -21,12 +22,19 @@ func WithDial(fn DialFunc) HandlerOption {
 	}
 }
 
+// WithChunkStore overrides the chunk staging backend (S3 in production, mocks in tests).
+func WithChunkStore(s staging.ChunkStore) HandlerOption {
+	return func(h *Handler) {
+		h.chunks = s
+	}
+}
+
 // Handler holds shared dependencies for all API handlers.
 type Handler struct {
 	cfg      *config.Config
 	store    *auth.Store
 	throttle *auth.Throttle
-	dataDir  string
+	chunks   staging.ChunkStore
 	dial     DialFunc
 	ssoUsed  *sso.UsedSet
 }
@@ -36,7 +44,7 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 		cfg:      cfg,
 		store:    store,
 		throttle: thr,
-		dataDir:  cfg.DataDir,
+		chunks:   staging.NewLocalStore(cfg.DataDir),
 		dial:     defaultDial,
 		ssoUsed:  sso.NewUsedSet(),
 	}

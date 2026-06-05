@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // UISettings maps the `ui` block of settings.json.
@@ -65,6 +66,15 @@ type Config struct {
 	SentryDSN             string
 	LoginDisabledRedirect string
 	DisableLoginForm      bool
+	S3Enabled             bool
+	S3Endpoint            string
+	S3Bucket              string
+	S3Region              string
+	S3AccessKey           string
+	S3SecretKey           string
+	S3UsePathStyle        bool
+	S3Prefix              string
+	S3TimeoutSeconds      int
 	Settings              Settings
 }
 
@@ -117,6 +127,42 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	}
 	if cfg.SSOEnabled && len(cfg.SSOSecret) == 0 {
 		return nil, fmt.Errorf("GFTP_SSO_SECRET must be set when GFTP_SSO_ENABLED is true")
+	}
+
+	// S3 chunk staging (optional). Secrets are env-only — never in settings.json.
+	cfg.S3Enabled = os.Getenv("GFTP_S3_ENABLED") == "true"
+	cfg.S3Endpoint = os.Getenv("GFTP_S3_ENDPOINT")
+	cfg.S3Bucket = os.Getenv("GFTP_S3_BUCKET")
+	cfg.S3Region = envOr("GFTP_S3_REGION", "us-east-1")
+	cfg.S3AccessKey = os.Getenv("GFTP_S3_ACCESS_KEY")
+	cfg.S3SecretKey = os.Getenv("GFTP_S3_SECRET_KEY")
+	// Path-style addressing defaults to true (MinIO); only "false" disables it (AWS).
+	cfg.S3UsePathStyle = os.Getenv("GFTP_S3_USE_PATH_STYLE") != "false"
+	cfg.S3Prefix = envOr("GFTP_S3_PREFIX", "gftp-uploads")
+	cfg.S3TimeoutSeconds = 60
+	if raw := os.Getenv("GFTP_S3_TIMEOUT_SECS"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GFTP_S3_TIMEOUT_SECS: %w", err)
+		}
+		if n <= 0 {
+			return nil, fmt.Errorf("invalid GFTP_S3_TIMEOUT_SECS: must be positive, got %d", n)
+		}
+		cfg.S3TimeoutSeconds = n
+	}
+	if cfg.S3Enabled {
+		switch {
+		case cfg.S3Endpoint == "":
+			return nil, fmt.Errorf("GFTP_S3_ENDPOINT must be set when GFTP_S3_ENABLED is true")
+		case !strings.HasPrefix(cfg.S3Endpoint, "http://") && !strings.HasPrefix(cfg.S3Endpoint, "https://"):
+			return nil, fmt.Errorf("GFTP_S3_ENDPOINT must include a scheme (http:// or https://), got %q", cfg.S3Endpoint)
+		case cfg.S3Bucket == "":
+			return nil, fmt.Errorf("GFTP_S3_BUCKET must be set when GFTP_S3_ENABLED is true")
+		case cfg.S3AccessKey == "":
+			return nil, fmt.Errorf("GFTP_S3_ACCESS_KEY must be set when GFTP_S3_ENABLED is true")
+		case cfg.S3SecretKey == "":
+			return nil, fmt.Errorf("GFTP_S3_SECRET_KEY must be set when GFTP_S3_ENABLED is true")
+		}
 	}
 
 	if raw := os.Getenv("GFTP_CHUNK_SIZE"); raw != "" {

@@ -26,6 +26,7 @@ just lint         # eslint + nuxt typecheck + golangci-lint
 just fmt          # prettier (frontend) + gofmt (backend)
 just i18n-check   # verify de.json has all keys from en.json
 just ftp-up       # local FTP test server (ftpuser/ftppass on :21); ftp-down stops it
+just s3-up        # local MinIO for S3 chunk staging (minioadmin/minioadmin on :9000); s3-down stops it
 just build        # build-fe (nuxt generate) + build-be (go build → bin/gftp)
 ```
 
@@ -43,6 +44,7 @@ backend/
     sftp/                 # pkg/sftp adapter       → implements transfer.Client
     sentry/               # custom Echo v4 Sentry middleware (sentry-go/echo is v5-only)
     sso/                  # SSO token validation + one-time-use set
+    staging/              # ChunkStore interface: local-disk (default) + optional S3 chunk staging
     transfer/             # Client interface, chunked upload engine, download tokens
 frontend/app/
   pages/index.vue         # single page — all state via Pinia stores
@@ -65,7 +67,8 @@ frontend/app/
 - **Error codes**: use constants from `internal/errors/errors.go` — never invent string literals.
 - **API tests** live in `package api_test` (black-box). Use `newTestApp(t, defaultTestConfig())` + `testutil.MockClient` to avoid real FTP/SFTP. Inject the mock with the `WithDial(...)` handler option.
 - `transfer.Client` is retrieved from session via `clientFromContext(c)` → `(Client, bool)`.
-- `internal/ftp` and `internal/sftp` are integration-level — real-server tests require `just ftp-up`.
+- Upload chunk staging is abstracted behind `staging.ChunkStore` (local disk default, S3 via `GFTP_S3_ENABLED`); inject mocks with the `WithChunkStore(...)` handler option. The aws-sdk-go-v2 dependency lives only in `internal/staging`.
+- `internal/ftp` and `internal/sftp` are integration-level — real-server tests require `just ftp-up`. S3 integration tests in `internal/staging` are gated by `GFTP_TEST_S3_ENDPOINT` (requires `just s3-up`).
 - `internal/sentry` is intentionally not unit-tested.
 
 ### Frontend conventions
@@ -96,5 +99,6 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_SSO_ENABLED` / `GFTP_SSO_SECRET` | SSO link validation |
 | `GFTP_SENTRY_DSN` / `NUXT_PUBLIC_SENTRY_DSN` | Sentry (optional) |
 | `GFTP_SETTINGS_PATH` | Path to `settings.json` |
+| `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
 
-The FTP test container is on docker compose profile `testing` — only `just ftp-up/ftp-down` activates it.
+The FTP test container and MinIO are on docker compose profile `testing` — only `just ftp-up/ftp-down` and `just s3-up/s3-down` activate them.
