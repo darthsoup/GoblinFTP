@@ -25,6 +25,7 @@ just fmt          # prettier (frontend) + gofmt (backend)
 just i18n-check   # verify de.json has all keys from en.json
 just ftp-up       # local FTP test server (ftpuser/ftppass on :21); ftp-down stops it
 just s3-up        # local MinIO for S3 chunk staging (minioadmin/minioadmin on :9000); s3-down stops it
+just sso-link     # generate a one-time SSO login link (examples/sso/ has Node + PHP generators)
 just build        # build-fe (nuxt generate) + build-be (go build → bin/gftp)
 ```
 
@@ -35,6 +36,7 @@ Running the app (e.g. for visual verification): prefer `just dev` for the full s
 ```
 backend/
   cmd/gftp/main.go        # entry: config load → newApp() → e.Start()
+  cmd/gftp-sso-link/      # CLI: generate one-time SSO login links (reuses internal/sso)
   internal/
     api/                  # all HTTP handlers + routing
     auth/                 # in-memory session store (TTL) + CSRF token gen

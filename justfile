@@ -103,6 +103,10 @@ s3-down:
 
 # ── Utilities ──────────────────────────────────────────────────────────────────
 
+# Generate a one-time SSO login link (see examples/sso/README.md)
+sso-link *ARGS:
+	cd backend && go run ./cmd/gftp-sso-link {{ ARGS }}
+
 # Report i18n keys in en.json missing from de.json
 i18n-check:
 	node -e "const en=require('./frontend/i18n/locales/en.json'),de=require('./frontend/i18n/locales/de.json'),m=Object.keys(en).filter(k=>de[k]===undefined);m.length?(console.log('Missing in de.json:',m),process.exit(1)):console.log('All keys present in de.json')"

@@ -100,6 +100,16 @@ aws s3api put-bucket-lifecycle-configuration --bucket gftp-chunks --lifecycle-co
 }
 ```
 
+### SSO login links
+
+With `GFTP_SSO_ENABLED=true` and a `GFTP_SSO_SECRET` set, your application can generate one-time login links (`/?sso=<token>`) that connect users directly — no login form. Tokens are AES-256-GCM-encrypted, single-use, and short-lived.
+
+```bash
+just sso-link -host ftp.example.com -username alice -password s3cret -base-url https://files.example.com
+```
+
+See [`examples/sso/`](examples/sso/) for the token format and ready-to-use generators in Go, Node.js, and PHP.
+
 ### settings.json
 
 Key options (full schema in `settings.example.json`):
