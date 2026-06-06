@@ -94,10 +94,28 @@ func defaultSettings() Settings {
 			ShowNavigationHistory: true,
 		},
 		Editor: EditorSettings{
-			OpenOnCreate:      false,
-			AllowedExtensions: []string{"txt", "htm", "html", "php", "js", "css", "xml", "json", "py", "rb", "go", "sh"},
-			Disabled:          false,
-			ViewOnly:          false,
+			OpenOnCreate: false,
+			// Text-editable defaults, aligned with the frontend editor's
+			// syntax-highlighting support (CodeMirror language packages).
+			AllowedExtensions: []string{
+				// web
+				"html", "htm", "xhtml", "css", "scss", "sass", "less",
+				"js", "mjs", "cjs", "jsx", "ts", "tsx", "vue", "svelte",
+				// server-side
+				"php", "phtml", "py", "rb", "go", "rs", "java", "c", "h", "cpp", "hpp",
+				"sh", "bash", "zsh", "pl", "lua",
+				// data & config
+				"json", "json5", "xml", "svg", "yaml", "yml", "toml", "ini", "conf",
+				"cfg", "env", "properties", "sql", "csv", "tsv",
+				// text & docs
+				"txt", "md", "markdown", "rst", "log",
+				// dotfiles (the part after the dot)
+				"htaccess", "htpasswd", "gitignore", "editorconfig",
+				// templates
+				"twig", "ejs", "hbs", "mustache", "liquid", "erb", "j2",
+			},
+			Disabled: false,
+			ViewOnly: false,
 		},
 		Connection: ConnectionSettings{
 			AllowedTypes:          []string{"ftp", "sftp"},

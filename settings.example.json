@@ -10,7 +10,17 @@
 
   "editor": {
     "openOnCreate": false,
-    "allowedExtensions": ["txt", "htm", "html", "php", "js", "css", "xml", "json", "py", "rb", "go", "sh"],
+    "allowedExtensions": [
+      "html", "htm", "xhtml", "css", "scss", "sass", "less",
+      "js", "mjs", "cjs", "jsx", "ts", "tsx", "vue", "svelte",
+      "php", "phtml", "py", "rb", "go", "rs", "java", "c", "h", "cpp", "hpp",
+      "sh", "bash", "zsh", "pl", "lua",
+      "json", "json5", "xml", "svg", "yaml", "yml", "toml", "ini", "conf",
+      "cfg", "env", "properties", "sql", "csv", "tsv",
+      "txt", "md", "markdown", "rst", "log",
+      "htaccess", "htpasswd", "gitignore", "editorconfig",
+      "twig", "ejs", "hbs", "mustache", "liquid", "erb", "j2"
+    ],
     "disabled": false,
     "viewOnly": false
   },

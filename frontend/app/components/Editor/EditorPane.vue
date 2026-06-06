@@ -3,12 +3,19 @@ import type { LanguageSupport } from '@codemirror/language'
 import type { Extension } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { css } from '@codemirror/lang-css'
+import { go } from '@codemirror/lang-go'
 import { html } from '@codemirror/lang-html'
 import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
+import { less } from '@codemirror/lang-less'
 import { markdown } from '@codemirror/lang-markdown'
+import { php } from '@codemirror/lang-php'
 import { python } from '@codemirror/lang-python'
+import { sass } from '@codemirror/lang-sass'
+import { sql } from '@codemirror/lang-sql'
+import { vue } from '@codemirror/lang-vue'
 import { xml } from '@codemirror/lang-xml'
+import { yaml } from '@codemirror/lang-yaml'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { Compartment, EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
@@ -38,15 +45,30 @@ function getLanguageExtension(filename: string): LanguageSupport | readonly Exte
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
   const map: Record<string, LanguageSupport | readonly Extension[]> = {
     js: javascript(),
+    mjs: javascript(),
+    cjs: javascript(),
     ts: javascript({ typescript: true }),
     jsx: javascript({ jsx: true }),
     tsx: javascript({ jsx: true, typescript: true }),
     html: html(),
     htm: html(),
+    xhtml: html(),
     css: css(),
+    scss: sass(),
+    sass: sass({ indented: true }),
+    less: less(),
+    vue: vue(),
+    php: php(),
+    phtml: php(),
     json: json(),
+    json5: json(),
     py: python(),
+    go: go(),
+    sql: sql(),
     xml: xml(),
+    svg: xml(),
+    yaml: yaml(),
+    yml: yaml(),
     md: markdown(),
     markdown: markdown(),
   }
