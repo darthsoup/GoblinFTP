@@ -22,8 +22,26 @@ const protocolItems = computed(() =>
   authStore.allowedTypes.map(type => ({ label: type.toUpperCase(), value: type })),
 )
 
+const conn = computed(() => authStore.systemVars?.connection)
+const hostLocked = computed(() => conn.value?.lockHost ?? false)
+
+// Admin presets from settings.json: prefill host/port, default passive mode,
+// and make sure the protocol is one the server allows. systemVars may arrive
+// after mount, so apply reactively (without clobbering user input).
+watch(conn, (c) => {
+  if (!c)
+    return
+  if (!authStore.allowedTypes.includes(form.protocol))
+    form.protocol = authStore.allowedTypes[0] ?? 'ftp'
+  if (c.presetHost && !form.host)
+    form.host = c.presetHost
+  if (c.presetPort)
+    form.port = c.presetPort
+  form.passive = c.passiveMode
+}, { immediate: true })
+
 watch(() => form.protocol, (proto) => {
-  form.port = proto === 'sftp' ? 22 : 21
+  form.port = conn.value?.presetPort ?? (proto === 'sftp' ? 22 : 21)
 })
 
 function validate(state: Partial<typeof form>): FormError[] {
@@ -91,6 +109,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
             <UInput
               v-model="form.host"
               :placeholder="t('login.hostPlaceholder')"
+              :disabled="hostLocked"
               class="w-full font-mono"
             />
           </UFormField>
@@ -100,6 +119,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
               type="number"
               min="1"
               max="65535"
+              :disabled="hostLocked"
               class="w-full font-mono"
             />
           </UFormField>
@@ -120,6 +140,15 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
             type="password"
             autocomplete="current-password"
             class="w-full font-mono"
+          />
+        </UFormField>
+
+        <UFormField v-if="form.protocol === 'ftp'" name="passive">
+          <USwitch
+            v-model="form.passive"
+            size="sm"
+            :label="t('login.passive')"
+            :ui="{ label: 'font-mono text-xs text-muted' }"
           />
         </UFormField>
 

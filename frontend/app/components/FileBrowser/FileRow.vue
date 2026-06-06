@@ -14,29 +14,18 @@ const emit = defineEmits<{
 }>()
 
 const { locale } = useI18n()
+const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
 
 function formatSize(bytes: number): string {
   if (props.file.isDir)
     return '--'
-  if (bytes < 1024)
-    return `${bytes} B`
-  if (bytes < 1024 * 1024)
-    return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`
+  return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime()))
-    return iso
-  const sameYear = d.getFullYear() === new Date().getFullYear()
-  return new Intl.DateTimeFormat(locale.value, sameYear
-    ? { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }
-    : { year: 'numeric', month: 'short', day: '2-digit' }).format(d)
+  return formatFileDate(iso, settingsStore.dateFormat, locale.value)
 }
 
 function handleClick() {

@@ -2,7 +2,8 @@
 import type { UploadStatus } from '~/stores/upload'
 
 const uploadStore = useUploadStore()
-const { t } = useI18n()
+const settingsStore = useSettingsStore()
+const { t, locale } = useI18n()
 
 const collapsed = ref(false)
 
@@ -19,11 +20,7 @@ function statusLabel(status: UploadStatus): string {
 }
 
 function formatBytes(n: number): string {
-  if (n < 1024)
-    return `${n} B`
-  if (n < 1024 * 1024)
-    return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+  return formatFileSize(n, settingsStore.sizeFormat, locale.value)
 }
 </script>
 

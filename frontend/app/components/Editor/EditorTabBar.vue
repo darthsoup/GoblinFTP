@@ -1,7 +1,6 @@
 <script setup lang="ts">
-const props = defineProps<{ autoSave: boolean }>()
-const emit = defineEmits<{ toggleAutoSave: [] }>()
 const editorStore = useEditorStore()
+const settingsStore = useSettingsStore()
 const { t } = useI18n()
 </script>
 
@@ -33,11 +32,10 @@ const { t } = useI18n()
 
     <div class="px-3 flex items-center gap-3 shrink-0">
       <USwitch
-        :model-value="props.autoSave"
+        v-model="settingsStore.editorAutoSave"
         size="xs"
         :label="t('editor.autoSave')"
         :ui="{ label: 'text-xs font-mono text-muted whitespace-nowrap' }"
-        @update:model-value="emit('toggleAutoSave')"
       />
 
       <UButton

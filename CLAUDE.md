@@ -81,7 +81,7 @@ frontend/app/
 - All API calls go through `useApi()` — never `$fetch` directly, except `authStore.init()` / `authStore.connect()` which intentionally bypass CSRF.
 - Components use `pathPrefix: false` — `Auth/LoginForm.vue` is `<LoginForm />`, not `<AuthLoginForm />`.
 - Pinia stores use **Composition API style**: `defineStore('id', () => { ... })`.
-- End-user preferences are browser-side only (the backend never reads them): `stores/settings.ts` persists to localStorage `gftp_settings`; language via the i18n cookie (`gftp_locale`); theme via colorMode localStorage.
+- End-user preferences are browser-side only (the backend never reads them): `stores/settings.ts` persists to localStorage `gftp_settings` (incl. language); theme via colorMode localStorage. Preferences with an admin default in `settings.json` (dotfiles, language) follow "user override wins, otherwise admin default from systemVars" — the user value stays `null` until explicitly changed.
 - `FileInfo` JSON fields: `name`, `size`, `isDir`, `modified` (RFC3339), `mode` (`"drwxr-xr-x"`). Backend's internal `transfer.FileInfo` uses different field names.
 - TypeScript strict mode incl. `noUncheckedIndexedAccess` — index access is `T | undefined`; use `!` after a length guard or optional chaining.
 - `UProgress` uses `:model-value`, not `:value`.

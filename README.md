@@ -118,10 +118,14 @@ Key options (full schema in `settings.example.json`):
 |---|---|
 | `connection.allowedTypes` | Restrict to `["ftp"]`, `["sftp"]`, or both |
 | `connection.disableChmod` | Hide chmod UI |
+| `connection.presetHost` / `presetPort` | Prefill the login form (panel deployments) |
+| `connection.lockHost` | Make host + port read-only (requires `presetHost`) |
+| `connection.passiveMode` | Default for the FTP passive-mode toggle |
 | `editor.disabled` | Disable the file editor entirely |
 | `editor.allowedExtensions` | Restrict editable file extensions |
 | `access.allowedClientAddresses` | IP allowlist (empty = allow all) |
-| `ui.showDotFiles` | Show hidden files |
+| `language` | Default UI language (users can override in settings) |
+| `ui.showDotFiles` | Show hidden files by default (users can override) |
 
 ## Development
 

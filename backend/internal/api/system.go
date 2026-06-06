@@ -29,6 +29,10 @@ type systemUploadVars struct {
 type systemConnVars struct {
 	AllowedTypes []string `json:"allowedTypes"`
 	DisableChmod bool     `json:"disableChmod"`
+	PresetHost   *string  `json:"presetHost"`
+	PresetPort   *int     `json:"presetPort"`
+	LockHost     bool     `json:"lockHost"`
+	PassiveMode  bool     `json:"passiveMode"`
 }
 
 type systemEditorVars struct {
@@ -52,6 +56,10 @@ func (h *Handler) SystemVars(c echo.Context) error {
 		Connection: systemConnVars{
 			AllowedTypes: h.cfg.Settings.Connection.AllowedTypes,
 			DisableChmod: h.cfg.Settings.Connection.DisableChmod,
+			PresetHost:   h.cfg.Settings.Connection.PresetHost,
+			PresetPort:   h.cfg.Settings.Connection.PresetPort,
+			LockHost:     h.cfg.Settings.Connection.LockHost,
+			PassiveMode:  h.cfg.Settings.Connection.PassiveMode,
 		},
 		Editor: systemEditorVars{
 			Disabled:          h.cfg.Settings.Editor.Disabled,

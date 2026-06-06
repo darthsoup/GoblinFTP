@@ -9,6 +9,7 @@
     "password": "Password",
     "connect": "Connect",
     "tagline": "Self-hosted file transfer",
+    "passive": "Passive mode (FTP)",
     "errorRequired": "Required",
     "errorPort": "Invalid port"
   },
@@ -25,6 +26,14 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeAuto": "Automatic",
+    "sizeFormat": "File sizes",
+    "sizeBinary": "Binary (KiB)",
+    "sizeDecimal": "Decimal (KB)",
+    "sizeBytes": "Exact bytes",
+    "dateFormat": "Dates",
+    "dateAuto": "Smart",
+    "dateAbsolute": "Absolute",
+    "dateRelative": "Relative",
     "showDotfiles": "Show dotfiles",
     "showDotfilesHint": "List files starting with a dot (e.g. .htaccess).",
     "close": "Done"

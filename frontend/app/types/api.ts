@@ -44,7 +44,14 @@ export interface SystemVars {
     chunkSize: number
     maxConcurrentUploads: number
   }
-  connection: { allowedTypes: string[], disableChmod: boolean }
+  connection: {
+    allowedTypes: string[]
+    disableChmod: boolean
+    presetHost: string | null
+    presetPort: number | null
+    lockHost: boolean
+    passiveMode: boolean
+  }
   editor: {
     disabled: boolean
     viewOnly: boolean

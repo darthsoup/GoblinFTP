@@ -16,11 +16,12 @@ import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lin
 
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
 const colorMode = useColorMode()
 const { t } = useI18n()
 
 const containerRef = ref<HTMLElement | null>(null)
-const autoSave = ref(false)
+const autoSave = computed(() => settingsStore.editorAutoSave)
 let view: EditorView | null = null
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -171,7 +172,7 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
-    <EditorTabBar :auto-save="autoSave" @toggle-auto-save="autoSave = !autoSave" />
+    <EditorTabBar />
 
     <div v-if="editorStore.activeTab?.loading" class="flex items-center justify-center flex-1 text-muted font-mono text-sm">
       <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />

@@ -35,12 +35,9 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en',
     strategy: 'no_prefix',
-    // Persist the user's language choice (settings modal) in a cookie
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'gftp_locale',
-      redirectOn: 'root',
-    },
+    // Language is applied on boot: user choice (gftp_settings localStorage)
+    // > admin default (settings.json) > en. No browser detection.
+    detectBrowserLanguage: false,
   },
 
   devtools: { enabled: true },

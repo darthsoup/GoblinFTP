@@ -3,12 +3,20 @@ const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const editorStore = useEditorStore()
 const modalStore = useModalStore()
-const { t } = useI18n()
+const settingsStore = useSettingsStore()
+const { t, locale, setLocale } = useI18n()
 
 useSessionChecker()
 
 onMounted(async () => {
   await authStore.init()
+
+  // Language precedence: explicit user choice > admin default > en
+  const adminLang = authStore.systemVars?.language
+  const preferred = settingsStore.language
+    ?? (adminLang === 'en' || adminLang === 'de' ? adminLang : undefined)
+  if (preferred && preferred !== locale.value)
+    await setLocale(preferred)
 
   if (authStore.ssoAutoConnect) {
     await authStore.ssoConnect()

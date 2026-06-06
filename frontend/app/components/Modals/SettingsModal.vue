@@ -12,10 +12,12 @@ const open = computed({
   },
 })
 
-// Changes apply immediately — no save/cancel dance.
+// Changes apply immediately — no save/cancel dance. The explicit choice is
+// remembered in the settings store so it overrides the admin default.
 const language = computed({
   get: () => locale.value,
   set: (v: typeof locale.value) => {
+    settingsStore.language = v
     setLocale(v)
   },
 })
@@ -34,6 +36,17 @@ const themeItems = computed(() => [
   { label: t('settings.themeLight'), value: 'light' },
   { label: t('settings.themeDark'), value: 'dark' },
   { label: t('settings.themeAuto'), value: 'system' },
+])
+
+const sizeFormatItems = computed(() => [
+  { label: t('settings.sizeBinary'), value: 'binary' },
+  { label: t('settings.sizeDecimal'), value: 'decimal' },
+  { label: t('settings.sizeBytes'), value: 'bytes' },
+])
+const dateFormatItems = computed(() => [
+  { label: t('settings.dateAuto'), value: 'auto' },
+  { label: t('settings.dateAbsolute'), value: 'absolute' },
+  { label: t('settings.dateRelative'), value: 'relative' },
 ])
 </script>
 
@@ -61,6 +74,23 @@ const themeItems = computed(() => [
             class="w-full font-mono"
           />
         </UFormField>
+
+        <div class="grid grid-cols-2 gap-3">
+          <UFormField :label="t('settings.sizeFormat')">
+            <USelect
+              v-model="settingsStore.sizeFormat"
+              :items="sizeFormatItems"
+              class="w-full font-mono"
+            />
+          </UFormField>
+          <UFormField :label="t('settings.dateFormat')">
+            <USelect
+              v-model="settingsStore.dateFormat"
+              :items="dateFormatItems"
+              class="w-full font-mono"
+            />
+          </UFormField>
+        </div>
 
         <UFormField :label="t('settings.showDotfiles')" :description="t('settings.showDotfilesHint')">
           <USwitch v-model="settingsStore.showDotfiles" />

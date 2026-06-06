@@ -31,6 +31,13 @@ type ConnectionSettings struct {
 	AllowedTypes          []string `json:"allowedTypes"`
 	DisableChmod          bool     `json:"disableChmod"`
 	RequestTimeoutSeconds int      `json:"requestTimeoutSeconds"`
+	// PresetHost/PresetPort prefill the login form; LockHost makes the
+	// host+port fields read-only (panel deployments where users only enter
+	// credentials). PassiveMode is the default for the FTP passive toggle.
+	PresetHost  *string `json:"presetHost"`
+	PresetPort  *int    `json:"presetPort"`
+	LockHost    bool    `json:"lockHost"`
+	PassiveMode bool    `json:"passiveMode"`
 }
 
 // AccessSettings maps the `access` block.
@@ -96,6 +103,7 @@ func defaultSettings() Settings {
 			AllowedTypes:          []string{"ftp", "sftp"},
 			DisableChmod:          false,
 			RequestTimeoutSeconds: 30,
+			PassiveMode:           true,
 		},
 		Access: AccessSettings{
 			AllowedClientAddresses: []string{},
@@ -261,6 +269,14 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 
 	if title := os.Getenv("GFTP_PAGE_TITLE"); title != "" {
 		cfg.Settings.UI.PageTitle = title
+	}
+
+	conn := &cfg.Settings.Connection
+	if conn.PresetPort != nil && (*conn.PresetPort < 1 || *conn.PresetPort > 65535) {
+		return nil, fmt.Errorf("invalid connection.presetPort: must be 1-65535, got %d", *conn.PresetPort)
+	}
+	if conn.LockHost && (conn.PresetHost == nil || *conn.PresetHost == "") {
+		return nil, fmt.Errorf("connection.lockHost requires connection.presetHost to be set")
 	}
 
 	return cfg, nil

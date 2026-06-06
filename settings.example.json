@@ -18,7 +18,11 @@
   "connection": {
     "allowedTypes": ["ftp", "sftp"],
     "disableChmod": false,
-    "requestTimeoutSeconds": 30
+    "requestTimeoutSeconds": 30,
+    "presetHost": null,
+    "presetPort": null,
+    "lockHost": false,
+    "passiveMode": true
   },
 
   "access": {

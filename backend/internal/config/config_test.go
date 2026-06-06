@@ -274,3 +274,67 @@ func TestLoadS3InvalidTimeoutIsError(t *testing.T) {
 	_, err := config.Load(nil, "")
 	assert.Error(t, err)
 }
+
+func TestLoadConnectionPresets(t *testing.T) {
+	clearEnv(t)
+	content := `{
+		"connection":{"allowedTypes":["ftp"],"disableChmod":false,"requestTimeoutSeconds":30,
+			"presetHost":"ftp.example.com","presetPort":2121,"lockHost":true,"passiveMode":false}
+	}`
+	f, err := os.CreateTemp(".", "settings*.json")
+	require.NoError(t, err)
+	defer os.Remove(f.Name())
+	_, err = f.WriteString(content)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	cfg, err := config.Load(nil, f.Name())
+	require.NoError(t, err)
+
+	require.NotNil(t, cfg.Settings.Connection.PresetHost)
+	assert.Equal(t, "ftp.example.com", *cfg.Settings.Connection.PresetHost)
+	require.NotNil(t, cfg.Settings.Connection.PresetPort)
+	assert.Equal(t, 2121, *cfg.Settings.Connection.PresetPort)
+	assert.True(t, cfg.Settings.Connection.LockHost)
+	assert.False(t, cfg.Settings.Connection.PassiveMode)
+}
+
+func TestLoadConnectionPresetDefaults(t *testing.T) {
+	clearEnv(t)
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+	assert.Nil(t, cfg.Settings.Connection.PresetHost)
+	assert.Nil(t, cfg.Settings.Connection.PresetPort)
+	assert.False(t, cfg.Settings.Connection.LockHost)
+	assert.True(t, cfg.Settings.Connection.PassiveMode, "passive mode defaults to true")
+}
+
+func TestLoadLockHostRequiresPresetHost(t *testing.T) {
+	clearEnv(t)
+	content := `{"connection":{"allowedTypes":["ftp"],"disableChmod":false,"requestTimeoutSeconds":30,"lockHost":true,"passiveMode":true}}`
+	f, err := os.CreateTemp(".", "settings*.json")
+	require.NoError(t, err)
+	defer os.Remove(f.Name())
+	_, err = f.WriteString(content)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	_, err = config.Load(nil, f.Name())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "lockHost requires")
+}
+
+func TestLoadInvalidPresetPort(t *testing.T) {
+	clearEnv(t)
+	content := `{"connection":{"allowedTypes":["ftp"],"disableChmod":false,"requestTimeoutSeconds":30,"presetHost":"h","presetPort":70000,"passiveMode":true}}`
+	f, err := os.CreateTemp(".", "settings*.json")
+	require.NoError(t, err)
+	defer os.Remove(f.Name())
+	_, err = f.WriteString(content)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	_, err = config.Load(nil, f.Name())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "presetPort")
+}
