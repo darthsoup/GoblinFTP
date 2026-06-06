@@ -15,7 +15,20 @@
   "header": {
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "disconnect": "Disconnect"
+    "disconnect": "Disconnect",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "Automatic",
+    "themeHint": "Light theme is coming soon — the app currently always renders dark.",
+    "showDotfiles": "Show dotfiles",
+    "showDotfilesHint": "List files starting with a dot (e.g. .htaccess).",
+    "close": "Done"
   },
   "session": {
     "lostTitle": "Connection lost",

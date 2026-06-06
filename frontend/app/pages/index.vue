@@ -2,6 +2,8 @@
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const editorStore = useEditorStore()
+const modalStore = useModalStore()
+const { t } = useI18n()
 
 useSessionChecker()
 
@@ -19,7 +21,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col overflow-hidden bg-default text-default">
+  <div class="relative h-screen flex flex-col overflow-hidden bg-default text-default">
     <template v-if="authStore.connected">
       <AppHeader />
       <Breadcrumb />
@@ -34,6 +36,18 @@ onMounted(async () => {
       </div>
     </template>
     <template v-else>
+      <!-- Settings reachable before connecting (language/theme) -->
+      <div class="absolute top-3 right-3 z-10">
+        <UTooltip :text="t('header.settings')">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-settings"
+            :aria-label="t('header.settings')"
+            @click="modalStore.open('settings')"
+          />
+        </UTooltip>
+      </div>
       <LoginForm />
     </template>
 
@@ -43,6 +57,7 @@ onMounted(async () => {
     <NewFolderModal />
     <NewFileModal />
     <PropertiesModal />
+    <SettingsModal />
     <SessionExpiredModal />
   </div>
 </template>

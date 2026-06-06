@@ -6,6 +6,7 @@ const filesStore = useFilesStore()
 const modalStore = useModalStore()
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
 const { t } = useI18n()
 
 type SortKey = 'name' | 'size' | 'modified'
@@ -61,10 +62,13 @@ const sortedFiles = computed(() => {
 })
 
 const visibleFiles = computed(() => {
+  let arr = sortedFiles.value
+  if (!settingsStore.showDotfiles)
+    arr = arr.filter(f => !f.name.startsWith('.'))
   const q = filter.value.trim().toLowerCase()
   if (!q)
-    return sortedFiles.value
-  return sortedFiles.value.filter(f => f.name.toLowerCase().includes(q))
+    return arr
+  return arr.filter(f => f.name.toLowerCase().includes(q))
 })
 
 // ── Empty state ───────────────────────────────────────────────────────────────

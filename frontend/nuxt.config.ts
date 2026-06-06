@@ -21,9 +21,10 @@ export default defineNuxtConfig({
     },
   },
 
-  // The Goblin Tech-Dark design is dark-only
+  // Default to the system preference (settings modal: Automatic); when the
+  // system preference is unknown, the brand default is dark.
   colorMode: {
-    preference: 'dark',
+    preference: 'system',
     fallback: 'dark',
   },
 
@@ -34,6 +35,12 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en',
     strategy: 'no_prefix',
+    // Persist the user's language choice (settings modal) in a cookie
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'gftp_locale',
+      redirectOn: 'root',
+    },
   },
 
   devtools: { enabled: true },

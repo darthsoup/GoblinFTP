@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
+const modalStore = useModalStore()
 const { t } = useI18n()
 
 async function handleDisconnect() {
@@ -16,12 +17,23 @@ async function handleDisconnect() {
       <span class="text-xl font-bold tracking-tight text-primary">GoblinFTP</span>
     </div>
 
-    <UButton
-      color="neutral"
-      variant="ghost"
-      icon="i-lucide-log-out"
-      :label="t('header.disconnect')"
-      @click="handleDisconnect"
-    />
+    <div class="flex items-center gap-1">
+      <UTooltip :text="t('header.settings')">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-settings"
+          :aria-label="t('header.settings')"
+          @click="modalStore.open('settings')"
+        />
+      </UTooltip>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-log-out"
+        :label="t('header.disconnect')"
+        @click="handleDisconnect"
+      />
+    </div>
   </header>
 </template>

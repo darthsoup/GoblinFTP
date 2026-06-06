@@ -75,12 +75,13 @@ frontend/app/
 
 ### Frontend conventions
 
-- **Design system**: "Goblin Tech-Dark" (`DESIGN.md` at repo root) — dark-only (colorMode forced to dark). Nuxt UI tokens are overridden in `app/assets/css/main.css`: primary alias is the custom `goblin` green scale, the `neutral` scale is overridden to charcoal-navy surfaces. Style with token utilities (`bg-default/muted/elevated/accented`, `text-muted/dimmed/highlighted`, `border-default/accented`) — never `gray-*` or `dark:` variants.
+- **Design system**: "Goblin Tech-Dark" (`DESIGN.md` at repo root) — currently renders dark in every mode (tokens are defined on `:root, .light, .dark`; a real light theme is planned — the settings modal already exposes a Light/Dark/Automatic preference via colorMode). Nuxt UI tokens are overridden in `app/assets/css/main.css`: primary alias is the custom `goblin` green scale, the `neutral` scale is overridden to charcoal-navy surfaces. Style with token utilities (`bg-default/muted/elevated/accented`, `text-muted/dimmed/highlighted`, `border-default/accented`) — never `gray-*` or `dark:` variants.
 - Fonts are self-hosted via `@fontsource-variable` (Inter = `font-sans`, JetBrains Mono = `font-mono`). Mono is used for all data: paths, sizes, dates, permissions, breadcrumbs, status bar. `label-caps` utility (defined in main.css) for column headers / field labels.
 - Icons: `i-lucide-*` (plus `i-simple-icons-*` for file types in `FileRow.vue`) — both icon sets installed locally; do not use heroicons.
 - All API calls go through `useApi()` — never `$fetch` directly, except `authStore.init()` / `authStore.connect()` which intentionally bypass CSRF.
 - Components use `pathPrefix: false` — `Auth/LoginForm.vue` is `<LoginForm />`, not `<AuthLoginForm />`.
 - Pinia stores use **Composition API style**: `defineStore('id', () => { ... })`.
+- End-user preferences are browser-side only (the backend never reads them): `stores/settings.ts` persists to localStorage `gftp_settings`; language via the i18n cookie (`gftp_locale`); theme via colorMode localStorage.
 - `FileInfo` JSON fields: `name`, `size`, `isDir`, `modified` (RFC3339), `mode` (`"drwxr-xr-x"`). Backend's internal `transfer.FileInfo` uses different field names.
 - TypeScript strict mode incl. `noUncheckedIndexedAccess` — index access is `T | undefined`; use `!` after a length guard or optional chaining.
 - `UProgress` uses `:model-value`, not `:value`.
