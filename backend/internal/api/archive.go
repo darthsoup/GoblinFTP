@@ -67,7 +67,7 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid zip archive"))
 		}
 		if err := extractZip(client, zr, destination); err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	case strings.HasSuffix(filename, ".tar.gz") || strings.HasSuffix(filename, ".tgz"):
 		gr, err := gzip.NewReader(f)
@@ -76,15 +76,15 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 		}
 		defer gr.Close()
 		if err := extractTar(client, tar.NewReader(gr), destination); err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	case strings.HasSuffix(filename, ".tar.bz2"):
 		if err := extractTar(client, tar.NewReader(bzip2.NewReader(f)), destination); err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	case strings.HasSuffix(filename, ".tar"):
 		if err := extractTar(client, tar.NewReader(f), destination); err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	default:
 		return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "unsupported archive format"))
@@ -175,10 +175,12 @@ func (h *Handler) CreateZip(c echo.Context) error {
 
 	if err := client.Upload(req.Destination, pr); err != nil {
 		<-errCh
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	if err := <-errCh; err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		// The zip goroutine reads sources via the client — its errors can be
+		// connection-level too.
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
 }

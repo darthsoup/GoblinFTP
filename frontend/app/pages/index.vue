@@ -3,6 +3,8 @@ const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const editorStore = useEditorStore()
 
+useSessionChecker()
+
 onMounted(async () => {
   await authStore.init()
 
@@ -41,5 +43,6 @@ onMounted(async () => {
     <NewFolderModal />
     <NewFileModal />
     <PropertiesModal />
+    <SessionExpiredModal />
   </div>
 </template>

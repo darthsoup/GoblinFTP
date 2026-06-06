@@ -42,7 +42,7 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 	}
 	defer f.Close()
 	if err := client.Upload(remotePath, f); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
 }
@@ -140,7 +140,7 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		_ = h.chunks.Cleanup(ctx, meta.ID)
 		delete(uploads, req.UploadID)
 		sess.Data[transfer.SessionUploadsKey] = uploads
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	_ = h.chunks.Cleanup(ctx, meta.ID)
 	delete(uploads, req.UploadID)

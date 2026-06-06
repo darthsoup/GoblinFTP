@@ -12,6 +12,8 @@ export const useAuthStore = defineStore('auth', () => {
   const systemVars = ref<SystemVars | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const sessionLost = ref(false)
+  let disconnecting = false
 
   // Called on app mount — fetches system vars + auth status using $fetch directly
   // (no CSRF needed for these GET requests, and avoids circular dep with useApi)
@@ -88,11 +90,49 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function disconnect() {
     const api = useApi()
+    disconnecting = true
     try {
       await api.post('/api/auth/disconnect')
     }
     catch {}
+    finally {
+      disconnecting = false
+    }
     // Reset state regardless of API result
+    csrfToken.value = ''
+    connected.value = false
+    ssoAutoConnect.value = false
+    serverHost.value = ''
+    initialDirectory.value = '/'
+  }
+
+  // ── Session liveness ──────────────────────────────────────────────────────
+
+  // Flags the session as lost — the UI shows a blocking reconnect dialog.
+  // Ignored while a user-initiated disconnect is in flight.
+  function markSessionLost() {
+    if (!connected.value || sessionLost.value || disconnecting)
+      return
+    sessionLost.value = true
+  }
+
+  // Asks the backend to verify the FTP/SFTP connection with a real round
+  // trip (?ping=1). Network errors are ignored — a flaky poll must not kill
+  // the session; only a definitive connected=false does.
+  async function checkSession() {
+    if (!connected.value || sessionLost.value)
+      return
+    try {
+      const res = await $fetch<{ success: boolean, data?: AuthStatus }>('/api/auth/status?ping=1')
+      if (res.success && res.data && !res.data.connected)
+        markSessionLost()
+    }
+    catch {}
+  }
+
+  // Acknowledge the lost session (reconnect button): back to the login form.
+  function acknowledgeSessionLost() {
+    sessionLost.value = false
     csrfToken.value = ''
     connected.value = false
     ssoAutoConnect.value = false
@@ -114,10 +154,14 @@ export const useAuthStore = defineStore('auth', () => {
     systemVars,
     error,
     loading,
+    sessionLost,
     allowedTypes,
     init,
     ssoConnect,
     connect,
     disconnect,
+    markSessionLost,
+    checkSession,
+    acknowledgeSessionLost,
   }
 })

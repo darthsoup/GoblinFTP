@@ -38,6 +38,9 @@ type Client interface {
 	Download(path string) (io.ReadCloser, error)
 	// Upload streams from r into the given path, overwriting if it exists.
 	Upload(path string, r io.Reader) error
+	// Ping verifies the underlying connection is still alive with a
+	// lightweight round trip (FTP NOOP / SFTP realpath).
+	Ping() error
 	// Close terminates the underlying connection.
 	Close() error
 }

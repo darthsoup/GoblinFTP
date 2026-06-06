@@ -112,6 +112,11 @@ func (c *Client) Upload(p string, r io.Reader) error {
 	return err
 }
 
+func (c *Client) Ping() error {
+	_, err := c.sftp.Getwd()
+	return err
+}
+
 func (c *Client) Close() error {
 	sftpErr := c.sftp.Close()
 	sshErr := c.ssh.Close()

@@ -53,7 +53,8 @@ export default defineNuxtConfig({
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost:8080',
+          // override with GFTP_DEV_PROXY to point at a backend on another port
+          target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,
         },
       },

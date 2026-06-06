@@ -14,7 +14,13 @@
   },
   "header": {
     "connected": "Connected",
+    "disconnected": "Disconnected",
     "disconnect": "Disconnect"
+  },
+  "session": {
+    "lostTitle": "Connection lost",
+    "lostMessage": "Your session has expired or the connection to the server was lost. Please sign in again.",
+    "reconnect": "Back to login"
   },
   "breadcrumb": {
     "root": "Root",

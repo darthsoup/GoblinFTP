@@ -33,6 +33,7 @@ const (
 	ErrFileTooLarge            Code = "ERR_FILE_TOO_LARGE"
 	ErrEditorDisabled          Code = "ERR_EDITOR_DISABLED"
 	ErrStorageUnavailable      Code = "ERR_STORAGE_UNAVAILABLE"
+	ErrConnectionLost          Code = "ERR_CONNECTION_LOST"
 )
 
 // GFTPError is a typed error with a machine-readable code and human-readable message.
@@ -103,6 +104,8 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusForbidden
 	case ErrStorageUnavailable:
 		return http.StatusServiceUnavailable
+	case ErrConnectionLost:
+		return http.StatusBadGateway
 	default:
 		return http.StatusInternalServerError
 	}

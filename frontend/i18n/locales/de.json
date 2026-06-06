@@ -14,7 +14,13 @@
   },
   "header": {
     "connected": "Verbunden",
+    "disconnected": "Getrennt",
     "disconnect": "Trennen"
+  },
+  "session": {
+    "lostTitle": "Verbindung verloren",
+    "lostMessage": "Ihre Sitzung ist abgelaufen oder die Verbindung zum Server wurde getrennt. Bitte melden Sie sich erneut an.",
+    "reconnect": "Zurück zur Anmeldung"
   },
   "breadcrumb": {
     "root": "Wurzel",

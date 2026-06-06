@@ -106,6 +106,10 @@ func (c *Client) Upload(p string, r io.Reader) error {
 	return c.conn.Stor(p, r)
 }
 
+func (c *Client) Ping() error {
+	return c.conn.NoOp()
+}
+
 func (c *Client) Close() error {
 	return c.conn.Quit()
 }

@@ -70,7 +70,7 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	}
 	r, err := client.Download(filePath)
 	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrFileNotFound, err.Error()))
+		return failClient(c, gftperrors.ErrFileNotFound, err)
 	}
 	defer r.Close()
 
@@ -101,7 +101,7 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	for _, p := range req.Paths {
 		size, err := zipInputSize(client, p)
 		if err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 		totalSize += size
 		if totalSize > maxZipSize {
@@ -112,7 +112,7 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	zw := zip.NewWriter(&buf)
 	for _, p := range req.Paths {
 		if err := addToZip(zw, client, p, ""); err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	}
 	if err := zw.Close(); err != nil {

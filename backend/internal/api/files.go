@@ -53,7 +53,7 @@ func (h *Handler) ListFiles(c echo.Context) error {
 	}
 	files, err := client.List(path)
 	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrListFailed, err.Error()))
+		return failClient(c, gftperrors.ErrListFailed, err)
 	}
 	result := make([]fileInfoJSON, len(files))
 	for i, f := range files {
@@ -74,7 +74,7 @@ func (h *Handler) CreateDirectory(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
 	if err := client.MakeDir(req.Path); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
 }
@@ -130,7 +130,7 @@ func (h *Handler) RenameFile(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
 	if err := client.Rename(req.From, req.To); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
 }
@@ -149,11 +149,11 @@ func (h *Handler) CopyFile(c echo.Context) error {
 	}
 	r, err := client.Download(req.From)
 	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrFileNotFound, err.Error()))
+		return failClient(c, gftperrors.ErrFileNotFound, err)
 	}
 	defer r.Close()
 	if err := client.Upload(req.To, r); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
 }
@@ -174,7 +174,7 @@ func (h *Handler) SetPermissions(c echo.Context) error {
 		if errors.Is(err, transfer.ErrPermissionsNotSupported) {
 			return Fail(c, gftperrors.New(gftperrors.ErrPermissionsNotSupported, "chmod not supported by server"))
 		}
-		return Fail(c, gftperrors.New(gftperrors.ErrOperationFailed, err.Error()))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
 }

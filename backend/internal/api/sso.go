@@ -84,6 +84,9 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 // AuthStatus handles GET /api/auth/status.
 // Public endpoint: no requireSession middleware. Manually reads session cookie.
 // Returns {connected, ssoAutoConnect, csrfToken}.
+// With ?ping=1 the FTP/SFTP connection is verified with a lightweight round
+// trip; a dead connection is closed, removed from the session, and reported
+// as connected=false.
 func (h *Handler) AuthStatus(c echo.Context) error {
 	type statusData struct {
 		Connected      bool   `json:"connected"`
@@ -96,7 +99,15 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 	cookie, err := c.Cookie(SessionCookieName)
 	if err == nil {
 		if sess, ok := h.store.Get(cookie.Value); ok {
-			_, result.Connected = sess.Data["client"].(transfer.Client)
+			client, hasClient := sess.Data["client"].(transfer.Client)
+			result.Connected = hasClient
+			if hasClient && c.QueryParam("ping") == "1" {
+				if pingErr := client.Ping(); pingErr != nil {
+					_ = client.Close()
+					delete(sess.Data, "client")
+					result.Connected = false
+				}
+			}
 			_, result.SSOAutoConnect = sess.Data[ssoPendingKey]
 			result.CSRFToken, _ = sess.Data[auth.CSRFSessionKey].(string)
 		}
