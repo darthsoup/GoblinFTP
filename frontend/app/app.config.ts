@@ -16,10 +16,10 @@ export default defineAppConfig({
         close: 'top-2.5 end-3',
       },
     },
-    // Popover surface sits one tier above panels.
+    // Popover surface: charcoal tier in dark, white card with slate ring in light.
     contextMenu: {
       slots: {
-        content: 'min-w-48 bg-accented ring-accented',
+        content: 'min-w-48 bg-(--gftp-popover) ring-(--gftp-popover-ring)',
       },
     },
     // Path segments: muted with primary hover; current segment bold primary.

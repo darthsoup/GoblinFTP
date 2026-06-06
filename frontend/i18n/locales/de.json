@@ -25,7 +25,6 @@
     "themeLight": "Hell",
     "themeDark": "Dunkel",
     "themeAuto": "Automatisch",
-    "themeHint": "Helles Design folgt bald — die App wird derzeit immer dunkel dargestellt.",
     "showDotfiles": "Dotfiles anzeigen",
     "showDotfilesHint": "Dateien mit führendem Punkt anzeigen (z. B. .htaccess).",
     "close": "Fertig"

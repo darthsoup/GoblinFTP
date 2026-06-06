@@ -25,7 +25,6 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeAuto": "Automatic",
-    "themeHint": "Light theme is coming soon — the app currently always renders dark.",
     "showDotfiles": "Show dotfiles",
     "showDotfilesHint": "List files starting with a dot (e.g. .htaccess).",
     "close": "Done"

@@ -10,12 +10,13 @@ import { markdown } from '@codemirror/lang-markdown'
 import { python } from '@codemirror/lang-python'
 import { xml } from '@codemirror/lang-xml'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { EditorState } from '@codemirror/state'
+import { Compartment, EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view'
 
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
+const colorMode = useColorMode()
 const { t } = useI18n()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -52,7 +53,7 @@ function getLanguageExtension(filename: string): LanguageSupport | readonly Exte
 }
 
 // Align CodeMirror's chrome with the Goblin Tech-Dark surfaces (layered over oneDark)
-const goblinTheme = EditorView.theme({
+const goblinDarkTheme = EditorView.theme({
   '&': { backgroundColor: '#0d1117' },
   '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
   '.cm-gutters': { backgroundColor: '#10141a', borderRight: '1px solid #21262d' },
@@ -60,15 +61,35 @@ const goblinTheme = EditorView.theme({
   '.cm-activeLineGutter': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
 }, { dark: true })
 
+// Goblin Tech-Light: recessed code surface (#f1f5f9) with slate chrome
+const goblinLightTheme = EditorView.theme({
+  '&': { backgroundColor: '#f1f5f9' },
+  '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
+  '.cm-gutters': { backgroundColor: '#e6e8ea', borderRight: '1px solid #cbd5e1', color: '#64748b' },
+  '.cm-activeLine': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
+  '.cm-activeLineGutter': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
+}, { dark: false })
+
+// Swappable theme slot — reconfigured live when the color mode changes
+const themeCompartment = new Compartment()
+
+function themeExtensions(): Extension {
+  if (colorMode.value === 'light')
+    return [syntaxHighlighting(defaultHighlightStyle), goblinLightTheme]
+  return [syntaxHighlighting(defaultHighlightStyle), oneDark, goblinDarkTheme]
+}
+
+watch(() => colorMode.value, () => {
+  view?.dispatch({ effects: themeCompartment.reconfigure(themeExtensions()) })
+})
+
 function buildExtensions(filename: string, readOnly: boolean): Extension[] {
   return [
     lineNumbers(),
     highlightActiveLine(),
     highlightActiveLineGutter(),
     history(),
-    syntaxHighlighting(defaultHighlightStyle),
-    oneDark,
-    goblinTheme,
+    themeCompartment.of(themeExtensions()),
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
@@ -175,9 +196,10 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* Doubled class beats the theme-generated selectors (oneDark ties with goblinTheme otherwise) */
+/* Doubled class beats the theme-generated selectors (oneDark ties with the
+   goblin chrome themes otherwise) */
 .cm-editor.cm-editor {
-  background-color: #0d1117;
+  background-color: var(--gftp-editor-bg);
 }
 
 .cm-scroller {

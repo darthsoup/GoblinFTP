@@ -54,7 +54,7 @@ const themeItems = computed(() => [
           />
         </UFormField>
 
-        <UFormField :label="t('settings.theme')" :description="t('settings.themeHint')">
+        <UFormField :label="t('settings.theme')">
           <USelect
             v-model="theme"
             :items="themeItems"

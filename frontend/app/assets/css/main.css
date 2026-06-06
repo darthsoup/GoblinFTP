@@ -1,4 +1,4 @@
-/* Goblin Tech-Dark design system (see /DESIGN.md) */
+/* Goblin design system — Tech-Dark (/DESIGN.md) + Tech-Light (/DESIGN-Gobin-Tech-Light.md) */
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/jetbrains-mono';
 @import 'tailwindcss';
@@ -16,7 +16,7 @@
   --color-goblin-400: #67df70;
   --color-goblin-500: #00e639;
   --color-goblin-600: #00c230;
-  --color-goblin-700: #008f23;
+  --color-goblin-700: #006e16;
   --color-goblin-800: #00530e;
   --color-goblin-900: #003907;
   --color-goblin-950: #002203;
@@ -35,9 +35,45 @@
   --color-neutral-950: #0d1117;
 }
 
-/* The app is dark-only by design — force the tonal tokens regardless of color mode. */
+/* ── Goblin Tech-Light ─────────────────────────────────────────────────────────
+   Tonal layers on a clinical slate backdrop: slate-50 canvas, pure-white cards,
+   thin slate borders, deep goblin green as the accent. */
 :root,
-.light,
+.light {
+  --ui-radius: 0.25rem;
+
+  --ui-text-dimmed: #94a3b8;
+  --ui-text-muted: #64748b;
+  --ui-text-toned: #475569;
+  --ui-text: #334155;
+  --ui-text-highlighted: #0f172a;
+  --ui-text-inverted: #ffffff;
+
+  --ui-bg: #f7f9fb; /* Level 0 canvas */
+  --ui-bg-muted: #f1f5f9; /* nav strips / table header tint */
+  --ui-bg-elevated: #ffffff; /* Level 1 cards & panels */
+  --ui-bg-accented: #e6e8ea; /* hover surfaces */
+  --ui-bg-inverted: #2d3133;
+
+  --ui-border: #e2e8f0; /* slate-200 */
+  --ui-border-muted: #f1f5f9; /* slate-100 hairlines */
+  --ui-border-accented: #cbd5e1; /* slate-300 */
+  --ui-border-inverted: #2d3133;
+
+  --ui-primary: var(--color-goblin-700);
+
+  /* Popovers: pure white with a slate border + ambient depth */
+  --gftp-popover: #ffffff;
+  --gftp-popover-ring: #e2e8f0;
+  --gftp-editor-bg: #f1f5f9; /* recessed code surface */
+  --gftp-scrollbar-thumb: #cbd5e1;
+  --gftp-scrollbar-thumb-hover: #94a3b8;
+  --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 25%, transparent);
+  --gftp-selection-fg: var(--color-goblin-950);
+}
+
+/* ── Goblin Tech-Dark ──────────────────────────────────────────────────────────
+   Charcoal-navy tonal tiers with the bright goblin green accent. */
 .dark {
   --ui-radius: 0.25rem;
 
@@ -60,6 +96,14 @@
   --ui-border-inverted: var(--color-neutral-100);
 
   --ui-primary: var(--color-goblin-400);
+
+  --gftp-popover: var(--color-neutral-700);
+  --gftp-popover-ring: var(--color-neutral-600);
+  --gftp-editor-bg: var(--color-neutral-950);
+  --gftp-scrollbar-thumb: var(--color-neutral-600);
+  --gftp-scrollbar-thumb-hover: var(--color-neutral-500);
+  --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 30%, transparent);
+  --gftp-selection-fg: var(--color-goblin-50);
 }
 
 /* Label-caps type style from the design system (11px / 700 / 0.05em) */
@@ -77,14 +121,14 @@ body {
 }
 
 ::selection {
-  background-color: color-mix(in oklab, var(--color-goblin-500) 30%, transparent);
-  color: var(--color-goblin-50);
+  background-color: var(--gftp-selection-bg);
+  color: var(--gftp-selection-fg);
 }
 
-/* Thin custom scrollbars — dark tracks, subtle thumbs */
+/* Thin custom scrollbars — transparent tracks, subtle thumbs */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-neutral-600) transparent;
+  scrollbar-color: var(--gftp-scrollbar-thumb) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -94,9 +138,9 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-600);
+  background: var(--gftp-scrollbar-thumb);
   border-radius: 4px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--color-neutral-500);
+  background: var(--gftp-scrollbar-thumb-hover);
 }
