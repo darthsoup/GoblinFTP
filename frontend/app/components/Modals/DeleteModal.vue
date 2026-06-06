@@ -3,8 +3,21 @@ const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const { t } = useI18n()
 
+const open = computed({
+  get: () => modalStore.active === 'delete',
+  set: (v: boolean) => {
+    if (!v)
+      modalStore.close()
+  },
+})
+
 const loading = ref(false)
-const error = ref<string | null>(null)
+const apiError = ref<string | null>(null)
+
+watch(open, (v) => {
+  if (v)
+    apiError.value = null
+})
 
 // context.files = explicit path list (bulk); context.file = single file from context menu
 const paths = computed<string[]>(() => {
@@ -27,13 +40,13 @@ async function confirm() {
   if (!paths.value.length || loading.value)
     return
   loading.value = true
-  error.value = null
+  apiError.value = null
   try {
     await filesStore.deleteFiles(paths.value)
     modalStore.close()
   }
   catch (e) {
-    error.value = e instanceof Error ? e.message : t('error.operationFailed')
+    apiError.value = e instanceof Error ? e.message : t('error.operationFailed')
   }
   finally {
     loading.value = false
@@ -42,43 +55,24 @@ async function confirm() {
 </script>
 
 <template>
-  <UModal :open="modalStore.active === 'delete'" @update:open="modalStore.close()">
-    <template #content>
-      <div class="flex flex-col min-w-96">
-        <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-default bg-elevated/60">
-          <h2 class="text-base font-semibold text-highlighted flex items-center gap-2">
-            <UIcon name="i-lucide-triangle-alert" class="size-5 text-error" />
-            {{ t('modal.delete.title') }}
-          </h2>
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-x"
-            :aria-label="t('modal.delete.cancel')"
-            @click="modalStore.close()"
-          />
-        </div>
+  <UModal v-model:open="open" :title="t('modal.delete.title')">
+    <template #title>
+      <UIcon name="i-lucide-triangle-alert" class="size-5 text-error" />
+      {{ t('modal.delete.title') }}
+    </template>
 
-        <!-- Body -->
-        <div class="p-5 space-y-4">
-          <p class="text-muted">
-            {{ message }}
-          </p>
-          <UAlert v-if="error" color="error" variant="soft" :description="error" />
-        </div>
-
-        <!-- Footer -->
-        <div class="flex justify-end gap-2 px-4 py-3 border-t border-default bg-elevated/60">
-          <UButton color="neutral" variant="subtle" @click="modalStore.close()">
-            {{ t('modal.delete.cancel') }}
-          </UButton>
-          <UButton color="error" :loading="loading" @click="confirm">
-            {{ t('modal.delete.confirm') }}
-          </UButton>
-        </div>
+    <template #body>
+      <div class="space-y-4">
+        <p class="text-muted">
+          {{ message }}
+        </p>
+        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
       </div>
+    </template>
+
+    <template #footer="{ close }">
+      <UButton color="neutral" variant="subtle" :label="t('modal.delete.cancel')" @click="close" />
+      <UButton color="error" :loading="loading" :label="t('modal.delete.confirm')" @click="confirm" />
     </template>
   </UModal>
 </template>

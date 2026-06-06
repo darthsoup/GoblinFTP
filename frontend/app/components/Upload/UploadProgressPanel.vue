@@ -38,23 +38,22 @@ function formatBytes(n: number): string {
       :class="{ 'border-b border-default': !collapsed }"
     >
       <div class="flex items-center gap-2 select-none">
-        <button
-          class="p-1 rounded text-muted hover:text-primary hover:bg-accented/50 transition-colors"
-          :title="t('upload.toggle')"
-          :aria-label="t('upload.toggle')"
-          @click="collapsed = !collapsed"
-        >
-          <UIcon
-            name="i-lucide-chevron-down"
-            class="size-4 block transition-transform"
-            :class="{ '-rotate-90': collapsed }"
+        <UTooltip :text="t('upload.toggle')">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-chevron-down"
+            :aria-label="t('upload.toggle')"
+            :ui="{ leadingIcon: ['transition-transform', collapsed ? '-rotate-90' : ''] }"
+            @click="collapsed = !collapsed"
           />
-        </button>
+        </UTooltip>
         <UIcon name="i-lucide-arrow-up-down" class="size-4 text-primary" />
         <span class="label-caps text-highlighted">{{ t('upload.queue') }}</span>
-        <span class="bg-primary/20 text-primary text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-full">
+        <UBadge color="primary" variant="soft" size="sm" class="font-mono font-bold rounded-full">
           {{ uploadStore.items.length }}
-        </span>
+        </UBadge>
       </div>
 
       <div class="flex items-center gap-1">
@@ -124,15 +123,16 @@ function formatBytes(n: number): string {
 
         <!-- Action / state icon -->
         <span class="w-7 shrink-0 flex justify-center">
-          <UButton
-            v-if="item.status === 'uploading' || item.status === 'queued'"
-            size="xs"
-            variant="ghost"
-            color="neutral"
-            icon="i-lucide-x"
-            :aria-label="t('upload.cancel')"
-            @click="uploadStore.cancelItem(item.id)"
-          />
+          <UTooltip v-if="item.status === 'uploading' || item.status === 'queued'" :text="t('upload.cancel')">
+            <UButton
+              size="xs"
+              variant="ghost"
+              color="neutral"
+              icon="i-lucide-x"
+              :aria-label="t('upload.cancel')"
+              @click="uploadStore.cancelItem(item.id)"
+            />
+          </UTooltip>
           <UIcon v-else-if="item.status === 'done'" name="i-lucide-circle-check" class="size-4 text-primary" />
           <UIcon v-else-if="item.status === 'error'" name="i-lucide-circle-x" class="size-4 text-error" />
           <UIcon v-else name="i-lucide-circle-minus" class="size-4 text-dimmed" />

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 import { ApiError } from '~/types/api'
 
 const authStore = useAuthStore()
@@ -17,13 +18,26 @@ const form = reactive({
 const error = ref<string | null>(null)
 const loading = ref(false)
 
+const protocolItems = computed(() =>
+  authStore.allowedTypes.map(type => ({ label: type.toUpperCase(), value: type })),
+)
+
 watch(() => form.protocol, (proto) => {
   form.port = proto === 'sftp' ? 22 : 21
 })
 
-async function handleSubmit() {
-  if (!form.host || !form.username)
-    return
+function validate(state: Partial<typeof form>): FormError[] {
+  const errors: FormError[] = []
+  if (!state.host?.trim())
+    errors.push({ name: 'host', message: t('login.errorRequired') })
+  if (!state.port || state.port < 1 || state.port > 65535)
+    errors.push({ name: 'port', message: t('login.errorPort') })
+  if (!state.username?.trim())
+    errors.push({ name: 'username', message: t('login.errorRequired') })
+  return errors
+}
+
+async function onSubmit(_event: FormSubmitEvent<typeof form>) {
   loading.value = true
   error.value = null
   try {
@@ -63,77 +77,62 @@ async function handleSubmit() {
         class="mb-4"
       />
 
-      <form class="space-y-4" @submit.prevent="handleSubmit">
-        <!-- Protocol -->
-        <div>
-          <label class="block label-caps text-muted mb-1.5">{{ t('login.protocol') }}</label>
-          <select
+      <UForm :state="form" :validate="validate" class="space-y-4" @submit="onSubmit">
+        <UFormField name="protocol" :label="t('login.protocol')">
+          <USelect
             v-model="form.protocol"
-            class="w-full rounded-md bg-default border border-accented px-3 py-2 text-sm font-mono text-default focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-          >
-            <option v-for="type in authStore.allowedTypes" :key="type" :value="type">
-              {{ type.toUpperCase() }}
-            </option>
-          </select>
-        </div>
+            :items="protocolItems"
+            class="w-full font-mono"
+          />
+        </UFormField>
 
-        <!-- Host + Port -->
-        <div class="grid grid-cols-[1fr_6rem] gap-3">
-          <div>
-            <label class="block label-caps text-muted mb-1.5">{{ t('login.host') }}</label>
+        <div class="grid grid-cols-[1fr_6rem] gap-3 items-start">
+          <UFormField name="host" :label="t('login.host')">
             <UInput
               v-model="form.host"
               :placeholder="t('login.hostPlaceholder')"
-              required
               class="w-full font-mono"
             />
-          </div>
-          <div>
-            <label class="block label-caps text-muted mb-1.5">{{ t('login.port') }}</label>
+          </UFormField>
+          <UFormField name="port" :label="t('login.port')">
             <UInput
               v-model.number="form.port"
               type="number"
               min="1"
               max="65535"
-              required
               class="w-full font-mono"
             />
-          </div>
+          </UFormField>
         </div>
 
-        <!-- Username -->
-        <div>
-          <label class="block label-caps text-muted mb-1.5">{{ t('login.username') }}</label>
+        <UFormField name="username" :label="t('login.username')">
           <UInput
             v-model="form.username"
             :placeholder="t('login.usernamePlaceholder')"
             autocomplete="username"
-            required
             class="w-full font-mono"
           />
-        </div>
+        </UFormField>
 
-        <!-- Password -->
-        <div>
-          <label class="block label-caps text-muted mb-1.5">{{ t('login.password') }}</label>
+        <UFormField name="password" :label="t('login.password')">
           <UInput
             v-model="form.password"
             type="password"
             autocomplete="current-password"
             class="w-full font-mono"
           />
-        </div>
+        </UFormField>
 
         <UButton
           type="submit"
           icon="i-lucide-plug"
           :loading="loading"
-          class="w-full justify-center mt-6"
+          class="mt-6 justify-center"
           block
         >
           {{ t('login.connect') }}
         </UButton>
-      </form>
+      </UForm>
     </div>
   </div>
 </template>

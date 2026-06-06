@@ -1,33 +1,47 @@
 <script setup lang="ts">
+import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const { t } = useI18n()
 
-const name = ref('')
-const loading = ref(false)
-const error = ref<string | null>(null)
+const open = computed({
+  get: () => modalStore.active === 'newFolder',
+  set: (v: boolean) => {
+    if (!v)
+      modalStore.close()
+  },
+})
 
-watch(() => modalStore.active, (v) => {
-  if (v === 'newFolder') {
-    name.value = ''
-    error.value = null
+const state = reactive({ name: '' })
+const loading = ref(false)
+const apiError = ref<string | null>(null)
+
+watch(open, (v) => {
+  if (v) {
+    state.name = ''
+    apiError.value = null
   }
 })
 
-async function submit() {
-  if (!name.value.trim()) {
-    error.value = t('modal.newFolder.errorEmpty')
+function validate(s: Partial<typeof state>): FormError[] {
+  if (!s.name?.trim())
+    return [{ name: 'name', message: t('modal.newFolder.errorEmpty') }]
+  return []
+}
+
+async function onSubmit(event: FormSubmitEvent<typeof state>) {
+  if (loading.value)
     return
-  }
   const dir = filesStore.currentPath.replace(/\/$/, '')
   loading.value = true
-  error.value = null
+  apiError.value = null
   try {
-    await filesStore.mkdir(`${dir}/${name.value.trim()}`)
+    await filesStore.mkdir(`${dir}/${event.data.name.trim()}`)
     modalStore.close()
   }
   catch (e) {
-    error.value = e instanceof Error ? e.message : t('error.operationFailed')
+    apiError.value = e instanceof Error ? e.message : t('error.operationFailed')
   }
   finally {
     loading.value = false
@@ -36,50 +50,35 @@ async function submit() {
 </script>
 
 <template>
-  <UModal :open="modalStore.active === 'newFolder'" @update:open="modalStore.close()">
-    <template #content>
-      <div class="flex flex-col min-w-96">
-        <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-default bg-elevated/60">
-          <h2 class="text-base font-semibold text-highlighted flex items-center gap-2">
-            <UIcon name="i-lucide-folder-plus" class="size-5 text-primary" />
-            {{ t('modal.newFolder.title') }}
-          </h2>
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-x"
-            :aria-label="t('modal.newFolder.cancel')"
-            @click="modalStore.close()"
+  <UModal v-model:open="open" :title="t('modal.newFolder.title')">
+    <template #title>
+      <UIcon name="i-lucide-folder-plus" class="size-5 text-primary" />
+      {{ t('modal.newFolder.title') }}
+    </template>
+
+    <template #body>
+      <UForm
+        id="new-folder-form"
+        :state="state"
+        :validate="validate"
+        class="space-y-4"
+        @submit="onSubmit"
+      >
+        <UFormField name="name" :label="t('modal.newFolder.label')">
+          <UInput
+            v-model="state.name"
+            :placeholder="t('modal.newFolder.placeholder')"
+            class="w-full font-mono"
+            autofocus
           />
-        </div>
+        </UFormField>
+        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
+      </UForm>
+    </template>
 
-        <!-- Body -->
-        <div class="p-5 space-y-4">
-          <div>
-            <label class="block label-caps text-muted mb-1">{{ t('modal.newFolder.label') }}</label>
-            <UInput
-              v-model="name"
-              :placeholder="t('modal.newFolder.placeholder')"
-              class="w-full font-mono"
-              autofocus
-              @keydown.enter="submit"
-            />
-          </div>
-          <UAlert v-if="error" color="error" variant="soft" :description="error" />
-        </div>
-
-        <!-- Footer -->
-        <div class="flex justify-end gap-2 px-4 py-3 border-t border-default bg-elevated/60">
-          <UButton color="neutral" variant="subtle" @click="modalStore.close()">
-            {{ t('modal.newFolder.cancel') }}
-          </UButton>
-          <UButton :loading="loading" @click="submit">
-            {{ t('modal.newFolder.confirm') }}
-          </UButton>
-        </div>
-      </div>
+    <template #footer="{ close }">
+      <UButton color="neutral" variant="subtle" :label="t('modal.newFolder.cancel')" @click="close" />
+      <UButton type="submit" form="new-folder-form" :loading="loading" :label="t('modal.newFolder.confirm')" />
     </template>
   </UModal>
 </template>

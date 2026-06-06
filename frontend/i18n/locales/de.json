@@ -8,7 +8,9 @@
     "usernamePlaceholder": "benutzername",
     "password": "Passwort",
     "connect": "Verbinden",
-    "tagline": "Selbst gehostete Dateiübertragung"
+    "tagline": "Selbst gehostete Dateiübertragung",
+    "errorRequired": "Erforderlich",
+    "errorPort": "Ungültiger Port"
   },
   "header": {
     "connected": "Verbunden",
@@ -126,7 +128,9 @@
       "execute": "Ausführen",
       "numeric": "Numerischer Wert:",
       "apply": "Änderungen anwenden",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "errorEmpty": "Bitte einen Namen eingeben",
+      "errorInvalidMode": "3- oder 4-stellige Oktalzahl eingeben (z. B. 644)"
     }
   },
   "error": {

@@ -17,7 +17,7 @@ const { t } = useI18n()
       @click="editorStore.setActive(tab.id)"
     >
       <span class="max-w-32 truncate">{{ tab.name }}</span>
-      <span v-if="tab.content !== tab.savedContent" class="text-amber-400 leading-none" title="Unsaved changes">•</span>
+      <span v-if="tab.content !== tab.savedContent" class="text-warning leading-none" :title="t('editor.unsavedChanges')">•</span>
       <UButton
         size="xs"
         color="neutral"
@@ -32,15 +32,13 @@ const { t } = useI18n()
     <div class="flex-1 min-w-4" />
 
     <div class="px-3 flex items-center gap-3 shrink-0">
-      <label class="text-xs font-mono text-muted flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-        <input
-          type="checkbox"
-          :checked="props.autoSave"
-          class="rounded"
-          @change="emit('toggleAutoSave')"
-        >
-        {{ t('editor.autoSave') }}
-      </label>
+      <USwitch
+        :model-value="props.autoSave"
+        size="xs"
+        :label="t('editor.autoSave')"
+        :ui="{ label: 'text-xs font-mono text-muted whitespace-nowrap' }"
+        @update:model-value="emit('toggleAutoSave')"
+      />
 
       <UButton
         v-if="editorStore.activeId && !editorStore.activeTab?.loading"

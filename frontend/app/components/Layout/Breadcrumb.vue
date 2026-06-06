@@ -1,57 +1,65 @@
 <script setup lang="ts">
+import type { BreadcrumbItem } from '@nuxt/ui'
+
 const filesStore = useFilesStore()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
 const showHistory = computed(() => authStore.systemVars?.ui.showNavigationHistory ?? true)
+
+const items = computed<BreadcrumbItem[]>(() => [
+  {
+    'label': '/',
+    'icon': 'i-lucide-monitor',
+    'aria-label': t('breadcrumb.root'),
+    'onClick': () => filesStore.navigate('/'),
+  },
+  ...filesStore.pathSegments.map(seg => ({
+    label: seg.label,
+    onClick: () => filesStore.navigate(seg.path),
+  })),
+])
 </script>
 
 <template>
-  <nav class="flex items-center px-4 py-2 bg-muted border-b border-default font-mono text-xs overflow-x-auto whitespace-nowrap shrink-0">
+  <nav class="flex items-center px-4 py-2 bg-muted border-b border-default overflow-x-auto whitespace-nowrap shrink-0">
     <!-- Back / forward history -->
-    <div v-if="showHistory" class="flex items-center gap-0.5 mr-3 shrink-0">
-      <button
-        class="p-1 rounded text-muted enabled:hover:text-primary enabled:hover:bg-accented/50 disabled:opacity-40 transition-colors"
-        :disabled="!filesStore.canGoBack"
-        :title="t('breadcrumb.back')"
-        @click="filesStore.goBack()"
-      >
-        <UIcon name="i-lucide-chevron-left" class="size-4 block" />
-      </button>
-      <button
-        class="p-1 rounded text-muted enabled:hover:text-primary enabled:hover:bg-accented/50 disabled:opacity-40 transition-colors"
-        :disabled="!filesStore.canGoForward"
-        :title="t('breadcrumb.forward')"
-        @click="filesStore.goForward()"
-      >
-        <UIcon name="i-lucide-chevron-right" class="size-4 block" />
-      </button>
-      <div class="h-4 w-px bg-accented mx-1.5" />
+    <div v-if="showHistory" class="flex items-center gap-0.5 mr-2 shrink-0">
+      <UTooltip :text="t('breadcrumb.back')">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-chevron-left"
+          :disabled="!filesStore.canGoBack"
+          :aria-label="t('breadcrumb.back')"
+          @click="filesStore.goBack()"
+        />
+      </UTooltip>
+      <UTooltip :text="t('breadcrumb.forward')">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-chevron-right"
+          :disabled="!filesStore.canGoForward"
+          :aria-label="t('breadcrumb.forward')"
+          @click="filesStore.goForward()"
+        />
+      </UTooltip>
+      <USeparator orientation="vertical" class="h-4 mx-1.5" />
     </div>
 
-    <UIcon name="i-lucide-monitor" class="size-4 text-primary mr-2 shrink-0" />
-
-    <!-- Root -->
-    <button
-      class="text-muted hover:text-primary transition-colors shrink-0"
-      :class="{ 'font-bold text-primary': filesStore.pathSegments.length === 0 }"
-      @click="filesStore.navigate('/')"
-    >
-      /
-      <span class="sr-only">{{ t('breadcrumb.root') }}</span>
-    </button>
-
-    <template v-for="(seg, i) in filesStore.pathSegments" :key="seg.path">
-      <UIcon name="i-lucide-chevron-right" class="size-3 text-dimmed mx-1 shrink-0" />
-      <button
-        class="transition-colors truncate max-w-48"
-        :class="i === filesStore.pathSegments.length - 1
-          ? 'font-bold text-primary'
-          : 'text-muted hover:text-primary'"
-        @click="filesStore.navigate(seg.path)"
-      >
-        {{ seg.label }}
-      </button>
-    </template>
+    <UBreadcrumb
+      :items="items"
+      class="min-w-0"
+      :ui="{
+        list: 'gap-1',
+        link: 'text-xs font-mono transition-colors cursor-pointer',
+        linkLabel: 'truncate max-w-48',
+        linkLeadingIcon: 'size-4 text-primary',
+        separatorIcon: 'size-3 text-dimmed',
+      }"
+    />
   </nav>
 </template>

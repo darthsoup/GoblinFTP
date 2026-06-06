@@ -8,7 +8,9 @@
     "usernamePlaceholder": "username",
     "password": "Password",
     "connect": "Connect",
-    "tagline": "Self-hosted file transfer"
+    "tagline": "Self-hosted file transfer",
+    "errorRequired": "Required",
+    "errorPort": "Invalid port"
   },
   "header": {
     "connected": "Connected",
@@ -126,7 +128,9 @@
       "execute": "Execute",
       "numeric": "Numeric value:",
       "apply": "Apply Changes",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorEmpty": "Please enter a name",
+      "errorInvalidMode": "Enter a 3- or 4-digit octal mode (e.g. 644)"
     }
   },
   "error": {

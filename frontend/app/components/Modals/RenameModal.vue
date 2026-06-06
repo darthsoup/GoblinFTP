@@ -1,17 +1,27 @@
 <script setup lang="ts">
+import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const { t } = useI18n()
 
 const file = computed(() => modalStore.context.file)
-const newName = ref('')
-const loading = ref(false)
-const error = ref<string | null>(null)
+const open = computed({
+  get: () => modalStore.active === 'rename',
+  set: (v: boolean) => {
+    if (!v)
+      modalStore.close()
+  },
+})
 
-watch(() => modalStore.active, (v) => {
-  if (v === 'rename' && file.value) {
-    newName.value = file.value.name
-    error.value = null
+const state = reactive({ name: '' })
+const loading = ref(false)
+const apiError = ref<string | null>(null)
+
+watch(open, (v) => {
+  if (v && file.value) {
+    state.name = file.value.name
+    apiError.value = null
   }
 })
 
@@ -22,29 +32,29 @@ const fullPath = computed(() => {
   return `${dir}/${file.value.name}`
 })
 
-async function submit() {
-  if (!file.value)
+function validate(s: Partial<typeof state>): FormError[] {
+  if (!s.name?.trim())
+    return [{ name: 'name', message: t('modal.rename.errorEmpty') }]
+  return []
+}
+
+async function onSubmit(event: FormSubmitEvent<typeof state>) {
+  if (!file.value || loading.value)
     return
-  const trimmed = newName.value.trim()
-  if (!trimmed) {
-    error.value = t('modal.rename.errorEmpty')
-    return
-  }
+  const trimmed = event.data.name.trim()
   if (trimmed === file.value.name) {
     modalStore.close()
     return
   }
   const dir = filesStore.currentPath.replace(/\/$/, '')
-  const from = `${dir}/${file.value.name}`
-  const to = `${dir}/${trimmed}`
   loading.value = true
-  error.value = null
+  apiError.value = null
   try {
-    await filesStore.rename(from, to)
+    await filesStore.rename(`${dir}/${file.value.name}`, `${dir}/${trimmed}`)
     modalStore.close()
   }
   catch (e) {
-    error.value = e instanceof Error ? e.message : t('error.operationFailed')
+    apiError.value = e instanceof Error ? e.message : t('error.operationFailed')
   }
   finally {
     loading.value = false
@@ -53,52 +63,33 @@ async function submit() {
 </script>
 
 <template>
-  <UModal :open="modalStore.active === 'rename'" @update:open="modalStore.close()">
-    <template #content>
-      <div class="flex flex-col min-w-96">
-        <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-default bg-elevated/60">
-          <h2 class="text-base font-semibold text-highlighted flex items-center gap-2">
-            <UIcon name="i-lucide-pencil-line" class="size-5 text-muted" />
-            {{ t('modal.rename.title') }}
-          </h2>
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-x"
-            :aria-label="t('modal.rename.cancel')"
-            @click="modalStore.close()"
-          />
-        </div>
+  <UModal v-model:open="open" :title="t('modal.rename.title')">
+    <template #title>
+      <UIcon name="i-lucide-pencil-line" class="size-5 text-muted" />
+      {{ t('modal.rename.title') }}
+    </template>
 
-        <!-- Body -->
-        <div class="p-5 space-y-4">
-          <div>
-            <label class="block label-caps text-muted mb-1">{{ t('modal.rename.label') }}</label>
-            <UInput
-              v-model="newName"
-              class="w-full font-mono"
-              autofocus
-              @keydown.enter="submit"
-            />
-            <p v-if="file" class="font-mono text-xs text-dimmed truncate mt-1.5" :title="fullPath">
-              {{ fullPath }}
-            </p>
-          </div>
-          <UAlert v-if="error" color="error" variant="soft" :description="error" />
-        </div>
+    <template #body>
+      <UForm
+        id="rename-form"
+        :state="state"
+        :validate="validate"
+        class="space-y-4"
+        @submit="onSubmit"
+      >
+        <UFormField name="name" :label="t('modal.rename.label')">
+          <UInput v-model="state.name" class="w-full font-mono" autofocus />
+          <template #help>
+            <span class="block font-mono text-xs text-dimmed truncate" :title="fullPath">{{ fullPath }}</span>
+          </template>
+        </UFormField>
+        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
+      </UForm>
+    </template>
 
-        <!-- Footer -->
-        <div class="flex justify-end gap-2 px-4 py-3 border-t border-default bg-elevated/60">
-          <UButton color="neutral" variant="subtle" @click="modalStore.close()">
-            {{ t('modal.rename.cancel') }}
-          </UButton>
-          <UButton :loading="loading" @click="submit">
-            {{ t('modal.rename.confirm') }}
-          </UButton>
-        </div>
-      </div>
+    <template #footer="{ close }">
+      <UButton color="neutral" variant="subtle" :label="t('modal.rename.cancel')" @click="close" />
+      <UButton type="submit" form="rename-form" :loading="loading" :label="t('modal.rename.confirm')" />
     </template>
   </UModal>
 </template>

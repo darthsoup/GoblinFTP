@@ -81,10 +81,6 @@ body {
   color: var(--color-goblin-50);
 }
 
-input[type='checkbox'] {
-  accent-color: var(--ui-primary);
-}
-
 /* Thin custom scrollbars — dark tracks, subtle thumbs */
 * {
   scrollbar-width: thin;

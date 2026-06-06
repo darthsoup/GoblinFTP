@@ -11,7 +11,6 @@ const emit = defineEmits<{
   select: [name: string]
   navigate: [path: string]
   download: [path: string]
-  contextmenu: [file: FileInfo, x: number, y: number]
 }>()
 
 const { locale } = useI18n()
@@ -60,18 +59,18 @@ function handleDownload() {
       selected ? 'bg-primary/10' : 'even:bg-elevated/40',
       file.isDir ? 'cursor-pointer' : 'cursor-default',
     ]"
+    :data-file-name="file.name"
     @click="handleClick"
-    @contextmenu.prevent="emit('contextmenu', props.file, $event.clientX, $event.clientY)"
   >
-    <td class="w-10 px-3 text-center">
-      <input
-        type="checkbox"
-        :checked="selected"
-        class="rounded align-middle transition-opacity"
+    <td class="w-10 px-3">
+      <UCheckbox
+        :model-value="selected"
+        class="justify-center transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        :aria-label="file.name"
         @click.stop
-        @change="emit('select', file.name)"
-      >
+        @update:model-value="emit('select', file.name)"
+      />
     </td>
     <td class="w-12 px-2 text-center">
       <UIcon

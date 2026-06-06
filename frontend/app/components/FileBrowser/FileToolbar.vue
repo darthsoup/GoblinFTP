@@ -74,27 +74,29 @@ async function downloadZip() {
       {{ t('toolbar.newFile') }}
     </UButton>
 
-    <div class="h-5 w-px bg-accented mx-1" />
+    <USeparator orientation="vertical" class="h-5 mx-1" />
 
-    <UButton
-      size="sm"
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-refresh-cw"
-      :aria-label="t('toolbar.refresh')"
-      :title="t('toolbar.refresh')"
-      :loading="filesStore.loading"
-      @click="filesStore.list()"
-    />
-    <UButton
-      size="sm"
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-upload"
-      :aria-label="t('toolbar.upload')"
-      :title="t('toolbar.upload')"
-      @click="triggerUpload"
-    />
+    <UTooltip :text="t('toolbar.refresh')">
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-refresh-cw"
+        :aria-label="t('toolbar.refresh')"
+        :loading="filesStore.loading"
+        @click="filesStore.list()"
+      />
+    </UTooltip>
+    <UTooltip :text="t('toolbar.upload')">
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-upload"
+        :aria-label="t('toolbar.upload')"
+        @click="triggerUpload"
+      />
+    </UTooltip>
 
     <div class="flex-1" />
 

@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import type { ContextMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
 
 const filesStore = useFilesStore()
 const modalStore = useModalStore()
 const editorStore = useEditorStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
 
 type SortKey = 'name' | 'size' | 'modified'
@@ -14,8 +16,6 @@ const filter = ref('')
 watch(() => filesStore.currentPath, () => {
   filter.value = ''
 })
-
-const menu = reactive({ visible: false, file: null as FileInfo | null, x: 0, y: 0 })
 
 function toggleSort(key: SortKey) {
   if (sortKey.value === key) {
@@ -48,9 +48,16 @@ const visibleFiles = computed(() => {
   return sortedFiles.value.filter(f => f.name.toLowerCase().includes(q))
 })
 
+// ── Selection ─────────────────────────────────────────────────────────────────
 const allSelected = computed(() =>
   visibleFiles.value.length > 0 && visibleFiles.value.every(f => filesStore.selected.has(f.name)),
 )
+
+const headerChecked = computed<boolean | 'indeterminate'>(() => {
+  if (allSelected.value)
+    return true
+  return visibleFiles.value.some(f => filesStore.selected.has(f.name)) ? 'indeterminate' : false
+})
 
 function toggleSelectAll() {
   if (allSelected.value)
@@ -59,31 +66,60 @@ function toggleSelectAll() {
     filesStore.setSelection(visibleFiles.value.map(f => f.name))
 }
 
-function openContextMenu(file: FileInfo, x: number, y: number) {
-  menu.file = file
-  menu.x = x
-  menu.y = y
-  menu.visible = true
+// ── Context menu ──────────────────────────────────────────────────────────────
+const menuFile = ref<FileInfo | null>(null)
+
+const editEnabled = computed(() => {
+  const editor = authStore.systemVars?.editor
+  if (!editor || editor.disabled)
+    return (_file: FileInfo) => false
+  return (file: FileInfo) => {
+    if (file.isDir)
+      return false
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    return editor.allowedExtensions.some(a => a.toLowerCase() === ext)
+  }
+})
+
+const menuItems = computed<ContextMenuItem[][]>(() => {
+  const file = menuFile.value
+  if (!file)
+    return []
+  const dir = filesStore.currentPath.replace(/\/$/, '')
+  const path = `${dir}/${file.name}`
+
+  const middle: ContextMenuItem[] = [
+    { label: t('context.rename'), icon: 'i-lucide-pencil-line', onSelect: () => modalStore.open('rename', { file }) },
+  ]
+  if (editEnabled.value(file)) {
+    middle.push({
+      label: authStore.systemVars?.editor?.viewOnly ? t('context.view') : t('context.edit'),
+      icon: 'i-lucide-pencil',
+      onSelect: () => editorStore.openFile(path),
+    })
+  }
+  middle.push({ label: t('context.properties'), icon: 'i-lucide-info', onSelect: () => modalStore.open('properties', { file }) })
+
+  return [
+    [{ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => filesStore.downloadFile(path) }],
+    middle,
+    [{ label: t('context.delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => modalStore.open('delete', { file }) }],
+  ]
+})
+
+// Capture-phase: resolve the right-clicked row before Reka's trigger opens the
+// menu; on empty space, stop the event so the browser menu shows instead.
+function onAreaContextMenu(e: MouseEvent) {
+  const row = (e.target as HTMLElement).closest<HTMLElement>('tr[data-file-name]')
+  const file = row ? visibleFiles.value.find(f => f.name === row.dataset.fileName) : undefined
+  if (!file) {
+    e.stopPropagation()
+    return
+  }
+  menuFile.value = file
 }
 
-function onContextMenuDownload(file: FileInfo) {
-  const dir = filesStore.currentPath.replace(/\/$/, '')
-  filesStore.downloadFile(`${dir}/${file.name}`)
-}
-function onContextMenuRename(file: FileInfo) {
-  modalStore.open('rename', { file })
-}
-function onContextMenuEdit(file: FileInfo) {
-  const dir = filesStore.currentPath.replace(/\/$/, '')
-  editorStore.openFile(`${dir}/${file.name}`)
-}
-function onContextMenuDelete(file: FileInfo) {
-  modalStore.open('delete', { file })
-}
-function onContextMenuProperties(file: FileInfo) {
-  modalStore.open('properties', { file })
-}
-
+// ── Drag & drop upload ────────────────────────────────────────────────────────
 const uploadStore = useUploadStore()
 const isDragOver = ref(false)
 let dragCounter = 0 // counter to handle child element enter/leave events
@@ -134,95 +170,83 @@ function onDrop(e: DragEvent) {
 
     <FileToolbar v-model:filter="filter" />
 
-    <div class="flex-1 overflow-auto">
-      <table class="w-full text-left border-collapse">
-        <thead class="sticky top-0 z-[5] bg-muted/95 backdrop-blur label-caps text-muted">
-          <tr class="border-b border-default shadow-sm">
-            <th class="w-10 px-3 py-2.5 text-center">
-              <input
-                type="checkbox"
-                class="rounded align-middle"
-                :checked="allSelected"
-                @change="toggleSelectAll"
-              >
-            </th>
-            <th class="w-12 px-2 py-2.5 text-center font-bold">
-              {{ t('files.type') }}
-            </th>
-            <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('name')">
-              {{ t('files.name') }}
-              <UIcon v-if="sortKey === 'name'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
-            </th>
-            <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('size')">
-              {{ t('files.size') }}
-              <UIcon v-if="sortKey === 'size'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
-            </th>
-            <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('modified')">
-              {{ t('files.modified') }}
-              <UIcon v-if="sortKey === 'modified'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
-            </th>
-            <th class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
-              {{ t('files.permissions') }}
-            </th>
-            <th class="w-14" />
-          </tr>
-        </thead>
+    <UContextMenu :items="menuItems">
+      <div class="flex-1 overflow-auto" @contextmenu.capture="onAreaContextMenu">
+        <table class="w-full text-left border-collapse">
+          <thead class="sticky top-0 z-[5] bg-muted/95 backdrop-blur label-caps text-muted">
+            <tr class="border-b border-default shadow-sm">
+              <th class="w-10 px-3 py-2.5">
+                <UCheckbox
+                  :model-value="headerChecked"
+                  class="justify-center"
+                  :aria-label="allSelected ? t('toolbar.deselectAll') : t('toolbar.selectAll')"
+                  @update:model-value="toggleSelectAll"
+                />
+              </th>
+              <th class="w-12 px-2 py-2.5 text-center font-bold">
+                {{ t('files.type') }}
+              </th>
+              <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('name')">
+                {{ t('files.name') }}
+                <UIcon v-if="sortKey === 'name'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
+              </th>
+              <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('size')">
+                {{ t('files.size') }}
+                <UIcon v-if="sortKey === 'size'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
+              </th>
+              <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('modified')">
+                {{ t('files.modified') }}
+                <UIcon v-if="sortKey === 'modified'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
+              </th>
+              <th class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
+                {{ t('files.permissions') }}
+              </th>
+              <th class="w-14" />
+            </tr>
+          </thead>
 
-        <tbody v-if="filesStore.loading">
-          <tr>
-            <td colspan="7" class="py-12 text-center text-muted font-mono text-sm">
-              <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline mr-2 align-middle text-primary" />
-              {{ t('files.loading') }}
-            </td>
-          </tr>
-        </tbody>
+          <tbody v-if="filesStore.loading">
+            <tr>
+              <td colspan="7" class="py-12 text-center text-muted font-mono text-sm">
+                <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline mr-2 align-middle text-primary" />
+                {{ t('files.loading') }}
+              </td>
+            </tr>
+          </tbody>
 
-        <tbody v-else-if="filesStore.error">
-          <tr>
-            <td colspan="7" class="py-8 text-center text-error font-mono text-sm">
-              <UIcon name="i-lucide-triangle-alert" class="size-5 inline mr-2 align-middle" />
-              {{ filesStore.error }}
-            </td>
-          </tr>
-        </tbody>
+          <tbody v-else-if="filesStore.error">
+            <tr>
+              <td colspan="7" class="py-8 text-center text-error font-mono text-sm">
+                <UIcon name="i-lucide-triangle-alert" class="size-5 inline mr-2 align-middle" />
+                {{ filesStore.error }}
+              </td>
+            </tr>
+          </tbody>
 
-        <tbody v-else-if="visibleFiles.length === 0">
-          <tr>
-            <td colspan="7" class="py-16 text-center text-dimmed font-mono text-sm">
-              <UIcon name="i-lucide-folder-open" class="size-8 block mx-auto mb-2" />
-              {{ filter ? t('files.noMatches') : t('files.empty') }}
-            </td>
-          </tr>
-        </tbody>
+          <tbody v-else-if="visibleFiles.length === 0">
+            <tr>
+              <td colspan="7" class="py-16 text-center text-dimmed font-mono text-sm">
+                <UIcon name="i-lucide-folder-open" class="size-8 block mx-auto mb-2" />
+                {{ filter ? t('files.noMatches') : t('files.empty') }}
+              </td>
+            </tr>
+          </tbody>
 
-        <tbody v-else class="font-mono">
-          <FileRow
-            v-for="file in visibleFiles"
-            :key="file.name"
-            :file="file"
-            :selected="filesStore.selected.has(file.name)"
-            :current-path="filesStore.currentPath"
-            @select="filesStore.toggleSelection"
-            @navigate="filesStore.navigate"
-            @download="filesStore.downloadFile"
-            @contextmenu="openContextMenu"
-          />
-        </tbody>
-      </table>
-    </div>
-
-    <ContextMenu
-      :file="menu.file"
-      :x="menu.x"
-      :y="menu.y"
-      :visible="menu.visible"
-      @close="menu.visible = false"
-      @download="onContextMenuDownload"
-      @rename="onContextMenuRename"
-      @delete="onContextMenuDelete"
-      @properties="onContextMenuProperties"
-      @edit="onContextMenuEdit"
-    />
+          <tbody v-else class="font-mono">
+            <FileRow
+              v-for="file in visibleFiles"
+              :key="file.name"
+              :file="file"
+              :selected="filesStore.selected.has(file.name)"
+              :current-path="filesStore.currentPath"
+              @select="filesStore.toggleSelection"
+              @navigate="filesStore.navigate"
+              @download="filesStore.downloadFile"
+            />
+          </tbody>
+        </table>
+      </div>
+    </UContextMenu>
   </div>
 </template>
 
