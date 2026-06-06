@@ -33,6 +33,7 @@
     "loading": "Laden...",
     "empty": "Dieses Verzeichnis ist leer",
     "noMatches": "Keine Dateien entsprechen dem Filter",
+    "clearFilter": "Filter zurücksetzen",
     "dropToUpload": "Dateien zum Hochladen ablegen"
   },
   "toolbar": {

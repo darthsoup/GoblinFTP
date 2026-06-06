@@ -33,6 +33,7 @@
     "loading": "Loading...",
     "empty": "This directory is empty",
     "noMatches": "No files match your filter",
+    "clearFilter": "Clear filter",
     "dropToUpload": "Drop files to upload"
   },
   "toolbar": {

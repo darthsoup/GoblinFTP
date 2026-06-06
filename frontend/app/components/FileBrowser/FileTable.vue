@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContextMenuItem } from '@nuxt/ui'
+import type { ButtonProps, ContextMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
 
 const filesStore = useFilesStore()
@@ -9,7 +9,8 @@ const authStore = useAuthStore()
 const { t } = useI18n()
 
 type SortKey = 'name' | 'size' | 'modified'
-const sortKey = ref<SortKey>('name')
+// Tri-state: ascending → descending → off (null = server order)
+const sortKey = ref<SortKey | null>('name')
 const sortAsc = ref(true)
 
 const filter = ref('')
@@ -18,23 +19,41 @@ watch(() => filesStore.currentPath, () => {
 })
 
 function toggleSort(key: SortKey) {
-  if (sortKey.value === key) {
-    sortAsc.value = !sortAsc.value
-  }
-  else {
+  if (sortKey.value !== key) {
     sortKey.value = key
     sortAsc.value = true
   }
+  else if (sortAsc.value) {
+    sortAsc.value = false
+  }
+  else {
+    sortKey.value = null
+  }
+}
+
+function sortIcon(key: SortKey): string {
+  if (sortKey.value !== key)
+    return 'i-lucide-chevrons-up-down'
+  return sortAsc.value ? 'i-lucide-arrow-up-narrow-wide' : 'i-lucide-arrow-down-wide-narrow'
+}
+
+function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+  if (sortKey.value !== key)
+    return 'none'
+  return sortAsc.value ? 'ascending' : 'descending'
 }
 
 const sortedFiles = computed(() => {
+  const key = sortKey.value
+  if (!key)
+    return filesStore.files
   const arr = [...filesStore.files]
   // Directories always first
   arr.sort((a, b) => {
     if (a.isDir !== b.isDir)
       return a.isDir ? -1 : 1
-    const av = a[sortKey.value]
-    const bv = b[sortKey.value]
+    const av = a[key]
+    const bv = b[key]
     const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
     return sortAsc.value ? cmp : -cmp
   })
@@ -46,6 +65,25 @@ const visibleFiles = computed(() => {
   if (!q)
     return sortedFiles.value
   return sortedFiles.value.filter(f => f.name.toLowerCase().includes(q))
+})
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+const emptyActions = computed<ButtonProps[]>(() => {
+  if (filter.value) {
+    return [{
+      label: t('files.clearFilter'),
+      icon: 'i-lucide-x',
+      color: 'neutral',
+      variant: 'subtle',
+      onClick: () => {
+        filter.value = ''
+      },
+    }]
+  }
+  return [
+    { label: t('toolbar.newFolder'), icon: 'i-lucide-folder-plus', onClick: () => modalStore.open('newFolder') },
+    { label: t('toolbar.newFile'), icon: 'i-lucide-file-plus', color: 'neutral', variant: 'subtle', onClick: () => modalStore.open('newFile') },
+  ]
 })
 
 // ── Selection ─────────────────────────────────────────────────────────────────
@@ -186,17 +224,17 @@ function onDrop(e: DragEvent) {
               <th class="w-12 px-2 py-2.5 text-center font-bold">
                 {{ t('files.type') }}
               </th>
-              <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('name')">
+              <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('name')" @click="toggleSort('name')">
                 {{ t('files.name') }}
-                <UIcon v-if="sortKey === 'name'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
+                <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
               </th>
-              <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('size')">
+              <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
                 {{ t('files.size') }}
-                <UIcon v-if="sortKey === 'size'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
+                <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
               </th>
-              <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" @click="toggleSort('modified')">
+              <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
                 {{ t('files.modified') }}
-                <UIcon v-if="sortKey === 'modified'" :name="sortAsc ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" class="size-3 inline ml-1 align-middle" />
+                <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
               </th>
               <th class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
                 {{ t('files.permissions') }}
@@ -208,7 +246,7 @@ function onDrop(e: DragEvent) {
           <tbody v-if="filesStore.loading">
             <tr>
               <td colspan="7" class="py-12 text-center text-muted font-mono text-sm">
-                <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline mr-2 align-middle text-primary" />
+                <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
                 {{ t('files.loading') }}
               </td>
             </tr>
@@ -217,7 +255,7 @@ function onDrop(e: DragEvent) {
           <tbody v-else-if="filesStore.error">
             <tr>
               <td colspan="7" class="py-8 text-center text-error font-mono text-sm">
-                <UIcon name="i-lucide-triangle-alert" class="size-5 inline mr-2 align-middle" />
+                <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
                 {{ filesStore.error }}
               </td>
             </tr>
@@ -225,9 +263,15 @@ function onDrop(e: DragEvent) {
 
           <tbody v-else-if="visibleFiles.length === 0">
             <tr>
-              <td colspan="7" class="py-16 text-center text-dimmed font-mono text-sm">
-                <UIcon name="i-lucide-folder-open" class="size-8 block mx-auto mb-2" />
-                {{ filter ? t('files.noMatches') : t('files.empty') }}
+              <td colspan="7" class="py-10">
+                <UEmpty
+                  variant="naked"
+                  :icon="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'"
+                  :title="filter ? t('files.noMatches') : t('files.empty')"
+                  :description="filter ? undefined : t('files.dropToUpload')"
+                  :actions="emptyActions"
+                  :ui="{ title: 'font-mono', description: 'font-mono text-dimmed' }"
+                />
               </td>
             </tr>
           </tbody>
