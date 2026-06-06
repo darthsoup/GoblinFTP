@@ -2,12 +2,14 @@
 
 # ── Stage 1: Build Nuxt SPA ────────────────────────────────────────────────────
 FROM node:24-alpine AS frontend-builder
-WORKDIR /build/frontend
+WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+# Workspace root + the frontend manifest first (layer-cached install)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY frontend/package.json frontend/
 RUN pnpm install --frozen-lockfile
-COPY frontend/ ./
-RUN pnpm run generate
+COPY frontend/ frontend/
+RUN pnpm --filter goblinftp-frontend run generate
 
 # ── Stage 2: Build Go binary ───────────────────────────────────────────────────
 FROM golang:1.26-alpine AS backend-builder

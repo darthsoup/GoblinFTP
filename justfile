@@ -113,4 +113,4 @@ i18n-check:
 
 # Remove build artifacts
 clean:
-	rm -rf frontend/.output frontend/node_modules bin/ frontend/.pnpm-store
+	rm -rf frontend/.output frontend/.nuxt node_modules frontend/node_modules bin/

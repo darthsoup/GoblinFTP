@@ -27,19 +27,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          package_json_file: frontend/package.json
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
-        working-directory: frontend
         run: pnpm install --frozen-lockfile
       - name: Generate SPA
-        working-directory: frontend
-        run: pnpm run generate
+        run: pnpm --filter goblinftp-frontend run generate
 
   docker:
     name: Docker build & push

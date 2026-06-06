@@ -1,0 +1,12 @@
+{
+  "name": "goblinftp",
+  "private": true,
+  "packageManager": "pnpm@11.1.3",
+  "scripts": {
+    "dev": "pnpm --filter goblinftp-frontend dev",
+    "build": "pnpm --filter goblinftp-frontend generate",
+    "lint": "pnpm --filter goblinftp-frontend lint",
+    "typecheck": "pnpm --filter goblinftp-frontend typecheck",
+    "test": "pnpm --filter goblinftp-frontend test"
+  }
+}

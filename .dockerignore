@@ -3,9 +3,11 @@
 mftp
 docs
 *.md
+node_modules
 frontend/node_modules
 frontend/.output
 frontend/.nuxt
+frontend/.pnpm-store
 backend/bin
 bin
 .github
