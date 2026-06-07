@@ -67,15 +67,15 @@ fmt:
 
 # Build Docker image
 docker-build:
-	docker build -t darthsoup/goblinftp .
+	docker build -t ghcr.io/darthsoup/goblinftp .
 
 # Run Docker image
 docker-run:
-	docker run -p 8080:80 darthsoup/goblinftp
+	docker run -p 8080:80 ghcr.io/darthsoup/goblinftp
 
-# Push Docker image
+# Push Docker image (run `docker login ghcr.io` first — releases are normally published by CI on v* tags)
 docker-push:
-	docker push darthsoup/goblinftp
+	docker push ghcr.io/darthsoup/goblinftp
 
 # Start with docker compose
 docker-up:

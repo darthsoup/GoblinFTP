@@ -117,3 +117,7 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
 
 The FTP test container and MinIO are on docker compose profile `testing` — only `just ftp-up/ftp-down` and `just s3-up/s3-down` activate them.
+
+## Release
+
+Push a `v*` tag (`git tag v0.2.0 && git push --tags`) → `.github/workflows/release.yml` runs the shared gates (`checks.yml`, also used by ci.yml), publishes a multi-arch (amd64+arm64) image to `ghcr.io/darthsoup/goblinftp` with semver tags + `latest`, and creates a GitHub Release with commit-grouped notes (feat/fix/chore — commits land directly on main, so PR-based auto-notes alone would be empty). The tag is injected via the `VERSION` build-arg → `main.version` → startup log, `/healthz`, `/api/system/vars` (settings-modal footer), and the default `GFTP_SENTRY_RELEASE`. `latest` tracks releases, not `main`; branch builds report version `dev`. Prerelease tags (`v1.0.0-rc1`) skip `latest` and are marked prerelease.

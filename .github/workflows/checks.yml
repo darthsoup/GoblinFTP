@@ -1,0 +1,49 @@
+name: Checks
+
+# Reusable gate jobs shared by ci.yml (branches/PRs) and release.yml (tags).
+on:
+  workflow_call:
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Run tests
+        working-directory: backend
+        run: go test ./... -v
+
+  backend-lint:
+    name: Backend lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2 # keep in sync with the local install (brew install golangci-lint)
+          working-directory: backend
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate SPA
+        run: pnpm --filter goblinftp-frontend run generate

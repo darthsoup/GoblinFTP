@@ -21,10 +21,21 @@ A self-hosted, web-based FTP/SFTP client. Deploy as a single Docker container an
 ## Quick start
 
 ```bash
-docker run -p 8080:80 darthsoup/goblinftp
+docker run -p 8080:80 ghcr.io/darthsoup/goblinftp
 ```
 
 Open <http://localhost:8080>, enter your FTP/SFTP credentials and connect.
+
+## Releases / image tags
+
+Images are published to GHCR on every `v*` tag — all multi-arch (`linux/amd64`, `linux/arm64`):
+
+- `ghcr.io/darthsoup/goblinftp:1.2.3` — exact release (pin this in production)
+- `ghcr.io/darthsoup/goblinftp:1.2` / `:1` — latest patch / latest minor of a line
+- `ghcr.io/darthsoup/goblinftp:latest` — latest release (exists once the first version is tagged)
+- `ghcr.io/darthsoup/goblinftp:main` — current `main`, unreleased (reports version `dev`)
+
+The running version shows up in the startup log, `GET /healthz`, and the settings dialog.
 
 ## Configuration
 
@@ -47,7 +58,7 @@ docker run -p 8080:80 \
   -e GFTP_SESSION_SECRET="change-me" \
   -e GFTP_DOWNLOAD_TOKEN_SECRET="change-me" \
   -v ./settings.json:/app/data/settings.json:ro \
-  darthsoup/goblinftp
+  ghcr.io/darthsoup/goblinftp
 ```
 
 ### Logging
@@ -72,7 +83,7 @@ docker logs -f goblinftp
 docker run -p 8080:80 \
   -e GFTP_LOG_FILE=/app/data/logs/gftp.log \
   -v gftp-data:/app/data \
-  darthsoup/goblinftp
+  ghcr.io/darthsoup/goblinftp
 ```
 
 Notes: the full session ID never appears in logs (only an 8-character prefix), passwords and tokens are never logged, and `/healthz` polling logs at `debug` only. For streaming downloads the status reflects the response headers — a transfer that dies mid-stream still shows `status=200` with a short `bytes_out`.
@@ -101,7 +112,7 @@ Optionally, GoblinFTP exposes Prometheus metrics on a **dedicated port** — sep
 # docker-compose: publish the metrics port to your monitoring network only
 services:
   goblinftp:
-    image: darthsoup/goblinftp
+    image: ghcr.io/darthsoup/goblinftp
     environment:
       GFTP_METRICS_ENABLED: "true"
     ports:
@@ -140,7 +151,7 @@ docker run -p 8080:80 \
   -e GFTP_S3_BUCKET=gftp-chunks \
   -e GFTP_S3_ACCESS_KEY=minioadmin \
   -e GFTP_S3_SECRET_KEY=minioadmin \
-  darthsoup/goblinftp
+  ghcr.io/darthsoup/goblinftp
 ```
 
 Chunks live under `{prefix}/{uploadId}/` only for the duration of an upload and are deleted after the file is committed to the FTP/SFTP server. Uploads abandoned mid-flight (closed browser tab, cancelled transfer) are not reaped automatically — add a bucket lifecycle rule that expires objects under the prefix after a day:

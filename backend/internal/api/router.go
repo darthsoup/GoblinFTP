@@ -44,7 +44,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	e.Use(cspMiddleware())
 
 	e.GET("/healthz", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "version": h.version})
 	})
 
 	// SSO entry point and auth status (public, no CSRF required)

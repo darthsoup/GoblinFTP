@@ -21,6 +21,12 @@ import (
 	"github.com/darthsoup/goblinftp/internal/staging"
 )
 
+// version is the build version, injected by release builds via
+// `-ldflags "-X main.version=<tag>"` (see docker/Dockerfile). It is surfaced
+// in the startup log, /healthz, /api/system/vars, and as the default Sentry
+// release.
+var version = "dev"
+
 func newApp(cfg *config.Config, opts ...api.HandlerOption) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
@@ -89,20 +95,26 @@ func main() {
 	defer func() { _ = closeLog() }()
 	slog.SetDefault(logger)
 	logger.Info("starting GoblinFTP",
+		"version", version,
 		"port", cfg.Port, "log_level", cfg.LogLevel, "log_format", cfg.LogFormat, "log_file", cfg.LogFile)
 
+	// Explicit GFTP_SENTRY_RELEASE wins; release builds default to the tag.
+	sentryRelease := os.Getenv("GFTP_SENTRY_RELEASE")
+	if sentryRelease == "" {
+		sentryRelease = version
+	}
 	sentryRate, _ := strconv.ParseFloat(os.Getenv("GFTP_SENTRY_SAMPLE_RATE"), 64)
 	if initErr := gftpsentry.Init(
 		cfg.SentryDSN,
 		os.Getenv("GFTP_SENTRY_ENVIRONMENT"),
-		os.Getenv("GFTP_SENTRY_RELEASE"),
+		sentryRelease,
 		sentryRate,
 	); initErr != nil {
 		logger.Warn("sentry init failed", "error", initErr.Error())
 	}
 	defer gftpsentry.Flush()
 
-	opts := []api.HandlerOption{api.WithLogger(logger)}
+	opts := []api.HandlerOption{api.WithLogger(logger), api.WithVersion(version)}
 	if cfg.S3Enabled {
 		opts = append(opts, api.WithChunkStore(newS3Store(cfg, logger)))
 	}

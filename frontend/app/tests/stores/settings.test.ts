@@ -12,6 +12,7 @@ function systemVars(showDotFiles: boolean): SystemVars {
     loginFormDisabled: false,
     ssoEnabled: false,
     frontendLogEnabled: false,
+    version: 'dev',
   }
 }
 

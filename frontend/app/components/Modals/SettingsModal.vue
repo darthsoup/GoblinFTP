@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
 const colorMode = useColorMode()
 const { t, locale, setLocale } = useI18n()
 
@@ -99,7 +100,11 @@ const dateFormatItems = computed(() => [
     </template>
 
     <template #footer="{ close }">
-      <UButton :label="t('settings.close')" @click="close" />
+      <div class="flex w-full items-center justify-between">
+        <!-- Brand + semver is locale-invariant — no i18n key needed. -->
+        <span class="font-mono text-xs text-dimmed">GoblinFTP {{ authStore.systemVars?.version ?? '' }}</span>
+        <UButton :label="t('settings.close')" @click="close" />
+      </div>
     </template>
   </UModal>
 </template>

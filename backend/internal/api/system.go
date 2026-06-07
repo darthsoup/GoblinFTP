@@ -16,6 +16,8 @@ type systemVarsData struct {
 	// FrontendLogEnabled tells the SPA whether to forward browser errors
 	// to POST /api/log/frontend.
 	FrontendLogEnabled bool `json:"frontendLogEnabled"`
+	// Version is the build version ("dev" outside release builds).
+	Version string `json:"version"`
 }
 
 type systemUIVars struct {
@@ -72,5 +74,6 @@ func (h *Handler) SystemVars(c echo.Context) error {
 		LoginFormDisabled:  h.cfg.DisableLoginForm,
 		SSOEnabled:         h.cfg.SSOEnabled,
 		FrontendLogEnabled: h.cfg.FrontendLogEnabled,
+		Version:            h.version,
 	})
 }

@@ -49,6 +49,14 @@ func WithMetrics(m *metrics.Metrics) HandlerOption {
 	}
 }
 
+// WithVersion sets the build version surfaced in /healthz and /api/system/vars
+// ("dev" when unset — release builds inject the tag via ldflags in main).
+func WithVersion(v string) HandlerOption {
+	return func(h *Handler) {
+		h.version = v
+	}
+}
+
 // Handler holds shared dependencies for all API handlers.
 type Handler struct {
 	cfg      *config.Config
@@ -59,6 +67,7 @@ type Handler struct {
 	ssoUsed  *sso.UsedSet
 	logger   *slog.Logger
 	metrics  *metrics.Metrics
+	version  string
 	// frontendLog rate-limits /api/log/frontend per client IP — deliberately
 	// separate from the login throttle so report spam cannot lock out logins.
 	frontendLog *auth.Throttle
@@ -74,6 +83,7 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 		ssoUsed:     sso.NewUsedSet(),
 		logger:      slog.New(slog.DiscardHandler),
 		metrics:     metrics.New(),
+		version:     "dev",
 		frontendLog: auth.NewThrottle(),
 	}
 	for _, opt := range opts {

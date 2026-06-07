@@ -3,64 +3,29 @@ name: CI
 on:
   push:
     branches: [main, "feature/**"]
-    tags: ["v*"]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend:
-    name: Backend tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - name: Run tests
-        working-directory: backend
-        run: go test ./... -v
-
-  backend-lint:
-    name: Backend lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.12.2 # keep in sync with the local install (brew install golangci-lint)
-          working-directory: backend
-
-  frontend:
-    name: Frontend build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Generate SPA
-        run: pnpm --filter goblinftp-frontend run generate
+  checks:
+    uses: ./.github/workflows/checks.yml
 
   docker:
     name: Docker build & push
     runs-on: ubuntu-latest
-    needs: [backend, backend-lint, frontend]
+    needs: [checks]
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
 
+      # Release tags (semver + latest) are published by release.yml on v* tags;
+      # CI only ships moving branch references.
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -68,11 +33,10 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
             type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -85,11 +49,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # No VERSION build-arg: branch builds report version "dev".
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

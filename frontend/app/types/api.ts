@@ -60,6 +60,7 @@ export interface SystemVars {
   loginFormDisabled: boolean
   ssoEnabled: boolean
   frontendLogEnabled: boolean
+  version: string
 }
 
 export class ApiError extends Error {
