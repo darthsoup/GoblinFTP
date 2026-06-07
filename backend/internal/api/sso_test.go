@@ -252,9 +252,14 @@ func TestAuthStatusConnected(t *testing.T) {
 	var resp struct {
 		Success bool `json:"success"`
 		Data    struct {
-			Connected      bool   `json:"connected"`
-			SSOAutoConnect bool   `json:"ssoAutoConnect"`
-			CSRFToken      string `json:"csrfToken"`
+			Connected        bool   `json:"connected"`
+			SSOAutoConnect   bool   `json:"ssoAutoConnect"`
+			CSRFToken        string `json:"csrfToken"`
+			Host             string `json:"host"`
+			InitialDirectory string `json:"initialDirectory"`
+			Capabilities     *struct {
+				DisableChmod bool `json:"disableChmod"`
+			} `json:"capabilities"`
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(statusRec.Body.Bytes(), &resp))
@@ -262,6 +267,11 @@ func TestAuthStatusConnected(t *testing.T) {
 	assert.True(t, resp.Data.Connected)
 	assert.False(t, resp.Data.SSOAutoConnect)
 	assert.NotEmpty(t, resp.Data.CSRFToken)
+	// Connection context is returned so the SPA can restore state after a reload.
+	assert.NotEmpty(t, resp.Data.Host)
+	assert.Equal(t, "/home/user", resp.Data.InitialDirectory)
+	require.NotNil(t, resp.Data.Capabilities)
+	assert.False(t, resp.Data.Capabilities.DisableChmod)
 }
 
 func TestSSOConnectNoPending(t *testing.T) {

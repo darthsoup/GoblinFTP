@@ -6,7 +6,7 @@ export const useAuthStore = defineStore('auth', () => {
   const csrfToken = ref('')
   const connected = ref(false)
   const ssoAutoConnect = ref(false)
-  const serverHost = ref('') // known only for manual connects; empty for SSO/restored sessions
+  const serverHost = ref('') // set on manual connect; restored from /status on reload (host:port). Empty for a fresh SSO connect.
   const initialDirectory = ref('/')
   const capabilities = ref<{ disableChmod: boolean }>({ disableChmod: false })
   const systemVars = ref<SystemVars | null>(null)
@@ -28,10 +28,21 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const statusRes = await $fetch<{ success: boolean, data?: AuthStatus }>('/api/auth/status')
       if (statusRes.success && statusRes.data) {
-        connected.value = statusRes.data.connected
-        ssoAutoConnect.value = statusRes.data.ssoAutoConnect
-        if (statusRes.data.csrfToken)
-          csrfToken.value = statusRes.data.csrfToken
+        const data = statusRes.data
+        connected.value = data.connected
+        ssoAutoConnect.value = data.ssoAutoConnect
+        if (data.csrfToken)
+          csrfToken.value = data.csrfToken
+        // Restore the connection context after a page reload (in-memory state
+        // is otherwise lost while the cookie session keeps us connected).
+        if (data.connected) {
+          if (data.host)
+            serverHost.value = data.host
+          if (data.initialDirectory)
+            initialDirectory.value = data.initialDirectory
+          if (data.capabilities)
+            capabilities.value = data.capabilities
+        }
       }
     }
     catch {}

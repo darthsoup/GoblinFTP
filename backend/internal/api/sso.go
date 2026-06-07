@@ -100,15 +100,20 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 
 // AuthStatus handles GET /api/auth/status.
 // Public endpoint: no requireSession middleware. Manually reads session cookie.
-// Returns {connected, ssoAutoConnect, csrfToken}.
+// Returns {connected, ssoAutoConnect, csrfToken} and, when connected, the
+// session's connection context (host, initialDirectory, capabilities) so the
+// SPA can restore its state after a page reload.
 // With ?ping=1 the FTP/SFTP connection is verified with a lightweight round
 // trip; a dead connection is closed, removed from the session, and reported
 // as connected=false.
 func (h *Handler) AuthStatus(c echo.Context) error {
 	type statusData struct {
-		Connected      bool   `json:"connected"`
-		SSOAutoConnect bool   `json:"ssoAutoConnect"`
-		CSRFToken      string `json:"csrfToken"`
+		Connected        bool          `json:"connected"`
+		SSOAutoConnect   bool          `json:"ssoAutoConnect"`
+		CSRFToken        string        `json:"csrfToken"`
+		Host             string        `json:"host,omitempty"`
+		InitialDirectory string        `json:"initialDirectory,omitempty"`
+		Capabilities     *Capabilities `json:"capabilities,omitempty"`
 	}
 
 	result := statusData{}
@@ -127,6 +132,14 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 			}
 			_, result.SSOAutoConnect = sess.Data[ssoPendingKey]
 			result.CSRFToken, _ = sess.Data[auth.CSRFSessionKey].(string)
+
+			// Connection context for SPA state restoration after a reload.
+			if result.Connected {
+				result.Host, _ = sess.Data["host"].(string)
+				result.InitialDirectory, _ = sess.Data["initialDir"].(string)
+				disableChmod, _ := sess.Data["disableChmod"].(bool)
+				result.Capabilities = &Capabilities{DisableChmod: disableChmod}
+			}
 		}
 	}
 
@@ -169,6 +182,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 
 	sess.Data["client"] = client
 	sess.Data["initialDir"] = initialDir
+	sess.Data["disableChmod"] = disableChmod
 	// For access-log and metrics enrichment only — never the password.
 	sess.Data["username"] = pending.Username
 	sess.Data["host"] = addr

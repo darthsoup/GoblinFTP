@@ -5,9 +5,24 @@
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const editorStore = useEditorStore()
+const route = useRoute()
+const router = useRouter()
 
 onMounted(async () => {
-  await filesStore.list(authStore.initialDirectory)
+  // Restore the directory from the URL on reload; otherwise start at the
+  // server's initial working directory.
+  const queryPath = route.query.path
+  const start = typeof queryPath === 'string' && queryPath
+    ? queryPath
+    : authStore.initialDirectory
+  await filesStore.list(start)
+})
+
+// Keep ?path=<dir> in sync with the current directory (replace, not push — the
+// store owns back/forward history) so a reload reopens the same folder.
+watch(() => filesStore.currentPath, (path) => {
+  if (route.query.path !== path)
+    router.replace({ query: { ...route.query, path } })
 })
 </script>
 

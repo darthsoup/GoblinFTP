@@ -109,6 +109,7 @@ func (h *Handler) Connect(c echo.Context) error {
 	sess.Data["client"] = client
 	sess.Data[auth.CSRFSessionKey] = csrfToken
 	sess.Data["initialDir"] = initialDir
+	sess.Data["disableChmod"] = disableChmod
 	// For access-log and metrics enrichment only — never the password.
 	sess.Data["username"] = req.Username
 	sess.Data["host"] = addr

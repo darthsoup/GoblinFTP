@@ -8,6 +8,10 @@ export interface AuthStatus {
   connected: boolean
   ssoAutoConnect: boolean
   csrfToken: string
+  // Present only when connected — used to restore SPA state after a reload.
+  host?: string
+  initialDirectory?: string
+  capabilities?: { disableChmod: boolean }
 }
 
 export interface ConnectRequest {
