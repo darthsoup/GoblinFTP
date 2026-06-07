@@ -35,13 +35,13 @@ func (h *Handler) ssoReject(c echo.Context, reason string, cause error) error {
 		attrs = append(attrs, slog.String("cause", cause.Error()))
 	}
 	h.logger.LogAttrs(c.Request().Context(), slog.LevelWarn, "sso login rejected", attrs...)
-	return c.Redirect(http.StatusFound, "/?sso_error="+reason)
+	return c.Redirect(http.StatusFound, "/login?sso_error="+reason)
 }
 
 // SSOLogin handles GET /?sso=<token>.
 // If no sso param: returns 200 placeholder (SPA serving will be added later).
-// On any token rejection: redirect to /?sso_error=<reason> so the SPA can show
-// a message. On success: create session, redirect to /?
+// On any token rejection: redirect to /login?sso_error=<reason> so the SPA can
+// show a message. On success: create session, redirect to /login.
 func (h *Handler) SSOLogin(c echo.Context) error {
 	raw := c.QueryParam("sso")
 	if raw == "" {
@@ -93,7 +93,9 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	return c.Redirect(http.StatusFound, "/?")
+	// Land on the SPA login route, which finalizes the connection via
+	// /api/auth/sso-connect (ssoAutoConnect) and then routes to the workspace.
+	return c.Redirect(http.StatusFound, "/login")
 }
 
 // AuthStatus handles GET /api/auth/status.

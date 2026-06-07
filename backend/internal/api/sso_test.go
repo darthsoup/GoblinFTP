@@ -66,7 +66,7 @@ func TestSSOLoginDisabled(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusFound, rec.Code)
-	assert.Equal(t, "/?sso_error=disabled", rec.Header().Get("Location"))
+	assert.Equal(t, "/login?sso_error=disabled", rec.Header().Get("Location"))
 }
 
 func TestSSOLoginInvalidToken(t *testing.T) {
@@ -79,7 +79,7 @@ func TestSSOLoginInvalidToken(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusFound, rec.Code)
-	assert.Equal(t, "/?sso_error=invalid", rec.Header().Get("Location"))
+	assert.Equal(t, "/login?sso_error=invalid", rec.Header().Get("Location"))
 }
 
 func TestSSOLoginExpiredToken(t *testing.T) {
@@ -104,7 +104,7 @@ func TestSSOLoginExpiredToken(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusFound, rec.Code)
-	assert.Equal(t, "/?sso_error=expired", rec.Header().Get("Location"))
+	assert.Equal(t, "/login?sso_error=expired", rec.Header().Get("Location"))
 }
 
 func TestSSOLoginSuccess(t *testing.T) {
@@ -119,7 +119,7 @@ func TestSSOLoginSuccess(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusFound, rec.Code)
-	assert.Equal(t, "/?", rec.Header().Get("Location"))
+	assert.Equal(t, "/login", rec.Header().Get("Location"))
 
 	// Check that a session cookie was set
 	cookies := rec.Result().Cookies()
@@ -153,7 +153,7 @@ func TestSSOLoginReplay(t *testing.T) {
 	e.ServeHTTP(rec2, req2)
 
 	assert.Equal(t, http.StatusFound, rec2.Code)
-	assert.Equal(t, "/?sso_error=used", rec2.Header().Get("Location"))
+	assert.Equal(t, "/login?sso_error=used", rec2.Header().Get("Location"))
 }
 
 func TestAuthStatusNoSession(t *testing.T) {

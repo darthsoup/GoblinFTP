@@ -22,7 +22,7 @@ your app                          GoblinFTP backend                     browser/
    │──── redirect user to /?sso=<token> ──►                                 │
    │                                  │ decrypt + validate token,           │
    │                                  │ mark it used (replay protection),   │
-   │                                  │ create session, redirect to /?      │
+   │                                  │ create session, redirect to /login  │
    │                                  │────────────────────────────────────►│
    │                                  │  GET /api/auth/status               │
    │                                  │◄── { ssoAutoConnect: true, csrfToken }

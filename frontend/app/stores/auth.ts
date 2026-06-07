@@ -52,6 +52,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
     catch (e) {
       error.value = e instanceof ApiError ? e.message : 'SSO connect failed'
+      // Don't leave the client poised to auto-retry a failed finalization on
+      // the next /login load — fall back to the manual form.
+      ssoAutoConnect.value = false
     }
     finally {
       loading.value = false
@@ -104,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     ssoAutoConnect.value = false
     serverHost.value = ''
     initialDirectory.value = '/'
+    error.value = null
   }
 
   // ── Session liveness ──────────────────────────────────────────────────────
@@ -138,6 +142,7 @@ export const useAuthStore = defineStore('auth', () => {
     ssoAutoConnect.value = false
     serverHost.value = ''
     initialDirectory.value = '/'
+    error.value = null
   }
 
   const allowedTypes = computed(() =>

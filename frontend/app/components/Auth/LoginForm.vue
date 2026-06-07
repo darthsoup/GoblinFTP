@@ -3,7 +3,6 @@ import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 import { ApiError } from '~/types/api'
 
 const authStore = useAuthStore()
-const filesStore = useFilesStore()
 const { t } = useI18n()
 
 const form = reactive({
@@ -19,8 +18,8 @@ const error = ref<string | null>(null)
 const loading = ref(false)
 
 // authStore.error survives across the connect lifecycle (and carries SSO
-// failures surfaced before this form mounts); the local ref covers the
-// post-connect filesStore.list() failure path in onSubmit.
+// failures surfaced before this form mounts); the local ref captures the
+// manual-connect failure in onSubmit.
 const displayError = computed(() => error.value ?? authStore.error)
 
 const protocolItems = computed(() =>
@@ -64,8 +63,9 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
   loading.value = true
   error.value = null
   try {
+    // On success `connected` flips; the layout's connected-watcher routes to
+    // the workspace, which loads the directory listing.
     await authStore.connect({ ...form })
-    await filesStore.list(authStore.initialDirectory)
   }
   catch (e) {
     error.value = e instanceof ApiError ? e.message : t('error.connectionFailed')
