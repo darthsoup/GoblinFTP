@@ -61,6 +61,20 @@ export default defineNuxtConfig({
           target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,
         },
+        // SSO entry point: forward only `GET /?sso=<token>` to the backend so
+        // the one-time-link flow (decrypt → set session cookie → redirect to
+        // /?) works in dev and stays same-origin on :3000. Every other request
+        // to `/` (the SPA, assets, HMR) is bypassed back to the Vite dev server.
+        // In prod, Caddy does this routing instead (docker/Caddyfile @sso).
+        '/': {
+          target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
+          changeOrigin: true,
+          bypass(req) {
+            const isSsoEntry = req.method === 'GET' && /[?&]sso=/.test(req.url ?? '')
+            // undefined → proxy to backend; req.url → serve locally (SPA).
+            return isSsoEntry ? undefined : req.url
+          },
+        },
       },
     },
   },

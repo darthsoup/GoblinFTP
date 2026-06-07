@@ -65,11 +65,8 @@ func TestSSOLoginDisabled(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	var resp api.Response
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.False(t, resp.Success)
-	assert.Equal(t, string(gftperrors.ErrUnauthorized), resp.Errors[0].Code)
+	assert.Equal(t, http.StatusFound, rec.Code)
+	assert.Equal(t, "/?sso_error=disabled", rec.Header().Get("Location"))
 }
 
 func TestSSOLoginInvalidToken(t *testing.T) {
@@ -81,11 +78,8 @@ func TestSSOLoginInvalidToken(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	var resp api.Response
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.False(t, resp.Success)
-	assert.Equal(t, string(gftperrors.ErrInvalidToken), resp.Errors[0].Code)
+	assert.Equal(t, http.StatusFound, rec.Code)
+	assert.Equal(t, "/?sso_error=invalid", rec.Header().Get("Location"))
 }
 
 func TestSSOLoginExpiredToken(t *testing.T) {
@@ -109,12 +103,8 @@ func TestSSOLoginExpiredToken(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	var resp api.Response
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.False(t, resp.Success)
-	assert.Equal(t, string(gftperrors.ErrInvalidToken), resp.Errors[0].Code)
-	assert.Contains(t, resp.Errors[0].Message, "expired")
+	assert.Equal(t, http.StatusFound, rec.Code)
+	assert.Equal(t, "/?sso_error=expired", rec.Header().Get("Location"))
 }
 
 func TestSSOLoginSuccess(t *testing.T) {
@@ -162,12 +152,8 @@ func TestSSOLoginReplay(t *testing.T) {
 	rec2 := httptest.NewRecorder()
 	e.ServeHTTP(rec2, req2)
 
-	assert.Equal(t, http.StatusUnauthorized, rec2.Code)
-	var resp api.Response
-	require.NoError(t, json.Unmarshal(rec2.Body.Bytes(), &resp))
-	assert.False(t, resp.Success)
-	assert.Equal(t, string(gftperrors.ErrInvalidToken), resp.Errors[0].Code)
-	assert.Contains(t, resp.Errors[0].Message, "already used")
+	assert.Equal(t, http.StatusFound, rec2.Code)
+	assert.Equal(t, "/?sso_error=used", rec2.Header().Get("Location"))
 }
 
 func TestAuthStatusNoSession(t *testing.T) {

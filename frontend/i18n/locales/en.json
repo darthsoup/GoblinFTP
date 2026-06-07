@@ -164,5 +164,13 @@
   "error": {
     "connectionFailed": "Connection failed",
     "operationFailed": "Operation failed"
+  },
+  "sso": {
+    "errorExpired": "Your SSO login link has expired. Please request a new one.",
+    "errorInvalid": "This SSO login link is invalid. Please request a new one.",
+    "errorUsed": "This SSO login link has already been used. Please request a new one.",
+    "errorDisabled": "SSO login is not enabled on this server.",
+    "errorInternal": "SSO login failed due to a server error. Please try again.",
+    "errorGeneric": "SSO login failed. Please request a new link."
   }
 }

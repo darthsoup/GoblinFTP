@@ -8,22 +8,50 @@ const { t, locale, setLocale } = useI18n()
 
 useSessionChecker()
 
+// Spinner gate for the initial boot / SSO auto-connect only — a manual connect
+// must NOT swap the login form for the spinner, or its error + typed input are
+// lost when the form remounts.
+const booting = ref(true)
+
+// Maps a backend ?sso_error=<reason> redirect (bad/expired/replayed link) to a
+// translated message. Unknown reasons fall back to the generic string.
+function ssoErrorMessage(reason: string): string {
+  const key = `sso.error${reason.charAt(0).toUpperCase()}${reason.slice(1)}`
+  const msg = t(key)
+  return msg === key ? t('sso.errorGeneric') : msg
+}
+
 onMounted(async () => {
-  await authStore.init()
+  try {
+    // Surface a bad/expired SSO link redirected here by the backend, then strip
+    // the param so a refresh doesn't re-show it.
+    const params = new URLSearchParams(window.location.search)
+    const ssoError = params.get('sso_error')
 
-  // Language precedence: explicit user choice > admin default > en
-  const adminLang = authStore.systemVars?.language
-  const preferred = settingsStore.language
-    ?? (adminLang === 'en' || adminLang === 'de' ? adminLang : undefined)
-  if (preferred && preferred !== locale.value)
-    await setLocale(preferred)
+    await authStore.init()
 
-  if (authStore.ssoAutoConnect) {
-    await authStore.ssoConnect()
+    // Language precedence: explicit user choice > admin default > en
+    const adminLang = authStore.systemVars?.language
+    const preferred = settingsStore.language
+      ?? (adminLang === 'en' || adminLang === 'de' ? adminLang : undefined)
+    if (preferred && preferred !== locale.value)
+      await setLocale(preferred)
+
+    if (ssoError) {
+      authStore.error = ssoErrorMessage(ssoError)
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+
+    if (authStore.ssoAutoConnect) {
+      await authStore.ssoConnect()
+    }
+
+    if (authStore.connected) {
+      await filesStore.list(authStore.initialDirectory)
+    }
   }
-
-  if (authStore.connected) {
-    await filesStore.list(authStore.initialDirectory)
+  finally {
+    booting.value = false
   }
 })
 </script>
@@ -38,7 +66,7 @@ onMounted(async () => {
       <UploadProgressPanel />
       <StatusBar />
     </template>
-    <template v-else-if="authStore.loading">
+    <template v-else-if="booting">
       <div class="flex items-center justify-center flex-1">
         <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-primary" />
       </div>

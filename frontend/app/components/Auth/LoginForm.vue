@@ -18,6 +18,11 @@ const form = reactive({
 const error = ref<string | null>(null)
 const loading = ref(false)
 
+// authStore.error survives across the connect lifecycle (and carries SSO
+// failures surfaced before this form mounts); the local ref covers the
+// post-connect filesStore.list() failure path in onSubmit.
+const displayError = computed(() => error.value ?? authStore.error)
+
 const protocolItems = computed(() =>
   authStore.allowedTypes.map(type => ({ label: type.toUpperCase(), value: type })),
 )
@@ -87,11 +92,11 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
       </div>
 
       <UAlert
-        v-if="error"
+        v-if="displayError"
         color="error"
         variant="soft"
         icon="i-lucide-triangle-alert"
-        :description="error"
+        :description="displayError"
         class="mb-4"
       />
 

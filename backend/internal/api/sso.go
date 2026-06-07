@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -24,10 +25,23 @@ func tokenHash(raw string) string {
 	return fmt.Sprintf("%x", sum)
 }
 
+// ssoReject logs an SSO login rejection and redirects the browser back to the
+// SPA with an ?sso_error=<reason> marker (no sso= param, so Caddy serves the
+// SPA rather than re-proxying to this handler). The redirect bypasses Fail's
+// access-log stash, so the reason is logged explicitly here for ops visibility.
+func (h *Handler) ssoReject(c echo.Context, reason string, cause error) error {
+	attrs := []slog.Attr{slog.String("reason", reason)}
+	if cause != nil {
+		attrs = append(attrs, slog.String("cause", cause.Error()))
+	}
+	h.logger.LogAttrs(c.Request().Context(), slog.LevelWarn, "sso login rejected", attrs...)
+	return c.Redirect(http.StatusFound, "/?sso_error="+reason)
+}
+
 // SSOLogin handles GET /?sso=<token>.
 // If no sso param: returns 200 placeholder (SPA serving will be added later).
-// If sso param present but SSO disabled: returns 403.
-// Otherwise: decrypt token, check replay, create session, redirect to /?
+// On any token rejection: redirect to /?sso_error=<reason> so the SPA can show
+// a message. On success: create session, redirect to /?
 func (h *Handler) SSOLogin(c echo.Context) error {
 	raw := c.QueryParam("sso")
 	if raw == "" {
@@ -35,31 +49,31 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 	}
 
 	if !h.cfg.SSOEnabled {
-		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "SSO is not enabled"))
+		return h.ssoReject(c, "disabled", nil)
 	}
 
 	payload, err := sso.Decrypt(raw, h.cfg.SSOSecret)
 	if err != nil {
 		if errors.Is(err, sso.ErrTokenExpired) {
-			return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "SSO token has expired"))
+			return h.ssoReject(c, "expired", nil)
 		}
-		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "invalid SSO token").WithCause(err))
+		return h.ssoReject(c, "invalid", err)
 	}
 
 	hash := tokenHash(raw)
 	if h.ssoUsed.IsUsed(hash) {
-		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "SSO token already used"))
+		return h.ssoReject(c, "used", nil)
 	}
 	h.ssoUsed.Mark(hash, time.Unix(payload.Exp, 0))
 
 	csrfToken, csrfErr := auth.GenerateCSRFToken()
 	if csrfErr != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not generate CSRF token"))
+		return h.ssoReject(c, "internal", csrfErr)
 	}
 
 	sess, sessErr := h.store.New()
 	if sessErr != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session"))
+		return h.ssoReject(c, "internal", sessErr)
 	}
 	sess.Data[auth.CSRFSessionKey] = csrfToken
 	sess.Data[ssoPendingKey] = ConnectRequest{

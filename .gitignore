@@ -1,6 +1,8 @@
 mftp/
 .DS_Store
 .worktrees/
+.env
+.env.local
 bin/
 docs/
 frontend/.output/

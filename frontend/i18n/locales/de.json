@@ -164,5 +164,13 @@
   "error": {
     "connectionFailed": "Verbindung fehlgeschlagen",
     "operationFailed": "Vorgang fehlgeschlagen"
+  },
+  "sso": {
+    "errorExpired": "Dein SSO-Login-Link ist abgelaufen. Bitte fordere einen neuen an.",
+    "errorInvalid": "Dieser SSO-Login-Link ist ungültig. Bitte fordere einen neuen an.",
+    "errorUsed": "Dieser SSO-Login-Link wurde bereits verwendet. Bitte fordere einen neuen an.",
+    "errorDisabled": "SSO-Login ist auf diesem Server nicht aktiviert.",
+    "errorInternal": "SSO-Login aufgrund eines Serverfehlers fehlgeschlagen. Bitte versuche es erneut.",
+    "errorGeneric": "SSO-Login fehlgeschlagen. Bitte fordere einen neuen Link an."
   }
 }
