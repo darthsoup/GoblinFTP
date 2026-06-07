@@ -21,14 +21,15 @@ const activeCount = computed(() =>
       </span>
       <template v-if="authStore.serverHost">
         <span class="text-dimmed">|</span>
-        <span class="text-muted truncate">{{ authStore.serverHost }}</span>
+        <span class="gap-1.5 sm:inline-flex items-center">
+          <UIcon name="i-lucide-plug" class="size-3.5 text-primary shrink-0" />
+          <span class="text-muted truncate">{{ authStore.serverHost }}</span>
+        </span>
       </template>
     </div>
 
     <div class="flex items-center gap-3 shrink-0">
       <span class="text-muted">{{ t('status.queue', { n: activeCount }) }}</span>
-      <span class="text-dimmed">|</span>
-      <span class="text-dimmed">GoblinFTP</span>
     </div>
   </footer>
 </template>

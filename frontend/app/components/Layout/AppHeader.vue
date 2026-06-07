@@ -27,15 +27,6 @@ async function handleDisconnect() {
     </template>
 
     <template #right>
-      <!-- Connected server, surfaced in the bar instead of only the footer. -->
-      <span
-        v-if="authStore.serverHost"
-        class="hidden sm:inline-flex items-center gap-1.5 font-mono text-xs text-muted max-w-48 mr-1"
-      >
-        <UIcon name="i-lucide-plug" class="size-3.5 text-primary shrink-0" />
-        <span class="truncate">{{ authStore.serverHost }}</span>
-      </span>
-
       <UColorModeButton />
 
       <UTooltip :text="t('header.settings')">
