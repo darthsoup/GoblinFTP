@@ -60,6 +60,12 @@ type Settings struct {
 type Config struct {
 	Port                  string
 	LogLevel              string
+	LogFormat             string
+	LogFile               string
+	LogFileMaxSizeMB      int
+	LogFileMaxBackups     int
+	LogFileMaxAgeDays     int
+	FrontendLogEnabled    bool
 	SessionSecret         []byte
 	DownloadTokenSecret   []byte
 	SSOEnabled            bool
@@ -146,6 +152,49 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 		DisableLoginForm:      os.Getenv("GFTP_DISABLE_LOGIN_FORM") == "true",
 		Settings:              defaultSettings(),
 	}
+
+	// Logging (env-only, like GFTP_LOG_LEVEL). Stdout is always written;
+	// GFTP_LOG_FILE additionally mirrors into a size-rotated file.
+	cfg.LogFormat = envOr("GFTP_LOG_FORMAT", "json")
+	if cfg.LogFormat != "json" && cfg.LogFormat != "text" {
+		return nil, fmt.Errorf("invalid GFTP_LOG_FORMAT: must be json or text, got %q", cfg.LogFormat)
+	}
+	cfg.LogFile = os.Getenv("GFTP_LOG_FILE")
+	cfg.LogFileMaxSizeMB = 10
+	if raw := os.Getenv("GFTP_LOG_FILE_MAX_SIZE_MB"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_SIZE_MB: %w", err)
+		}
+		if n <= 0 {
+			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_SIZE_MB: must be positive, got %d", n)
+		}
+		cfg.LogFileMaxSizeMB = n
+	}
+	cfg.LogFileMaxBackups = 5
+	if raw := os.Getenv("GFTP_LOG_FILE_MAX_BACKUPS"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_BACKUPS: %w", err)
+		}
+		if n < 0 {
+			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_BACKUPS: must not be negative, got %d", n)
+		}
+		cfg.LogFileMaxBackups = n
+	}
+	cfg.LogFileMaxAgeDays = 0
+	if raw := os.Getenv("GFTP_LOG_FILE_MAX_AGE_DAYS"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_AGE_DAYS: %w", err)
+		}
+		if n < 0 {
+			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_AGE_DAYS: must not be negative, got %d", n)
+		}
+		cfg.LogFileMaxAgeDays = n
+	}
+	// Browser-error forwarding to /api/log/frontend; only "false" disables it.
+	cfg.FrontendLogEnabled = os.Getenv("GFTP_LOG_FRONTEND") != "false"
 
 	cfg.SSOEnabled = os.Getenv("GFTP_SSO_ENABLED") == "true"
 	if raw := os.Getenv("GFTP_SSO_SECRET"); raw != "" {

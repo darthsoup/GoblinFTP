@@ -2,6 +2,9 @@
 package api_test
 
 import (
+	"bytes"
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,10 +29,36 @@ func newTestApp(t *testing.T, cfg *config.Config, opts ...api.HandlerOption) (*e
 	return e, store, thr
 }
 
+// newTestAppWithLog is newTestApp with a debug-level JSON logger writing into
+// buf, for tests asserting on access-log lines (decode buf line by line).
+func newTestAppWithLog(t *testing.T, cfg *config.Config, buf *bytes.Buffer, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle) {
+	t.Helper()
+	logger := slog.New(slog.NewJSONHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	return newTestApp(t, cfg, append(opts, api.WithLogger(logger))...)
+}
+
+// logLines decodes every JSON log line in buf.
+func logLines(t *testing.T, buf *bytes.Buffer) []map[string]any {
+	t.Helper()
+	var lines []map[string]any
+	for _, raw := range strings.Split(strings.TrimSpace(buf.String()), "\n") {
+		if raw == "" {
+			continue
+		}
+		var m map[string]any
+		if err := json.Unmarshal([]byte(raw), &m); err != nil {
+			t.Fatalf("invalid log line %q: %v", raw, err)
+		}
+		lines = append(lines, m)
+	}
+	return lines
+}
+
 func defaultTestConfig() *config.Config {
 	return &config.Config{
 		Port:                 "8080",
 		LogLevel:             "info",
+		FrontendLogEnabled:   true,
 		SessionSecret:        []byte("test-session-secret"),
 		DownloadTokenSecret:  []byte("test-download-secret"),
 		LoginMaxAttempts:     5,

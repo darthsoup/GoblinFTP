@@ -43,7 +43,7 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		if errors.Is(err, sso.ErrTokenExpired) {
 			return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "SSO token has expired"))
 		}
-		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "invalid SSO token"))
+		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "invalid SSO token").WithCause(err))
 	}
 
 	hash := tokenHash(raw)
@@ -135,21 +135,24 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	client, dialErr := h.dial(pending.Protocol, addr, pending.Username, pending.Password, pending.Passive)
 	if dialErr != nil {
 		if errors.Is(dialErr, transfer.ErrAuthFailed) {
-			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed"))
+			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
 		}
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server"))
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 	}
 
 	initialDir, wdErr := client.WorkingDir()
 	if wdErr != nil {
 		_ = client.Close()
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory"))
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
 	}
 
 	disableChmod := detectChmod(client, pending.Protocol, initialDir)
 
 	sess.Data["client"] = client
 	sess.Data["initialDir"] = initialDir
+	// For access-log enrichment only — never the password.
+	sess.Data["username"] = pending.Username
+	sess.Data["host"] = addr
 	delete(sess.Data, ssoPendingKey)
 
 	csrfToken, _ := sess.Data[auth.CSRFSessionKey].(string)

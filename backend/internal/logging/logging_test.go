@@ -2,6 +2,8 @@ package logging_test
 
 import (
 	"log/slog"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/darthsoup/goblinftp/internal/logging"
@@ -11,9 +13,55 @@ import (
 
 func TestInitReturnsNonNilLogger(t *testing.T) {
 	for _, level := range []string{"debug", "info", "warn", "warning", "error", "invalid", ""} {
-		logger := logging.Init(level)
+		logger, closeFn, err := logging.Init(logging.Options{Level: level})
+		require.NoError(t, err, "level %q", level)
 		assert.NotNil(t, logger, "expected non-nil logger for level %q", level)
+		require.NotNil(t, closeFn)
+		assert.NoError(t, closeFn(), "closer must be a no-op without a file sink")
 	}
+}
+
+func TestInitCreatesLogFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "logs", "gftp.log")
+
+	logger, closeFn, err := logging.Init(logging.Options{Level: "info", File: path})
+	require.NoError(t, err)
+	require.NotNil(t, logger)
+	t.Cleanup(func() { _ = closeFn() })
+
+	// The probe-open must have created the file eagerly.
+	_, statErr := os.Stat(path)
+	require.NoError(t, statErr)
+
+	logger.Info("hello", "k", "v")
+	data, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	assert.Contains(t, string(data), `"msg":"hello"`)
+	assert.NoError(t, closeFn())
+}
+
+func TestInitTextFormat(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gftp.log")
+
+	logger, closeFn, err := logging.Init(logging.Options{Level: "info", Format: "text", File: path})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = closeFn() })
+
+	logger.Info("hello", "k", "v")
+	data, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	assert.Contains(t, string(data), "msg=hello")
+	assert.NotContains(t, string(data), `"msg"`)
+}
+
+func TestInitUnwritableFileFailsFast(t *testing.T) {
+	dir := t.TempDir()
+	// A path whose parent is a regular file cannot be created.
+	blocker := filepath.Join(dir, "blocker")
+	require.NoError(t, os.WriteFile(blocker, []byte("x"), 0o640))
+
+	_, _, err := logging.Init(logging.Options{File: filepath.Join(blocker, "gftp.log")})
+	require.Error(t, err)
 }
 
 func TestSafeLogAttrsRedactsSensitiveKeys(t *testing.T) {

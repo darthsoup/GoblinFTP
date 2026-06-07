@@ -2,6 +2,8 @@
 package api
 
 import (
+	"log/slog"
+
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
 	"github.com/darthsoup/goblinftp/internal/sso"
@@ -29,6 +31,14 @@ func WithChunkStore(s staging.ChunkStore) HandlerOption {
 	}
 }
 
+// WithLogger sets the structured logger used for the access log and the
+// frontend-error endpoint (a discard logger is used when unset).
+func WithLogger(l *slog.Logger) HandlerOption {
+	return func(h *Handler) {
+		h.logger = l
+	}
+}
+
 // Handler holds shared dependencies for all API handlers.
 type Handler struct {
 	cfg      *config.Config
@@ -37,16 +47,22 @@ type Handler struct {
 	chunks   staging.ChunkStore
 	dial     DialFunc
 	ssoUsed  *sso.UsedSet
+	logger   *slog.Logger
+	// frontendLog rate-limits /api/log/frontend per client IP — deliberately
+	// separate from the login throttle so report spam cannot lock out logins.
+	frontendLog *auth.Throttle
 }
 
 func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts []HandlerOption) *Handler {
 	h := &Handler{
-		cfg:      cfg,
-		store:    store,
-		throttle: thr,
-		chunks:   staging.NewLocalStore(cfg.DataDir),
-		dial:     defaultDial,
-		ssoUsed:  sso.NewUsedSet(),
+		cfg:         cfg,
+		store:       store,
+		throttle:    thr,
+		chunks:      staging.NewLocalStore(cfg.DataDir),
+		dial:        defaultDial,
+		ssoUsed:     sso.NewUsedSet(),
+		logger:      slog.New(slog.DiscardHandler),
+		frontendLog: auth.NewThrottle(),
 	}
 	for _, opt := range opts {
 		opt(h)

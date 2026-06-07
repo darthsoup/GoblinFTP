@@ -27,8 +27,17 @@ func OK(c echo.Context, data any) error {
 	return c.JSON(http.StatusOK, Response{Success: true, Data: data})
 }
 
+// LoggedErrorKey is the echo context key under which Fail stashes the first
+// GFTPError so the request-logger middleware can enrich the access line with
+// error_code/error/cause. Handlers return nil after Fail (the envelope is
+// already written), so the error cannot travel via the return value.
+const LoggedErrorKey = "gftp_logged_error"
+
 // Fail writes an error response. The HTTP status code comes from the first error's HTTPStatus().
 func Fail(c echo.Context, errs ...*gftperrors.GFTPError) error {
+	if len(errs) > 0 {
+		c.Set(LoggedErrorKey, errs[0])
+	}
 	apiErrors := make([]APIError, len(errs))
 	status := http.StatusInternalServerError
 	if len(errs) > 0 {

@@ -13,6 +13,9 @@ type systemVarsData struct {
 	Editor            systemEditorVars `json:"editor"`
 	LoginFormDisabled bool             `json:"loginFormDisabled"`
 	SSOEnabled        bool             `json:"ssoEnabled"`
+	// FrontendLogEnabled tells the SPA whether to forward browser errors
+	// to POST /api/log/frontend.
+	FrontendLogEnabled bool `json:"frontendLogEnabled"`
 }
 
 type systemUIVars struct {
@@ -66,7 +69,8 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			ViewOnly:          h.cfg.Settings.Editor.ViewOnly,
 			AllowedExtensions: h.cfg.Settings.Editor.AllowedExtensions,
 		},
-		LoginFormDisabled: h.cfg.DisableLoginForm,
-		SSOEnabled:        h.cfg.SSOEnabled,
+		LoginFormDisabled:  h.cfg.DisableLoginForm,
+		SSOEnabled:         h.cfg.SSOEnabled,
+		FrontendLogEnabled: h.cfg.FrontendLogEnabled,
 	})
 }

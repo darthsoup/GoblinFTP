@@ -14,6 +14,7 @@ require (
 	github.com/pkg/sftp v1.13.10
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.52.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

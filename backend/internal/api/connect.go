@@ -78,16 +78,16 @@ func (h *Handler) Connect(c echo.Context) error {
 	if dialErr != nil {
 		h.throttle.Record(throttleKey, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
 		if errors.Is(dialErr, transfer.ErrAuthFailed) {
-			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed"))
+			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
 		}
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server"))
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 	}
 	h.throttle.Reset(throttleKey)
 
 	initialDir, wdErr := client.WorkingDir()
 	if wdErr != nil {
 		_ = client.Close()
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory"))
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
 	}
 
 	disableChmod := detectChmod(client, req.Protocol, initialDir)
@@ -95,17 +95,20 @@ func (h *Handler) Connect(c echo.Context) error {
 	csrfToken, csrfErr := auth.GenerateCSRFToken()
 	if csrfErr != nil {
 		_ = client.Close()
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not generate CSRF token"))
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not generate CSRF token").WithCause(csrfErr))
 	}
 
 	sess, sessErr := h.store.New()
 	if sessErr != nil {
 		_ = client.Close()
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session"))
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session").WithCause(sessErr))
 	}
 	sess.Data["client"] = client
 	sess.Data[auth.CSRFSessionKey] = csrfToken
 	sess.Data["initialDir"] = initialDir
+	// For access-log enrichment only — never the password.
+	sess.Data["username"] = req.Username
+	sess.Data["host"] = addr
 
 	c.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,

@@ -37,14 +37,33 @@ const (
 )
 
 // GFTPError is a typed error with a machine-readable code and human-readable message.
+// An optional cause carries the underlying error for server-side logging only —
+// it is never serialized into the API response envelope.
 type GFTPError struct {
 	code    Code
 	message string
+	cause   error
 }
 
 // New creates a new GFTPError.
 func New(code Code, message string) *GFTPError {
 	return &GFTPError{code: code, message: message}
+}
+
+// WithCause attaches the underlying error for log enrichment and returns e (chainable).
+func (e *GFTPError) WithCause(err error) *GFTPError {
+	if e != nil {
+		e.cause = err
+	}
+	return e
+}
+
+// Unwrap returns the underlying cause, if any.
+func (e *GFTPError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.cause
 }
 
 // Wrap creates a GFTPError from an existing error, using its Error() string as the message.

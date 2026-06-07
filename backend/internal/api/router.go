@@ -2,6 +2,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -19,15 +20,29 @@ const (
 
 // Register adds the /healthz route, global middleware, and all /api/* routes to e.
 func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts ...HandlerOption) {
-	e.Use(middleware.Recover())
+	h := newHandler(cfg, store, thr, opts)
+
+	// Order matters: RequestID before the access logger (the line carries the
+	// ID), the logger above Recover (a recovered panic still logs as a 500).
 	e.Use(middleware.RequestID())
+	e.Use(requestLogger(h.logger))
+	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+		// Route the panic + stack into the structured logger instead of
+		// echo's plain-text [PANIC RECOVER] print; returning err lets the
+		// default error handler commit the 500 as usual.
+		LogErrorFunc: func(c echo.Context, err error, stack []byte) error {
+			h.logger.LogAttrs(c.Request().Context(), slog.LevelError, "panic recovered",
+				slog.String("error", err.Error()),
+				slog.String("stack", string(stack)),
+			)
+			return err
+		},
+	}))
 	e.Use(cspMiddleware())
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 	})
-
-	h := newHandler(cfg, store, thr, opts)
 
 	// SSO entry point and auth status (public, no CSRF required)
 	e.GET("/", h.SSOLogin)
@@ -36,6 +51,10 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	// Public routes (no auth required)
 	e.GET("/api/system/vars", h.SystemVars)
 	e.GET("/api/files/download", h.DownloadFile)
+
+	// Browser-error forwarding (public, no CSRF — login-screen errors happen
+	// before any session exists; throttled per IP inside the handler)
+	e.POST("/api/log/frontend", h.FrontendLog, middleware.BodyLimit("16K"))
 
 	apiGroup := e.Group("/api")
 	apiGroup.Use(csrfMiddleware(store))

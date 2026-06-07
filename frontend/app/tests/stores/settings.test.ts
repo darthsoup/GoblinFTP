@@ -11,6 +11,7 @@ function systemVars(showDotFiles: boolean): SystemVars {
     editor: { disabled: false, viewOnly: false, allowedExtensions: [] },
     loginFormDisabled: false,
     ssoEnabled: false,
+    frontendLogEnabled: false,
   }
 }
 

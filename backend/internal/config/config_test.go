@@ -19,6 +19,8 @@ func clearEnv(t *testing.T) {
 		"GFTP_S3_ENABLED", "GFTP_S3_ENDPOINT", "GFTP_S3_BUCKET", "GFTP_S3_REGION",
 		"GFTP_S3_ACCESS_KEY", "GFTP_S3_SECRET_KEY", "GFTP_S3_USE_PATH_STYLE",
 		"GFTP_S3_PREFIX", "GFTP_S3_TIMEOUT_SECS",
+		"GFTP_LOG_FORMAT", "GFTP_LOG_FILE", "GFTP_LOG_FILE_MAX_SIZE_MB",
+		"GFTP_LOG_FILE_MAX_BACKUPS", "GFTP_LOG_FILE_MAX_AGE_DAYS", "GFTP_LOG_FRONTEND",
 	} {
 		t.Setenv(k, "")
 	}
@@ -39,6 +41,13 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, 300, cfg.LoginCooldownSeconds)
 	assert.Equal(t, 7200, cfg.SessionTTLSeconds)
 	assert.False(t, cfg.SSOEnabled)
+
+	assert.Equal(t, "json", cfg.LogFormat)
+	assert.Empty(t, cfg.LogFile)
+	assert.Equal(t, 10, cfg.LogFileMaxSizeMB)
+	assert.Equal(t, 5, cfg.LogFileMaxBackups)
+	assert.Equal(t, 0, cfg.LogFileMaxAgeDays)
+	assert.True(t, cfg.FrontendLogEnabled)
 
 	assert.Equal(t, "GoblinFTP", cfg.Settings.UI.PageTitle)
 	assert.Equal(t, []string{"ftp", "sftp"}, cfg.Settings.Connection.AllowedTypes)
@@ -337,4 +346,63 @@ func TestLoadInvalidPresetPort(t *testing.T) {
 	_, err = config.Load(nil, f.Name())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "presetPort")
+}
+
+func TestLoadLoggingEnv(t *testing.T) {
+	cases := []struct {
+		name    string
+		env     map[string]string
+		wantErr string
+		check   func(t *testing.T, cfg *config.Config)
+	}{
+		{
+			name: "valid overrides",
+			env: map[string]string{
+				"GFTP_LOG_FORMAT":            "text",
+				"GFTP_LOG_FILE":              "/tmp/gftp-test.log",
+				"GFTP_LOG_FILE_MAX_SIZE_MB":  "25",
+				"GFTP_LOG_FILE_MAX_BACKUPS":  "0",
+				"GFTP_LOG_FILE_MAX_AGE_DAYS": "14",
+				"GFTP_LOG_FRONTEND":          "false",
+			},
+			check: func(t *testing.T, cfg *config.Config) {
+				assert.Equal(t, "text", cfg.LogFormat)
+				assert.Equal(t, "/tmp/gftp-test.log", cfg.LogFile)
+				assert.Equal(t, 25, cfg.LogFileMaxSizeMB)
+				assert.Equal(t, 0, cfg.LogFileMaxBackups)
+				assert.Equal(t, 14, cfg.LogFileMaxAgeDays)
+				assert.False(t, cfg.FrontendLogEnabled)
+			},
+		},
+		{
+			name: "frontend log explicit true",
+			env:  map[string]string{"GFTP_LOG_FRONTEND": "true"},
+			check: func(t *testing.T, cfg *config.Config) {
+				assert.True(t, cfg.FrontendLogEnabled)
+			},
+		},
+		{name: "invalid format", env: map[string]string{"GFTP_LOG_FORMAT": "xml"}, wantErr: "GFTP_LOG_FORMAT"},
+		{name: "non-numeric size", env: map[string]string{"GFTP_LOG_FILE_MAX_SIZE_MB": "abc"}, wantErr: "GFTP_LOG_FILE_MAX_SIZE_MB"},
+		{name: "zero size", env: map[string]string{"GFTP_LOG_FILE_MAX_SIZE_MB": "0"}, wantErr: "GFTP_LOG_FILE_MAX_SIZE_MB"},
+		{name: "negative backups", env: map[string]string{"GFTP_LOG_FILE_MAX_BACKUPS": "-1"}, wantErr: "GFTP_LOG_FILE_MAX_BACKUPS"},
+		{name: "non-numeric age", env: map[string]string{"GFTP_LOG_FILE_MAX_AGE_DAYS": "abc"}, wantErr: "GFTP_LOG_FILE_MAX_AGE_DAYS"},
+		{name: "negative age", env: map[string]string{"GFTP_LOG_FILE_MAX_AGE_DAYS": "-2"}, wantErr: "GFTP_LOG_FILE_MAX_AGE_DAYS"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			clearEnv(t)
+			for k, v := range tc.env {
+				t.Setenv(k, v)
+			}
+			cfg, err := config.Load(nil, "")
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			tc.check(t, cfg)
+		})
+	}
 }

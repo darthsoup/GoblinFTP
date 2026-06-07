@@ -43,6 +43,7 @@ backend/
     config/               # env + settings.json loading
     errors/               # GFTPError with machine-readable codes
     ftp/                  # jlaffaye/ftp adapter   → implements transfer.Client
+    logging/              # slog Init (stdout + optional lumberjack file sink) + SafeLogAttrs redaction
     sftp/                 # pkg/sftp adapter       → implements transfer.Client
     sentry/               # custom Echo v4 Sentry middleware (sentry-go/echo is v5-only)
     sso/                  # SSO token validation + one-time-use set
@@ -72,6 +73,7 @@ frontend/app/
 - Upload chunk staging is abstracted behind `staging.ChunkStore` (local disk default, S3 via `GFTP_S3_ENABLED`); inject mocks with the `WithChunkStore(...)` handler option. The aws-sdk-go-v2 dependency lives only in `internal/staging`.
 - `internal/ftp` and `internal/sftp` are integration-level — real-server tests require `just ftp-up`. S3 integration tests in `internal/staging` are gated by `GFTP_TEST_S3_ENDPOINT` (requires `just s3-up`).
 - `internal/sentry` is intentionally not unit-tested.
+- **Logging**: one structured access line per request via `requestLogger` middleware (`api/middleware_logging.go`). `Fail()` stashes the GFTPError in the echo context (`LoggedErrorKey`) for that line — handlers return nil after Fail, so the error can't travel via the return value. Attach root causes with `gftperrors.New(...).WithCause(err)` (logged as `cause`, never serialized into the envelope). Never log passwords/tokens/full session IDs (8-char prefix only; dynamic attrs go through `logging.SafeLogAttrs`). Tests assert log output via `newTestAppWithLog(t, cfg, &buf)` + `logLines`. Browser errors arrive at `POST /api/log/frontend` (public, CSRF-exempt, per-IP-throttled; SPA side: `plugins/error-reporter.client.ts`, gated by systemVars `frontendLogEnabled`). Streaming endpoints log the committed status — a mid-stream failure still shows 200.
 
 ### Frontend conventions
 
@@ -105,6 +107,9 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_SSO_ENABLED` / `GFTP_SSO_SECRET` | SSO link validation |
 | `GFTP_SENTRY_DSN` / `NUXT_PUBLIC_SENTRY_DSN` | Sentry (optional) |
 | `GFTP_SETTINGS_PATH` | Path to `settings.json` |
+| `GFTP_LOG_LEVEL` / `GFTP_LOG_FORMAT` | Log level (`info`) and format (`json`\|`text`) |
+| `GFTP_LOG_FILE` (+ `GFTP_LOG_FILE_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS`) | Optional rotating file sink in addition to stdout |
+| `GFTP_LOG_FRONTEND` | Browser-error forwarding endpoint (default on; `false` disables) |
 | `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
 
 The FTP test container and MinIO are on docker compose profile `testing` — only `just ftp-up/ftp-down` and `just s3-up/s3-down` activate them.

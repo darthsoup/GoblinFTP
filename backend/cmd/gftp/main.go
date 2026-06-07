@@ -21,6 +21,7 @@ import (
 func newApp(cfg *config.Config, opts ...api.HandlerOption) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true // the port is logged structured in main; keep stdout pure JSON
 	e.Use(gftpsentry.Middleware())
 
 	store := auth.NewStore(time.Duration(cfg.SessionTTLSeconds) * time.Second)
@@ -53,8 +54,9 @@ func newS3Store(cfg *config.Config, logger *slog.Logger) *staging.S3Store {
 }
 
 func main() {
-	// Bootstrap logger at default level to capture config-load warnings.
-	logger := logging.Init("info")
+	// Bootstrap logger at default level to capture config-load warnings
+	// (stdout-only, so this Init cannot fail).
+	logger, _, _ := logging.Init(logging.Options{Level: "info"})
 
 	settingsPath := os.Getenv("GFTP_SETTINGS_PATH")
 	if settingsPath == "" {
@@ -67,9 +69,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Re-init logger with configured level.
-	logger = logging.Init(cfg.LogLevel)
-	logger.Info("starting GoblinFTP", "port", cfg.Port, "log_level", cfg.LogLevel)
+	// Re-init logger with the configured level/format and optional file sink.
+	full, closeLog, logErr := logging.Init(logging.Options{
+		Level:          cfg.LogLevel,
+		Format:         cfg.LogFormat,
+		File:           cfg.LogFile,
+		FileMaxSizeMB:  cfg.LogFileMaxSizeMB,
+		FileMaxBackups: cfg.LogFileMaxBackups,
+		FileMaxAgeDays: cfg.LogFileMaxAgeDays,
+	})
+	if logErr != nil {
+		logger.Error("failed to initialise logging", "error", logErr.Error())
+		os.Exit(1)
+	}
+	logger = full
+	defer func() { _ = closeLog() }()
+	slog.SetDefault(logger)
+	logger.Info("starting GoblinFTP",
+		"port", cfg.Port, "log_level", cfg.LogLevel, "log_format", cfg.LogFormat, "log_file", cfg.LogFile)
 
 	sentryRate, _ := strconv.ParseFloat(os.Getenv("GFTP_SENTRY_SAMPLE_RATE"), 64)
 	if initErr := gftpsentry.Init(
@@ -82,7 +99,7 @@ func main() {
 	}
 	defer gftpsentry.Flush()
 
-	var opts []api.HandlerOption
+	opts := []api.HandlerOption{api.WithLogger(logger)}
 	if cfg.S3Enabled {
 		opts = append(opts, api.WithChunkStore(newS3Store(cfg, logger)))
 	}

@@ -50,6 +50,33 @@ docker run -p 8080:80 \
   darthsoup/goblinftp
 ```
 
+### Logging
+
+The backend writes structured logs to stdout — one line per request (method, path, status, duration, request ID, client IP, and the connected user/host once logged in) plus a `frontend error` line for browser-side errors forwarded by the SPA. Failed operations carry the machine-readable `error_code` and the underlying `cause`, so `docker logs` tells you *why* something failed without leaking raw socket errors to the browser.
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_LOG_LEVEL` | `info` | `debug` \| `info` \| `warn` \| `error` — at `warn`, successful-request lines disappear but failures stay |
+| `GFTP_LOG_FORMAT` | `json` | `json` (machine-readable) or `text` (human-friendly, nice for development) |
+| `GFTP_LOG_FILE` | — | Additionally mirror logs into this file with size-based rotation (stdout is always written) |
+| `GFTP_LOG_FILE_MAX_SIZE_MB` | `10` | Rotate the file after this size |
+| `GFTP_LOG_FILE_MAX_BACKUPS` | `5` | Rotated files to keep |
+| `GFTP_LOG_FILE_MAX_AGE_DAYS` | `0` | Delete rotated files older than this (`0` = keep regardless of age) |
+| `GFTP_LOG_FRONTEND` | `true` | Accept browser-error reports on `POST /api/log/frontend` (rate-limited per IP, no auth required) |
+
+```bash
+# Docker-native: just read the container output (ship it with your log driver / Loki / ELK)
+docker logs -f goblinftp
+
+# Optional file sink on the data volume, e.g. for setups without a log collector
+docker run -p 8080:80 \
+  -e GFTP_LOG_FILE=/app/data/logs/gftp.log \
+  -v gftp-data:/app/data \
+  darthsoup/goblinftp
+```
+
+Notes: the full session ID never appears in logs (only an 8-character prefix), passwords and tokens are never logged, and `/healthz` polling logs at `debug` only. For streaming downloads the status reflects the response headers — a transfer that dies mid-stream still shows `status=200` with a short `bytes_out`.
+
 ### Optional: S3 chunk staging
 
 By default, chunked uploads are staged on local disk (`GFTP_DATA_DIR`) before being streamed to the connected FTP/SFTP server. Optionally, chunks can be staged in an S3-compatible bucket (MinIO, AWS S3, …) instead — useful for read-only containers, offloading disk I/O, or multi-replica deployments. This works identically for FTP and SFTP connections; nothing changes in the browser.

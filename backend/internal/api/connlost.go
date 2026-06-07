@@ -43,7 +43,7 @@ func failClient(c echo.Context, code gftperrors.Code, err error) error {
 				delete(sess.Data, "client")
 			}
 		}
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionLost, "connection to the server was lost"))
+		return Fail(c, gftperrors.New(gftperrors.ErrConnectionLost, "connection to the server was lost").WithCause(err))
 	}
-	return Fail(c, gftperrors.New(code, err.Error()))
+	return Fail(c, gftperrors.New(code, err.Error()).WithCause(err))
 }
