@@ -135,8 +135,10 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	client, dialErr := h.dial(pending.Protocol, addr, pending.Username, pending.Password, pending.Passive)
 	if dialErr != nil {
 		if errors.Is(dialErr, transfer.ErrAuthFailed) {
+			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "auth_failed").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
 		}
+		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "failed").Inc()
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 	}
 
@@ -150,10 +152,13 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 
 	sess.Data["client"] = client
 	sess.Data["initialDir"] = initialDir
-	// For access-log enrichment only — never the password.
+	// For access-log and metrics enrichment only — never the password.
 	sess.Data["username"] = pending.Username
 	sess.Data["host"] = addr
+	sess.Data["protocol"] = pending.Protocol
 	delete(sess.Data, ssoPendingKey)
+
+	h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "success").Inc()
 
 	csrfToken, _ := sess.Data[auth.CSRFSessionKey].(string)
 

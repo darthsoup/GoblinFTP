@@ -55,6 +55,7 @@ func (h *Handler) FrontendLog(c echo.Context) error {
 	// Record only accepted reports so the throttle window self-heals once a
 	// spamming client backs off.
 	h.frontendLog.Record(ip, time.Minute)
+	h.metrics.FrontendErrors.Inc()
 
 	h.logger.Warn("frontend error",
 		"kind", p.Kind,

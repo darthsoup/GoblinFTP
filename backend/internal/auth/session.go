@@ -83,6 +83,34 @@ func (s *Store) Delete(id string) {
 	s.mu.Unlock()
 }
 
+// Count returns the number of live (non-expired) sessions.
+func (s *Store) Count() int {
+	now := time.Now()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	n := 0
+	for _, sess := range s.sessions {
+		if !now.After(sess.ExpiresAt) {
+			n++
+		}
+	}
+	return n
+}
+
+// Range calls fn for each live (non-expired) session while holding a read
+// lock. fn must not mutate the session or the store — read-only snapshot use
+// only (e.g. the metrics collector).
+func (s *Store) Range(fn func(*Session)) {
+	now := time.Now()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, sess := range s.sessions {
+		if !now.After(sess.ExpiresAt) {
+			fn(sess)
+		}
+	}
+}
+
 // Close stops the background cleanup goroutine.
 func (s *Store) Close() {
 	close(s.done)

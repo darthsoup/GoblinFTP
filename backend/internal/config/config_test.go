@@ -21,6 +21,7 @@ func clearEnv(t *testing.T) {
 		"GFTP_S3_PREFIX", "GFTP_S3_TIMEOUT_SECS",
 		"GFTP_LOG_FORMAT", "GFTP_LOG_FILE", "GFTP_LOG_FILE_MAX_SIZE_MB",
 		"GFTP_LOG_FILE_MAX_BACKUPS", "GFTP_LOG_FILE_MAX_AGE_DAYS", "GFTP_LOG_FRONTEND",
+		"GFTP_METRICS_ENABLED", "GFTP_METRICS_PORT",
 	} {
 		t.Setenv(k, "")
 	}
@@ -48,6 +49,8 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, 5, cfg.LogFileMaxBackups)
 	assert.Equal(t, 0, cfg.LogFileMaxAgeDays)
 	assert.True(t, cfg.FrontendLogEnabled)
+	assert.False(t, cfg.MetricsEnabled)
+	assert.Equal(t, "9091", cfg.MetricsPort)
 
 	assert.Equal(t, "GoblinFTP", cfg.Settings.UI.PageTitle)
 	assert.Equal(t, []string{"ftp", "sftp"}, cfg.Settings.Connection.AllowedTypes)
@@ -403,6 +406,29 @@ func TestLoadLoggingEnv(t *testing.T) {
 			}
 			require.NoError(t, err)
 			tc.check(t, cfg)
+		})
+	}
+}
+
+func TestLoadMetricsEnv(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_METRICS_ENABLED", "true")
+	t.Setenv("GFTP_METRICS_PORT", "9200")
+
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+	assert.True(t, cfg.MetricsEnabled)
+	assert.Equal(t, "9200", cfg.MetricsPort)
+}
+
+func TestLoadInvalidMetricsPort(t *testing.T) {
+	for _, port := range []string{"abc", "0", "-1", "70000"} {
+		t.Run(port, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("GFTP_METRICS_PORT", port)
+			_, err := config.Load(nil, "")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "GFTP_METRICS_PORT")
 		})
 	}
 }

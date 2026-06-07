@@ -23,8 +23,11 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	h := newHandler(cfg, store, thr, opts)
 
 	// Order matters: RequestID before the access logger (the line carries the
-	// ID), the logger above Recover (a recovered panic still logs as a 500).
+	// ID); metrics outside the logger (whose c.Error commits echo-level
+	// errors before metrics reads the status); the logger above Recover
+	// (a recovered panic still logs as a 500).
 	e.Use(middleware.RequestID())
+	e.Use(metricsMiddleware(h.metrics))
 	e.Use(requestLogger(h.logger))
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		// Route the panic + stack into the structured logger instead of

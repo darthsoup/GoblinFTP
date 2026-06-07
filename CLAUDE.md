@@ -44,6 +44,7 @@ backend/
     errors/               # GFTPError with machine-readable codes
     ftp/                  # jlaffaye/ftp adapter   → implements transfer.Client
     logging/              # slog Init (stdout + optional lumberjack file sink) + SafeLogAttrs redaction
+    metrics/              # Prometheus registry, collectors, CountingReader (opt-in /metrics listener)
     sftp/                 # pkg/sftp adapter       → implements transfer.Client
     sentry/               # custom Echo v4 Sentry middleware (sentry-go/echo is v5-only)
     sso/                  # SSO token validation + one-time-use set
@@ -73,6 +74,7 @@ frontend/app/
 - Upload chunk staging is abstracted behind `staging.ChunkStore` (local disk default, S3 via `GFTP_S3_ENABLED`); inject mocks with the `WithChunkStore(...)` handler option. The aws-sdk-go-v2 dependency lives only in `internal/staging`.
 - `internal/ftp` and `internal/sftp` are integration-level — real-server tests require `just ftp-up`. S3 integration tests in `internal/staging` are gated by `GFTP_TEST_S3_ENDPOINT` (requires `just s3-up`).
 - `internal/sentry` is intentionally not unit-tested.
+- **Metrics**: `internal/metrics` owns the Prometheus registry; the `Metrics` instance lives on `Handler` (default-constructed in `newHandler`, override via `WithMetrics(...)` — main.go shares its registry with the dedicated `/metrics` listener, served only when `GFTP_METRICS_ENABLED=true`, never on the main echo). Gauges (`sessions_active`, `connections_active{protocol}`) are scrape-time snapshots of `auth.Store` via a custom collector (`SetConnectionSnapshot`) — no inc/dec drift. Counters increment at call sites: connect results in `connect.go`/`sso.go`, transfer bytes via `metrics.CountingReader` wraps in `download.go`/`archive.go`/`upload.go` (chunk staging writes are NOT counted — only bytes to/from the FTP/SFTP server), frontend reports in `frontendlog.go`. `metricsMiddleware` sits between `RequestID` and `requestLogger` and must NOT call `c.Error` (the logger owns that); it labels by `c.Path()` route template (`"unmatched"` when empty) and skips `/healthz`.
 - **Logging**: one structured access line per request via `requestLogger` middleware (`api/middleware_logging.go`). `Fail()` stashes the GFTPError in the echo context (`LoggedErrorKey`) for that line — handlers return nil after Fail, so the error can't travel via the return value. Attach root causes with `gftperrors.New(...).WithCause(err)` (logged as `cause`, never serialized into the envelope). Never log passwords/tokens/full session IDs (8-char prefix only; dynamic attrs go through `logging.SafeLogAttrs`). Tests assert log output via `newTestAppWithLog(t, cfg, &buf)` + `logLines`. Browser errors arrive at `POST /api/log/frontend` (public, CSRF-exempt, per-IP-throttled; SPA side: `plugins/error-reporter.client.ts`, gated by systemVars `frontendLogEnabled`). Streaming endpoints log the committed status — a mid-stream failure still shows 200.
 
 ### Frontend conventions
@@ -110,6 +112,7 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_LOG_LEVEL` / `GFTP_LOG_FORMAT` | Log level (`info`) and format (`json`\|`text`) |
 | `GFTP_LOG_FILE` (+ `GFTP_LOG_FILE_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS`) | Optional rotating file sink in addition to stdout |
 | `GFTP_LOG_FRONTEND` | Browser-error forwarding endpoint (default on; `false` disables) |
+| `GFTP_METRICS_ENABLED` / `GFTP_METRICS_PORT` | Prometheus /metrics on a dedicated port (default off / `9091`) |
 | `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
 
 The FTP test container and MinIO are on docker compose profile `testing` — only `just ftp-up/ftp-down` and `just s3-up/s3-down` activate them.

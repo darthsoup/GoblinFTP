@@ -4,16 +4,19 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
 	"github.com/darthsoup/goblinftp/internal/logging"
+	"github.com/darthsoup/goblinftp/internal/metrics"
 	gftpsentry "github.com/darthsoup/goblinftp/internal/sentry"
 	"github.com/darthsoup/goblinftp/internal/staging"
 )
@@ -104,6 +107,26 @@ func main() {
 		opts = append(opts, api.WithChunkStore(newS3Store(cfg, logger)))
 	}
 
+	// Optional Prometheus metrics on a dedicated listener — never on the main
+	// server (Caddy does not proxy it). newApp wires the session store into
+	// the shared instance via SetConnectionSnapshot.
+	var m *metrics.Metrics
+	if cfg.MetricsEnabled {
+		m = metrics.New()
+		opts = append(opts, api.WithMetrics(m))
+	}
+
 	e := newApp(cfg, opts...)
+
+	if cfg.MetricsEnabled {
+		go func() {
+			mux := http.NewServeMux()
+			mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{}))
+			logger.Info("metrics listening", "port", cfg.MetricsPort)
+			srv := &http.Server{Addr: ":" + cfg.MetricsPort, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+			logger.Error("metrics server stopped", "error", srv.ListenAndServe().Error())
+		}()
+	}
+
 	logger.Error("server stopped", "error", e.Start(":"+cfg.Port).Error())
 }

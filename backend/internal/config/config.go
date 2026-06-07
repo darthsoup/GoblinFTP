@@ -66,6 +66,8 @@ type Config struct {
 	LogFileMaxBackups     int
 	LogFileMaxAgeDays     int
 	FrontendLogEnabled    bool
+	MetricsEnabled        bool
+	MetricsPort           string
 	SessionSecret         []byte
 	DownloadTokenSecret   []byte
 	SSOEnabled            bool
@@ -195,6 +197,16 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	}
 	// Browser-error forwarding to /api/log/frontend; only "false" disables it.
 	cfg.FrontendLogEnabled = os.Getenv("GFTP_LOG_FRONTEND") != "false"
+
+	// Prometheus metrics (optional, off by default). Served on a dedicated
+	// listener — never on the main server.
+	cfg.MetricsEnabled = os.Getenv("GFTP_METRICS_ENABLED") == "true"
+	cfg.MetricsPort = envOr("GFTP_METRICS_PORT", "9091")
+	if n, err := strconv.Atoi(cfg.MetricsPort); err != nil {
+		return nil, fmt.Errorf("invalid GFTP_METRICS_PORT: %w", err)
+	} else if n < 1 || n > 65535 {
+		return nil, fmt.Errorf("invalid GFTP_METRICS_PORT: must be between 1 and 65535, got %d", n)
+	}
 
 	cfg.SSOEnabled = os.Getenv("GFTP_SSO_ENABLED") == "true"
 	if raw := os.Getenv("GFTP_SSO_SECRET"); raw != "" {

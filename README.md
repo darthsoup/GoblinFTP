@@ -77,6 +77,45 @@ docker run -p 8080:80 \
 
 Notes: the full session ID never appears in logs (only an 8-character prefix), passwords and tokens are never logged, and `/healthz` polling logs at `debug` only. For streaming downloads the status reflects the response headers — a transfer that dies mid-stream still shows `status=200` with a short `bytes_out`.
 
+### Metrics
+
+Optionally, GoblinFTP exposes Prometheus metrics on a **dedicated port** — separate from the app server, so Caddy never proxies it and it stays unreachable from outside the container unless you publish the port to your monitoring network.
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_METRICS_ENABLED` | `false` | Enable the Prometheus `/metrics` endpoint |
+| `GFTP_METRICS_PORT` | `9091` | Port for the metrics-only listener (separate from the app port) |
+
+| Series | Type | Labels | Meaning |
+|---|---|---|---|
+| `gftp_http_requests_total` | counter | `method`, `path`, `status` | API requests by route template |
+| `gftp_http_request_duration_seconds` | histogram | `method`, `path` | API request latency |
+| `gftp_connect_attempts_total` | counter | `protocol`, `result` | Dial outcomes: `success`, `auth_failed`, `failed`, `throttled` |
+| `gftp_transfer_bytes_total` | counter | `direction`, `protocol` | File bytes moved between browser and server (`upload`/`download`) |
+| `gftp_frontend_errors_total` | counter | — | Accepted browser-error reports |
+| `gftp_sessions_active` | gauge | — | Live sessions (computed at scrape time) |
+| `gftp_connections_active` | gauge | `protocol` | Live FTP/SFTP connections (computed at scrape time) |
+| `go_*`, `process_*` | — | — | Standard Go runtime / process collectors |
+
+```yaml
+# docker-compose: publish the metrics port to your monitoring network only
+services:
+  goblinftp:
+    image: darthsoup/goblinftp
+    environment:
+      GFTP_METRICS_ENABLED: "true"
+    ports:
+      - "9091:9091"   # ideally on an internal/monitoring network, not public
+
+# prometheus.yml
+scrape_configs:
+  - job_name: goblinftp
+    static_configs:
+      - targets: ["goblinftp:9091"]
+```
+
+Note: the session/connection gauges are scrape-time snapshots of the in-memory session store. Sessions that expire by TTL disappear from the gauges immediately, even though the underlying FTP/SFTP connection may linger until the remote server times it out.
+
 ### Optional: S3 chunk staging
 
 By default, chunked uploads are staged on local disk (`GFTP_DATA_DIR`) before being streamed to the connected FTP/SFTP server. Optionally, chunks can be staged in an S3-compatible bucket (MinIO, AWS S3, …) instead — useful for read-only containers, offloading disk I/O, or multi-replica deployments. This works identically for FTP and SFTP connections; nothing changes in the browser.

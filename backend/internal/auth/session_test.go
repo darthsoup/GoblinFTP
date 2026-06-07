@@ -153,3 +153,58 @@ func TestSessionDataPersists(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "value", got.Data["key"])
 }
+
+func TestCountReturnsLiveSessions(t *testing.T) {
+	store := auth.NewStore(10 * time.Minute)
+	defer store.Close()
+
+	assert.Equal(t, 0, store.Count())
+
+	a, err := store.New()
+	require.NoError(t, err)
+	_, err = store.New()
+	require.NoError(t, err)
+	assert.Equal(t, 2, store.Count())
+
+	store.Delete(a.ID)
+	assert.Equal(t, 1, store.Count())
+}
+
+func TestCountExcludesExpiredSessions(t *testing.T) {
+	store := auth.NewStore(50 * time.Millisecond)
+	defer store.Close()
+
+	_, err := store.New()
+	require.NoError(t, err)
+	assert.Equal(t, 1, store.Count())
+
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, 0, store.Count(), "expired sessions must not be counted even before cleanup runs")
+}
+
+func TestRangeVisitsLiveSessionsOnce(t *testing.T) {
+	store := auth.NewStore(10 * time.Minute)
+	defer store.Close()
+
+	a, err := store.New()
+	require.NoError(t, err)
+	b, err := store.New()
+	require.NoError(t, err)
+
+	seen := map[string]int{}
+	store.Range(func(sess *auth.Session) { seen[sess.ID]++ })
+	assert.Equal(t, map[string]int{a.ID: 1, b.ID: 1}, seen)
+}
+
+func TestRangeSkipsExpiredSessions(t *testing.T) {
+	store := auth.NewStore(50 * time.Millisecond)
+	defer store.Close()
+
+	_, err := store.New()
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
+
+	visited := 0
+	store.Range(func(*auth.Session) { visited++ })
+	assert.Equal(t, 0, visited)
+}

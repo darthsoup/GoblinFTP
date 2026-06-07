@@ -13,8 +13,10 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"github.com/prometheus/client_golang/prometheus"
 
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/metrics"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
@@ -162,7 +164,7 @@ func (h *Handler) CreateZip(c echo.Context) error {
 
 	go func() {
 		for _, p := range req.Paths {
-			if err := addToZip(zw, client, p, ""); err != nil {
+			if err := addToZip(zw, client, p, "", nil); err != nil {
 				pw.CloseWithError(err)
 				errCh <- err
 				return
@@ -185,8 +187,11 @@ func (h *Handler) CreateZip(c echo.Context) error {
 	return OK(c, nil)
 }
 
-// addToZip recursively adds a file or directory to the zip writer.
-func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string) error {
+// addToZip recursively adds a file or directory to the zip writer. counter
+// (nil to skip) receives the source bytes read — DownloadZip passes the
+// download counter; CreateZip passes nil (remote-to-remote, not a transfer
+// between browser and server).
+func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter) error {
 	fi, err := client.Stat(remotePath)
 	if err != nil {
 		return err
@@ -200,7 +205,7 @@ func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string) e
 		}
 		for _, e := range entries {
 			childPath := remotePath + "/" + e.Name
-			if err := addToZip(zw, client, childPath, entryName); err != nil {
+			if err := addToZip(zw, client, childPath, entryName, counter); err != nil {
 				return err
 			}
 		}
@@ -215,6 +220,6 @@ func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string) e
 		return err
 	}
 	defer r.Close()
-	_, err = io.Copy(w, r)
+	_, err = io.Copy(w, metrics.CountingReader(r, counter))
 	return err
 }

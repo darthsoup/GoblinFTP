@@ -69,6 +69,7 @@ func (h *Handler) Connect(c echo.Context) error {
 	// Check login throttle
 	throttleKey := req.Host + ":" + req.Username
 	if h.throttle.IsThrottled(throttleKey, h.cfg.LoginMaxAttempts) {
+		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "throttled").Inc()
 		return Fail(c, gftperrors.New(gftperrors.ErrLoginThrottled,
 			"too many failed login attempts, please try again later"))
 	}
@@ -78,8 +79,10 @@ func (h *Handler) Connect(c echo.Context) error {
 	if dialErr != nil {
 		h.throttle.Record(throttleKey, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
 		if errors.Is(dialErr, transfer.ErrAuthFailed) {
+			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "auth_failed").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
 		}
+		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "failed").Inc()
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 	}
 	h.throttle.Reset(throttleKey)
@@ -106,9 +109,12 @@ func (h *Handler) Connect(c echo.Context) error {
 	sess.Data["client"] = client
 	sess.Data[auth.CSRFSessionKey] = csrfToken
 	sess.Data["initialDir"] = initialDir
-	// For access-log enrichment only — never the password.
+	// For access-log and metrics enrichment only — never the password.
 	sess.Data["username"] = req.Username
 	sess.Data["host"] = addr
+	sess.Data["protocol"] = req.Protocol
+
+	h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "success").Inc()
 
 	c.SetCookie(&http.Cookie{
 		Name:     SessionCookieName,

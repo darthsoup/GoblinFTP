@@ -6,6 +6,7 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
+	"github.com/darthsoup/goblinftp/internal/metrics"
 	"github.com/darthsoup/goblinftp/internal/sso"
 	"github.com/darthsoup/goblinftp/internal/staging"
 	"github.com/darthsoup/goblinftp/internal/transfer"
@@ -39,6 +40,15 @@ func WithLogger(l *slog.Logger) HandlerOption {
 	}
 }
 
+// WithMetrics overrides the metrics instance. main.go shares its registry
+// with the dedicated /metrics listener; tests assert against a known registry.
+// newHandler wires the session-store snapshot into whichever instance is active.
+func WithMetrics(m *metrics.Metrics) HandlerOption {
+	return func(h *Handler) {
+		h.metrics = m
+	}
+}
+
 // Handler holds shared dependencies for all API handlers.
 type Handler struct {
 	cfg      *config.Config
@@ -48,6 +58,7 @@ type Handler struct {
 	dial     DialFunc
 	ssoUsed  *sso.UsedSet
 	logger   *slog.Logger
+	metrics  *metrics.Metrics
 	// frontendLog rate-limits /api/log/frontend per client IP — deliberately
 	// separate from the login throttle so report spam cannot lock out logins.
 	frontendLog *auth.Throttle
@@ -62,10 +73,43 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 		dial:        defaultDial,
 		ssoUsed:     sso.NewUsedSet(),
 		logger:      slog.New(slog.DiscardHandler),
+		metrics:     metrics.New(),
 		frontendLog: auth.NewThrottle(),
 	}
 	for _, opt := range opts {
 		opt(h)
 	}
+	// Wire the scrape-time gauges into whichever metrics instance is active
+	// (the default above, or one supplied via WithMetrics).
+	h.metrics.SetConnectionSnapshot(h.connectionSnapshot)
 	return h
+}
+
+// connectionSnapshot is the scrape-time view of the session store: live
+// sessions, and those holding a transfer client grouped by protocol. The TTL
+// cleanup drops expired sessions without closing the underlying connection —
+// a session is deliberately the unit counted here.
+func (h *Handler) connectionSnapshot() metrics.Snapshot {
+	snap := metrics.Snapshot{ConnsByProtocol: map[string]int{"ftp": 0, "sftp": 0}}
+	h.store.Range(func(sess *auth.Session) {
+		snap.Sessions++
+		if _, hasClient := sess.Data["client"].(transfer.Client); hasClient {
+			if proto, _ := sess.Data["protocol"].(string); proto == "ftp" || proto == "sftp" {
+				snap.ConnsByProtocol[proto]++
+			}
+		}
+	})
+	return snap
+}
+
+// protocolFromSession returns the connection protocol stored at connect time,
+// used as a metrics label ("ftp"/"sftp", "unknown" if absent).
+func protocolFromSession(sess *auth.Session) string {
+	if sess == nil {
+		return "unknown"
+	}
+	if p, ok := sess.Data["protocol"].(string); ok && (p == "ftp" || p == "sftp") {
+		return p
+	}
+	return "unknown"
 }

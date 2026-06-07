@@ -9,6 +9,7 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/metrics"
 	"github.com/darthsoup/goblinftp/internal/staging"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
@@ -41,7 +42,9 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to open file"))
 	}
 	defer f.Close()
-	if err := client.Upload(remotePath, f); err != nil {
+	sess, _ := c.Get("session").(*auth.Session)
+	src := metrics.CountingReader(f, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
+	if err := client.Upload(remotePath, src); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
@@ -134,7 +137,8 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to assemble chunks"))
 	}
 	defer r.Close()
-	if err := client.Upload(meta.Destination, r); err != nil {
+	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
+	if err := client.Upload(meta.Destination, src); err != nil {
 		// The frontend never retries a failed commit, so the staged chunks
 		// are unreachable — clean them up instead of leaving them behind.
 		_ = h.chunks.Cleanup(ctx, meta.ID)

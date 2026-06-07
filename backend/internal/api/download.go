@@ -15,6 +15,7 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/metrics"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
@@ -73,12 +74,13 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 		return failClient(c, gftperrors.ErrFileNotFound, err)
 	}
 	defer r.Close()
+	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("download", protocolFromSession(sess)))
 
 	filename := sanitizeFilename(path.Base(filePath))
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
 	c.Response().Header().Set("Content-Type", "application/octet-stream")
 	c.Response().WriteHeader(http.StatusOK)
-	_, copyErr := io.Copy(c.Response(), r)
+	_, copyErr := io.Copy(c.Response(), src)
 	return copyErr
 }
 
@@ -108,10 +110,12 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "archive exceeds maximum size"))
 		}
 	}
+	sess, _ := c.Get("session").(*auth.Session)
+	counter := h.metrics.TransferBytes.WithLabelValues("download", protocolFromSession(sess))
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 	for _, p := range req.Paths {
-		if err := addToZip(zw, client, p, ""); err != nil {
+		if err := addToZip(zw, client, p, "", counter); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	}
