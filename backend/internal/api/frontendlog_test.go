@@ -105,7 +105,7 @@ func TestFrontendLogRateLimit(t *testing.T) {
 	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf)
 	defer store.Close()
 
-	for i := 0; i < 61; i++ {
+	for range 61 {
 		rec := postFrontendLog(t, e, `{"kind":"error","message":"spam"}`)
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}

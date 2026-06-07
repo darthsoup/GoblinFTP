@@ -103,7 +103,7 @@ func TestMetricsConnectFailedAndThrottled(t *testing.T) {
 	defer store.Close()
 
 	// 5 failed dials reach the throttle limit; the 6th is rejected up front.
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/connect",
 			strings.NewReader(`{"protocol":"ftp","host":"h","port":21,"username":"u","password":"p"}`))
 		req.Header.Set("Content-Type", "application/json")

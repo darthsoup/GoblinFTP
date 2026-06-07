@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/logging"
 )
 
 func TestInitReturnsNonNilLogger(t *testing.T) {

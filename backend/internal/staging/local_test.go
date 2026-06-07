@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/staging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/staging"
 )
 
 // These tests mirror internal/transfer/chunk_test.go against the ChunkStore

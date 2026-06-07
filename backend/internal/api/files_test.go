@@ -9,13 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type sessionCtx struct {

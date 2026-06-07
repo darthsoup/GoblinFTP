@@ -4,9 +4,10 @@ package transfer_test
 import (
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
 func TestUploadStoreCreateAndGet(t *testing.T) {

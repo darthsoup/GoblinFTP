@@ -3,6 +3,7 @@ package ftp
 import (
 	"fmt"
 	"io"
+	"math"
 	"path"
 	"time"
 
@@ -16,15 +17,24 @@ type Client struct {
 	conn *jftp.ServerConn
 }
 
+// clampSize converts a server-reported uint64 size defensively — a hostile
+// server could otherwise overflow it into a negative int64.
+func clampSize(v uint64) int64 {
+	if v > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(v)
+}
+
 // Dial connects and authenticates. passive controls passive/active mode.
 func Dial(addr, user, pass string, passive bool) (*Client, error) {
 	conn, err := jftp.Dial(addr, jftp.DialWithTimeout(10*time.Second))
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", transfer.ErrConnectionFailed, err)
+		return nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
 	}
 	if err := conn.Login(user, pass); err != nil {
-		conn.Quit()
-		return nil, fmt.Errorf("%w: %v", transfer.ErrAuthFailed, err)
+		_ = conn.Quit()
+		return nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 	}
 	return &Client{conn: conn}, nil
 }
@@ -45,7 +55,7 @@ func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 		}
 		out = append(out, transfer.FileInfo{
 			Name:    e.Name,
-			Size:    int64(e.Size),
+			Size:    clampSize(e.Size),
 			IsDir:   e.Type == jftp.EntryTypeFolder,
 			ModTime: e.Time.Unix(),
 		})
@@ -67,7 +77,7 @@ func (c *Client) Stat(p string) (transfer.FileInfo, error) {
 		if e.Name == name {
 			return transfer.FileInfo{
 				Name:    e.Name,
-				Size:    int64(e.Size),
+				Size:    clampSize(e.Size),
 				IsDir:   e.Type == jftp.EntryTypeFolder,
 				ModTime: e.Time.Unix(),
 			}, nil

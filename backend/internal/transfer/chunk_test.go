@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
 func TestNewUpload(t *testing.T) {

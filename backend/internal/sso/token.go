@@ -45,7 +45,7 @@ func deriveKey(secret []byte) ([]byte, error) {
 // Encrypt encrypts a Payload into a base64url-encoded token
 func Encrypt(p *Payload, secret []byte) (string, error) {
 	// Marshal payload to JSON
-	plaintext, err := json.Marshal(p)
+	plaintext, err := json.Marshal(p) //nolint:gosec // G117: the payload is AES-256-GCM encrypted right below
 	if err != nil {
 		return "", fmt.Errorf("%w: failed to marshal payload", ErrTokenInvalid)
 	}

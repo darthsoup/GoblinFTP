@@ -70,11 +70,12 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		Password: payload.Password,
 	}
 
-	c.SetCookie(&http.Cookie{
+	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
 		Name:     SessionCookieName,
 		Value:    sess.ID,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   c.Scheme() == "https",
 		SameSite: http.SameSiteLaxMode,
 	})
 

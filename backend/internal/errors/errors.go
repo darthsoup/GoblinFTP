@@ -28,7 +28,7 @@ const (
 	ErrConnectionTimeout       Code = "ERR_CONNECTION_TIMEOUT"
 	ErrPermissionsNotSupported Code = "ERR_PERMISSIONS_NOT_SUPPORTED"
 	ErrUploadNotFound          Code = "ERR_UPLOAD_NOT_FOUND"
-	ErrInvalidToken            Code = "ERR_INVALID_TOKEN"
+	ErrInvalidToken            Code = "ERR_INVALID_TOKEN" //nolint:gosec // G101: error code constant, not a credential
 	ErrArchiveFormat           Code = "ERR_ARCHIVE_FORMAT"
 	ErrFileTooLarge            Code = "ERR_FILE_TOO_LARGE"
 	ErrEditorDisabled          Code = "ERR_EDITOR_DISABLED"

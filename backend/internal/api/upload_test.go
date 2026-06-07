@@ -15,12 +15,13 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/staging"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUploadSimple(t *testing.T) {
@@ -160,7 +161,7 @@ func (m *memChunkStore) AssembleReader(_ context.Context, id string, total int) 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var buf bytes.Buffer
-	for i := 0; i < total; i++ {
+	for i := range total {
 		data, ok := m.chunks[id][i]
 		if !ok {
 			return nil, fmt.Errorf("chunk %d missing", i)

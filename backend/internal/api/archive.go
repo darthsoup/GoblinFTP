@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -110,7 +111,7 @@ func extractZip(client transfer.Client, zr *zip.Reader, destination string) erro
 			return err
 		}
 		err = client.Upload(outPath, rc)
-		rc.Close()
+		_ = rc.Close()
 		if err != nil {
 			return err
 		}
@@ -121,7 +122,7 @@ func extractZip(client transfer.Client, zr *zip.Reader, destination string) erro
 func extractTar(client transfer.Client, tr *tar.Reader, destination string) error {
 	for {
 		hdr, err := tr.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -170,8 +171,14 @@ func (h *Handler) CreateZip(c echo.Context) error {
 				return
 			}
 		}
-		zw.Close()
-		pw.Close()
+		// A failed zip finalization must reach the reader — otherwise a
+		// truncated archive would be uploaded and reported as success.
+		if err := zw.Close(); err != nil {
+			pw.CloseWithError(err)
+			errCh <- err
+			return
+		}
+		_ = pw.Close() // io.PipeWriter.Close never returns an error
 		errCh <- nil
 	}()
 

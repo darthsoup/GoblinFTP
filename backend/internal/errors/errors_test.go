@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/stretchr/testify/assert"
+
+	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 )
 
 func TestNewError(t *testing.T) {

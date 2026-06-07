@@ -82,7 +82,7 @@ func main() {
 		FileMaxAgeDays: cfg.LogFileMaxAgeDays,
 	})
 	if logErr != nil {
-		logger.Error("failed to initialise logging", "error", logErr.Error())
+		logger.Error("failed to initialize logging", "error", logErr.Error())
 		os.Exit(1)
 	}
 	logger = full

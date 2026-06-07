@@ -116,7 +116,7 @@ func AssembleReader(dataDir, uploadID string, totalChunks int) (io.ReadCloser, e
 		return nil, err
 	}
 	// Verify all chunks exist before opening any
-	for i := 0; i < totalChunks; i++ {
+	for i := range totalChunks {
 		name := filepath.Join(dataDir, uploadID, fmt.Sprintf("%04d", i))
 		if _, err := os.Stat(name); err != nil {
 			return nil, fmt.Errorf("chunk %d missing: %w", i, err)
@@ -125,13 +125,13 @@ func AssembleReader(dataDir, uploadID string, totalChunks int) (io.ReadCloser, e
 	// Then open them
 	readers := make([]io.Reader, totalChunks)
 	closers := make([]io.Closer, totalChunks)
-	for i := 0; i < totalChunks; i++ {
+	for i := range totalChunks {
 		name := filepath.Join(dataDir, uploadID, fmt.Sprintf("%04d", i))
 		f, err := os.Open(name)
 		if err != nil {
 			// close already opened files
-			for j := 0; j < i; j++ {
-				closers[j].Close()
+			for j := range i {
+				_ = closers[j].Close()
 			}
 			return nil, err
 		}

@@ -120,7 +120,7 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 		}
 	}
 	if err := zw.Close(); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalise archive"))
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalize archive"))
 	}
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="archive.zip"`)
 	c.Response().Header().Set("Content-Length", strconv.Itoa(buf.Len()))

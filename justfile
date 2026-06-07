@@ -58,10 +58,10 @@ lint-fe:
 lint-be:
 	cd backend && golangci-lint run ./...
 
-# Format all code
+# Format all code (backend: gofmt + goimports via golangci-lint, matches lint-be)
 fmt:
 	cd frontend && pnpm exec prettier --write .
-	cd backend && gofmt -w .
+	cd backend && golangci-lint fmt
 
 # ── Docker ─────────────────────────────────────────────────────────────────────
 

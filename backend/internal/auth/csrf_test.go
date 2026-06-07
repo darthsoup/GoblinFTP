@@ -3,9 +3,10 @@ package auth_test
 import (
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/auth"
 )
 
 func TestGenerateCSRFToken(t *testing.T) {
@@ -16,7 +17,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 
 func TestCSRFTokensAreUnique(t *testing.T) {
 	seen := make(map[string]bool)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		token, err := auth.GenerateCSRFToken()
 		require.NoError(t, err)
 		assert.False(t, seen[token], "duplicate CSRF token at iteration %d", i)

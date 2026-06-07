@@ -126,7 +126,7 @@ func (s *S3Store) AssembleReader(ctx context.Context, uploadID string, totalChun
 		return nil, err
 	}
 	// Verify all chunks exist before streaming any (mirrors LocalStore).
-	for i := 0; i < totalChunks; i++ {
+	for i := range totalChunks {
 		hctx, cancel := context.WithTimeout(ctx, s.timeout)
 		_, err := s.api.HeadObject(hctx, &s3.HeadObjectInput{
 			Bucket: aws.String(s.bucket),

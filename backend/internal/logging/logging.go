@@ -38,7 +38,7 @@ func Init(o Options) (*slog.Logger, func() error, error) {
 		if err := os.MkdirAll(filepath.Dir(o.File), 0o750); err != nil {
 			return nil, nil, fmt.Errorf("create log file directory: %w", err)
 		}
-		probe, err := os.OpenFile(o.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
+		probe, err := os.OpenFile(o.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640) //nolint:gosec // G302: 0640 keeps logs group-readable for log shippers
 		if err != nil {
 			return nil, nil, fmt.Errorf("open log file %q: %w", o.File, err)
 		}

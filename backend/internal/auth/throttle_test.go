@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/darthsoup/goblinftp/internal/auth"
 )
 
 func TestThrottleNotThrottledInitially(t *testing.T) {
@@ -18,7 +19,7 @@ func TestThrottleBlocksAfterMaxAttempts(t *testing.T) {
 	key := "bad@example.com"
 	cooldown := 5 * time.Second
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		th.Record(key, cooldown)
 	}
 	assert.True(t, th.IsThrottled(key, 3))
@@ -29,7 +30,7 @@ func TestThrottleResetClearsAttempts(t *testing.T) {
 	key := "user@example.com"
 	cooldown := 5 * time.Second
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		th.Record(key, cooldown)
 	}
 	th.Reset(key)
@@ -41,7 +42,7 @@ func TestThrottleCooldownExpires(t *testing.T) {
 	key := "temp@example.com"
 	cooldown := 50 * time.Millisecond
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		th.Record(key, cooldown)
 	}
 	assert.True(t, th.IsThrottled(key, 3))
@@ -54,7 +55,7 @@ func TestThrottleIndependentKeys(t *testing.T) {
 	th := auth.NewThrottle()
 	cooldown := 5 * time.Second
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		th.Record("bad@example.com", cooldown)
 	}
 	assert.True(t, th.IsThrottled("bad@example.com", 3))

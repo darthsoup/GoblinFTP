@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/auth"
 )
 
 func TestNewSession(t *testing.T) {
@@ -104,13 +105,13 @@ func TestGetAndTouchConcurrentNoRace(t *testing.T) {
 	start := make(chan struct{})
 	var wg sync.WaitGroup
 
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		wg.Add(2)
 
 		go func() {
 			defer wg.Done()
 			<-start
-			for j := 0; j < 1000; j++ {
+			for range 1000 {
 				store.Get(sess.ID)
 			}
 		}()
@@ -118,7 +119,7 @@ func TestGetAndTouchConcurrentNoRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			for j := 0; j < 1000; j++ {
+			for range 1000 {
 				store.Touch(sess.ID)
 			}
 		}()
@@ -133,7 +134,7 @@ func TestSessionIDsAreUnique(t *testing.T) {
 	defer store.Close()
 
 	seen := make(map[string]bool)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		sess, err := store.New()
 		require.NoError(t, err)
 		assert.False(t, seen[sess.ID], "duplicate session ID at iteration %d", i)

@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	gftp "github.com/darthsoup/goblinftp/internal/ftp"
 	"github.com/stretchr/testify/assert"
+
+	gftp "github.com/darthsoup/goblinftp/internal/ftp"
 )
 
 // Integration tests require a live FTP server.

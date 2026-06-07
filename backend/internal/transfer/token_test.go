@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
 func TestTokenRoundTrip(t *testing.T) {

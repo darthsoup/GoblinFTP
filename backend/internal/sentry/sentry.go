@@ -1,5 +1,5 @@
 // Package sentry wraps github.com/getsentry/sentry-go for use in GoblinFTP.
-// All functions are safe to call even if Sentry was never initialised.
+// All functions are safe to call even if Sentry was never initialized.
 package sentry
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// Init initialises Sentry. If dsn is empty, it is a no-op.
+// Init initializes Sentry. If dsn is empty, it is a no-op.
 func Init(dsn, environment, release string, sampleRate float64) error {
 	if dsn == "" {
 		return nil
@@ -33,7 +33,7 @@ func Init(dsn, environment, release string, sampleRate float64) error {
 }
 
 // Middleware returns an Echo middleware that captures panics and 5xx responses.
-// If Sentry was not initialised the middleware is a pass-through.
+// If Sentry was not initialized the middleware is a pass-through.
 func Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

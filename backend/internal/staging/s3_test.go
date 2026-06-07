@@ -291,7 +291,7 @@ func TestS3Cleanup_Paginated(t *testing.T) {
 	meta, err := store.NewUpload(t.Context(), "/f.txt", 5, 1)
 	require.NoError(t, err)
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		require.NoError(t, store.WriteChunk(t.Context(), meta.ID, i, 1, strings.NewReader("x")))
 	}
 

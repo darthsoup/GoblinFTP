@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/labstack/echo/v4"
+
+	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 )
 
 const maxEditorReadSize int64 = 1 * 1024 * 1024 // 1 MB

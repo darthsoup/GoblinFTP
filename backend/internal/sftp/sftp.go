@@ -35,14 +35,14 @@ func Dial(addr, user, pass string) (*Client, error) {
 	if err != nil {
 		msg := err.Error()
 		if isAuthErr(msg) {
-			return nil, fmt.Errorf("%w: %v", transfer.ErrAuthFailed, err)
+			return nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 		}
-		return nil, fmt.Errorf("%w: %v", transfer.ErrConnectionFailed, err)
+		return nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
 	}
 	sftpClient, err := sftp.NewClient(sshConn)
 	if err != nil {
-		sshConn.Close()
-		return nil, fmt.Errorf("%w: %v", transfer.ErrConnectionFailed, err)
+		_ = sshConn.Close()
+		return nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
 	}
 	return &Client{ssh: sshConn, sftp: sftpClient}, nil
 }

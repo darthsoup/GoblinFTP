@@ -116,11 +116,14 @@ func (h *Handler) Connect(c echo.Context) error {
 
 	h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "success").Inc()
 
-	c.SetCookie(&http.Cookie{
+	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
 		Name:     SessionCookieName,
 		Value:    sess.ID,
 		Path:     "/",
 		HttpOnly: true,
+		// Secure when served over TLS (directly or behind a proxy setting
+		// X-Forwarded-Proto); plain-HTTP LAN deployments keep working.
+		Secure:   c.Scheme() == "https",
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -139,12 +142,13 @@ func (h *Handler) Disconnect(c echo.Context) error {
 		_ = client.Close()
 	}
 	h.store.Delete(sess.ID)
-	c.SetCookie(&http.Cookie{
+	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
 		Name:     SessionCookieName,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
+		Secure:   c.Scheme() == "https",
 		SameSite: http.SameSiteLaxMode,
 	})
 	return OK(c, nil)

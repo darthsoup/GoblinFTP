@@ -4,9 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/config"
 )
 
 func clearEnv(t *testing.T) {

@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	gsftp "github.com/darthsoup/goblinftp/internal/sftp"
 	"github.com/stretchr/testify/assert"
+
+	gsftp "github.com/darthsoup/goblinftp/internal/sftp"
 )
 
 func sftpHost(t *testing.T) string {

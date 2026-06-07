@@ -7,11 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/darthsoup/goblinftp/internal/api"
-	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/darthsoup/goblinftp/internal/api"
+	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 )
 
 func newContext(method, path string) (echo.Context, *httptest.ResponseRecorder) {

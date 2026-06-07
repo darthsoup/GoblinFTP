@@ -12,11 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
 )
 
 func newTestApp(t *testing.T, cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle) {

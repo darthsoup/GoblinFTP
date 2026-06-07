@@ -21,6 +21,20 @@ jobs:
         working-directory: backend
         run: go test ./... -v
 
+  backend-lint:
+    name: Backend lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2 # keep in sync with the local install (brew install golangci-lint)
+          working-directory: backend
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest
@@ -40,7 +54,7 @@ jobs:
   docker:
     name: Docker build & push
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, backend-lint, frontend]
     permissions:
       contents: read
       packages: write
