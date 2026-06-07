@@ -4,10 +4,10 @@ set dotenv-load
 default:
     @just --list
 
-# Start frontend + backend together (requires overmind)
+# Start frontend + backend together (concurrently — installed via `pnpm install`)
 [group('dev')]
 dev:
-    overmind start -f Procfile
+    pnpm exec concurrently -k -n backend,frontend -c blue,green "just dev-be" "just dev-fe"
 
 # Start frontend dev server only (:3000)
 [group('dev')]

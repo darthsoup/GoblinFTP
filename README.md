@@ -206,7 +206,7 @@ Key options (full schema in `settings.example.json`):
 
 ## Development
 
-**Requirements:** Go 1.26+, Node 24, [pnpm](https://pnpm.io), Docker, [just](https://just.systems), [overmind](https://github.com/DarthSim/overmind)
+**Requirements:** Go 1.26+, Node 24, [pnpm](https://pnpm.io), Docker, [just](https://just.systems)
 
 ```bash
 cp .env.example .env   # if available, or create .env

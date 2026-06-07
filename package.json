@@ -8,5 +8,8 @@
     "lint": "pnpm --filter goblinftp-frontend lint",
     "typecheck": "pnpm --filter goblinftp-frontend typecheck",
     "test": "pnpm --filter goblinftp-frontend test"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

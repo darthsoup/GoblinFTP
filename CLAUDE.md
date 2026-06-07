@@ -9,7 +9,7 @@ GoblinFTP is a self-hosted web-based FTP/SFTP client: Go + Echo v4 backend, Nuxt
 All commands run via [just](https://just.systems). `.env` is auto-loaded. The frontend lives in a pnpm workspace rooted at the repo root (single `pnpm-lock.yaml` + `pnpm-workspace.yaml` there): run `pnpm install` at the root; package scripts work both via `cd frontend && pnpm …` and `pnpm --filter goblinftp-frontend …`.
 
 ```bash
-just dev          # overmind: frontend (3000) + backend (8080) hot-reload
+just dev          # concurrently: frontend (3000) + backend (8080) hot-reload
 just dev-fe       # frontend only
 just dev-be       # backend only
 
