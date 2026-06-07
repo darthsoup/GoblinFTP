@@ -41,6 +41,7 @@
 :root,
 .light {
   --ui-radius: 0.25rem;
+  --ui-header-height: 3.5rem; /* compact app bar (UHeader / UMain offset) */
 
   --ui-text-dimmed: #94a3b8;
   --ui-text-muted: #64748b;

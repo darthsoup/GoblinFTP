@@ -3,7 +3,7 @@ const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
 const colorMode = useColorMode()
-const { t, locale, setLocale } = useI18n()
+const { t } = useI18n()
 
 const open = computed({
   get: () => modalStore.active === 'settings',
@@ -13,20 +13,8 @@ const open = computed({
   },
 })
 
-// Changes apply immediately — no save/cancel dance. The explicit choice is
-// remembered in the settings store so it overrides the admin default.
-const language = computed({
-  get: () => locale.value,
-  set: (v: typeof locale.value) => {
-    settingsStore.language = v
-    setLocale(v)
-  },
-})
-const languageItems = [
-  { label: 'English', value: 'en' },
-  { label: 'Deutsch', value: 'de' },
-] as const
-
+// Changes apply immediately — no save/cancel dance. Language lives in
+// <LanguageSelect>; the rest is remembered in the settings store.
 const theme = computed({
   get: () => colorMode.preference,
   set: (v: string) => {
@@ -61,11 +49,7 @@ const dateFormatItems = computed(() => [
     <template #body>
       <div class="space-y-5">
         <UFormField :label="t('settings.language')">
-          <USelect
-            v-model="language"
-            :items="[...languageItems]"
-            class="w-full font-mono"
-          />
+          <LanguageSelect class="w-full font-mono" />
         </UFormField>
 
         <UFormField :label="t('settings.theme')">

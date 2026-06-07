@@ -58,6 +58,7 @@ onMounted(async () => {
 
 <template>
   <div class="relative h-screen flex flex-col overflow-hidden bg-default text-default">
+    <!-- Connected: the file-browser app shell (fixed header/footer, scrolling body) -->
     <template v-if="authStore.connected">
       <AppHeader />
       <Breadcrumb />
@@ -66,25 +67,47 @@ onMounted(async () => {
       <UploadProgressPanel />
       <StatusBar />
     </template>
-    <template v-else-if="booting">
-      <div class="flex items-center justify-center flex-1">
-        <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-primary" />
-      </div>
-    </template>
+
+    <!-- Booting / login: centered content in a UMain + UContainer, with a
+         real page footer for brand + pre-connect controls. -->
     <template v-else>
-      <!-- Settings reachable before connecting (language/theme) -->
-      <div class="absolute top-3 right-3 z-10">
-        <UTooltip :text="t('header.settings')">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-lucide-settings"
-            :aria-label="t('header.settings')"
-            @click="modalStore.open('settings')"
-          />
-        </UTooltip>
-      </div>
-      <LoginForm />
+      <UMain class="flex-1 min-h-0 flex flex-col">
+        <UContainer class="flex flex-1 flex-col items-center justify-center py-10">
+          <div v-if="booting" class="flex items-center justify-center">
+            <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-primary" />
+          </div>
+          <LoginForm v-else />
+        </UContainer>
+      </UMain>
+
+      <UFooter
+        :ui="{
+          root: 'shrink-0 border-t border-default bg-muted/50',
+          container: 'px-4 py-0 h-12 flex items-center justify-between gap-3',
+          left: 'mt-0 gap-x-1.5',
+          right: 'mt-0 gap-x-1 justify-end',
+        }"
+      >
+        <template #left>
+          <span class="font-mono text-xs text-dimmed select-none">
+            GoblinFTP {{ authStore.systemVars?.version ?? '' }}
+          </span>
+        </template>
+
+        <template #right>
+          <LanguageSelect variant="ghost" size="sm" class="font-mono" />
+          <UColorModeButton />
+          <UTooltip :text="t('header.settings')">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-settings"
+              :aria-label="t('header.settings')"
+              @click="modalStore.open('settings')"
+            />
+          </UTooltip>
+        </template>
+      </UFooter>
     </template>
 
     <!-- Modals -->
