@@ -112,6 +112,8 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_SSO_ENABLED` / `GFTP_SSO_SECRET` | SSO link validation |
 | `GFTP_SENTRY_DSN` / `NUXT_PUBLIC_SENTRY_DSN` | Sentry (optional) |
 | `GFTP_SETTINGS_PATH` | Path to `settings.json` |
+| `GFTP_PAGE_TITLE` | Browser tab title (overrides `ui.pageTitle`) |
+| `GFTP_APP_NAME` / `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` / `GFTP_PRIMARY_COLOR` / `GFTP_TAGLINE` / `GFTP_HIDE_ATTRIBUTION` | White-label branding (overrides the `branding` block); `primaryColor` is a hex that recolors the theme at runtime, exposed via `systemVars.branding` → `useBranding()`/`utils/branding.ts` |
 | `GFTP_LOG_LEVEL` / `GFTP_LOG_FORMAT` | Log level (`info`) and format (`json`\|`text`) |
 | `GFTP_LOG_FILE` (+ `GFTP_LOG_FILE_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS`) | Optional rotating file sink in addition to stdout |
 | `GFTP_LOG_FRONTEND` | Browser-error forwarding endpoint (default on; `false` disables) |

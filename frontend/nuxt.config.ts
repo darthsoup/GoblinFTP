@@ -9,6 +9,9 @@ export default defineNuxtConfig({
   ],
 
   modules: [
+    // First, so its auto-imports yield to Nuxt's own on any name collision
+    // (notably useColorMode, owned by @nuxt/ui's color-mode integration).
+    '@vueuse/nuxt',
     '@nuxt/eslint',
     '@nuxt/ui',
     '@pinia/nuxt',

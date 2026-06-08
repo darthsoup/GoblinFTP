@@ -10,14 +10,12 @@ useSessionChecker()
 // Warn on browser reload/close while the editor has unsaved buffers. Lives here
 // (not on the editor page) so it still fires after returning to the browser with
 // dirty tabs still held in the editor store.
-function beforeUnload(e: BeforeUnloadEvent) {
+useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
   if (editorStore.hasDirty) {
     e.preventDefault()
     e.returnValue = ''
   }
-}
-onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-onUnmounted(() => window.removeEventListener('beforeunload', beforeUnload))
+})
 
 // Single source of truth for connected → route, independent of which page is
 // mounted. The global auth middleware covers navigations; this covers in-place
