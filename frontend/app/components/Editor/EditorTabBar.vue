@@ -45,8 +45,13 @@ async function requestClose(tab: EditorTab) {
       @click="editorStore.setActive(tab.id)"
       @mousedown.middle.prevent="requestClose(tab)"
     >
-      <span class="max-w-32 truncate">{{ tab.name }}</span>
-      <span v-if="tab.content !== tab.savedContent" class="text-warning leading-none" :title="t('editor.unsavedChanges')">•</span>
+      <span class="max-w-24 sm:max-w-32 truncate">{{ tab.name }}</span>
+      <span
+        v-if="tab.content !== tab.savedContent"
+        class="size-2 rounded-full bg-warning shrink-0"
+        :title="t('editor.unsavedChanges')"
+        :aria-label="t('editor.unsavedChanges')"
+      />
       <UButton
         size="xs"
         color="neutral"

@@ -43,7 +43,7 @@
   --ui-radius: 0.25rem;
   --ui-header-height: 3.5rem; /* compact app bar (UHeader / UMain offset) */
 
-  --ui-text-dimmed: #94a3b8;
+  --ui-text-dimmed: #7c8794;
   --ui-text-muted: #64748b;
   --ui-text-toned: #475569;
   --ui-text: #334155;
@@ -119,6 +119,14 @@
 body {
   background-color: var(--ui-bg);
   color: var(--ui-text);
+}
+
+/* Always-visible keyboard focus ring (mouse clicks don't trigger :focus-visible),
+   so table rows, cards, and any element lacking its own ring stay accessible. */
+:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 1px;
+  border-radius: 2px;
 }
 
 ::selection {
