@@ -105,6 +105,13 @@
     "edit": "Bearbeiten",
     "view": "Anzeigen"
   },
+  "preview": {
+    "loading": "Vorschau wird geladen…",
+    "noPreview": "Keine Vorschau verfügbar",
+    "tooLarge": "Datei zu groß für die Vorschau",
+    "error": "Vorschau konnte nicht geladen werden",
+    "close": "Vorschau schließen"
+  },
   "editor": {
     "loading": "Datei wird geladen...",
     "noFile": "Keine Datei geöffnet",

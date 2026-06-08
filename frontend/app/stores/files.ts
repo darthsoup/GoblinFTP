@@ -111,11 +111,25 @@ export const useFilesStore = defineStore('files', () => {
     await navigate(parent)
   }
 
-  async function downloadFile(filePath: string): Promise<void> {
+  // Build an authenticated, short-lived download URL (token in the query string).
+  async function downloadUrl(path: string): Promise<string> {
     const api = useApi()
-    const data = await api.post<{ token: string }>('/api/files/download-token', { path: filePath })
-    const url = `/api/files/download?path=${encodeURIComponent(filePath)}&token=${data.token}`
-    window.open(url, '_blank')
+    const data = await api.post<{ token: string }>('/api/files/download-token', { path })
+    return `/api/files/download?path=${encodeURIComponent(path)}&token=${data.token}`
+  }
+
+  async function downloadFile(filePath: string): Promise<void> {
+    window.open(await downloadUrl(filePath), '_blank')
+  }
+
+  // Fetch a file as a typed object URL for inline preview. The download endpoint
+  // serves application/octet-stream, so we re-wrap the bytes with the real MIME
+  // type. The caller owns the returned URL and must URL.revokeObjectURL() it.
+  async function fetchObjectUrl(path: string, mime: string): Promise<string> {
+    const url = await downloadUrl(path)
+    const resp = await $fetch.raw(url, { responseType: 'blob' })
+    const blob = new Blob([resp._data as Blob], { type: mime })
+    return URL.createObjectURL(blob)
   }
 
   function toggleSelection(name: string) {
@@ -326,6 +340,8 @@ export const useFilesStore = defineStore('files', () => {
     goBack,
     goForward,
     downloadFile,
+    downloadUrl,
+    fetchObjectUrl,
     toggleSelection,
     clearSelection,
     setSelection,

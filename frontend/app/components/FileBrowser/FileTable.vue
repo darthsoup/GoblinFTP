@@ -157,6 +157,17 @@ const cutNames = computed(() => {
   return new Set(cb.names)
 })
 
+// ── Preview panel ─────────────────────────────────────────────────────────────
+// Derive the previewed file from the store so it auto-clears when the entry
+// disappears after a refresh; reset on navigation.
+const previewName = ref<string | null>(null)
+const previewFile = computed(() =>
+  previewName.value ? filesStore.files.find(f => f.name === previewName.value) ?? null : null,
+)
+watch(() => filesStore.currentPath, () => {
+  previewName.value = null
+})
+
 // ── Context menu ──────────────────────────────────────────────────────────────
 const menuFile = ref<FileInfo | null>(null)
 
@@ -269,94 +280,106 @@ function onDrop(e: DragEvent) {
 
     <FileToolbar v-model:filter="filter" />
 
-    <UContextMenu :items="menuItems">
-      <div class="flex-1 overflow-auto" @contextmenu.capture="onAreaContextMenu">
-        <table class="w-full text-left border-collapse">
-          <thead class="sticky top-0 z-[5] bg-muted/95 backdrop-blur label-caps text-muted">
-            <tr class="border-b border-default shadow-sm">
-              <th class="w-10 px-3 py-2.5">
-                <UCheckbox
-                  :model-value="headerChecked"
-                  class="justify-center"
-                  :aria-label="allSelected ? t('toolbar.deselectAll') : t('toolbar.selectAll')"
-                  @update:model-value="toggleSelectAll"
-                />
-              </th>
-              <th class="w-12 px-2 py-2.5 text-center font-bold">
-                {{ t('files.type') }}
-              </th>
-              <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('name')" @click="toggleSort('name')">
-                {{ t('files.name') }}
-                <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
-              </th>
-              <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
-                {{ t('files.size') }}
-                <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
-              </th>
-              <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
-                {{ t('files.modified') }}
-                <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
-              </th>
-              <th class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
-                {{ t('files.permissions') }}
-              </th>
-              <th class="w-14" />
-            </tr>
-          </thead>
+    <div class="relative flex flex-1 min-h-0">
+      <UContextMenu :items="menuItems">
+        <div class="flex-1 min-w-0 overflow-auto" @contextmenu.capture="onAreaContextMenu">
+          <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 z-[5] bg-muted/95 backdrop-blur label-caps text-muted">
+              <tr class="border-b border-default shadow-sm">
+                <th class="w-10 px-3 py-2.5">
+                  <UCheckbox
+                    :model-value="headerChecked"
+                    class="justify-center"
+                    :aria-label="allSelected ? t('toolbar.deselectAll') : t('toolbar.selectAll')"
+                    @update:model-value="toggleSelectAll"
+                  />
+                </th>
+                <th class="w-12 px-2 py-2.5 text-center font-bold">
+                  {{ t('files.type') }}
+                </th>
+                <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('name')" @click="toggleSort('name')">
+                  {{ t('files.name') }}
+                  <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
+                </th>
+                <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
+                  {{ t('files.size') }}
+                  <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
+                </th>
+                <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
+                  {{ t('files.modified') }}
+                  <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
+                </th>
+                <th class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
+                  {{ t('files.permissions') }}
+                </th>
+                <th class="w-14" />
+              </tr>
+            </thead>
 
-          <tbody v-if="filesStore.loading">
-            <tr>
-              <td colspan="7" class="py-12 text-center text-muted font-mono text-sm">
-                <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
-                {{ t('files.loading') }}
-              </td>
-            </tr>
-          </tbody>
+            <tbody v-if="filesStore.loading">
+              <tr>
+                <td colspan="7" class="py-12 text-center text-muted font-mono text-sm">
+                  <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
+                  {{ t('files.loading') }}
+                </td>
+              </tr>
+            </tbody>
 
-          <tbody v-else-if="filesStore.error">
-            <tr>
-              <td colspan="7" class="py-8 text-center text-error font-mono text-sm">
-                <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
-                {{ filesStore.error }}
-              </td>
-            </tr>
-          </tbody>
+            <tbody v-else-if="filesStore.error">
+              <tr>
+                <td colspan="7" class="py-8 text-center text-error font-mono text-sm">
+                  <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
+                  {{ filesStore.error }}
+                </td>
+              </tr>
+            </tbody>
 
-          <tbody v-else-if="visibleFiles.length === 0">
-            <tr>
-              <td colspan="7" class="py-10">
-                <UEmpty
-                  variant="naked"
-                  :icon="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'"
-                  :title="filter ? t('files.noMatches') : t('files.empty')"
-                  :description="filter ? undefined : t('files.dropToUpload')"
-                  :actions="emptyActions"
-                  :ui="{ title: 'font-mono', description: 'font-mono text-dimmed' }"
-                />
-              </td>
-            </tr>
-          </tbody>
+            <tbody v-else-if="visibleFiles.length === 0">
+              <tr>
+                <td colspan="7" class="py-10">
+                  <UEmpty
+                    variant="naked"
+                    :icon="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'"
+                    :title="filter ? t('files.noMatches') : t('files.empty')"
+                    :description="filter ? undefined : t('files.dropToUpload')"
+                    :actions="emptyActions"
+                    :ui="{ title: 'font-mono', description: 'font-mono text-dimmed' }"
+                  />
+                </td>
+              </tr>
+            </tbody>
 
-          <tbody v-else class="font-mono">
-            <FileRow
-              v-for="file in visibleFiles"
-              :key="file.name"
-              :file="file"
-              :selected="filesStore.selected.has(file.name)"
-              :current-path="filesStore.currentPath"
-              :editing="filesStore.editingName === file.name"
-              :is-cut="cutNames.has(file.name)"
-              @select="filesStore.toggleSelection"
-              @navigate="filesStore.navigate"
-              @download="onDownload"
-              @request-rename="filesStore.startRename(file.name)"
-              @cancel-rename="filesStore.cancelRename"
-              @commit-rename="(name: string) => onCommitRename(file, name)"
-            />
-          </tbody>
-        </table>
-      </div>
-    </UContextMenu>
+            <tbody v-else class="font-mono">
+              <FileRow
+                v-for="file in visibleFiles"
+                :key="file.name"
+                :file="file"
+                :selected="filesStore.selected.has(file.name)"
+                :current-path="filesStore.currentPath"
+                :editing="filesStore.editingName === file.name"
+                :is-cut="cutNames.has(file.name)"
+                :active="previewName === file.name"
+                @select="filesStore.toggleSelection"
+                @navigate="filesStore.navigate"
+                @download="onDownload"
+                @request-rename="filesStore.startRename(file.name)"
+                @cancel-rename="filesStore.cancelRename"
+                @commit-rename="(name: string) => onCommitRename(file, name)"
+                @preview="previewName = file.name"
+              />
+            </tbody>
+          </table>
+        </div>
+      </UContextMenu>
+
+      <FilePreviewPanel
+        v-if="previewFile"
+        :file="previewFile"
+        :dir="filesStore.currentPath"
+        class="absolute inset-0 z-20 w-full md:static md:inset-auto md:z-auto md:w-80 lg:w-96 md:shrink-0"
+        @close="previewName = null"
+      />
+    </div>
   </div>
 </template>
 

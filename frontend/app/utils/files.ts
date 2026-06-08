@@ -32,6 +32,78 @@ export function getFileIcon(file: Pick<FileInfo, 'name' | 'isDir'>): FileIconDef
   return { icon: match?.icon ?? 'i-lucide-file', color: match?.color, primary: false }
 }
 
+// ── Preview ───────────────────────────────────────────────────────────────────
+// Largest file we'll pull over FTP into the browser for an inline preview. Above
+// this the panel shows "too large" + a download button instead. Text uses the
+// read endpoint's own 1 MB server cap.
+export const PREVIEW_MAX_BYTES = 5 * 1024 * 1024
+
+export type PreviewKind = 'image' | 'video' | 'audio' | 'pdf' | 'text' | 'none'
+
+// Extension → MIME, used to build correctly-typed object URLs for media the
+// download endpoint serves as application/octet-stream.
+const PREVIEW_MIME: Record<string, string> = {
+  // image
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  bmp: 'image/bmp',
+  ico: 'image/x-icon',
+  svg: 'image/svg+xml',
+  avif: 'image/avif',
+  // video
+  mp4: 'video/mp4',
+  m4v: 'video/mp4',
+  webm: 'video/webm',
+  ogv: 'video/ogg',
+  mov: 'video/quicktime',
+  // audio
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
+  oga: 'audio/ogg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  flac: 'audio/flac',
+  opus: 'audio/opus',
+  // documents
+  pdf: 'application/pdf',
+}
+
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'avif']
+const VIDEO_EXTS = ['mp4', 'm4v', 'webm', 'ogv', 'mov']
+const AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus']
+
+function extOf(name: string): string {
+  return name.split('.').pop()?.toLowerCase() ?? ''
+}
+
+// Classifies a file for the preview panel. `textExts` is the editor's
+// allowed-extension whitelist (the read endpoint only serves those as text).
+export function getPreviewKind(file: Pick<FileInfo, 'name' | 'isDir'>, textExts: string[]): PreviewKind {
+  if (file.isDir)
+    return 'none'
+  const ext = extOf(file.name)
+  if (IMAGE_EXTS.includes(ext))
+    return 'image'
+  if (VIDEO_EXTS.includes(ext))
+    return 'video'
+  if (AUDIO_EXTS.includes(ext))
+    return 'audio'
+  if (ext === 'pdf')
+    return 'pdf'
+  if (textExts.includes(ext))
+    return 'text'
+  return 'none'
+}
+
+// MIME type for an extension, or '' when unknown.
+export function previewMime(name: string): string {
+  return PREVIEW_MIME[extOf(name)] ?? ''
+}
+
 // Parse "drwxr-xr-x" → "755"; returns '' when the mode string is unknown/unparseable
 export function modeToOctal(mode: string): string {
   const perms = mode.slice(1, 10)

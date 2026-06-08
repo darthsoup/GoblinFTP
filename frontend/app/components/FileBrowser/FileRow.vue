@@ -7,6 +7,7 @@ const props = defineProps<{
   currentPath: string
   editing: boolean
   isCut: boolean
+  active: boolean
 }>()
 
 const emit = defineEmits<{
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   commitRename: [newName: string]
   cancelRename: []
   requestRename: []
+  preview: []
 }>()
 
 const { locale } = useI18n()
@@ -82,6 +84,9 @@ function handleClick() {
     const path = `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`
     emit('navigate', path)
   }
+  else {
+    emit('preview')
+  }
 }
 
 function handleDownload() {
@@ -92,10 +97,9 @@ function handleDownload() {
 
 <template>
   <tr
-    class="group h-11 border-b border-muted hover:bg-accented/40 transition-colors text-[13px]"
+    class="group h-11 border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-[13px]"
     :class="[
-      selected ? 'bg-primary/10' : 'even:bg-elevated/40',
-      file.isDir ? 'cursor-pointer' : 'cursor-default',
+      selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
       isCut ? 'opacity-50' : '',
     ]"
     :data-file-name="file.name"

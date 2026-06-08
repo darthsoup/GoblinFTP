@@ -105,6 +105,13 @@
     "edit": "Edit",
     "view": "View"
   },
+  "preview": {
+    "loading": "Loading preview…",
+    "noPreview": "No preview available",
+    "tooLarge": "File too large to preview",
+    "error": "Couldn't load preview",
+    "close": "Close preview"
+  },
   "editor": {
     "loading": "Loading file...",
     "noFile": "No file open",
