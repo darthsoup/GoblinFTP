@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+// hexColorRe matches #RGB and #RRGGBB used by branding.primaryColor.
+var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
 
 // UISettings maps the `ui` block of settings.json.
 type UISettings struct {
@@ -47,6 +51,18 @@ type AccessSettings struct {
 	PostLogoutURL          *string  `json:"postLogoutUrl"`
 }
 
+// BrandingSettings maps the `branding` block — runtime white-labeling exposed to
+// the SPA via /api/system/vars. All pointers are nil (= "use the built-in
+// default") unless an admin sets them.
+type BrandingSettings struct {
+	AppName         string  `json:"appName"`
+	LogoURL         *string `json:"logoUrl"`
+	FaviconURL      *string `json:"faviconUrl"`
+	PrimaryColor    *string `json:"primaryColor"` // hex, e.g. "#2563eb"
+	Tagline         *string `json:"tagline"`
+	HideAttribution bool    `json:"hideAttribution"`
+}
+
 // Settings mirrors settings.json; used for runtime-configurable UI/editor/connection/access settings.
 type Settings struct {
 	Language   string             `json:"language"`
@@ -54,6 +70,7 @@ type Settings struct {
 	Editor     EditorSettings     `json:"editor"`
 	Connection ConnectionSettings `json:"connection"`
 	Access     AccessSettings     `json:"access"`
+	Branding   BrandingSettings   `json:"branding"`
 }
 
 // Config holds all runtime configuration for GoblinFTP.
@@ -133,6 +150,9 @@ func defaultSettings() Settings {
 		},
 		Access: AccessSettings{
 			AllowedClientAddresses: []string{},
+		},
+		Branding: BrandingSettings{
+			AppName: "GoblinFTP",
 		},
 	}
 }
@@ -348,6 +368,34 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 
 	if title := os.Getenv("GFTP_PAGE_TITLE"); title != "" {
 		cfg.Settings.UI.PageTitle = title
+	}
+
+	// Branding env overrides (white-labeling). Empty env vars leave the
+	// settings.json value (or built-in default) in place.
+	brand := &cfg.Settings.Branding
+	if v := os.Getenv("GFTP_APP_NAME"); v != "" {
+		brand.AppName = v
+	}
+	if v := os.Getenv("GFTP_LOGO_URL"); v != "" {
+		brand.LogoURL = &v
+	}
+	if v := os.Getenv("GFTP_FAVICON_URL"); v != "" {
+		brand.FaviconURL = &v
+	}
+	if v := os.Getenv("GFTP_PRIMARY_COLOR"); v != "" {
+		brand.PrimaryColor = &v
+	}
+	if v := os.Getenv("GFTP_TAGLINE"); v != "" {
+		brand.Tagline = &v
+	}
+	if os.Getenv("GFTP_HIDE_ATTRIBUTION") == "true" {
+		brand.HideAttribution = true
+	}
+	if brand.AppName == "" {
+		brand.AppName = "GoblinFTP"
+	}
+	if brand.PrimaryColor != nil && !hexColorRe.MatchString(*brand.PrimaryColor) {
+		return nil, fmt.Errorf("invalid branding.primaryColor: must be a hex color like #2563eb, got %q", *brand.PrimaryColor)
 	}
 
 	conn := &cfg.Settings.Connection

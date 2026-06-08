@@ -6,18 +6,28 @@ import (
 )
 
 type systemVarsData struct {
-	Language          string           `json:"language"`
-	UI                systemUIVars     `json:"ui"`
-	Upload            systemUploadVars `json:"upload"`
-	Connection        systemConnVars   `json:"connection"`
-	Editor            systemEditorVars `json:"editor"`
-	LoginFormDisabled bool             `json:"loginFormDisabled"`
-	SSOEnabled        bool             `json:"ssoEnabled"`
+	Language          string             `json:"language"`
+	UI                systemUIVars       `json:"ui"`
+	Branding          systemBrandingVars `json:"branding"`
+	Upload            systemUploadVars   `json:"upload"`
+	Connection        systemConnVars     `json:"connection"`
+	Editor            systemEditorVars   `json:"editor"`
+	LoginFormDisabled bool               `json:"loginFormDisabled"`
+	SSOEnabled        bool               `json:"ssoEnabled"`
 	// FrontendLogEnabled tells the SPA whether to forward browser errors
 	// to POST /api/log/frontend.
 	FrontendLogEnabled bool `json:"frontendLogEnabled"`
 	// Version is the build version ("dev" outside release builds).
 	Version string `json:"version"`
+}
+
+type systemBrandingVars struct {
+	AppName         string  `json:"appName"`
+	LogoURL         *string `json:"logoUrl"`
+	FaviconURL      *string `json:"faviconUrl"`
+	PrimaryColor    *string `json:"primaryColor"`
+	Tagline         *string `json:"tagline"`
+	HideAttribution bool    `json:"hideAttribution"`
 }
 
 type systemUIVars struct {
@@ -53,6 +63,14 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			PageTitle:             h.cfg.Settings.UI.PageTitle,
 			ShowDotFiles:          h.cfg.Settings.UI.ShowDotFiles,
 			ShowNavigationHistory: h.cfg.Settings.UI.ShowNavigationHistory,
+		},
+		Branding: systemBrandingVars{
+			AppName:         h.cfg.Settings.Branding.AppName,
+			LogoURL:         h.cfg.Settings.Branding.LogoURL,
+			FaviconURL:      h.cfg.Settings.Branding.FaviconURL,
+			PrimaryColor:    h.cfg.Settings.Branding.PrimaryColor,
+			Tagline:         h.cfg.Settings.Branding.Tagline,
+			HideAttribution: h.cfg.Settings.Branding.HideAttribution,
 		},
 		Upload: systemUploadVars{
 			ChunkSize:            h.cfg.ChunkSize,

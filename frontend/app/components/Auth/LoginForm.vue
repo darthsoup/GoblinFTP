@@ -4,6 +4,7 @@ import { ApiError } from '~/types/api'
 
 const authStore = useAuthStore()
 const { t } = useI18n()
+const { appName, logoUrl, tagline } = useBranding()
 
 const form = reactive({
   protocol: 'ftp',
@@ -81,13 +82,14 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
     <div class="w-full max-w-md bg-elevated border border-default rounded-lg p-8 shadow-xl">
       <div class="flex flex-col items-center gap-1.5 mb-8 select-none">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-server" class="size-7 text-primary" />
+          <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="size-8 object-contain">
+          <UIcon v-else name="i-lucide-server" class="size-7 text-primary" />
           <h1 class="text-2xl font-bold tracking-tight text-highlighted">
-            GoblinFTP
+            {{ appName }}
           </h1>
         </div>
         <p class="font-mono text-xs text-dimmed">
-          {{ t('login.tagline') }}
+          {{ tagline }}
         </p>
       </div>
 
@@ -109,7 +111,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
           />
         </UFormField>
 
-        <div class="grid grid-cols-[1fr_6rem] gap-3 items-start">
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_6rem] gap-3 items-start">
           <UFormField name="host" :label="t('login.host')">
             <UInput
               v-model="form.host"

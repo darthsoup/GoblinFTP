@@ -23,6 +23,8 @@ func clearEnv(t *testing.T) {
 		"GFTP_LOG_FORMAT", "GFTP_LOG_FILE", "GFTP_LOG_FILE_MAX_SIZE_MB",
 		"GFTP_LOG_FILE_MAX_BACKUPS", "GFTP_LOG_FILE_MAX_AGE_DAYS", "GFTP_LOG_FRONTEND",
 		"GFTP_METRICS_ENABLED", "GFTP_METRICS_PORT",
+		"GFTP_APP_NAME", "GFTP_LOGO_URL", "GFTP_FAVICON_URL", "GFTP_PRIMARY_COLOR",
+		"GFTP_TAGLINE", "GFTP_HIDE_ATTRIBUTION",
 	} {
 		t.Setenv(k, "")
 	}
@@ -58,6 +60,44 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, "en", cfg.Settings.Language)
 	assert.False(t, cfg.Settings.Connection.DisableChmod)
 	assert.Equal(t, 30, cfg.Settings.Connection.RequestTimeoutSeconds)
+
+	assert.Equal(t, "GoblinFTP", cfg.Settings.Branding.AppName)
+	assert.Nil(t, cfg.Settings.Branding.LogoURL)
+	assert.Nil(t, cfg.Settings.Branding.PrimaryColor)
+	assert.False(t, cfg.Settings.Branding.HideAttribution)
+}
+
+func TestLoadBrandingFromEnv(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_APP_NAME", "Acme Transfer")
+	t.Setenv("GFTP_LOGO_URL", "https://acme.example/logo.svg")
+	t.Setenv("GFTP_FAVICON_URL", "https://acme.example/favicon.ico")
+	t.Setenv("GFTP_PRIMARY_COLOR", "#2563eb")
+	t.Setenv("GFTP_TAGLINE", "Move bits, not mountains")
+	t.Setenv("GFTP_HIDE_ATTRIBUTION", "true")
+
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+
+	b := cfg.Settings.Branding
+	assert.Equal(t, "Acme Transfer", b.AppName)
+	require.NotNil(t, b.LogoURL)
+	assert.Equal(t, "https://acme.example/logo.svg", *b.LogoURL)
+	require.NotNil(t, b.FaviconURL)
+	assert.Equal(t, "https://acme.example/favicon.ico", *b.FaviconURL)
+	require.NotNil(t, b.PrimaryColor)
+	assert.Equal(t, "#2563eb", *b.PrimaryColor)
+	require.NotNil(t, b.Tagline)
+	assert.Equal(t, "Move bits, not mountains", *b.Tagline)
+	assert.True(t, b.HideAttribution)
+}
+
+func TestLoadInvalidPrimaryColor(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_PRIMARY_COLOR", "blue")
+	_, err := config.Load(nil, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "primaryColor")
 }
 
 func TestLoadFromEnv(t *testing.T) {

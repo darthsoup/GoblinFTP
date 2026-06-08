@@ -42,6 +42,11 @@ The running version shows up in the startup log, `GET /healthz`, and the setting
 | Variable | Default | Description |
 |---|---|---|
 | `GFTP_PAGE_TITLE` | `GoblinFTP` | Browser tab title |
+| `GFTP_APP_NAME` | `GoblinFTP` | White-label app name (header, login, title, footer) |
+| `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` | — | White-label logo + favicon image URLs |
+| `GFTP_PRIMARY_COLOR` | — | Accent color as hex (e.g. `#2563eb`) — recolors the theme at runtime |
+| `GFTP_TAGLINE` | — | Login tagline override |
+| `GFTP_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer |
 | `GFTP_SESSION_SECRET` | _(auto-generated)_ | Session signing key — set this in production |
 | `GFTP_DOWNLOAD_TOKEN_SECRET` | _(auto-generated)_ | Download token signing key — set this in production |
 | `GFTP_SSO_ENABLED` | `false` | Enable SSO login links |

@@ -76,6 +76,9 @@ func defaultTestConfig() *config.Config {
 			Access: config.AccessSettings{
 				AllowedClientAddresses: []string{},
 			},
+			Branding: config.BrandingSettings{
+				AppName: "GoblinFTP",
+			},
 		},
 	}
 }

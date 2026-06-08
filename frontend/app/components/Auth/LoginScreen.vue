@@ -7,6 +7,7 @@ defineProps<{ booting: boolean }>()
 const authStore = useAuthStore()
 const modalStore = useModalStore()
 const { t } = useI18n()
+const { appName, hideAttribution } = useBranding()
 </script>
 
 <template>
@@ -28,9 +29,10 @@ const { t } = useI18n()
     }"
   >
     <template #left>
-      <span class="font-mono text-xs text-dimmed select-none">
-        GoblinFTP {{ authStore.systemVars?.version ?? '' }}
+      <span v-if="!hideAttribution" class="font-mono text-xs text-dimmed select-none">
+        {{ appName }} {{ authStore.systemVars?.version ?? '' }}
       </span>
+      <span v-else />
     </template>
 
     <template #right>

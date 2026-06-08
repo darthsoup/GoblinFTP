@@ -44,6 +44,14 @@ export interface SystemVars {
     showDotFiles: boolean
     showNavigationHistory: boolean
   }
+  branding: {
+    appName: string
+    logoUrl: string | null
+    faviconUrl: string | null
+    primaryColor: string | null
+    tagline: string | null
+    hideAttribution: boolean
+  }
   upload: {
     chunkSize: number
     maxConcurrentUploads: number

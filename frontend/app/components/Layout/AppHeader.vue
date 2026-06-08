@@ -7,6 +7,7 @@ const editorStore = useEditorStore()
 const modalStore = useModalStore()
 const route = useRoute()
 const { t } = useI18n()
+const { appName, logoUrl } = useBranding()
 
 // Centre switcher between the file browser and the editor — only relevant while
 // the editor has open tabs. The Files link carries the current browse path so
@@ -47,18 +48,19 @@ async function handleDisconnect() {
 
 <template>
   <UHeader
-    title="GoblinFTP"
+    :title="appName"
     :toggle="false"
     :ui="{
       root: 'bg-muted/75 shrink-0 z-30',
-      container: 'max-w-full px-4 sm:px-4 lg:px-4 gap-2',
+      container: 'max-w-full px-3 sm:px-4 gap-2',
       center: 'flex',
     }"
   >
     <template #left>
       <div class="flex items-center gap-2 select-none">
-        <UIcon name="i-lucide-server" class="size-5 text-primary" />
-        <span class="text-xl font-bold tracking-tight text-primary">GoblinFTP</span>
+        <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="size-6 object-contain">
+        <UIcon v-else name="i-lucide-server" class="size-5 text-primary" />
+        <span class="text-lg sm:text-xl font-bold tracking-tight text-primary truncate max-w-[40vw] sm:max-w-none">{{ appName }}</span>
       </div>
     </template>
 
@@ -88,9 +90,11 @@ async function handleDisconnect() {
         color="error"
         variant="ghost"
         icon="i-lucide-log-out"
-        :label="t('header.disconnect')"
+        :aria-label="t('header.disconnect')"
         @click="handleDisconnect"
-      />
+      >
+        <span class="hidden sm:inline">{{ t('header.disconnect') }}</span>
+      </UButton>
     </template>
   </UHeader>
 </template>

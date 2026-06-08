@@ -39,5 +39,14 @@
     "allowedClientAddresses": [],
     "deniedMessage": null,
     "postLogoutUrl": null
+  },
+
+  "branding": {
+    "appName": "GoblinFTP",
+    "logoUrl": null,
+    "faviconUrl": null,
+    "primaryColor": null,
+    "tagline": null,
+    "hideAttribution": false
   }
 }

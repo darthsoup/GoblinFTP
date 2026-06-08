@@ -7,7 +7,22 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   const authStore = useAuthStore()
   const settingsStore = useSettingsStore()
 
+  // Document title + favicon track the (white-label) branding. Registered with
+  // reactive getters before init() so they update the moment systemVars arrives
+  // (and so useHead runs inside the synchronous plugin-setup context).
+  useHead(() => {
+    const branding = authStore.systemVars?.branding
+    return {
+      title: branding?.appName || 'GoblinFTP',
+      link: branding?.faviconUrl ? [{ rel: 'icon', href: branding.faviconUrl, key: 'favicon' }] : [],
+    }
+  })
+
   await authStore.init()
+
+  // Accent color (white-label): override the goblin scale at runtime. No-op when
+  // unset, so the default green stays.
+  applyBrandColor(authStore.systemVars?.branding?.primaryColor)
 
   // Language precedence: explicit user choice > admin default > en. Applied
   // here (not on a page) so a restored session landing straight on the
