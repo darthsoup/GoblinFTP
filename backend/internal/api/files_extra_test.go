@@ -23,7 +23,7 @@ func TestRenameFile(t *testing.T) {
 		ChmodFn:      func(string, uint32) error { return nil },
 		RenameFn:     func(src, dst string) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -41,7 +41,7 @@ func TestRenameFile_MissingFields(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -62,7 +62,7 @@ func TestCopyFile(t *testing.T) {
 		DownloadFn:   func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader(content)), nil },
 		UploadFn:     func(string, io.Reader) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -100,7 +100,7 @@ func TestCopyFile_Directory(t *testing.T) {
 		DownloadFn: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("data")), nil },
 		UploadFn:   func(p string, _ io.Reader) error { uploaded = append(uploaded, p); return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -145,7 +145,7 @@ func TestCopyFile_ClosesDownloadBeforeUpload(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -163,7 +163,7 @@ func TestCopyFile_MissingFields(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -180,7 +180,7 @@ func TestSetPermissions(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -199,7 +199,7 @@ func TestSetPermissions_MissingFields(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -216,7 +216,7 @@ func TestSetPermissions_NotSupported(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return transfer.ErrPermissionsNotSupported },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 

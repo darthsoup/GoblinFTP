@@ -3,6 +3,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -145,9 +146,7 @@ func TestConnectSuccess(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/home/user", nil },
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 	}
-	dialFn := func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}
+	dialFn := staticDial(mock)
 
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	body := `{"protocol":"ftp","host":"ftp.example.com","port":21,"username":"user","password":"pass"}`
@@ -166,6 +165,63 @@ func TestConnectSuccess(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.True(t, resp.Success)
 	assert.Equal(t, "/home/user", resp.Data.InitialDirectory)
+}
+
+// TestConnectHostKeyPrompt: an unknown SFTP host key returns a 200 with the
+// fingerprint to confirm, and creates no session/cookie until the user accepts.
+func TestConnectHostKeyPrompt(t *testing.T) {
+	dialFn := func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		return nil, &api.HostKeyPrompt{Fingerprint: "SHA256:abc123", KeyType: "ssh-ed25519"}, nil
+	}
+	app, store, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
+	defer store.Close()
+
+	body := `{"protocol":"sftp","host":"ssh.example.com","port":22,"username":"u","password":"p"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/connect", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Success bool `json:"success"`
+		Data    struct {
+			HostKeyPrompt *struct {
+				Fingerprint string `json:"fingerprint"`
+				KeyType     string `json:"keyType"`
+			} `json:"hostKeyPrompt"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.NotNil(t, resp.Data.HostKeyPrompt)
+	assert.Equal(t, "SHA256:abc123", resp.Data.HostKeyPrompt.Fingerprint)
+	assert.Equal(t, "ssh-ed25519", resp.Data.HostKeyPrompt.KeyType)
+	assert.Empty(t, rec.Result().Cookies(), "no session cookie until the key is confirmed")
+	assert.Equal(t, 0, store.Count(), "no session created for a host-key prompt")
+}
+
+// TestConnectHostKeyMismatch: a changed host key is refused with
+// ERR_HOST_KEY_MISMATCH and the raw cause is not leaked into the envelope.
+func TestConnectHostKeyMismatch(t *testing.T) {
+	dialFn := func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		return nil, nil, fmt.Errorf("%w: raw-detail-xyz", transfer.ErrHostKeyMismatch)
+	}
+	app, store, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
+	defer store.Close()
+
+	body := `{"protocol":"sftp","host":"ssh.example.com","port":22,"username":"u","password":"p"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/connect", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadGateway, rec.Code)
+	var resp api.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.False(t, resp.Success)
+	require.NotEmpty(t, resp.Errors)
+	assert.Equal(t, string(gftperrors.ErrHostKeyMismatch), resp.Errors[0].Code)
+	assert.NotContains(t, resp.Errors[0].Message, "raw-detail-xyz", "raw cause must not leak")
 }
 
 func TestDisconnect(t *testing.T) {

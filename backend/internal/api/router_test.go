@@ -18,7 +18,16 @@ import (
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
+	"github.com/darthsoup/goblinftp/internal/transfer"
 )
+
+// staticDial returns a DialFunc that always yields c, for tests that don't
+// exercise the real adapters or the SFTP host-key flow.
+func staticDial(c transfer.Client) api.DialFunc {
+	return func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		return c, nil, nil
+	}
+}
 
 func newTestApp(t *testing.T, cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle) {
 	t.Helper()

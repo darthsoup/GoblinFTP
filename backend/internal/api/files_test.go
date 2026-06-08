@@ -62,7 +62,7 @@ func TestListFiles(t *testing.T) {
 			}, nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -92,7 +92,7 @@ func TestCreateDirectory(t *testing.T) {
 		ChmodFn:      func(string, uint32) error { return nil },
 		MakeDirFn:    func(path string) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -117,7 +117,7 @@ func TestDeleteFilesPartialFailure(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 

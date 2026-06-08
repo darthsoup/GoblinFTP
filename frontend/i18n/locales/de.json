@@ -9,9 +9,19 @@
     "password": "Passwort",
     "connect": "Verbinden",
     "tagline": "Selbst gehostete Dateiübertragung",
-    "passive": "Passiv-Modus (FTP)",
+    "passive": "Passiv-Modus",
     "errorRequired": "Erforderlich",
     "errorPort": "Ungültiger Port"
+  },
+  "hostKey": {
+    "title": "Hostschlüssel prüfen",
+    "message": "Dieser Server präsentiert einen SSH-Hostschlüssel, der noch nicht als vertrauenswürdig eingestuft ist. Bestätige, dass der Fingerabdruck zu deinem Server passt, bevor du dich verbindest.",
+    "host": "Host",
+    "keyType": "Schlüsseltyp",
+    "fingerprint": "Fingerabdruck (SHA256)",
+    "warning": "Vertraue diesem Schlüssel nur, wenn du den Fingerabdruck erkennst. Ändert er sich später, wird die Verbindung als möglicher Man-in-the-Middle abgelehnt.",
+    "trust": "Vertrauen & verbinden",
+    "cancel": "Abbrechen"
   },
   "header": {
     "connected": "Verbunden",

@@ -63,9 +63,7 @@ func TestAccessLogSessionEnrichment(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		ListFn:       func(path string) ([]transfer.FileInfo, error) { return nil, nil },
 	}
-	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf, api.WithDial(staticDial(mock)))
 	defer store.Close()
 
 	sess := connectAndGetSession(t, e)
@@ -122,9 +120,7 @@ func TestAccessLogConnLostCarriesCause(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		ListFn:       func(path string) ([]transfer.FileInfo, error) { return nil, brokenPipe },
 	}
-	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf, api.WithDial(staticDial(mock)))
 	defer store.Close()
 
 	sess := connectAndGetSession(t, e)

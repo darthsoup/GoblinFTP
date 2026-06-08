@@ -118,6 +118,7 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_LOG_FILE` (+ `GFTP_LOG_FILE_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS`) | Optional rotating file sink in addition to stdout |
 | `GFTP_LOG_FRONTEND` | Browser-error forwarding endpoint (default on; `false` disables) |
 | `GFTP_METRICS_ENABLED` / `GFTP_METRICS_PORT` | Prometheus /metrics on a dedicated port (default off / `9091`) |
+| `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY` | Skip FTPS (explicit TLS) certificate verification for self-signed/internal servers (overrides `connection.ftpTLSInsecureSkipVerify`; default `false`). FTPS = the `ftps` protocol; SFTP host keys are verified against `<DataDir>/known_hosts` (trust-on-first-use) |
 | `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
 
 The FTP test container and MinIO are on docker compose profile `testing` — only `just ftp-up/ftp-down` and `just s3-up/s3-down` activate them.

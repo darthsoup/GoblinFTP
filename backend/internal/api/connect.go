@@ -23,6 +23,9 @@ type ConnectRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Passive  bool   `json:"passive"`
+	// AcceptHostKey is the SHA256 fingerprint the user agreed to trust for an
+	// unknown SFTP host (trust-on-first-use, step 2). Empty on the first attempt.
+	AcceptHostKey string `json:"acceptHostKey"`
 }
 
 // ConnectData is the successful response payload for POST /api/auth/connect.
@@ -31,6 +34,9 @@ type ConnectData struct {
 	Capabilities     Capabilities `json:"capabilities"`
 	InitialDirectory string       `json:"initialDirectory"`
 	CSRFToken        string       `json:"csrfToken"`
+	// HostKeyPrompt is set (with the other fields empty and no session created)
+	// when an SFTP host key must be confirmed before connecting.
+	HostKeyPrompt *HostKeyPrompt `json:"hostKeyPrompt,omitempty"`
 }
 
 // Capabilities describes what the connected server supports.
@@ -75,15 +81,39 @@ func (h *Handler) Connect(c echo.Context) error {
 	}
 
 	addr := fmt.Sprintf("%s:%d", req.Host, req.Port)
-	client, dialErr := h.dial(req.Protocol, addr, req.Username, req.Password, req.Passive)
+	client, hostKey, dialErr := h.dial(DialRequest{
+		Protocol:      req.Protocol,
+		Addr:          addr,
+		Host:          req.Host,
+		User:          req.Username,
+		Pass:          req.Password,
+		Passive:       req.Passive,
+		AcceptHostKey: req.AcceptHostKey,
+	})
+	if hostKey != nil {
+		// Unknown SFTP host key — ask the user to confirm before we connect or
+		// send credentials. Not a failed attempt, so the throttle is untouched.
+		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_prompt").Inc()
+		return OK(c, ConnectData{HostKeyPrompt: hostKey})
+	}
 	if dialErr != nil {
 		h.throttle.Record(throttleKey, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
-		if errors.Is(dialErr, transfer.ErrAuthFailed) {
+		switch {
+		case errors.Is(dialErr, transfer.ErrAuthFailed):
 			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "auth_failed").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
+		case errors.Is(dialErr, transfer.ErrHostKeyMismatch):
+			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_mismatch").Inc()
+			return Fail(c, gftperrors.New(gftperrors.ErrHostKeyMismatch,
+				"the server's host key changed since it was trusted — possible man-in-the-middle, connection refused").WithCause(dialErr))
+		case errors.Is(dialErr, transfer.ErrTLSFailed):
+			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "tls_failed").Inc()
+			return Fail(c, gftperrors.New(gftperrors.ErrTLSFailed,
+				"the server's TLS certificate could not be verified").WithCause(dialErr))
+		default:
+			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "failed").Inc()
+			return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 		}
-		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "failed").Inc()
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 	}
 	h.throttle.Reset(throttleKey)
 
@@ -189,7 +219,7 @@ func (h *Handler) checkIPAllowlist(c echo.Context) *gftperrors.GFTPError {
 
 // detectChmod probes whether the server supports chmod operations.
 func detectChmod(client transfer.Client, protocol, dir string) bool {
-	if protocol == "ftp" {
+	if protocol == "ftp" || protocol == "ftps" {
 		return false // assume FTP servers support SITE CHMOD
 	}
 	err := client.Chmod(dir, 0o755)

@@ -16,7 +16,6 @@ import (
 	"github.com/darthsoup/goblinftp/internal/config"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/darthsoup/goblinftp/internal/sso"
-	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 )
 
@@ -233,9 +232,7 @@ func TestAuthStatusConnected(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/home/user", nil },
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 	}
-	dialFn := func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}
+	dialFn := staticDial(mock)
 	e, store, _ := newTestApp(t, cfg, api.WithDial(dialFn))
 	defer store.Close()
 
@@ -306,9 +303,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/home/user", nil },
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 	}
-	dialFn := func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}
+	dialFn := staticDial(mock)
 	e, store, _ := newTestApp(t, cfg, api.WithDial(dialFn))
 	defer store.Close()
 

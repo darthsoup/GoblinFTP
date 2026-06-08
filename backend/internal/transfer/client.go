@@ -50,4 +50,11 @@ var (
 	ErrAuthFailed              = errors.New("auth failed")
 	ErrConnectionFailed        = errors.New("connection failed")
 	ErrPermissionsNotSupported = errors.New("permissions not supported")
+	// ErrTLSFailed marks an FTPS TLS handshake / certificate verification
+	// failure (distinct from a generic connection failure so the API can hint
+	// at the insecure-skip-verify escape hatch for self-signed servers).
+	ErrTLSFailed = errors.New("tls handshake failed")
+	// ErrHostKeyMismatch marks an SFTP host key that does not match the pinned
+	// known_hosts entry — a possible man-in-the-middle.
+	ErrHostKeyMismatch = errors.New("host key mismatch")
 )

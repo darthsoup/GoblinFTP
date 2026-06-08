@@ -40,7 +40,7 @@ func TestUploadSimple(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -73,7 +73,7 @@ func TestUploadChunked(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -239,7 +239,7 @@ func TestUploadChunkedWithCustomChunkStore(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	store := newMemChunkStore()
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn), api.WithChunkStore(store))
 	sess := connectAndGetSession(t, app)
@@ -259,7 +259,7 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 			return fmt.Errorf("ftp server went away")
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	store := newMemChunkStore()
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn), api.WithChunkStore(store))
 	sess := connectAndGetSession(t, app)
@@ -354,7 +354,7 @@ func TestConcurrentSessionUploadsNoRace(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn), api.WithChunkStore(newMemChunkStore()))
 	sess := connectAndGetSession(t, app)
 
@@ -386,12 +386,10 @@ func TestConcurrentSessionUploadsNoRace(t *testing.T) {
 }
 
 func TestUploadChunkStorageUnavailable(t *testing.T) {
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) {
-		return &testutil.MockClient{
-			WorkingDirFn: func() (string, error) { return "/", nil },
-			ChmodFn:      func(string, uint32) error { return nil },
-		}, nil
-	}
+	dialFn := staticDial(&testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+	})
 	store := newMemChunkStore()
 	store.writeErr = fmt.Errorf("%w: dial tcp: connection refused", staging.ErrUnavailable)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn), api.WithChunkStore(store))

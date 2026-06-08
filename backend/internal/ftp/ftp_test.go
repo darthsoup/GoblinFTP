@@ -21,7 +21,7 @@ func ftpHost(t *testing.T) string {
 }
 
 func TestDialBadHost(t *testing.T) {
-	_, err := gftp.Dial("127.0.0.1:1", "user", "pass", false)
+	_, err := gftp.Dial("127.0.0.1:1", "user", "pass", false, nil)
 	assert.Error(t, err)
 }
 
@@ -30,7 +30,7 @@ func TestDialIntegration(t *testing.T) {
 	user := os.Getenv("GFTP_TEST_FTP_USER")
 	pass := os.Getenv("GFTP_TEST_FTP_PASS")
 
-	c, err := gftp.Dial(host, user, pass, true)
+	c, err := gftp.Dial(host, user, pass, true, nil)
 	assert.NoError(t, err)
 	if err == nil {
 		_ = c.Close()
