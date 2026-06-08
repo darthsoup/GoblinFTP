@@ -19,6 +19,14 @@ async function onDownload(path: string) {
   }
 }
 
+// Copy/cut act on the whole selection when the right-clicked file is part of it,
+// otherwise just that file (desktop file-manager behaviour).
+function clipboardNames(file: FileInfo): string[] {
+  return filesStore.selected.has(file.name) ? [...filesStore.selected] : [file.name]
+}
+
+const runPaste = usePaste()
+
 // Inline rename: commit (always exits edit mode; re-initiate to retry on error).
 async function onCommitRename(file: FileInfo, newName: string) {
   const trimmed = newName.trim()
@@ -141,6 +149,14 @@ function toggleSelectAll() {
     filesStore.setSelection(visibleFiles.value.map(f => f.name))
 }
 
+// Names dimmed as "pending move" — only the cut items still in their source dir.
+const cutNames = computed(() => {
+  const cb = filesStore.clipboard
+  if (!cb || cb.mode !== 'cut' || cb.sourcePath !== filesStore.currentPath.replace(/\/$/, ''))
+    return new Set<string>()
+  return new Set(cb.names)
+})
+
 // ── Context menu ──────────────────────────────────────────────────────────────
 const menuFile = ref<FileInfo | null>(null)
 
@@ -175,9 +191,17 @@ const menuItems = computed<ContextMenuItem[][]>(() => {
   }
   middle.push({ label: t('context.properties'), icon: 'i-lucide-info', onSelect: () => modalStore.open('properties', { file }) })
 
+  const clipboard: ContextMenuItem[] = [
+    { label: t('context.copy'), icon: 'i-lucide-copy', onSelect: () => filesStore.copyToClipboard(clipboardNames(file)) },
+    { label: t('context.cut'), icon: 'i-lucide-scissors', onSelect: () => filesStore.cutToClipboard(clipboardNames(file)) },
+  ]
+  if (filesStore.clipboard)
+    clipboard.push({ label: t('context.paste'), icon: 'i-lucide-clipboard-paste', onSelect: runPaste })
+
   return [
     [{ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) }],
     middle,
+    clipboard,
     [{ label: t('context.delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => modalStore.open('delete', { file }) }],
   ]
 })
@@ -321,6 +345,7 @@ function onDrop(e: DragEvent) {
               :selected="filesStore.selected.has(file.name)"
               :current-path="filesStore.currentPath"
               :editing="filesStore.editingName === file.name"
+              :is-cut="cutNames.has(file.name)"
               @select="filesStore.toggleSelection"
               @navigate="filesStore.navigate"
               @download="onDownload"

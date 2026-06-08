@@ -3,7 +3,10 @@ package api
 
 import (
 	"errors"
+	"io"
 	"net/http"
+	"os"
+	"path"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -147,15 +150,68 @@ func (h *Handler) CopyFile(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || req.From == "" || req.To == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
-	r, err := client.Download(req.From)
-	if err != nil {
-		return failClient(c, gftperrors.ErrFileNotFound, err)
-	}
-	defer r.Close()
-	if err := client.Upload(req.To, r); err != nil {
+	if err := copyTree(client, req.From, req.To); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
+}
+
+// copyTree copies from src to dst, recursing into directories. Files are streamed
+// via Download→Upload (Upload overwrites). For directories it recreates the tree,
+// only calling MakeDir when dst doesn't already exist so an overwrite merges into
+// the existing directory rather than failing.
+func copyTree(client transfer.Client, src, dst string) error {
+	info, err := client.Stat(src)
+	if err != nil {
+		return err
+	}
+	if info.IsDir {
+		if _, err := client.Stat(dst); err != nil {
+			if err := client.MakeDir(dst); err != nil {
+				return err
+			}
+		}
+		entries, err := client.List(src)
+		if err != nil {
+			return err
+		}
+		for _, e := range entries {
+			if err := copyTree(client, path.Join(src, e.Name), path.Join(dst, e.Name)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return copyFile(client, src, dst)
+}
+
+// copyFile copies a single file. The download is staged to a temp file and fully
+// closed before the upload starts: FTP allows only one data transfer per control
+// connection at a time, so streaming Download→Upload directly would interleave
+// RETR and STOR and desync the control channel.
+func copyFile(client transfer.Client, src, dst string) error {
+	r, err := client.Download(src)
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp("", "gftp-copy-*")
+	if err != nil {
+		_ = r.Close()
+		return err
+	}
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+	}()
+	_, copyErr := io.Copy(tmp, r)
+	_ = r.Close() // completes RETR before the upload's STOR
+	if copyErr != nil {
+		return copyErr
+	}
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	return client.Upload(dst, tmp)
 }
 
 func (h *Handler) SetPermissions(c echo.Context) error {

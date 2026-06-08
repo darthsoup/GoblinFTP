@@ -72,6 +72,9 @@
     "refresh": "Aktualisieren",
     "filter": "Dateien filtern...",
     "downloadZip": "ZIP herunterladen",
+    "copy": "Kopieren",
+    "cut": "Ausschneiden",
+    "paste": "Einfügen ({n})",
     "selectAll": "Alle auswählen",
     "deselectAll": "Alle abwählen",
     "delete": "Löschen",
@@ -95,6 +98,8 @@
     "download": "Herunterladen",
     "rename": "Umbenennen",
     "copy": "Kopieren",
+    "cut": "Ausschneiden",
+    "paste": "Einfügen",
     "delete": "Löschen",
     "properties": "Eigenschaften",
     "edit": "Bearbeiten",
@@ -160,6 +165,13 @@
       "cancel": "Abbrechen",
       "errorEmpty": "Bitte einen Namen eingeben",
       "errorInvalidMode": "3- oder 4-stellige Oktalzahl eingeben (z. B. 644)"
+    },
+    "pasteConflict": {
+      "title": "Elemente existieren bereits",
+      "message": "Diese Elemente existieren bereits in diesem Ordner:",
+      "overwrite": "Überschreiben",
+      "append": "Beide behalten",
+      "cancel": "Abbrechen"
     }
   },
   "error": {
@@ -172,7 +184,10 @@
     "renamed": "Umbenannt in {name}",
     "deleted": "{n} Element(e) gelöscht",
     "permissionsUpdated": "Berechtigungen aktualisiert",
-    "downloadFailed": "Download fehlgeschlagen"
+    "downloadFailed": "Download fehlgeschlagen",
+    "copied": "{n} Element(e) kopiert",
+    "moved": "{n} Element(e) verschoben",
+    "pasteFailed": "Einige Elemente konnten nicht eingefügt werden"
   },
   "shortcuts": {
     "title": "Tastenkürzel",
@@ -181,6 +196,9 @@
     "groupNav": "Navigation",
     "rename": "Auswahl umbenennen",
     "delete": "Auswahl löschen",
+    "copy": "Auswahl kopieren",
+    "cut": "Auswahl ausschneiden",
+    "paste": "Einfügen",
     "clear": "Auswahl aufheben",
     "selectAll": "Alle auswählen",
     "up": "Eine Ebene höher",

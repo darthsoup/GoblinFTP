@@ -6,6 +6,7 @@
 export function useFileBrowserShortcuts(visibleNames: () => string[]) {
   const filesStore = useFilesStore()
   const modalStore = useModalStore()
+  const paste = usePaste()
 
   function deleteSelected() {
     if (filesStore.selected.size === 0)
@@ -30,6 +31,13 @@ export function useFileBrowserShortcuts(visibleNames: () => string[]) {
     },
     // Select all (Cmd/Ctrl+A — auto-mapped to Ctrl off-Mac)
     'meta_a': () => filesStore.setSelection(visibleNames()),
+    // Clipboard (Cmd/Ctrl + C/X/V — auto-mapped to Ctrl off-Mac)
+    'meta_c': () => filesStore.copyToClipboard([...filesStore.selected]),
+    'meta_x': () => filesStore.cutToClipboard([...filesStore.selected]),
+    'meta_v': () => {
+      if (filesStore.clipboard)
+        paste()
+    },
     // Navigation
     'alt_arrowup': () => filesStore.navigateUp(),
     'alt_arrowleft': () => {

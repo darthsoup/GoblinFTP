@@ -72,6 +72,9 @@
     "refresh": "Refresh",
     "filter": "Filter files...",
     "downloadZip": "Download ZIP",
+    "copy": "Copy",
+    "cut": "Cut",
+    "paste": "Paste ({n})",
     "selectAll": "Select All",
     "deselectAll": "Deselect All",
     "delete": "Delete",
@@ -95,6 +98,8 @@
     "download": "Download",
     "rename": "Rename",
     "copy": "Copy",
+    "cut": "Cut",
+    "paste": "Paste",
     "delete": "Delete",
     "properties": "Properties",
     "edit": "Edit",
@@ -160,6 +165,13 @@
       "cancel": "Cancel",
       "errorEmpty": "Please enter a name",
       "errorInvalidMode": "Enter a 3- or 4-digit octal mode (e.g. 644)"
+    },
+    "pasteConflict": {
+      "title": "Items already exist",
+      "message": "These items already exist in this folder:",
+      "overwrite": "Overwrite",
+      "append": "Keep both",
+      "cancel": "Cancel"
     }
   },
   "error": {
@@ -172,7 +184,10 @@
     "renamed": "Renamed to {name}",
     "deleted": "Deleted {n} item(s)",
     "permissionsUpdated": "Permissions updated",
-    "downloadFailed": "Download failed"
+    "downloadFailed": "Download failed",
+    "copied": "Copied {n} item(s)",
+    "moved": "Moved {n} item(s)",
+    "pasteFailed": "Some items could not be pasted"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -181,6 +196,9 @@
     "groupNav": "Navigation",
     "rename": "Rename selected",
     "delete": "Delete selected",
+    "copy": "Copy selected",
+    "cut": "Cut selected",
+    "paste": "Paste",
     "clear": "Clear selection",
     "selectAll": "Select all",
     "up": "Up a folder",

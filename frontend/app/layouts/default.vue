@@ -44,5 +44,6 @@ watch(() => authStore.connected, (connected) => {
     <SessionExpiredModal />
     <ConfirmModal />
     <ShortcutsModal />
+    <PasteConflictModal />
   </div>
 </template>

@@ -51,6 +51,16 @@ async function downloadZip() {
     notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
   }
 }
+
+function copySelected() {
+  filesStore.copyToClipboard([...filesStore.selected])
+}
+
+function cutSelected() {
+  filesStore.cutToClipboard([...filesStore.selected])
+}
+
+const paste = usePaste()
 </script>
 
 <template>
@@ -116,6 +126,19 @@ async function downloadZip() {
       />
     </UTooltip>
 
+    <template v-if="filesStore.clipboard">
+      <USeparator orientation="vertical" class="h-5 mx-1" />
+      <UButton
+        size="sm"
+        color="primary"
+        variant="subtle"
+        icon="i-lucide-clipboard-paste"
+        @click="paste"
+      >
+        {{ t('toolbar.paste', { n: filesStore.clipboard.names.length }) }}
+      </UButton>
+    </template>
+
     <div class="flex-1" />
 
     <template v-if="selectedCount > 0">
@@ -123,14 +146,22 @@ async function downloadZip() {
         {{ t('toolbar.selected', { n: selectedCount }) }}
       </span>
       <UButton
-        v-if="selectedCount >= 2"
         size="sm"
         color="neutral"
         variant="subtle"
-        icon="i-lucide-file-archive"
-        @click="downloadZip"
+        icon="i-lucide-copy"
+        @click="copySelected"
       >
-        {{ t('toolbar.downloadZip') }}
+        {{ t('toolbar.copy') }}
+      </UButton>
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-scissors"
+        @click="cutSelected"
+      >
+        {{ t('toolbar.cut') }}
       </UButton>
       <UButton
         size="sm"
@@ -140,6 +171,16 @@ async function downloadZip() {
         @click="deleteSelected"
       >
         {{ t('toolbar.delete') }}
+      </UButton>
+      <UButton
+        v-if="selectedCount >= 2"
+        size="sm"
+        color="neutral"
+        variant="subtle"
+        icon="i-lucide-file-archive"
+        @click="downloadZip"
+      >
+        {{ t('toolbar.downloadZip') }}
       </UButton>
     </template>
 

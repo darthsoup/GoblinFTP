@@ -1,6 +1,37 @@
+import type { PasteChoice } from '~/stores/modal'
 import type { FileInfo } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
+
+export interface ClipboardState {
+  mode: 'copy' | 'cut'
+  sourcePath: string // directory the items were copied/cut from (no trailing slash)
+  names: string[]
+}
+
+export interface PasteResult {
+  mode: 'copy' | 'cut'
+  ok: number
+  failed: number
+  cancelled?: boolean
+}
+
+// Returns a name not present in `existing`, suffixing " (copy)" / " (copy N)"
+// before the extension — like a desktop file manager.
+function uniqueName(name: string, existing: Set<string>): string {
+  if (!existing.has(name))
+    return name
+  const dot = name.lastIndexOf('.')
+  const base = dot > 0 ? name.slice(0, dot) : name
+  const ext = dot > 0 ? name.slice(dot) : ''
+  let candidate = `${base} (copy)${ext}`
+  let i = 2
+  while (existing.has(candidate)) {
+    candidate = `${base} (copy ${i})${ext}`
+    i++
+  }
+  return candidate
+}
 
 export const useFilesStore = defineStore('files', () => {
   const currentPath = ref('/')
@@ -10,6 +41,8 @@ export const useFilesStore = defineStore('files', () => {
   const selected = ref<Set<string>>(new Set())
   // Name of the file currently being renamed in place (null = none)
   const editingName = ref<string | null>(null)
+  // Copy/cut clipboard (null = empty). Paste targets the current directory.
+  const clipboard = ref<ClipboardState | null>(null)
 
   // Navigation history (back/forward) — only `navigate()` pushes entries
   const history = ref<string[]>([])
@@ -115,6 +148,97 @@ export const useFilesStore = defineStore('files', () => {
     await list()
   }
 
+  // ── Clipboard (copy / cut → paste) ──────────────────────────────────────────
+  function copyToClipboard(names: string[]) {
+    if (names.length === 0)
+      return
+    clipboard.value = { mode: 'copy', sourcePath: currentPath.value.replace(/\/$/, ''), names: [...names] }
+  }
+
+  function cutToClipboard(names: string[]) {
+    if (names.length === 0)
+      return
+    clipboard.value = { mode: 'cut', sourcePath: currentPath.value.replace(/\/$/, ''), names: [...names] }
+  }
+
+  function clearClipboard() {
+    clipboard.value = null
+  }
+
+  async function copy(from: string, to: string): Promise<void> {
+    const api = useApi()
+    await api.patch('/api/files/copy', { from, to })
+  }
+
+  // Move reuses the rename endpoint — native Rename is a cross-directory move on
+  // both FTP and SFTP (no separate backend endpoint needed). No list refresh here.
+  async function move(from: string, to: string): Promise<void> {
+    const api = useApi()
+    await api.patch('/api/files/rename', { from, to })
+  }
+
+  // Paste the clipboard into the current directory. On name collisions it asks
+  // the user (overwrite / append / cancel) via the modal store, then applies the
+  // choice to the whole batch. Copy keeps the clipboard (repeat paste); cut clears
+  // it. Returns a summary so the caller can toast.
+  async function paste(): Promise<PasteResult> {
+    const cb = clipboard.value
+    if (!cb)
+      return { mode: 'copy', ok: 0, failed: 0 }
+    const api = useApi()
+    const dir = currentPath.value.replace(/\/$/, '')
+    const existing = new Set(files.value.map(f => f.name))
+    const sameDirCopy = cb.mode === 'copy' && cb.sourcePath === dir
+    const conflicts = cb.names.filter(n => existing.has(n) || sameDirCopy)
+
+    let choice: PasteChoice = 'overwrite'
+    if (conflicts.length > 0) {
+      choice = await useModalStore().pasteConflict(conflicts)
+      if (choice === 'cancel')
+        return { mode: cb.mode, ok: 0, failed: 0, cancelled: true }
+    }
+
+    // `taken` grows as we append copies so generated names don't collide with
+    // each other within the same paste.
+    const taken = new Set(existing)
+    let ok = 0
+    let failed = 0
+    for (const name of cb.names) {
+      const from = `${cb.sourcePath}/${name}`
+      const conflict = existing.has(name) || sameDirCopy
+      let toName = name
+      if (conflict && choice === 'append')
+        toName = uniqueName(name, taken)
+      let to = `${dir}/${toName}`
+      try {
+        if (cb.mode === 'copy') {
+          // Never stream a file onto itself (truncates the source) — force a name.
+          if (to === from) {
+            toName = uniqueName(name, taken)
+            to = `${dir}/${toName}`
+          }
+          await copy(from, to)
+        }
+        else {
+          if (from === to)
+            continue // moving onto itself — nothing to do
+          if (conflict && choice === 'overwrite')
+            await api.del('/api/files', { paths: [to] })
+          await move(from, to)
+        }
+        taken.add(toName)
+        ok++
+      }
+      catch {
+        failed++
+      }
+    }
+    await list()
+    if (cb.mode === 'cut')
+      clearClipboard()
+    return { mode: cb.mode, ok, failed }
+  }
+
   async function deleteFiles(paths: string[]): Promise<void> {
     const api = useApi()
     await api.del('/api/files', { paths })
@@ -169,6 +293,7 @@ export const useFilesStore = defineStore('files', () => {
     error.value = null
     selected.value = new Set()
     editingName.value = null
+    clipboard.value = null
     history.value = []
     historyIndex.value = -1
   }
@@ -191,6 +316,7 @@ export const useFilesStore = defineStore('files', () => {
     error,
     selected,
     editingName,
+    clipboard,
     pathSegments,
     canGoBack,
     canGoForward,
@@ -206,6 +332,12 @@ export const useFilesStore = defineStore('files', () => {
     startRename,
     cancelRename,
     rename,
+    copyToClipboard,
+    cutToClipboard,
+    clearClipboard,
+    copy,
+    move,
+    paste,
     deleteFiles,
     mkdir,
     chmod,

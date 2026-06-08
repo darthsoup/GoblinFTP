@@ -6,6 +6,7 @@ const props = defineProps<{
   selected: boolean
   currentPath: string
   editing: boolean
+  isCut: boolean
 }>()
 
 const emit = defineEmits<{
@@ -95,6 +96,7 @@ function handleDownload() {
     :class="[
       selected ? 'bg-primary/10' : 'even:bg-elevated/40',
       file.isDir ? 'cursor-pointer' : 'cursor-default',
+      isCut ? 'opacity-50' : '',
     ]"
     :data-file-name="file.name"
     @click="handleClick"

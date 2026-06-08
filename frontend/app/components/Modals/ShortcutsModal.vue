@@ -18,6 +18,9 @@ const groups = computed(() => [
     items: [
       { keys: ['F2'], label: t('shortcuts.rename') },
       { keys: ['Del'], label: t('shortcuts.delete') },
+      { keys: ['meta', 'C'], label: t('shortcuts.copy') },
+      { keys: ['meta', 'X'], label: t('shortcuts.cut') },
+      { keys: ['meta', 'V'], label: t('shortcuts.paste') },
       { keys: ['escape'], label: t('shortcuts.clear') },
     ],
   },
