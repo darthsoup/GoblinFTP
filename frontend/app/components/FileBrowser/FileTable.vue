@@ -4,7 +4,6 @@ import type { FileInfo } from '~/types/api'
 
 const filesStore = useFilesStore()
 const modalStore = useModalStore()
-const editorStore = useEditorStore()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
 const { t } = useI18n()
@@ -137,7 +136,7 @@ const menuItems = computed<ContextMenuItem[][]>(() => {
     middle.push({
       label: authStore.systemVars?.editor?.viewOnly ? t('context.view') : t('context.edit'),
       icon: 'i-lucide-pencil',
-      onSelect: () => editorStore.openFile(path),
+      onSelect: () => navigateTo({ path: '/edit', query: { path } }),
     })
   }
   middle.push({ label: t('context.properties'), icon: 'i-lucide-info', onSelect: () => modalStore.open('properties', { file }) })

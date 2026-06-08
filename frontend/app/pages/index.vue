@@ -4,7 +4,6 @@
 // /login if the connection drops.
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
-const editorStore = useEditorStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -29,8 +28,7 @@ watch(() => filesStore.currentPath, (path) => {
 <template>
   <AppHeader />
   <Breadcrumb />
-  <EditorPane v-if="editorStore.hasOpenTabs" />
-  <FileTable v-else />
+  <FileTable />
   <UploadProgressPanel />
   <StatusBar />
 </template>

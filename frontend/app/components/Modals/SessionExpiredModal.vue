@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
+const editorStore = useEditorStore()
 const uploadStore = useUploadStore()
 const { t } = useI18n()
 
@@ -10,6 +11,7 @@ const open = computed(() => authStore.sessionLost)
 function reconnect() {
   uploadStore.cancelAll()
   filesStore.$reset()
+  editorStore.$reset()
   authStore.acknowledgeSessionLost()
 }
 </script>

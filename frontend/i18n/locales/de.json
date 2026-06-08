@@ -104,7 +104,14 @@
     "save": "Speichern",
     "autoSave": "Automatisch speichern",
     "closeTab": "Tab schließen",
-    "unsavedChanges": "Sie haben ungespeicherte Änderungen"
+    "unsavedChanges": "Sie haben ungespeicherte Änderungen",
+    "backToFiles": "Dateien",
+    "openEditor": "Editor ({n})",
+    "unsavedTitle": "Ungespeicherte Änderungen",
+    "confirmCloseMessage": "Ungespeicherte Änderungen an {name} verwerfen?",
+    "confirmDisconnectMessage": "{n} Datei(en) mit ungespeicherten Änderungen. Trennen und verwerfen?",
+    "discard": "Verwerfen",
+    "keepEditing": "Weiter bearbeiten"
   },
   "modal": {
     "rename": {

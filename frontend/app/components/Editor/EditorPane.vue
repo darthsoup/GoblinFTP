@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { LanguageSupport } from '@codemirror/language'
 import type { Extension } from '@codemirror/state'
+import type { EditorTab } from '~/stores/editor'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { css } from '@codemirror/lang-css'
 import { go } from '@codemirror/lang-go'
@@ -17,29 +18,24 @@ import { vue } from '@codemirror/lang-vue'
 import { xml } from '@codemirror/lang-xml'
 import { yaml } from '@codemirror/lang-yaml'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { Compartment, EditorState } from '@codemirror/state'
+import { EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view'
+import { editorSession } from '~/utils/editorSession'
 
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
-const settingsStore = useSettingsStore()
 const colorMode = useColorMode()
 const { t } = useI18n()
 
 const containerRef = ref<HTMLElement | null>(null)
-const autoSave = computed(() => settingsStore.editorAutoSave)
-let view: EditorView | null = null
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
-
 const viewOnly = computed(() => authStore.systemVars?.editor?.viewOnly ?? false)
+const showEditor = computed(() => !!editorStore.activeTab && !editorStore.activeTab.loading && !editorStore.activeTab.error)
 
-function clearAutoSaveTimer() {
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer)
-    autoSaveTimer = null
-  }
-}
+// The view is component-local (recreated per mount); per-tab EditorState +
+// scroll live in editorSession so they survive leaving and returning to /edit.
+let view: EditorView | null = null
+let mountedTabId: string | null = null
 
 function getLanguageExtension(filename: string): LanguageSupport | readonly Extension[] {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
@@ -93,26 +89,25 @@ const goblinLightTheme = EditorView.theme({
   '.cm-activeLineGutter': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
 }, { dark: false })
 
-// Swappable theme slot — reconfigured live when the color mode changes
-const themeCompartment = new Compartment()
-
 function themeExtensions(): Extension {
   if (colorMode.value === 'light')
     return [syntaxHighlighting(defaultHighlightStyle), goblinLightTheme]
   return [syntaxHighlighting(defaultHighlightStyle), oneDark, goblinDarkTheme]
 }
 
-watch(() => colorMode.value, () => {
-  view?.dispatch({ effects: themeCompartment.reconfigure(themeExtensions()) })
-})
+function saveActive() {
+  if (viewOnly.value || !editorStore.activeId)
+    return
+  editorStore.saveTab(editorStore.activeId)
+}
 
-function buildExtensions(filename: string, readOnly: boolean): Extension[] {
+function buildExtensions(filename: string): Extension[] {
   return [
     lineNumbers(),
     highlightActiveLine(),
     highlightActiveLineGutter(),
     history(),
-    themeCompartment.of(themeExtensions()),
+    editorSession.themeCompartment.of(themeExtensions()),
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
@@ -120,75 +115,96 @@ function buildExtensions(filename: string, readOnly: boolean): Extension[] {
       {
         key: 'Mod-s',
         run() {
-          if (editorStore.activeId)
-            editorStore.saveTab(editorStore.activeId)
+          saveActive()
           return true
         },
       },
     ]),
     getLanguageExtension(filename),
-    EditorState.readOnly.of(readOnly),
+    EditorState.readOnly.of(viewOnly.value),
     EditorView.updateListener.of((update) => {
-      if (update.docChanged && editorStore.activeId) {
-        const tabId = editorStore.activeId
-        editorStore.updateContent(tabId, update.state.doc.toString())
-        if (autoSave.value) {
-          clearAutoSaveTimer()
-          autoSaveTimer = setTimeout(() => {
-            const tab = editorStore.tabs.find(candidate => candidate.id === tabId)
-            if (tab && !tab.loading && tab.content !== tab.savedContent)
-              editorStore.saveTab(tabId)
-          }, 2000)
-        }
-      }
+      // Route real edits to the tab whose state is mounted; ignore programmatic
+      // setState swaps (those produce an update with no transactions).
+      if (update.docChanged && update.transactions.length > 0 && mountedTabId)
+        editorStore.updateContent(mountedTabId, update.state.doc.toString())
     }),
   ]
 }
 
-function destroyEditor() {
-  view?.destroy()
-  view = null
-  clearAutoSaveTimer()
+function createState(tab: EditorTab): EditorState {
+  return EditorState.create({ doc: tab.content, extensions: buildExtensions(tab.name) })
 }
 
-function mountEditor(content: string, filename: string) {
-  destroyEditor()
+function snapshotMounted() {
+  if (view && mountedTabId && editorStore.tabs.some(tab => tab.id === mountedTabId)) {
+    editorSession.tabStates.set(mountedTabId, view.state)
+    editorSession.tabScroll.set(mountedTabId, view.scrollDOM.scrollTop)
+  }
+}
+
+function sync() {
   if (!containerRef.value)
     return
-  view = new EditorView({
-    state: EditorState.create({
-      doc: content,
-      extensions: buildExtensions(filename, viewOnly.value),
-    }),
-    parent: containerRef.value,
+
+  // Drop cached state for tabs that have been closed.
+  for (const id of editorSession.tabStates.keys()) {
+    if (!editorStore.tabs.some(tab => tab.id === id)) {
+      editorSession.tabStates.delete(id)
+      editorSession.tabScroll.delete(id)
+    }
+  }
+
+  const tab = editorStore.activeTab
+  if (mountedTabId && (!tab || tab.id !== mountedTabId)) {
+    snapshotMounted()
+    mountedTabId = null
+  }
+
+  // Nothing editable to show (no tab, still loading, or errored): keep the view
+  // alive (it holds the last state) but it's hidden via showEditor.
+  if (!tab || tab.loading || tab.error)
+    return
+
+  if (mountedTabId === tab.id)
+    return
+
+  const state = editorSession.tabStates.get(tab.id) ?? createState(tab)
+  if (!view)
+    view = new EditorView({ state, parent: containerRef.value })
+  else
+    view.setState(state)
+  // Sync the theme to the current mode (a restored state may carry a stale one).
+  view.dispatch({ effects: editorSession.themeCompartment.reconfigure(themeExtensions()) })
+  mountedTabId = tab.id
+
+  const top = editorSession.tabScroll.get(tab.id) ?? 0
+  requestAnimationFrame(() => {
+    if (view)
+      view.scrollDOM.scrollTop = top
   })
 }
 
 watch(
-  () => [editorStore.activeId, editorStore.activeTab?.loading, editorStore.activeTab?.error, viewOnly.value] as const,
-  async ([activeId, loading, error]) => {
-    if (!activeId || loading || error) {
-      destroyEditor()
-      return
-    }
-
+  () => [editorStore.activeId, editorStore.activeTab?.loading, editorStore.activeTab?.error] as const,
+  async () => {
     await nextTick()
-    const tab = editorStore.activeTab
-    if (!tab || tab.id !== activeId || tab.loading || tab.error)
-      return
-
-    mountEditor(tab.content, tab.name)
+    sync()
   },
   { immediate: true },
 )
 
-watch(autoSave, (enabled) => {
-  if (!enabled)
-    clearAutoSaveTimer()
+watch(() => colorMode.value, () => {
+  view?.dispatch({ effects: editorSession.themeCompartment.reconfigure(themeExtensions()) })
 })
 
 onUnmounted(() => {
-  destroyEditor()
+  // Persist the mounted tab's state before tearing down the view, so a route
+  // round-trip back to /edit restores undo/cursor/scroll. The maps live in
+  // editorSession (cleared only on editor $reset).
+  snapshotMounted()
+  view?.destroy()
+  view = null
+  mountedTabId = null
 })
 </script>
 
@@ -196,21 +212,23 @@ onUnmounted(() => {
   <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
     <EditorTabBar />
 
-    <div v-if="editorStore.activeTab?.loading" class="flex items-center justify-center flex-1 text-muted font-mono text-sm">
-      <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
-      {{ t('editor.loading') }}
-    </div>
+    <div class="relative flex-1 min-h-0">
+      <div v-show="showEditor" ref="containerRef" class="absolute inset-0 overflow-auto" />
 
-    <div v-else-if="editorStore.activeTab?.error" class="flex items-center justify-center flex-1 text-error font-mono text-sm">
-      <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
-      {{ editorStore.activeTab.error }}
-    </div>
+      <div v-if="editorStore.activeTab?.loading" class="absolute inset-0 flex items-center justify-center text-muted font-mono text-sm">
+        <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
+        {{ t('editor.loading') }}
+      </div>
 
-    <div v-else-if="!editorStore.hasOpenTabs" class="flex items-center justify-center flex-1 text-dimmed font-mono text-sm">
-      {{ t('editor.noFile') }}
-    </div>
+      <div v-else-if="editorStore.activeTab?.error" class="absolute inset-0 flex items-center justify-center text-error font-mono text-sm">
+        <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
+        {{ editorStore.activeTab.error }}
+      </div>
 
-    <div v-else ref="containerRef" class="flex-1 overflow-auto" />
+      <div v-else-if="!editorStore.hasOpenTabs" class="absolute inset-0 flex items-center justify-center text-dimmed font-mono text-sm">
+        {{ t('editor.noFile') }}
+      </div>
+    </div>
   </div>
 </template>
 

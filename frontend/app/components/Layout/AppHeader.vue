@@ -1,12 +1,26 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
+const editorStore = useEditorStore()
 const modalStore = useModalStore()
+const route = useRoute()
 const { t } = useI18n()
 
 async function handleDisconnect() {
+  if (editorStore.hasDirty) {
+    const result = await modalStore.confirm({
+      title: t('editor.unsavedTitle'),
+      message: t('editor.confirmDisconnectMessage', { n: editorStore.dirtyCount }),
+      confirmLabel: t('header.disconnect'),
+      cancelLabel: t('editor.keepEditing'),
+      confirmColor: 'error',
+    })
+    if (result !== 'confirm')
+      return
+  }
   await authStore.disconnect()
   filesStore.$reset()
+  editorStore.$reset()
 }
 </script>
 
@@ -27,6 +41,15 @@ async function handleDisconnect() {
     </template>
 
     <template #right>
+      <UButton
+        v-if="editorStore.hasOpenTabs && route.path !== '/edit'"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-file-pen"
+        :label="t('editor.openEditor', { n: editorStore.tabs.length })"
+        @click="navigateTo('/edit')"
+      />
+
       <UColorModeButton />
 
       <UTooltip :text="t('header.settings')">

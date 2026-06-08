@@ -104,7 +104,14 @@
     "save": "Save",
     "autoSave": "Auto-save",
     "closeTab": "Close tab",
-    "unsavedChanges": "You have unsaved changes"
+    "unsavedChanges": "You have unsaved changes",
+    "backToFiles": "Files",
+    "openEditor": "Editor ({n})",
+    "unsavedTitle": "Unsaved changes",
+    "confirmCloseMessage": "Discard unsaved changes to {name}?",
+    "confirmDisconnectMessage": "You have {n} file(s) with unsaved changes. Disconnect and discard them?",
+    "discard": "Discard",
+    "keepEditing": "Keep editing"
   },
   "modal": {
     "rename": {

@@ -1,7 +1,36 @@
 <script setup lang="ts">
+import type { EditorTab } from '~/stores/editor'
+
 const editorStore = useEditorStore()
 const settingsStore = useSettingsStore()
+const modalStore = useModalStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
+
+const viewOnly = computed(() => authStore.systemVars?.editor?.viewOnly ?? false)
+
+// Confirm before discarding a tab with unsaved changes (this is also the only
+// way out of the editor, so it must not silently drop work).
+async function requestClose(tab: EditorTab) {
+  if (tab.content !== tab.savedContent) {
+    const result = await modalStore.confirm({
+      title: t('editor.unsavedTitle'),
+      message: t('editor.confirmCloseMessage', { name: tab.name }),
+      saveLabel: viewOnly.value ? undefined : t('editor.save'),
+      confirmLabel: t('editor.discard'),
+      cancelLabel: t('editor.keepEditing'),
+      confirmColor: 'error',
+    })
+    if (result === 'cancel')
+      return
+    if (result === 'save') {
+      await editorStore.saveTab(tab.id)
+      if (tab.error) // save failed — keep the tab open so the work isn't lost
+        return
+    }
+  }
+  editorStore.closeTab(tab.id)
+}
 </script>
 
 <template>
@@ -14,6 +43,7 @@ const { t } = useI18n()
         ? 'bg-default text-primary border-t-primary'
         : 'border-t-transparent text-muted hover:bg-elevated hover:text-default'"
       @click="editorStore.setActive(tab.id)"
+      @mousedown.middle.prevent="requestClose(tab)"
     >
       <span class="max-w-32 truncate">{{ tab.name }}</span>
       <span v-if="tab.content !== tab.savedContent" class="text-warning leading-none" :title="t('editor.unsavedChanges')">•</span>
@@ -24,13 +54,13 @@ const { t } = useI18n()
         icon="i-lucide-x"
         class="-mr-1"
         :aria-label="t('editor.closeTab')"
-        @click.stop="editorStore.closeTab(tab.id)"
+        @click.stop="requestClose(tab)"
       />
     </div>
 
     <div class="flex-1 min-w-4" />
 
-    <div class="px-3 flex items-center gap-3 shrink-0">
+    <div v-if="!viewOnly" class="px-3 flex items-center gap-3 shrink-0">
       <USwitch
         v-model="settingsStore.editorAutoSave"
         size="xs"
