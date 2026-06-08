@@ -18,6 +18,7 @@ import { vue } from '@codemirror/lang-vue'
 import { xml } from '@codemirror/lang-xml'
 import { yaml } from '@codemirror/lang-yaml'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { gotoLine, search, searchKeymap } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view'
@@ -78,6 +79,10 @@ const goblinDarkTheme = EditorView.theme({
   '.cm-gutters': { backgroundColor: '#10141a', borderRight: '1px solid #21262d' },
   '.cm-activeLine': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
   '.cm-activeLineGutter': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
+  '.cm-panels': { backgroundColor: '#10141a', color: '#c9d1d9' },
+  '.cm-panels.cm-panels-top': { borderBottom: '1px solid #21262d' },
+  '.cm-textfield': { backgroundColor: '#0d1117', border: '1px solid #21262d', color: '#c9d1d9' },
+  '.cm-button': { backgroundColor: '#21262d', border: '1px solid #30363d', color: '#c9d1d9', backgroundImage: 'none' },
 }, { dark: true })
 
 // Goblin Tech-Light: recessed code surface (#f1f5f9) with slate chrome
@@ -87,6 +92,10 @@ const goblinLightTheme = EditorView.theme({
   '.cm-gutters': { backgroundColor: '#e6e8ea', borderRight: '1px solid #cbd5e1', color: '#64748b' },
   '.cm-activeLine': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
   '.cm-activeLineGutter': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
+  '.cm-panels': { backgroundColor: '#e6e8ea', color: '#334155' },
+  '.cm-panels.cm-panels-top': { borderBottom: '1px solid #cbd5e1' },
+  '.cm-textfield': { backgroundColor: '#ffffff', border: '1px solid #cbd5e1', color: '#334155' },
+  '.cm-button': { backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', backgroundImage: 'none' },
 }, { dark: false })
 
 function themeExtensions(): Extension {
@@ -107,11 +116,14 @@ function buildExtensions(filename: string): Extension[] {
     highlightActiveLine(),
     highlightActiveLineGutter(),
     history(),
+    search({ top: true }),
     editorSession.themeCompartment.of(themeExtensions()),
     keymap.of([
+      ...searchKeymap,
       ...defaultKeymap,
       ...historyKeymap,
       indentWithTab,
+      { key: 'Mod-Alt-g', run: gotoLine },
       {
         key: 'Mod-s',
         run() {

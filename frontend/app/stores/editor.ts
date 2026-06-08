@@ -13,6 +13,9 @@ export interface EditorTab {
 }
 
 const AUTOSAVE_DELAY_MS = 2000
+// Open tabs are persisted (paths only) so a reload reopens them, re-fetching
+// content fresh. Cleared when the editor is reset (disconnect / session loss).
+const STORAGE_KEY = 'gftp_editor_tabs'
 
 export const useEditorStore = defineStore('editor', () => {
   const tabs = ref<EditorTab[]>([])
@@ -26,6 +29,9 @@ export const useEditorStore = defineStore('editor', () => {
   // Per-tab autosave debounce timers — non-reactive on purpose (one timer per
   // tab so switching tabs never cancels another tab's pending save).
   const autoSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+  // Suppresses persistence while restore() is repopulating tabs.
+  let restoring = false
 
   function clearAutoSave(id: string) {
     const timer = autoSaveTimers.get(id)
@@ -136,5 +142,49 @@ export const useEditorStore = defineStore('editor', () => {
     activeId.value = null
   }
 
-  return { tabs, activeId, activeTab, hasOpenTabs, dirtyCount, hasDirty, openFile, saveTab, updateContent, closeTab, setActive, $reset }
+  // ── Reload persistence (paths only) ────────────────────────────────────────
+  function persist() {
+    if (restoring)
+      return
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        paths: tabs.value.map(t => t.path),
+        activePath: activeTab.value?.path ?? null,
+      }))
+    }
+    catch {}
+  }
+
+  // Reopen the previously-open tabs after a reload. Caller must ensure the
+  // session is connected (paths are re-fetched). Tabs that fail to reload (e.g.
+  // the file was removed) are dropped.
+  async function restore() {
+    if (tabs.value.length)
+      return
+    let saved: { paths?: string[], activePath?: string | null } | null = null
+    try {
+      saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    }
+    catch {}
+    if (!saved?.paths?.length)
+      return
+
+    restoring = true
+    try {
+      for (const path of saved.paths)
+        await openFile(path)
+      tabs.value = tabs.value.filter(t => !t.error)
+      const target = saved.activePath ? tabs.value.find(t => t.path === saved.activePath) : null
+      activeId.value = target?.id ?? tabs.value[0]?.id ?? null
+    }
+    finally {
+      restoring = false
+      persist()
+    }
+  }
+
+  // Persist when the set of open tabs or the active tab changes (not on edits).
+  watch([() => tabs.value.map(t => t.path).join('\n'), activeId], () => persist())
+
+  return { tabs, activeId, activeTab, hasOpenTabs, dirtyCount, hasDirty, openFile, saveTab, updateContent, closeTab, setActive, restore, $reset }
 })

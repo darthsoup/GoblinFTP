@@ -21,4 +21,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     ?? (adminLang === 'en' || adminLang === 'de' ? adminLang : undefined)
   if (i18n && preferred && i18n.locale.value !== preferred)
     await i18n.setLocale(preferred)
+
+  // Reopen editor tabs from a previous session (fire-and-forget; re-fetches
+  // content, so only while the cookie session is still connected).
+  if (authStore.connected)
+    void useEditorStore().restore()
 })
