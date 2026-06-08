@@ -1,10 +1,31 @@
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const editorStore = useEditorStore()
 const modalStore = useModalStore()
 const route = useRoute()
 const { t } = useI18n()
+
+// Centre switcher between the file browser and the editor — only relevant while
+// the editor has open tabs. The Files link carries the current browse path so
+// returning from the editor reopens the same folder.
+const navItems = computed<NavigationMenuItem[]>(() => [
+  {
+    label: t('header.files'),
+    icon: 'i-lucide-folder',
+    to: { path: '/', query: { path: filesStore.currentPath } },
+    active: route.path === '/',
+  },
+  {
+    label: t('header.editor'),
+    icon: 'i-lucide-file-pen',
+    to: '/edit',
+    active: route.path === '/edit',
+    badge: editorStore.tabs.length,
+  },
+])
 
 async function handleDisconnect() {
   if (editorStore.hasDirty) {
@@ -31,6 +52,7 @@ async function handleDisconnect() {
     :ui="{
       root: 'bg-muted/75 shrink-0 z-30',
       container: 'max-w-full px-4 sm:px-4 lg:px-4 gap-2',
+      center: 'flex',
     }"
   >
     <template #left>
@@ -40,16 +62,14 @@ async function handleDisconnect() {
       </div>
     </template>
 
-    <template #right>
-      <UButton
-        v-if="editorStore.hasOpenTabs && route.path !== '/edit'"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-file-pen"
-        :label="t('editor.openEditor', { n: editorStore.tabs.length })"
-        @click="navigateTo('/edit')"
-      />
+    <UNavigationMenu
+      v-if="editorStore.hasOpenTabs"
+      :items="navItems"
+      variant="pill"
+      color="primary"
+    />
 
+    <template #right>
       <UColorModeButton />
 
       <UTooltip :text="t('header.settings')">

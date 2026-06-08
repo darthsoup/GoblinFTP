@@ -17,7 +17,9 @@
     "connected": "Verbunden",
     "disconnected": "Getrennt",
     "disconnect": "Trennen",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "files": "Dateien",
+    "editor": "Editor"
   },
   "settings": {
     "title": "Einstellungen",
@@ -106,7 +108,6 @@
     "closeTab": "Tab schließen",
     "unsavedChanges": "Sie haben ungespeicherte Änderungen",
     "backToFiles": "Dateien",
-    "openEditor": "Editor ({n})",
     "unsavedTitle": "Ungespeicherte Änderungen",
     "confirmCloseMessage": "Ungespeicherte Änderungen an {name} verwerfen?",
     "confirmDisconnectMessage": "{n} Datei(en) mit ungespeicherten Änderungen. Trennen und verwerfen?",

@@ -17,7 +17,9 @@
     "connected": "Connected",
     "disconnected": "Disconnected",
     "disconnect": "Disconnect",
-    "settings": "Settings"
+    "settings": "Settings",
+    "files": "Files",
+    "editor": "Editor"
   },
   "settings": {
     "title": "Settings",
@@ -106,7 +108,6 @@
     "closeTab": "Close tab",
     "unsavedChanges": "You have unsaved changes",
     "backToFiles": "Files",
-    "openEditor": "Editor ({n})",
     "unsavedTitle": "Unsaved changes",
     "confirmCloseMessage": "Discard unsaved changes to {name}?",
     "confirmDisconnectMessage": "You have {n} file(s) with unsaved changes. Disconnect and discard them?",
