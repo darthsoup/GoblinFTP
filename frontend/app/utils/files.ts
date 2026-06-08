@@ -104,6 +104,14 @@ export function previewMime(name: string): string {
   return PREVIEW_MIME[extOf(name)] ?? ''
 }
 
+// Largest image we'll fetch full-size for a card-grid thumbnail (there's no
+// server-side resize). Bigger images fall back to the type icon.
+export const THUMBNAIL_MAX_BYTES = 3 * 1024 * 1024
+
+export function isImageFile(name: string): boolean {
+  return IMAGE_EXTS.includes(extOf(name))
+}
+
 // Parse "drwxr-xr-x" → "755"; returns '' when the mode string is unknown/unparseable
 export function modeToOctal(mode: string): string {
   const perms = mode.slice(1, 10)

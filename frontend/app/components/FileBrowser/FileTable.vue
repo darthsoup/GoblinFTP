@@ -377,7 +377,7 @@ function onDrop(e: DragEvent) {
           </table>
 
           <!-- Cards view -->
-          <div v-else role="list">
+          <div v-else role="list" class="grid gap-3 p-3 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))]">
             <FileCard
               v-for="file in visibleFiles"
               :key="file.name"

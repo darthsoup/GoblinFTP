@@ -22,6 +22,7 @@ interface PersistedSettings {
   sizeFormat?: SizeFormat
   dateFormat?: DateFormat
   fileViewMode?: FileViewMode
+  gridThumbnails?: boolean
 }
 
 const SIZE_FORMATS: SizeFormat[] = ['binary', 'decimal', 'bytes']
@@ -44,6 +45,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const sizeFormat = ref<SizeFormat>('binary')
   const dateFormat = ref<DateFormat>('auto')
   const fileViewMode = ref<FileViewMode>(defaultFileViewMode())
+  // Show image thumbnails in the card grid (end-user preference).
+  const gridThumbnails = ref(true)
 
   const showDotfiles = computed({
     get: () => userShowDotfiles.value ?? authStore.systemVars?.ui.showDotFiles ?? false,
@@ -68,11 +71,13 @@ export const useSettingsStore = defineStore('settings', () => {
         dateFormat.value = parsed.dateFormat
       if (parsed.fileViewMode && FILE_VIEW_MODES.includes(parsed.fileViewMode))
         fileViewMode.value = parsed.fileViewMode
+      if (typeof parsed.gridThumbnails === 'boolean')
+        gridThumbnails.value = parsed.gridThumbnails
     }
   }
   catch {}
 
-  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode], () => {
+  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails], () => {
     try {
       const persisted: PersistedSettings = {
         showDotfiles: userShowDotfiles.value,
@@ -81,11 +86,12 @@ export const useSettingsStore = defineStore('settings', () => {
         sizeFormat: sizeFormat.value,
         dateFormat: dateFormat.value,
         fileViewMode: fileViewMode.value,
+        gridThumbnails: gridThumbnails.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
     }
     catch {}
   })
 
-  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode }
+  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails }
 })

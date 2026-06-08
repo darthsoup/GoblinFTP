@@ -5,7 +5,7 @@
     "hostPlaceholder": "ftp.beispiel.de",
     "port": "Port",
     "username": "Benutzername",
-    "usernamePlaceholder": "benutzername",
+    "usernamePlaceholder": "ftp_user",
     "password": "Passwort",
     "connect": "Verbinden",
     "tagline": "Selbst gehostete Dateiübertragung",
@@ -38,6 +38,8 @@
     "dateRelative": "Relativ",
     "showDotfiles": "Dotfiles anzeigen",
     "showDotfilesHint": "Dateien mit führendem Punkt anzeigen (z. B. .htaccess).",
+    "gridThumbnails": "Bildvorschau",
+    "gridThumbnailsHint": "Bildvorschau in der Kartenansicht anzeigen.",
     "close": "Fertig"
   },
   "session": {
@@ -207,7 +209,7 @@
     "delete": "Auswahl löschen",
     "copy": "Auswahl kopieren",
     "cut": "Auswahl ausschneiden",
-    "paste": "Einfügen",
+    "paste": "Auswahl einfügen",
     "clear": "Auswahl aufheben",
     "selectAll": "Alle auswählen",
     "up": "Eine Ebene höher",

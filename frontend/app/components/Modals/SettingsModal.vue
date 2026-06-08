@@ -81,6 +81,10 @@ const dateFormatItems = computed(() => [
         <UFormField :label="t('settings.showDotfiles')" :description="t('settings.showDotfilesHint')">
           <USwitch v-model="settingsStore.showDotfiles" />
         </UFormField>
+
+        <UFormField :label="t('settings.gridThumbnails')" :description="t('settings.gridThumbnailsHint')">
+          <USwitch v-model="settingsStore.gridThumbnails" />
+        </UFormField>
       </div>
     </template>
 

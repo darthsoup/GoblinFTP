@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPreviewKind, previewMime } from '~/utils/files'
+import { getPreviewKind, isImageFile, previewMime } from '~/utils/files'
 
 describe('getPreviewKind', () => {
   const textExts = ['md', 'txt', 'json', 'ts']
@@ -25,6 +25,17 @@ describe('getPreviewKind', () => {
 
   it('never previews directories', () => {
     expect(getPreviewKind({ name: 'folder.png', isDir: true }, textExts)).toBe('none')
+  })
+})
+
+describe('isImageFile', () => {
+  it('detects image extensions case-insensitively', () => {
+    expect(isImageFile('photo.png')).toBe(true)
+    expect(isImageFile('PHOTO.JPG')).toBe(true)
+    expect(isImageFile('icon.svg')).toBe(true)
+    expect(isImageFile('clip.mp4')).toBe(false)
+    expect(isImageFile('readme.md')).toBe(false)
+    expect(isImageFile('noext')).toBe(false)
   })
 })
 

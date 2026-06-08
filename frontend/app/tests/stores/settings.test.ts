@@ -71,6 +71,20 @@ describe('useSettingsStore', () => {
     expect(JSON.parse(localStorage.getItem('gftp_settings')!).fileViewMode).toBe('table')
   })
 
+  it('persists the grid-thumbnails preference (default on)', async () => {
+    setActivePinia(createPinia())
+    expect(useSettingsStore().gridThumbnails).toBe(true)
+
+    localStorage.setItem('gftp_settings', JSON.stringify({ gridThumbnails: false }))
+    setActivePinia(createPinia())
+    const store = useSettingsStore()
+    expect(store.gridThumbnails).toBe(false)
+
+    store.gridThumbnails = true
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('gftp_settings')!).gridThumbnails).toBe(true)
+  })
+
   it('ignores corrupt or invalid persisted data', () => {
     localStorage.setItem('gftp_settings', JSON.stringify({ sizeFormat: 'bogus', language: 'fr' }))
     setActivePinia(createPinia())

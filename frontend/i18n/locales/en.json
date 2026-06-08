@@ -5,7 +5,7 @@
     "hostPlaceholder": "ftp.example.com",
     "port": "Port",
     "username": "Username",
-    "usernamePlaceholder": "username",
+    "usernamePlaceholder": "ftp_user",
     "password": "Password",
     "connect": "Connect",
     "tagline": "Self-hosted file transfer",
@@ -38,6 +38,8 @@
     "dateRelative": "Relative",
     "showDotfiles": "Show dotfiles",
     "showDotfilesHint": "List files starting with a dot (e.g. .htaccess).",
+    "gridThumbnails": "Image thumbnails",
+    "gridThumbnailsHint": "Show image previews in the card grid.",
     "close": "Done"
   },
   "session": {
