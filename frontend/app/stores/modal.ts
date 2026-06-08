@@ -1,7 +1,7 @@
 import type { FileInfo } from '~/types/api'
 import { defineStore } from 'pinia'
 
-export type ModalType = 'rename' | 'delete' | 'newFolder' | 'newFile' | 'properties' | 'settings' | null
+export type ModalType = 'delete' | 'newFolder' | 'newFile' | 'properties' | 'settings' | 'shortcuts' | null
 
 export interface ModalContext {
   file?: FileInfo

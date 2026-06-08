@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { ApiError } from '~/types/api'
+
 const filter = defineModel<string>('filter', { default: '' })
 
 const filesStore = useFilesStore()
 const uploadStore = useUploadStore()
 const modalStore = useModalStore()
+const notify = useNotify()
 const { t } = useI18n()
 
 const selectedCount = computed(() => filesStore.selected.size)
@@ -41,7 +44,12 @@ function onFilesSelected(event: Event) {
 async function downloadZip() {
   const dir = filesStore.currentPath.replace(/\/$/, '')
   const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
-  await filesStore.downloadZip(paths)
+  try {
+    await filesStore.downloadZip(paths)
+  }
+  catch (e) {
+    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+  }
 }
 </script>
 
@@ -95,6 +103,16 @@ async function downloadZip() {
         icon="i-lucide-upload"
         :aria-label="t('toolbar.upload')"
         @click="triggerUpload"
+      />
+    </UTooltip>
+    <UTooltip :text="t('shortcuts.title')">
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-keyboard"
+        :aria-label="t('shortcuts.title')"
+        @click="modalStore.open('shortcuts')"
       />
     </UTooltip>
 

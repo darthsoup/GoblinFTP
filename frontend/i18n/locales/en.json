@@ -115,13 +115,6 @@
     "keepEditing": "Keep editing"
   },
   "modal": {
-    "rename": {
-      "title": "Rename",
-      "label": "New name",
-      "confirm": "Rename",
-      "cancel": "Cancel",
-      "errorEmpty": "Please enter a name"
-    },
     "delete": {
       "title": "Delete",
       "message": "Delete \"{name}\"? This cannot be undone.",
@@ -172,6 +165,27 @@
   "error": {
     "connectionFailed": "Connection failed",
     "operationFailed": "Operation failed"
+  },
+  "toast": {
+    "folderCreated": "Folder created",
+    "fileCreated": "File created",
+    "renamed": "Renamed to {name}",
+    "deleted": "Deleted {n} item(s)",
+    "permissionsUpdated": "Permissions updated",
+    "downloadFailed": "Download failed"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "groupActions": "Actions",
+    "groupSelect": "Selection",
+    "groupNav": "Navigation",
+    "rename": "Rename selected",
+    "delete": "Delete selected",
+    "clear": "Clear selection",
+    "selectAll": "Select all",
+    "up": "Up a folder",
+    "back": "Back",
+    "forward": "Forward"
   },
   "sso": {
     "errorExpired": "Your SSO login link has expired. Please request a new one.",

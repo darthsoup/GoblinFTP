@@ -4,6 +4,7 @@ import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const authStore = useAuthStore()
+const notify = useNotify()
 const { t, locale } = useI18n()
 
 const file = computed(() => modalStore.context.file)
@@ -104,10 +105,16 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
   apiError.value = null
   try {
     // chmod first (targets the current name), then rename
-    if (permsChanged.value)
+    const didChmod = permsChanged.value
+    const didRename = nameChanged.value
+    if (didChmod)
       await filesStore.chmod(oldPath, Number.parseInt(event.data.octal.trim(), 8))
-    if (nameChanged.value)
+    if (didRename)
       await filesStore.rename(oldPath, `${dir}/${event.data.name.trim()}`)
+    if (didRename)
+      notify.success(t('toast.renamed', { name: event.data.name.trim() }))
+    if (didChmod)
+      notify.success(t('toast.permissionsUpdated'))
     modalStore.close()
   }
   catch (e) {

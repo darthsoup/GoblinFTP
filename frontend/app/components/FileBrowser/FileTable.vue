@@ -1,12 +1,43 @@
 <script setup lang="ts">
 import type { ButtonProps, ContextMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
+import { ApiError } from '~/types/api'
 
 const filesStore = useFilesStore()
 const modalStore = useModalStore()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+const notify = useNotify()
 const { t } = useI18n()
+
+async function onDownload(path: string) {
+  try {
+    await filesStore.downloadFile(path)
+  }
+  catch (e) {
+    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+  }
+}
+
+// Inline rename: commit (always exits edit mode; re-initiate to retry on error).
+async function onCommitRename(file: FileInfo, newName: string) {
+  const trimmed = newName.trim()
+  const dir = filesStore.currentPath.replace(/\/$/, '')
+  if (!trimmed || trimmed === file.name) {
+    filesStore.cancelRename()
+    return
+  }
+  try {
+    await filesStore.rename(`${dir}/${file.name}`, `${dir}/${trimmed}`)
+    notify.success(t('toast.renamed', { name: trimmed }))
+  }
+  catch (e) {
+    notify.error(e instanceof ApiError ? e.message : t('error.operationFailed'))
+  }
+  finally {
+    filesStore.cancelRename()
+  }
+}
 
 type SortKey = 'name' | 'size' | 'modified'
 // Tri-state: ascending → descending → off (null = server order)
@@ -70,6 +101,9 @@ const visibleFiles = computed(() => {
   return arr.filter(f => f.name.toLowerCase().includes(q))
 })
 
+// Browser-only keyboard shortcuts (select-all matches the visible/filtered set).
+useFileBrowserShortcuts(() => visibleFiles.value.map(f => f.name))
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 const emptyActions = computed<ButtonProps[]>(() => {
   if (filter.value) {
@@ -130,7 +164,7 @@ const menuItems = computed<ContextMenuItem[][]>(() => {
   const path = `${dir}/${file.name}`
 
   const middle: ContextMenuItem[] = [
-    { label: t('context.rename'), icon: 'i-lucide-pencil-line', onSelect: () => modalStore.open('rename', { file }) },
+    { label: t('context.rename'), icon: 'i-lucide-pencil-line', onSelect: () => filesStore.startRename(file.name) },
   ]
   if (editEnabled.value(file)) {
     middle.push({
@@ -142,7 +176,7 @@ const menuItems = computed<ContextMenuItem[][]>(() => {
   middle.push({ label: t('context.properties'), icon: 'i-lucide-info', onSelect: () => modalStore.open('properties', { file }) })
 
   return [
-    [{ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => filesStore.downloadFile(path) }],
+    [{ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) }],
     middle,
     [{ label: t('context.delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => modalStore.open('delete', { file }) }],
   ]
@@ -286,9 +320,13 @@ function onDrop(e: DragEvent) {
               :file="file"
               :selected="filesStore.selected.has(file.name)"
               :current-path="filesStore.currentPath"
+              :editing="filesStore.editingName === file.name"
               @select="filesStore.toggleSelection"
               @navigate="filesStore.navigate"
-              @download="filesStore.downloadFile"
+              @download="onDownload"
+              @request-rename="filesStore.startRename(file.name)"
+              @cancel-rename="filesStore.cancelRename"
+              @commit-rename="(name: string) => onCommitRename(file, name)"
             />
           </tbody>
         </table>

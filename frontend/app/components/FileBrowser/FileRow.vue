@@ -5,18 +5,66 @@ const props = defineProps<{
   file: FileInfo
   selected: boolean
   currentPath: string
+  editing: boolean
 }>()
 
 const emit = defineEmits<{
   select: [name: string]
   navigate: [path: string]
   download: [path: string]
+  commitRename: [newName: string]
+  cancelRename: []
+  requestRename: []
 }>()
 
 const { locale } = useI18n()
 const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
+
+// ── Inline rename ─────────────────────────────────────────────────────────────
+const inputRef = ref<HTMLInputElement | null>(null)
+const draft = ref('')
+// Dedupes the trailing blur fired when the input unmounts after Enter/Esc.
+let done = false
+
+watch(() => props.editing, (editing) => {
+  if (!editing)
+    return
+  draft.value = props.file.name
+  done = false
+  nextTick(() => {
+    const el = inputRef.value
+    if (!el)
+      return
+    el.focus()
+    // Select the base name (before the extension) like a desktop file manager.
+    const dot = props.file.name.lastIndexOf('.')
+    if (dot > 0)
+      el.setSelectionRange(0, dot)
+    else
+      el.select()
+  })
+})
+
+function commit() {
+  if (done)
+    return
+  done = true
+  emit('commitRename', draft.value)
+}
+
+function cancel() {
+  if (done)
+    return
+  done = true
+  emit('cancelRename')
+}
+
+function onNameDblClick() {
+  if (!props.file.isDir)
+    emit('requestRename')
+}
 
 function formatSize(bytes: number): string {
   if (props.file.isDir)
@@ -70,7 +118,21 @@ function handleDownload() {
       />
     </td>
     <td class="px-3 truncate max-w-0">
-      <span :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'">{{ file.name }}</span>
+      <input
+        v-if="editing"
+        ref="inputRef"
+        v-model="draft"
+        class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
+        @click.stop
+        @keydown.enter.prevent="commit"
+        @keydown.escape.prevent="cancel"
+        @blur="commit"
+      >
+      <span
+        v-else
+        :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+        @dblclick.stop="onNameDblClick"
+      >{{ file.name }}</span>
     </td>
     <td class="w-24 px-3 text-right text-muted whitespace-nowrap">
       {{ formatSize(file.size) }}

@@ -115,13 +115,6 @@
     "keepEditing": "Weiter bearbeiten"
   },
   "modal": {
-    "rename": {
-      "title": "Umbenennen",
-      "label": "Neuer Name",
-      "confirm": "Umbenennen",
-      "cancel": "Abbrechen",
-      "errorEmpty": "Bitte einen Namen eingeben"
-    },
     "delete": {
       "title": "Löschen",
       "message": "\"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
@@ -172,6 +165,27 @@
   "error": {
     "connectionFailed": "Verbindung fehlgeschlagen",
     "operationFailed": "Vorgang fehlgeschlagen"
+  },
+  "toast": {
+    "folderCreated": "Ordner erstellt",
+    "fileCreated": "Datei erstellt",
+    "renamed": "Umbenannt in {name}",
+    "deleted": "{n} Element(e) gelöscht",
+    "permissionsUpdated": "Berechtigungen aktualisiert",
+    "downloadFailed": "Download fehlgeschlagen"
+  },
+  "shortcuts": {
+    "title": "Tastenkürzel",
+    "groupActions": "Aktionen",
+    "groupSelect": "Auswahl",
+    "groupNav": "Navigation",
+    "rename": "Auswahl umbenennen",
+    "delete": "Auswahl löschen",
+    "clear": "Auswahl aufheben",
+    "selectAll": "Alle auswählen",
+    "up": "Eine Ebene höher",
+    "back": "Zurück",
+    "forward": "Vor"
   },
   "sso": {
     "errorExpired": "Dein SSO-Login-Link ist abgelaufen. Bitte fordere einen neuen an.",

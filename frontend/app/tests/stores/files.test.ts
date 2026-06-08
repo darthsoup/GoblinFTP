@@ -31,4 +31,21 @@ describe('useFilesStore', () => {
     store.toggleSelection('a.txt')
     expect(store.selected.has('a.txt')).toBe(false)
   })
+
+  it('startRename/cancelRename track the in-place edit target', () => {
+    const store = useFilesStore()
+    expect(store.editingName).toBeNull()
+    store.startRename('a.txt')
+    expect(store.editingName).toBe('a.txt')
+    store.cancelRename()
+    expect(store.editingName).toBeNull()
+  })
+
+  it('listing clears any in-progress rename', async () => {
+    mockApi.get.mockResolvedValue([])
+    const store = useFilesStore()
+    store.startRename('a.txt')
+    await store.list('/home')
+    expect(store.editingName).toBeNull()
+  })
 })

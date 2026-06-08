@@ -3,6 +3,7 @@ import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
+const notify = useNotify()
 const { t } = useI18n()
 
 const open = computed({
@@ -38,6 +39,7 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
   apiError.value = null
   try {
     await filesStore.mkdir(`${dir}/${event.data.name.trim()}`)
+    notify.success(t('toast.folderCreated'))
     modalStore.close()
   }
   catch (e) {

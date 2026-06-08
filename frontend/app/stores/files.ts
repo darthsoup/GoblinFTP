@@ -8,6 +8,8 @@ export const useFilesStore = defineStore('files', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selected = ref<Set<string>>(new Set())
+  // Name of the file currently being renamed in place (null = none)
+  const editingName = ref<string | null>(null)
 
   // Navigation history (back/forward) — only `navigate()` pushes entries
   const history = ref<string[]>([])
@@ -20,6 +22,7 @@ export const useFilesStore = defineStore('files', () => {
     const target = path ?? currentPath.value
     loading.value = true
     error.value = null
+    editingName.value = null
     try {
       const result = await api.get<FileInfo[]>(`/api/files?path=${encodeURIComponent(target)}`)
       files.value = result
@@ -98,6 +101,14 @@ export const useFilesStore = defineStore('files', () => {
     selected.value = new Set(names)
   }
 
+  function startRename(name: string) {
+    editingName.value = name
+  }
+
+  function cancelRename() {
+    editingName.value = null
+  }
+
   async function rename(from: string, to: string): Promise<void> {
     const api = useApi()
     await api.patch('/api/files/rename', { from, to })
@@ -157,6 +168,7 @@ export const useFilesStore = defineStore('files', () => {
     loading.value = false
     error.value = null
     selected.value = new Set()
+    editingName.value = null
     history.value = []
     historyIndex.value = -1
   }
@@ -178,6 +190,7 @@ export const useFilesStore = defineStore('files', () => {
     loading,
     error,
     selected,
+    editingName,
     pathSegments,
     canGoBack,
     canGoForward,
@@ -190,6 +203,8 @@ export const useFilesStore = defineStore('files', () => {
     toggleSelection,
     clearSelection,
     setSelection,
+    startRename,
+    cancelRename,
     rename,
     deleteFiles,
     mkdir,

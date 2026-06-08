@@ -36,7 +36,6 @@ watch(() => authStore.connected, (connected) => {
     <slot />
 
     <!-- Global overlays (each renders only when its modalStore state is active) -->
-    <RenameModal />
     <DeleteModal />
     <NewFolderModal />
     <NewFileModal />
@@ -44,5 +43,6 @@ watch(() => authStore.connected, (connected) => {
     <SettingsModal />
     <SessionExpiredModal />
     <ConfirmModal />
+    <ShortcutsModal />
   </div>
 </template>

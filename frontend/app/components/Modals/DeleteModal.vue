@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
+const notify = useNotify()
 const { t } = useI18n()
 
 const open = computed({
@@ -42,7 +43,9 @@ async function confirm() {
   loading.value = true
   apiError.value = null
   try {
+    const n = paths.value.length
     await filesStore.deleteFiles(paths.value)
+    notify.success(t('toast.deleted', { n }))
     modalStore.close()
   }
   catch (e) {
