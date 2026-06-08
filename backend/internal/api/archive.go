@@ -36,10 +36,11 @@ func safeJoin(destination, name string) (string, error) {
 
 // ExtractArchive extracts an uploaded archive (zip/tar/tar.gz/tar.bz2) to a remote destination.
 func (h *Handler) ExtractArchive(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	destination := c.FormValue("destination")
 	if destination == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "destination is required"))
@@ -147,10 +148,11 @@ func extractTar(client transfer.Client, tr *tar.Reader, destination string) erro
 
 // CreateZip downloads the given remote paths and uploads a new zip to destination.
 func (h *Handler) CreateZip(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		Paths       []string `json:"paths"`
 		Destination string   `json:"destination"`

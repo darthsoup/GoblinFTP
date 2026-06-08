@@ -119,7 +119,7 @@ func TestCSRFMiddlewareBlocksMutatingRequestsWithoutToken(t *testing.T) {
 
 	csrfToken, err := auth.GenerateCSRFToken()
 	assert.NoError(t, err)
-	sess.Data[auth.CSRFSessionKey] = csrfToken
+	sess.Set(auth.CSRFSessionKey, csrfToken)
 
 	// POST without X-CSRF-Token header
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/disconnect", strings.NewReader("{}"))
@@ -140,7 +140,7 @@ func TestCSRFMiddlewareAllowsMutatingRequestsWithValidToken(t *testing.T) {
 
 	csrfToken, err := auth.GenerateCSRFToken()
 	assert.NoError(t, err)
-	sess.Data[auth.CSRFSessionKey] = csrfToken
+	sess.Set(auth.CSRFSessionKey, csrfToken)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/disconnect", strings.NewReader("{}"))
 	req.Header.Set("Content-Type", "application/json")

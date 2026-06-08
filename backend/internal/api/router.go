@@ -123,7 +123,7 @@ func csrfMiddleware(store *auth.Store) echo.MiddlewareFunc {
 			if !ok {
 				return Fail(c, gftperrors.New(gftperrors.ErrCSRFInvalid, "invalid or expired session"))
 			}
-			storedToken, _ := sess.Data[auth.CSRFSessionKey].(string)
+			storedToken := sess.GetString(auth.CSRFSessionKey)
 			headerToken := c.Request().Header.Get(auth.CSRFHeaderName)
 			if !auth.ValidateCSRFToken(storedToken, headerToken) {
 				return Fail(c, gftperrors.New(gftperrors.ErrCSRFInvalid, "CSRF token mismatch"))

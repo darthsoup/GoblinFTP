@@ -8,11 +8,101 @@ import (
 )
 
 // Session holds per-connection state for an authenticated user.
+//
+// A single *Session is shared across every concurrent HTTP handler for that
+// session, so its maps must never be touched directly — all access goes through
+// the accessor methods, which hold mu. (mu guards data and uploads; ExpiresAt is
+// guarded by the owning Store's mutex.) A concurrent read+write on a bare Go map
+// is an unrecoverable runtime fatal, so this is a correctness requirement, not an
+// optimisation.
+//
+// transferMu is a SEPARATE lock that serializes use of the one underlying
+// transfer.Client: a single FTP control connection cannot service two data
+// transfers at once (and jlaffaye/ftp's ServerConn is explicitly not safe for
+// concurrent use), so handlers hold it around client I/O. Never acquire mu while
+// holding transferMu in a way that nests inversely — the accessor methods always
+// release mu before returning, so transferMu→mu is the only ordering that occurs.
 type Session struct {
 	ID        string
-	Data      map[string]interface{}
 	ExpiresAt time.Time
+
+	mu      sync.RWMutex
+	data    map[string]any
+	uploads map[string]any
+
+	transferMu sync.Mutex
 }
+
+// Get returns the value stored under key, and whether it was present.
+func (s *Session) Get(key string) (any, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.data[key]
+	return v, ok
+}
+
+// GetString returns the string stored under key, or "" if absent / not a string.
+func (s *Session) GetString(key string) string {
+	v, _ := s.Get(key)
+	str, _ := v.(string)
+	return str
+}
+
+// Set stores val under key.
+func (s *Session) Set(key string, val any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data[key] = val
+}
+
+// Delete removes key from the session.
+func (s *Session) Delete(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.data, key)
+}
+
+// PutUpload registers in-progress chunked-upload metadata under id. The uploads
+// map is kept separate from data so reserve/commit handlers can mutate it under
+// the same lock without a check-then-act race on the shared inner map.
+func (s *Session) PutUpload(id string, meta any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.uploads == nil {
+		s.uploads = make(map[string]any)
+	}
+	s.uploads[id] = meta
+}
+
+// GetUpload returns the upload metadata registered under id.
+func (s *Session) GetUpload(id string) (any, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.uploads[id]
+	return v, ok
+}
+
+// DeleteUpload removes the upload entry for id.
+func (s *Session) DeleteUpload(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.uploads, id)
+}
+
+// LockTransfer acquires the per-session transfer lock. Handlers hold it around
+// every operation on the transfer.Client so concurrent requests never interleave
+// two data transfers on the one control connection. Pair with UnlockTransfer
+// (typically via defer).
+func (s *Session) LockTransfer() { s.transferMu.Lock() }
+
+// UnlockTransfer releases the transfer lock.
+func (s *Session) UnlockTransfer() { s.transferMu.Unlock() }
+
+// TryLockTransfer reports whether the transfer lock was acquired without
+// blocking. The liveness ping uses it: a transfer already in flight is itself
+// proof the connection is alive, so the ping is skipped rather than queued behind
+// (and corrupting) the in-flight transfer.
+func (s *Session) TryLockTransfer() bool { return s.transferMu.TryLock() }
 
 // Store is a thread-safe in-memory session store with TTL-based expiry.
 type Store struct {
@@ -42,7 +132,7 @@ func (s *Store) New() (*Session, error) {
 
 	sess := &Session{
 		ID:        id,
-		Data:      make(map[string]interface{}),
+		data:      make(map[string]any),
 		ExpiresAt: time.Now().Add(s.ttl),
 	}
 

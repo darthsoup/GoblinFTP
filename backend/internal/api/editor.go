@@ -34,10 +34,11 @@ type writeFileRequest struct {
 // ReadFile handles GET /api/files/read?path=<remote-path>
 // Returns { content: string, path: string } for text files up to 1 MB.
 func (h *Handler) ReadFile(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no active connection"))
 	}
+	defer release()
 
 	path := c.QueryParam("path")
 	if path == "" {
@@ -72,10 +73,11 @@ func (h *Handler) ReadFile(c echo.Context) error {
 
 // WriteFile handles POST /api/files/write.
 func (h *Handler) WriteFile(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no active connection"))
 	}
+	defer release()
 
 	if h.cfg.Settings.Editor.ViewOnly {
 		return Fail(c, gftperrors.New(gftperrors.ErrEditorDisabled, "editor is in view-only mode"))

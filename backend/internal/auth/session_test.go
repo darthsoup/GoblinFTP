@@ -18,7 +18,6 @@ func TestNewSession(t *testing.T) {
 	sess, err := store.New()
 	require.NoError(t, err)
 	assert.NotEmpty(t, sess.ID)
-	assert.NotNil(t, sess.Data)
 	assert.True(t, sess.ExpiresAt.After(time.Now()))
 }
 
@@ -148,11 +147,12 @@ func TestSessionDataPersists(t *testing.T) {
 
 	sess, err := store.New()
 	require.NoError(t, err)
-	sess.Data["key"] = "value"
+	sess.Set("key", "value")
 
 	got, ok := store.Get(sess.ID)
 	require.True(t, ok)
-	assert.Equal(t, "value", got.Data["key"])
+	gotVal, _ := got.Get("key")
+	assert.Equal(t, "value", gotVal)
 }
 
 func TestCountReturnsLiveSessions(t *testing.T) {

@@ -283,7 +283,11 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 		cfg.ChunkSize = n
 	}
 
-	cfg.MaxConcurrentUploads = 3
+	// Default 1: a single FTP/SFTP control connection serves one data transfer
+	// at a time (the per-session transfer lock serializes them anyway), so
+	// concurrency >1 buys no throughput on one connection and only queues on the
+	// lock. Operators can still raise GFTP_MAX_CONCURRENT_UPLOADS.
+	cfg.MaxConcurrentUploads = 1
 	if raw := os.Getenv("GFTP_MAX_CONCURRENT_UPLOADS"); raw != "" {
 		n, err := strconv.Atoi(raw)
 		if err != nil {

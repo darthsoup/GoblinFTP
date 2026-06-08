@@ -25,10 +25,11 @@ func stagingError(err error, fallback gftperrors.Code, msg string) *gftperrors.G
 }
 
 func (h *Handler) UploadSimple(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	remotePath := c.FormValue("path")
 	if remotePath == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
@@ -68,9 +69,7 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 	if err != nil {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to reserve upload"))
 	}
-	uploads := getUploadsMap(sess)
-	uploads[meta.ID] = meta
-	sess.Data[transfer.SessionUploadsKey] = uploads
+	sess.PutUpload(meta.ID, meta)
 	return OK(c, map[string]string{"uploadId": meta.ID})
 }
 
@@ -88,8 +87,11 @@ func (h *Handler) UploadChunk(c echo.Context) error {
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid chunkIndex"))
 	}
-	uploads := getUploadsMap(sess)
-	meta, ok := uploads[uploadID]
+	metaVal, ok := sess.GetUpload(uploadID)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
+	}
+	meta, ok := metaVal.(*transfer.UploadMeta)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
 	}
@@ -116,18 +118,22 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active session"))
 	}
-	client, clientOk := clientFromContext(c)
-	if !clientOk {
+	client, release, ok := lockedClient(c)
+	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		UploadID string `json:"uploadId"`
 	}
 	if err := c.Bind(&req); err != nil || req.UploadID == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "uploadId is required"))
 	}
-	uploads := getUploadsMap(sess)
-	meta, ok := uploads[req.UploadID]
+	metaVal, ok := sess.GetUpload(req.UploadID)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
+	}
+	meta, ok := metaVal.(*transfer.UploadMeta)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
 	}
@@ -142,24 +148,10 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		// The frontend never retries a failed commit, so the staged chunks
 		// are unreachable — clean them up instead of leaving them behind.
 		_ = h.chunks.Cleanup(ctx, meta.ID)
-		delete(uploads, req.UploadID)
-		sess.Data[transfer.SessionUploadsKey] = uploads
+		sess.DeleteUpload(req.UploadID)
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	_ = h.chunks.Cleanup(ctx, meta.ID)
-	delete(uploads, req.UploadID)
-	sess.Data[transfer.SessionUploadsKey] = uploads
+	sess.DeleteUpload(req.UploadID)
 	return OK(c, nil)
-}
-
-// NOTE: Session.Data is not protected by a mutex. Concurrent requests
-// to the same session's upload endpoints may race. This is acceptable
-// for the typical single-user FTP client use case.
-func getUploadsMap(sess *auth.Session) map[string]*transfer.UploadMeta {
-	if m, ok := sess.Data[transfer.SessionUploadsKey]; ok {
-		if uploads, ok := m.(map[string]*transfer.UploadMeta); ok {
-			return uploads
-		}
-	}
-	return make(map[string]*transfer.UploadMeta)
 }

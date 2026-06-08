@@ -103,8 +103,10 @@ func (h *Handler) connectionSnapshot() metrics.Snapshot {
 	snap := metrics.Snapshot{ConnsByProtocol: map[string]int{"ftp": 0, "sftp": 0}}
 	h.store.Range(func(sess *auth.Session) {
 		snap.Sessions++
-		if _, hasClient := sess.Data["client"].(transfer.Client); hasClient {
-			if proto, _ := sess.Data["protocol"].(string); proto == "ftp" || proto == "sftp" {
+		// "client" is only ever set to a live transfer.Client (and deleted on
+		// disconnect / connection loss), so key presence == has a connection.
+		if _, hasClient := sess.Get("client"); hasClient {
+			if proto := sess.GetString("protocol"); proto == "ftp" || proto == "sftp" {
 				snap.ConnsByProtocol[proto]++
 			}
 		}
@@ -118,7 +120,7 @@ func protocolFromSession(sess *auth.Session) string {
 	if sess == nil {
 		return "unknown"
 	}
-	if p, ok := sess.Data["protocol"].(string); ok && (p == "ftp" || p == "sftp") {
+	if p := sess.GetString("protocol"); p == "ftp" || p == "sftp" {
 		return p
 	}
 	return "unknown"

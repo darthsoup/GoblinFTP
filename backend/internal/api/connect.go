@@ -106,14 +106,14 @@ func (h *Handler) Connect(c echo.Context) error {
 		_ = client.Close()
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session").WithCause(sessErr))
 	}
-	sess.Data["client"] = client
-	sess.Data[auth.CSRFSessionKey] = csrfToken
-	sess.Data["initialDir"] = initialDir
-	sess.Data["disableChmod"] = disableChmod
+	sess.Set("client", client)
+	sess.Set(auth.CSRFSessionKey, csrfToken)
+	sess.Set("initialDir", initialDir)
+	sess.Set("disableChmod", disableChmod)
 	// For access-log and metrics enrichment only — never the password.
-	sess.Data["username"] = req.Username
-	sess.Data["host"] = addr
-	sess.Data["protocol"] = req.Protocol
+	sess.Set("username", req.Username)
+	sess.Set("host", addr)
+	sess.Set("protocol", req.Protocol)
 
 	h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "success").Inc()
 
@@ -139,8 +139,14 @@ func (h *Handler) Connect(c echo.Context) error {
 // Requires a valid session (enforced by requireSession middleware in router.go).
 func (h *Handler) Disconnect(c echo.Context) error {
 	sess := c.Get("session").(*auth.Session)
-	if client, ok := sess.Data["client"].(transfer.Client); ok {
-		_ = client.Close()
+	if client, ok := sess.Get("client"); ok {
+		if c, ok := client.(transfer.Client); ok {
+			// Hold the transfer lock so a disconnect can't close the connection
+			// out from under an in-flight transfer mid-data-stream.
+			sess.LockTransfer()
+			_ = c.Close()
+			sess.UnlockTransfer()
+		}
 	}
 	h.store.Delete(sess.ID)
 	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments

@@ -176,7 +176,7 @@ func TestDisconnect(t *testing.T) {
 	require.NoError(t, err)
 	csrfToken, err := auth.GenerateCSRFToken()
 	require.NoError(t, err)
-	sess.Data[auth.CSRFSessionKey] = csrfToken
+	sess.Set(auth.CSRFSessionKey, csrfToken)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/disconnect", strings.NewReader("{}"))
 	req.Header.Set("Content-Type", "application/json")

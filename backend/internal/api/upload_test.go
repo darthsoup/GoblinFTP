@@ -11,7 +11,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -276,6 +278,111 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	app.ServeHTTP(retryRec, retryReq)
 	assert.Equal(t, http.StatusNotFound, retryRec.Code)
 	assert.Contains(t, retryRec.Body.String(), "ERR_UPLOAD_NOT_FOUND")
+}
+
+func doJSON(app http.Handler, sess sessionCtx, method, path, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+	return rec
+}
+
+// driveChunkedUpload runs reserve→chunk→commit without any t.Fatal/require, so
+// it is safe to call from worker goroutines; it reports the first failure.
+func driveChunkedUpload(app http.Handler, sess sessionCtx, dest string, chunks []string) error {
+	reserveBody := fmt.Sprintf(`{"path":%q,"totalChunks":%d,"totalSize":10,"chunkSize":5}`, dest, len(chunks))
+	rrec := doJSON(app, sess, http.MethodPost, "/api/files/upload/reserve", reserveBody)
+	if rrec.Code != http.StatusOK {
+		return fmt.Errorf("reserve: %d %s", rrec.Code, rrec.Body.String())
+	}
+	var rr struct {
+		Data struct {
+			UploadID string `json:"uploadId"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rrec.Body.Bytes(), &rr); err != nil {
+		return err
+	}
+	for n, data := range chunks {
+		body := &bytes.Buffer{}
+		w := multipart.NewWriter(body)
+		_ = w.WriteField("uploadId", rr.Data.UploadID)
+		_ = w.WriteField("chunkIndex", fmt.Sprintf("%d", n))
+		part, _ := w.CreateFormFile("chunk", "chunk")
+		_, _ = io.WriteString(part, data)
+		w.Close()
+		req := httptest.NewRequest(http.MethodPost, "/api/files/upload/chunk", body)
+		req.Header.Set("Content-Type", w.FormDataContentType())
+		addSession(req, sess)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			return fmt.Errorf("chunk %d: %d %s", n, rec.Code, rec.Body.String())
+		}
+	}
+	crec := doJSON(app, sess, http.MethodPost, "/api/files/upload/commit", fmt.Sprintf(`{"uploadId":%q}`, rr.Data.UploadID))
+	if crec.Code != http.StatusOK {
+		return fmt.Errorf("commit: %d %s", crec.Code, crec.Body.String())
+	}
+	return nil
+}
+
+// TestConcurrentSessionUploadsNoRace fires many upload pipelines and a directory
+// read concurrently on ONE session. Before auth.Session got its mutex this raced
+// its bare maps and crashed the whole process with an unrecoverable "concurrent
+// map read and map write" fatal — which is why a browser reload never recovered.
+// It must now run clean under `go test -race`, and the per-session transfer lock
+// must keep transfers on the single control connection strictly serialized.
+func TestConcurrentSessionUploadsNoRace(t *testing.T) {
+	var inFlight, maxInFlight atomic.Int32
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ListFn:       func(string) ([]transfer.FileInfo, error) { return nil, nil },
+		UploadFn: func(_ string, r io.Reader) error {
+			n := inFlight.Add(1)
+			for {
+				m := maxInFlight.Load()
+				if n <= m || maxInFlight.CompareAndSwap(m, n) {
+					break
+				}
+			}
+			time.Sleep(time.Millisecond) // widen the window so missing serialization would show up
+			_, _ = io.ReadAll(r)
+			inFlight.Add(-1)
+			return nil
+		},
+	}
+	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn), api.WithChunkStore(newMemChunkStore()))
+	sess := connectAndGetSession(t, app)
+
+	const workers = 8
+	errs := make(chan error, workers)
+	var wg sync.WaitGroup
+	for i := range workers {
+		wg.Add(2)
+		go func(i int) {
+			defer wg.Done()
+			errs <- driveChunkedUpload(app, sess, fmt.Sprintf("/big-%d.bin", i), []string{"hello", "world"})
+		}(i)
+		go func() {
+			defer wg.Done()
+			// Concurrent reader: ListFiles reads the session via middleware and
+			// handler while the upload handlers write to it.
+			req := httptest.NewRequest(http.MethodGet, "/api/files?path=/", nil)
+			addSession(req, sess)
+			app.ServeHTTP(httptest.NewRecorder(), req)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		assert.NoError(t, err)
+	}
+	assert.LessOrEqual(t, maxInFlight.Load(), int32(1),
+		"per-session transfer lock must serialize transfers on the single control connection")
 }
 
 func TestUploadChunkStorageUnavailable(t *testing.T) {

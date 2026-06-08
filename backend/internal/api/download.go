@@ -65,10 +65,18 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "session not found"))
 	}
-	client, ok := sess.Data["client"].(transfer.Client)
+	clientVal, ok := sess.Get("client")
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	client, ok := clientVal.(transfer.Client)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
+	}
+	// Serialize against other transfers on this session's single control
+	// connection for the whole streamed download.
+	sess.LockTransfer()
+	defer sess.UnlockTransfer()
 	r, err := client.Download(filePath)
 	if err != nil {
 		return failClient(c, gftperrors.ErrFileNotFound, err)
@@ -89,10 +97,11 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 // being unable to report errors partway through the stream.
 // Reuses addToZip from archive.go (same package).
 func (h *Handler) DownloadZip(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		Paths []string `json:"paths"`
 	}

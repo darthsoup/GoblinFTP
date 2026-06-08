@@ -40,7 +40,7 @@ func TestLoadDefaults(t *testing.T) {
 	assert.NotEmpty(t, cfg.SessionSecret)
 	assert.NotEmpty(t, cfg.DownloadTokenSecret)
 	assert.Equal(t, int64(5*1024*1024), cfg.ChunkSize)
-	assert.Equal(t, 3, cfg.MaxConcurrentUploads)
+	assert.Equal(t, 1, cfg.MaxConcurrentUploads)
 	assert.Equal(t, 5, cfg.LoginMaxAttempts)
 	assert.Equal(t, 300, cfg.LoginCooldownSeconds)
 	assert.Equal(t, 7200, cfg.SessionTTLSeconds)

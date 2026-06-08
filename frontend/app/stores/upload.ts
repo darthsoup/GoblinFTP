@@ -22,9 +22,11 @@ export const useUploadStore = defineStore('upload', () => {
   const filesStore = useFilesStore()
 
   const chunkSize = computed(() => authStore.systemVars?.upload.chunkSize ?? 5 * 1024 * 1024)
-  // Default 1 concurrent upload: the backend session upload map is not mutex-protected,
-  // so parallel chunked uploads (reserve/chunk/commit) would race on session.Data.
-  // GFTP_MAX_CONCURRENT_UPLOADS can increase this when the backend is hardened.
+  // The backend serializes all transfers on a session's single control connection
+  // (per-session transfer lock) and guards its session state with a mutex, so any
+  // value here is safe. Default 1 because one FTP/SFTP connection transfers one
+  // file at a time; GFTP_MAX_CONCURRENT_UPLOADS can raise it, though uploads then
+  // queue on the backend transfer lock rather than truly running in parallel.
   const maxConcurrent = computed(() => authStore.systemVars?.upload.maxConcurrentUploads ?? 1)
 
   const hasActive = computed(() => items.value.some(i => i.status === 'queued' || i.status === 'uploading'))

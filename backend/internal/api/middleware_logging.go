@@ -48,10 +48,10 @@ func requestLogger(logger *slog.Logger) echo.MiddlewareFunc {
 				if len(sess.ID) >= 8 {
 					attrs = append(attrs, slog.String("session", sess.ID[:8]))
 				}
-				if user, ok := sess.Data["username"].(string); ok && user != "" {
+				if user := sess.GetString("username"); user != "" {
 					attrs = append(attrs, slog.String("user", user))
 				}
-				if host, ok := sess.Data["host"].(string); ok && host != "" {
+				if host := sess.GetString("host"); host != "" {
 					attrs = append(attrs, slog.String("host", host))
 				}
 			}

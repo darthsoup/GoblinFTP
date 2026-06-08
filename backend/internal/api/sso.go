@@ -75,14 +75,14 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 	if sessErr != nil {
 		return h.ssoReject(c, "internal", sessErr)
 	}
-	sess.Data[auth.CSRFSessionKey] = csrfToken
-	sess.Data[ssoPendingKey] = ConnectRequest{
+	sess.Set(auth.CSRFSessionKey, csrfToken)
+	sess.Set(ssoPendingKey, ConnectRequest{
 		Protocol: payload.Type,
 		Host:     payload.Host,
 		Port:     payload.Port,
 		Username: payload.Username,
 		Password: payload.Password,
-	}
+	})
 
 	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
 		Name:     SessionCookieName,
@@ -121,23 +121,35 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 	cookie, err := c.Cookie(SessionCookieName)
 	if err == nil {
 		if sess, ok := h.store.Get(cookie.Value); ok {
-			client, hasClient := sess.Data["client"].(transfer.Client)
+			clientVal, hasClient := sess.Get("client")
 			result.Connected = hasClient
-			if hasClient && c.QueryParam("ping") == "1" {
-				if pingErr := client.Ping(); pingErr != nil {
-					_ = client.Close()
-					delete(sess.Data, "client")
-					result.Connected = false
+			client, _ := clientVal.(transfer.Client)
+			if hasClient && client != nil && c.QueryParam("ping") == "1" {
+				// Only ping when no transfer is in flight: an active transfer is
+				// itself proof the connection is alive, and a NOOP injected mid
+				// data-stream would corrupt it. TryLock avoids blocking the
+				// session-checker behind a long upload/download.
+				if sess.TryLockTransfer() {
+					pingErr := client.Ping()
+					if pingErr != nil {
+						_ = client.Close()
+					}
+					sess.UnlockTransfer()
+					if pingErr != nil {
+						sess.Delete("client")
+						result.Connected = false
+					}
 				}
 			}
-			_, result.SSOAutoConnect = sess.Data[ssoPendingKey]
-			result.CSRFToken, _ = sess.Data[auth.CSRFSessionKey].(string)
+			_, result.SSOAutoConnect = sess.Get(ssoPendingKey)
+			result.CSRFToken = sess.GetString(auth.CSRFSessionKey)
 
 			// Connection context for SPA state restoration after a reload.
 			if result.Connected {
-				result.Host, _ = sess.Data["host"].(string)
-				result.InitialDirectory, _ = sess.Data["initialDir"].(string)
-				disableChmod, _ := sess.Data["disableChmod"].(bool)
+				result.Host = sess.GetString("host")
+				result.InitialDirectory = sess.GetString("initialDir")
+				disableChmodVal, _ := sess.Get("disableChmod")
+				disableChmod, _ := disableChmodVal.(bool)
 				result.Capabilities = &Capabilities{DisableChmod: disableChmod}
 			}
 		}
@@ -152,7 +164,11 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 func (h *Handler) SSOConnect(c echo.Context) error {
 	sess := c.Get("session").(*auth.Session)
 
-	pending, ok := sess.Data[ssoPendingKey].(ConnectRequest)
+	pendingVal, ok := sess.Get(ssoPendingKey)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no pending SSO connection"))
+	}
+	pending, ok := pendingVal.(ConnectRequest)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no pending SSO connection"))
 	}
@@ -180,18 +196,18 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 
 	disableChmod := detectChmod(client, pending.Protocol, initialDir)
 
-	sess.Data["client"] = client
-	sess.Data["initialDir"] = initialDir
-	sess.Data["disableChmod"] = disableChmod
+	sess.Set("client", client)
+	sess.Set("initialDir", initialDir)
+	sess.Set("disableChmod", disableChmod)
 	// For access-log and metrics enrichment only — never the password.
-	sess.Data["username"] = pending.Username
-	sess.Data["host"] = addr
-	sess.Data["protocol"] = pending.Protocol
-	delete(sess.Data, ssoPendingKey)
+	sess.Set("username", pending.Username)
+	sess.Set("host", addr)
+	sess.Set("protocol", pending.Protocol)
+	sess.Delete(ssoPendingKey)
 
 	h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "success").Inc()
 
-	csrfToken, _ := sess.Data[auth.CSRFSessionKey].(string)
+	csrfToken := sess.GetString(auth.CSRFSessionKey)
 
 	return OK(c, ConnectData{
 		Capabilities:     Capabilities{DisableChmod: disableChmod},

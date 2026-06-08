@@ -35,21 +35,42 @@ func toFileInfoJSON(fi transfer.FileInfo) fileInfoJSON {
 	}
 }
 
-// clientFromContext extracts the transfer.Client from the session stored by requireSession middleware.
-func clientFromContext(c echo.Context) (transfer.Client, bool) {
+// clientFromContext extracts the transfer.Client and its session from the
+// session stored by requireSession middleware.
+func clientFromContext(c echo.Context) (transfer.Client, *auth.Session, bool) {
 	sess, ok := c.Get("session").(*auth.Session)
 	if !ok {
-		return nil, false
+		return nil, nil, false
 	}
-	client, ok := sess.Data["client"].(transfer.Client)
-	return client, ok
+	v, ok := sess.Get("client")
+	if !ok {
+		return nil, sess, false
+	}
+	client, ok := v.(transfer.Client)
+	return client, sess, ok
+}
+
+// lockedClient returns the session's transfer client with the per-session
+// transfer lock HELD, plus a release func the caller MUST defer. Only one client
+// operation runs at a time per session, so concurrent requests never interleave
+// two data transfers on the single FTP/SFTP control connection (jlaffaye/ftp's
+// ServerConn is not safe for concurrent use). Returns (nil, nil, false) when
+// there is no active connection, in which case the lock is not taken.
+func lockedClient(c echo.Context) (transfer.Client, func(), bool) {
+	client, sess, ok := clientFromContext(c)
+	if !ok {
+		return nil, nil, false
+	}
+	sess.LockTransfer()
+	return client, sess.UnlockTransfer, true
 }
 
 func (h *Handler) ListFiles(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	path := c.QueryParam("path")
 	if path == "" {
 		path = "/"
@@ -66,10 +87,11 @@ func (h *Handler) ListFiles(c echo.Context) error {
 }
 
 func (h *Handler) CreateDirectory(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		Path string `json:"path"`
 	}
@@ -93,10 +115,11 @@ type deleteFailed struct {
 }
 
 func (h *Handler) DeleteFiles(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		Paths []string `json:"paths"`
 	}
@@ -121,10 +144,11 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 }
 
 func (h *Handler) RenameFile(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		From string `json:"from"`
 		To   string `json:"to"`
@@ -139,10 +163,11 @@ func (h *Handler) RenameFile(c echo.Context) error {
 }
 
 func (h *Handler) CopyFile(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		From string `json:"from"`
 		To   string `json:"to"`
@@ -215,10 +240,11 @@ func copyFile(client transfer.Client, src, dst string) error {
 }
 
 func (h *Handler) SetPermissions(c echo.Context) error {
-	client, ok := clientFromContext(c)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	defer release()
 	var req struct {
 		Path string  `json:"path"`
 		Mode *uint32 `json:"mode"`

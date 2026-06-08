@@ -22,8 +22,6 @@ func ValidateUploadID(id string) error {
 	return nil
 }
 
-const SessionUploadsKey = "uploads"
-
 // UploadMeta tracks the state of an in-progress chunked upload.
 type UploadMeta struct {
 	ID             string

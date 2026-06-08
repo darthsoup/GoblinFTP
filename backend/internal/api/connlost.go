@@ -38,9 +38,14 @@ func isConnLost(err error) bool {
 func failClient(c echo.Context, code gftperrors.Code, err error) error {
 	if isConnLost(err) {
 		if sess, ok := c.Get("session").(*auth.Session); ok {
-			if client, ok := sess.Data["client"].(transfer.Client); ok {
-				_ = client.Close()
-				delete(sess.Data, "client")
+			// failClient runs inside a handler that already holds the transfer
+			// lock, so this Close is serialized with the in-flight transfer; we
+			// must not re-acquire it here (it is non-reentrant).
+			if clientVal, ok := sess.Get("client"); ok {
+				if client, ok := clientVal.(transfer.Client); ok {
+					_ = client.Close()
+					sess.Delete("client")
+				}
 			}
 		}
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionLost, "connection to the server was lost").WithCause(err))
