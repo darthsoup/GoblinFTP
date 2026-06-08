@@ -8,9 +8,9 @@ export default defineAppConfig({
     // divide-y from the modal theme draws the separators.
     modal: {
       slots: {
-        content: 'min-w-96',
+        content: 'w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:w-auto sm:min-w-96 sm:max-w-lg',
         header: 'px-4 py-3 sm:px-4 min-h-0 bg-elevated/60',
-        body: 'p-5 sm:p-5',
+        body: 'p-4 sm:p-5',
         footer: 'px-4 py-3 sm:px-4 bg-elevated/60 justify-end',
         title: 'text-base flex items-center gap-2',
         close: 'top-2.5 end-3',

@@ -6,10 +6,15 @@ const filter = defineModel<string>('filter', { default: '' })
 const filesStore = useFilesStore()
 const uploadStore = useUploadStore()
 const modalStore = useModalStore()
+const settingsStore = useSettingsStore()
 const notify = useNotify()
 const { t } = useI18n()
 
 const selectedCount = computed(() => filesStore.selected.size)
+
+function toggleView() {
+  settingsStore.fileViewMode = settingsStore.fileViewMode === 'table' ? 'cards' : 'table'
+}
 
 // Hidden file input ref
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -122,7 +127,18 @@ const paste = usePaste()
         variant="ghost"
         icon="i-lucide-keyboard"
         :aria-label="t('shortcuts.title')"
+        class="hidden sm:inline-flex"
         @click="modalStore.open('shortcuts')"
+      />
+    </UTooltip>
+    <UTooltip :text="t('toolbar.viewToggle')">
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="ghost"
+        :icon="settingsStore.fileViewMode === 'table' ? 'i-lucide-layout-grid' : 'i-lucide-table'"
+        :aria-label="t('toolbar.viewToggle')"
+        @click="toggleView"
       />
     </UTooltip>
 
@@ -189,7 +205,7 @@ const paste = usePaste()
       size="sm"
       icon="i-lucide-search"
       :placeholder="t('toolbar.filter')"
-      class="w-44 md:w-56 font-mono"
+      class="w-full sm:w-44 md:w-56 font-mono"
     />
   </div>
 </template>

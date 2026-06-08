@@ -25,44 +25,13 @@ const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
 
-// ── Inline rename ─────────────────────────────────────────────────────────────
-const inputRef = ref<HTMLInputElement | null>(null)
-const draft = ref('')
-// Dedupes the trailing blur fired when the input unmounts after Enter/Esc.
-let done = false
-
-watch(() => props.editing, (editing) => {
-  if (!editing)
-    return
-  draft.value = props.file.name
-  done = false
-  nextTick(() => {
-    const el = inputRef.value
-    if (!el)
-      return
-    el.focus()
-    // Select the base name (before the extension) like a desktop file manager.
-    const dot = props.file.name.lastIndexOf('.')
-    if (dot > 0)
-      el.setSelectionRange(0, dot)
-    else
-      el.select()
-  })
+// Inline rename behaviour is shared with FileCard.
+const { inputRef, draft, commit, cancel } = useInlineRename({
+  editing: () => props.editing,
+  name: () => props.file.name,
+  onCommit: name => emit('commitRename', name),
+  onCancel: () => emit('cancelRename'),
 })
-
-function commit() {
-  if (done)
-    return
-  done = true
-  emit('commitRename', draft.value)
-}
-
-function cancel() {
-  if (done)
-    return
-  done = true
-  emit('cancelRename')
-}
 
 function onNameDblClick() {
   if (!props.file.isDir)
@@ -140,10 +109,10 @@ function handleDownload() {
         @dblclick.stop="onNameDblClick"
       >{{ file.name }}</span>
     </td>
-    <td class="w-24 px-3 text-right text-muted whitespace-nowrap">
+    <td class="w-24 px-3 text-right text-muted whitespace-nowrap hidden sm:table-cell">
       {{ formatSize(file.size) }}
     </td>
-    <td class="w-40 px-3 text-right text-muted whitespace-nowrap">
+    <td class="w-40 px-3 text-right text-muted whitespace-nowrap hidden md:table-cell">
       {{ formatDate(file.modified) }}
     </td>
     <td class="w-28 px-3 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">

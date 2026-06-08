@@ -63,7 +63,8 @@
     "empty": "Dieses Verzeichnis ist leer",
     "noMatches": "Keine Dateien entsprechen dem Filter",
     "clearFilter": "Filter zurücksetzen",
-    "dropToUpload": "Dateien zum Hochladen ablegen"
+    "dropToUpload": "Dateien zum Hochladen ablegen",
+    "retry": "Erneut versuchen"
   },
   "toolbar": {
     "newFolder": "Neuer Ordner",
@@ -72,6 +73,7 @@
     "refresh": "Aktualisieren",
     "filter": "Dateien filtern...",
     "downloadZip": "ZIP herunterladen",
+    "viewToggle": "Tabellen-/Kartenansicht umschalten",
     "copy": "Kopieren",
     "cut": "Ausschneiden",
     "paste": "Einfügen ({n})",

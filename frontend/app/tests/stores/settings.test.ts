@@ -60,6 +60,17 @@ describe('useSettingsStore', () => {
     expect(store.dateFormat).toBe('relative')
   })
 
+  it('persists the file view mode and restores it', async () => {
+    localStorage.setItem('gftp_settings', JSON.stringify({ fileViewMode: 'cards' }))
+    setActivePinia(createPinia())
+    const store = useSettingsStore()
+    expect(store.fileViewMode).toBe('cards')
+
+    store.fileViewMode = 'table'
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('gftp_settings')!).fileViewMode).toBe('table')
+  })
+
   it('ignores corrupt or invalid persisted data', () => {
     localStorage.setItem('gftp_settings', JSON.stringify({ sizeFormat: 'bogus', language: 'fr' }))
     setActivePinia(createPinia())

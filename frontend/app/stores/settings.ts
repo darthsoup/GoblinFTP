@@ -13,6 +13,7 @@ const STORAGE_KEY = 'gftp_settings'
 export type SizeFormat = 'binary' | 'decimal' | 'bytes'
 export type DateFormat = 'auto' | 'absolute' | 'relative'
 export type AppLanguage = 'en' | 'de'
+export type FileViewMode = 'table' | 'cards'
 
 interface PersistedSettings {
   showDotfiles?: boolean | null
@@ -20,11 +21,18 @@ interface PersistedSettings {
   editorAutoSave?: boolean
   sizeFormat?: SizeFormat
   dateFormat?: DateFormat
+  fileViewMode?: FileViewMode
 }
 
 const SIZE_FORMATS: SizeFormat[] = ['binary', 'decimal', 'bytes']
 const DATE_FORMATS: DateFormat[] = ['auto', 'absolute', 'relative']
 const LANGUAGES: AppLanguage[] = ['en', 'de']
+const FILE_VIEW_MODES: FileViewMode[] = ['table', 'cards']
+
+// Until the user picks, default to cards on phone-width viewports, table above.
+function defaultFileViewMode(): FileViewMode {
+  return typeof window !== 'undefined' && window.innerWidth < 640 ? 'cards' : 'table'
+}
 
 export const useSettingsStore = defineStore('settings', () => {
   const authStore = useAuthStore()
@@ -35,6 +43,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const editorAutoSave = ref(false)
   const sizeFormat = ref<SizeFormat>('binary')
   const dateFormat = ref<DateFormat>('auto')
+  const fileViewMode = ref<FileViewMode>(defaultFileViewMode())
 
   const showDotfiles = computed({
     get: () => userShowDotfiles.value ?? authStore.systemVars?.ui.showDotFiles ?? false,
@@ -57,11 +66,13 @@ export const useSettingsStore = defineStore('settings', () => {
         sizeFormat.value = parsed.sizeFormat
       if (parsed.dateFormat && DATE_FORMATS.includes(parsed.dateFormat))
         dateFormat.value = parsed.dateFormat
+      if (parsed.fileViewMode && FILE_VIEW_MODES.includes(parsed.fileViewMode))
+        fileViewMode.value = parsed.fileViewMode
     }
   }
   catch {}
 
-  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat], () => {
+  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode], () => {
     try {
       const persisted: PersistedSettings = {
         showDotfiles: userShowDotfiles.value,
@@ -69,11 +80,12 @@ export const useSettingsStore = defineStore('settings', () => {
         editorAutoSave: editorAutoSave.value,
         sizeFormat: sizeFormat.value,
         dateFormat: dateFormat.value,
+        fileViewMode: fileViewMode.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
     }
     catch {}
   })
 
-  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat }
+  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode }
 })

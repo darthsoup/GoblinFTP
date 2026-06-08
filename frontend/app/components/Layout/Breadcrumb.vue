@@ -7,18 +7,33 @@ const { t } = useI18n()
 
 const showHistory = computed(() => authStore.systemVars?.ui.showNavigationHistory ?? true)
 
-const items = computed<BreadcrumbItem[]>(() => [
-  {
+// On phones a deep path is collapsed to: root › … (parent) › current.
+const isNarrow = useMediaQuery('(max-width: 639px)')
+
+const items = computed<BreadcrumbItem[]>(() => {
+  const root: BreadcrumbItem = {
     'label': '/',
     'icon': 'i-lucide-monitor',
     'aria-label': t('breadcrumb.root'),
     'onClick': () => filesStore.navigate('/'),
-  },
-  ...filesStore.pathSegments.map(seg => ({
+  }
+  const segs = filesStore.pathSegments
+  let segItems: BreadcrumbItem[] = segs.map(seg => ({
     label: seg.label,
     onClick: () => filesStore.navigate(seg.path),
-  })),
-])
+  }))
+
+  if (isNarrow.value && segs.length > 2) {
+    const parent = segs[segs.length - 2]!
+    const current = segItems[segItems.length - 1]!
+    segItems = [
+      { 'label': '…', 'aria-label': parent.label, 'onClick': () => filesStore.navigate(parent.path) },
+      current,
+    ]
+  }
+
+  return [root, ...segItems]
+})
 </script>
 
 <template>
@@ -27,7 +42,7 @@ const items = computed<BreadcrumbItem[]>(() => [
     <div v-if="showHistory" class="flex items-center gap-0.5 mr-2 shrink-0">
       <UTooltip :text="t('breadcrumb.back')">
         <UButton
-          size="xs"
+          size="sm"
           color="neutral"
           variant="ghost"
           icon="i-lucide-chevron-left"
@@ -38,7 +53,7 @@ const items = computed<BreadcrumbItem[]>(() => [
       </UTooltip>
       <UTooltip :text="t('breadcrumb.forward')">
         <UButton
-          size="xs"
+          size="sm"
           color="neutral"
           variant="ghost"
           icon="i-lucide-chevron-right"
@@ -56,7 +71,7 @@ const items = computed<BreadcrumbItem[]>(() => [
       :ui="{
         list: 'gap-1',
         link: 'text-xs font-mono transition-colors cursor-pointer',
-        linkLabel: 'truncate max-w-48',
+        linkLabel: 'truncate max-w-32 sm:max-w-48',
         linkLeadingIcon: 'size-4 text-primary',
         separatorIcon: 'size-3 text-dimmed',
       }"

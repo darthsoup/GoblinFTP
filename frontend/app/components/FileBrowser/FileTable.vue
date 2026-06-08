@@ -168,6 +168,9 @@ watch(() => filesStore.currentPath, () => {
   previewName.value = null
 })
 
+// Table vs. stacked-cards layout (user toggle; defaults by viewport width).
+const viewMode = computed(() => settingsStore.fileViewMode)
+
 // ── Context menu ──────────────────────────────────────────────────────────────
 const menuFile = ref<FileInfo | null>(null)
 
@@ -217,10 +220,11 @@ const menuItems = computed<ContextMenuItem[][]>(() => {
   ]
 })
 
-// Capture-phase: resolve the right-clicked row before Reka's trigger opens the
-// menu; on empty space, stop the event so the browser menu shows instead.
+// Capture-phase: resolve the right-clicked row/card before Reka's trigger opens
+// the menu; on empty space, stop the event so the browser menu shows instead.
+// `[data-file-name]` matches both the table <tr> and the cards <div>.
 function onAreaContextMenu(e: MouseEvent) {
-  const row = (e.target as HTMLElement).closest<HTMLElement>('tr[data-file-name]')
+  const row = (e.target as HTMLElement).closest<HTMLElement>('[data-file-name]')
   const file = row ? visibleFiles.value.find(f => f.name === row.dataset.fileName) : undefined
   if (!file) {
     e.stopPropagation()
@@ -283,7 +287,42 @@ function onDrop(e: DragEvent) {
     <div class="relative flex flex-1 min-h-0">
       <UContextMenu :items="menuItems">
         <div class="flex-1 min-w-0 overflow-auto" @contextmenu.capture="onAreaContextMenu">
-          <table class="w-full text-left border-collapse">
+          <!-- Loading / error / empty — shared by both views -->
+          <div v-if="filesStore.loading" class="py-12 text-center text-muted font-mono text-sm">
+            <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
+            {{ t('files.loading') }}
+          </div>
+
+          <div v-else-if="filesStore.error" class="py-8 flex flex-col items-center gap-3">
+            <p class="text-error font-mono text-sm text-center px-4">
+              <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
+              {{ filesStore.error }}
+            </p>
+            <UButton
+              size="sm"
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-refresh-cw"
+              :loading="filesStore.loading"
+              @click="filesStore.list()"
+            >
+              {{ t('files.retry') }}
+            </UButton>
+          </div>
+
+          <div v-else-if="visibleFiles.length === 0" class="py-10">
+            <UEmpty
+              variant="naked"
+              :icon="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'"
+              :title="filter ? t('files.noMatches') : t('files.empty')"
+              :description="filter ? undefined : t('files.dropToUpload')"
+              :actions="emptyActions"
+              :ui="{ title: 'font-mono', description: 'font-mono text-dimmed' }"
+            />
+          </div>
+
+          <!-- Table view -->
+          <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse">
             <thead class="sticky top-0 z-[5] bg-muted/95 backdrop-blur label-caps text-muted">
               <tr class="border-b border-default shadow-sm">
                 <th class="w-10 px-3 py-2.5">
@@ -301,11 +340,11 @@ function onDrop(e: DragEvent) {
                   {{ t('files.name') }}
                   <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
+                <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden sm:table-cell" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
                   {{ t('files.size') }}
                   <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
+                <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden md:table-cell" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
                   {{ t('files.modified') }}
                   <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
                 </th>
@@ -316,40 +355,7 @@ function onDrop(e: DragEvent) {
               </tr>
             </thead>
 
-            <tbody v-if="filesStore.loading">
-              <tr>
-                <td colspan="7" class="py-12 text-center text-muted font-mono text-sm">
-                  <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
-                  {{ t('files.loading') }}
-                </td>
-              </tr>
-            </tbody>
-
-            <tbody v-else-if="filesStore.error">
-              <tr>
-                <td colspan="7" class="py-8 text-center text-error font-mono text-sm">
-                  <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
-                  {{ filesStore.error }}
-                </td>
-              </tr>
-            </tbody>
-
-            <tbody v-else-if="visibleFiles.length === 0">
-              <tr>
-                <td colspan="7" class="py-10">
-                  <UEmpty
-                    variant="naked"
-                    :icon="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'"
-                    :title="filter ? t('files.noMatches') : t('files.empty')"
-                    :description="filter ? undefined : t('files.dropToUpload')"
-                    :actions="emptyActions"
-                    :ui="{ title: 'font-mono', description: 'font-mono text-dimmed' }"
-                  />
-                </td>
-              </tr>
-            </tbody>
-
-            <tbody v-else class="font-mono">
+            <tbody class="font-mono">
               <FileRow
                 v-for="file in visibleFiles"
                 :key="file.name"
@@ -369,6 +375,27 @@ function onDrop(e: DragEvent) {
               />
             </tbody>
           </table>
+
+          <!-- Cards view -->
+          <div v-else role="list">
+            <FileCard
+              v-for="file in visibleFiles"
+              :key="file.name"
+              :file="file"
+              :selected="filesStore.selected.has(file.name)"
+              :current-path="filesStore.currentPath"
+              :editing="filesStore.editingName === file.name"
+              :is-cut="cutNames.has(file.name)"
+              :active="previewName === file.name"
+              @select="filesStore.toggleSelection"
+              @navigate="filesStore.navigate"
+              @download="onDownload"
+              @request-rename="filesStore.startRename(file.name)"
+              @cancel-rename="filesStore.cancelRename"
+              @commit-rename="(name: string) => onCommitRename(file, name)"
+              @preview="previewName = file.name"
+            />
+          </div>
         </div>
       </UContextMenu>
 

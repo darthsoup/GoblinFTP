@@ -63,7 +63,8 @@
     "empty": "This directory is empty",
     "noMatches": "No files match your filter",
     "clearFilter": "Clear filter",
-    "dropToUpload": "Drop files to upload"
+    "dropToUpload": "Drop files to upload",
+    "retry": "Retry"
   },
   "toolbar": {
     "newFolder": "New Folder",
@@ -72,6 +73,7 @@
     "refresh": "Refresh",
     "filter": "Filter files...",
     "downloadZip": "Download ZIP",
+    "viewToggle": "Toggle table / cards view",
     "copy": "Copy",
     "cut": "Cut",
     "paste": "Paste ({n})",

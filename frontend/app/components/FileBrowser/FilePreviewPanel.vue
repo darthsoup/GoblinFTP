@@ -140,7 +140,7 @@ function fmtDate(iso: string): string {
       />
       <span class="flex-1 min-w-0 truncate font-mono text-sm text-highlighted" :title="fullPath">{{ file.name }}</span>
       <UButton
-        size="xs"
+        size="sm"
         color="neutral"
         variant="ghost"
         icon="i-lucide-x"
