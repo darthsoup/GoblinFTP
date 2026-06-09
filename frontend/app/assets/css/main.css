@@ -1,11 +1,11 @@
 /* Goblin design system — Tech-Dark (/DESIGN.md) + Tech-Light (/DESIGN-Gobin-Tech-Light.md) */
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource-variable/jetbrains-mono';
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
 
   /* Goblin Green — primary brand scale */
