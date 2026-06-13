@@ -21,7 +21,7 @@ just test-fe                                      # vitest (passWithNoTests)
 cd frontend && pnpm test:watch                    # vitest watch
 
 just lint         # eslint + nuxt typecheck + golangci-lint
-just fmt          # prettier (frontend) + gofmt (backend)
+just fmt          # eslint --fix (frontend) + gofmt (backend)
 just i18n-check   # verify de.json has all keys from en.json
 just ftp-up       # local FTP test server (ftpuser/ftppass on :21); ftp-down stops it
 just s3-up        # local MinIO for S3 chunk staging (minioadmin/minioadmin on :9000); s3-down stops it

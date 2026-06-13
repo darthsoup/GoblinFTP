@@ -62,10 +62,10 @@ lint-fe:
 lint-be:
     cd backend && golangci-lint run ./...
 
-# Format all code (prettier + gofmt/goimports via golangci-lint)
+# Format all code (eslint --fix + gofmt/goimports via golangci-lint)
 [group('lint')]
 fmt:
-    cd frontend && pnpm exec prettier --write .
+    cd frontend && pnpm run lint:fix
     cd backend && golangci-lint fmt
 
 # Build Docker image
