@@ -12,8 +12,14 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   // (and so useHead runs inside the synchronous plugin-setup context).
   useHead(() => {
     const branding = authStore.systemVars?.branding
+    const appName = branding?.appName || 'GoblinFTP'
+    // Surface the connected server in the tab title (server first — tab titles
+    // truncate the tail). serverHost is host:port; empty for a fresh SSO connect.
+    const title = authStore.connected && authStore.serverHost
+      ? `${authStore.serverHost} — ${appName}`
+      : appName
     return {
-      title: branding?.appName || 'GoblinFTP',
+      title,
       link: branding?.faviconUrl ? [{ rel: 'icon', href: branding.faviconUrl, key: 'favicon' }] : [],
     }
   })
