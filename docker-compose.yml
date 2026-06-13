@@ -13,7 +13,7 @@ services:
       GFTP_SSO_ENABLED: "${GFTP_SSO_ENABLED:-false}"
       GFTP_SSO_SECRET: "${GFTP_SSO_SECRET:-}"
       GFTP_SENTRY_DSN: "${GFTP_SENTRY_DSN:-}"
-      # Optional S3 chunk staging (see README "S3 chunk staging"):
+      # Optional S3 chunk staging (see docs/configuration.md#s3-chunk-staging):
       GFTP_S3_ENABLED: "${GFTP_S3_ENABLED:-false}"
       GFTP_S3_ENDPOINT: "${GFTP_S3_ENDPOINT:-}"
       GFTP_S3_BUCKET: "${GFTP_S3_BUCKET:-}"

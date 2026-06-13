@@ -4,7 +4,6 @@ mftp/
 .env
 .env.local
 bin/
-docs/
 frontend/.output/
 frontend/node_modules/
 frontend/.nuxt/
