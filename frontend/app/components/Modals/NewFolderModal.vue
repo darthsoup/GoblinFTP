@@ -70,7 +70,7 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
           <UInput
             v-model="state.name"
             :placeholder="t('modal.newFolder.placeholder')"
-            class="w-full font-mono"
+            class="w-full"
             autofocus
           />
         </UFormField>

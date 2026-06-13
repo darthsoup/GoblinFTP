@@ -70,7 +70,7 @@ const items = computed<BreadcrumbItem[]>(() => {
       class="min-w-0"
       :ui="{
         list: 'gap-1',
-        link: 'text-xs font-mono transition-colors cursor-pointer',
+        link: 'text-xs transition-colors cursor-pointer',
         linkLabel: 'truncate max-w-32 sm:max-w-48',
         linkLeadingIcon: 'size-4 text-primary',
         separatorIcon: 'size-3 text-dimmed',

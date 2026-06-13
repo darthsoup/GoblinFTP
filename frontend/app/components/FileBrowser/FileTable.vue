@@ -288,13 +288,13 @@ function onDrop(e: DragEvent) {
       <UContextMenu :items="menuItems">
         <div class="flex-1 min-w-0 overflow-auto" @contextmenu.capture="onAreaContextMenu">
           <!-- Loading / error / empty — shared by both views -->
-          <div v-if="filesStore.loading" class="py-12 text-center text-muted font-mono text-sm">
+          <div v-if="filesStore.loading" class="py-12 text-center text-muted text-sm">
             <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
             {{ t('files.loading') }}
           </div>
 
           <div v-else-if="filesStore.error" class="py-8 flex flex-col items-center gap-3">
-            <p class="text-error font-mono text-sm text-center px-4">
+            <p class="text-error text-sm text-center px-4">
               <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
               {{ filesStore.error }}
             </p>
@@ -317,7 +317,7 @@ function onDrop(e: DragEvent) {
               :title="filter ? t('files.noMatches') : t('files.empty')"
               :description="filter ? undefined : t('files.dropToUpload')"
               :actions="emptyActions"
-              :ui="{ title: 'font-mono', description: 'font-mono text-dimmed' }"
+              :ui="{ description: 'text-dimmed' }"
             />
           </div>
 
@@ -355,7 +355,7 @@ function onDrop(e: DragEvent) {
               </tr>
             </thead>
 
-            <tbody class="font-mono">
+            <tbody>
               <FileRow
                 v-for="file in visibleFiles"
                 :key="file.name"

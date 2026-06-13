@@ -158,7 +158,7 @@ const paste = usePaste()
     <div class="flex-1" />
 
     <template v-if="selectedCount > 0">
-      <span class="text-xs font-mono text-muted">
+      <span class="text-xs text-muted">
         {{ t('toolbar.selected', { n: selectedCount }) }}
       </span>
       <UButton
@@ -205,7 +205,7 @@ const paste = usePaste()
       size="sm"
       icon="i-lucide-search"
       :placeholder="t('toolbar.filter')"
-      class="w-full sm:w-44 md:w-56 font-mono"
+      class="w-full sm:w-44 md:w-56"
     />
   </div>
 </template>

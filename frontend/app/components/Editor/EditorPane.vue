@@ -227,17 +227,17 @@ onUnmounted(() => {
     <div class="relative flex-1 min-h-0">
       <div v-show="showEditor" ref="containerRef" class="absolute inset-0 overflow-auto" />
 
-      <div v-if="editorStore.activeTab?.loading" class="absolute inset-0 flex items-center justify-center text-muted font-mono text-sm">
+      <div v-if="editorStore.activeTab?.loading" class="absolute inset-0 flex items-center justify-center text-muted text-sm">
         <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
         {{ t('editor.loading') }}
       </div>
 
-      <div v-else-if="editorStore.activeTab?.error" class="absolute inset-0 flex items-center justify-center text-error font-mono text-sm">
+      <div v-else-if="editorStore.activeTab?.error" class="absolute inset-0 flex items-center justify-center text-error text-sm">
         <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
         {{ editorStore.activeTab.error }}
       </div>
 
-      <div v-else-if="!editorStore.hasOpenTabs" class="absolute inset-0 flex items-center justify-center text-dimmed font-mono text-sm">
+      <div v-else-if="!editorStore.hasOpenTabs" class="absolute inset-0 flex items-center justify-center text-dimmed text-sm">
         {{ t('editor.noFile') }}
       </div>
     </div>

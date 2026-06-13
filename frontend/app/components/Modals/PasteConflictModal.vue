@@ -22,7 +22,7 @@ const conflicts = computed(() => modalStore.pasteConflicts)
         <li
           v-for="name in conflicts"
           :key="name"
-          class="font-mono text-sm text-highlighted truncate"
+          class="text-sm text-highlighted truncate"
         >
           {{ name }}
         </li>

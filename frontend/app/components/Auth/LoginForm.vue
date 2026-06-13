@@ -88,7 +88,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
             {{ appName }}
           </h1>
         </div>
-        <p class="font-mono text-xs text-dimmed">
+        <p class="text-xs text-dimmed">
           {{ tagline }}
         </p>
       </div>
@@ -107,7 +107,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
           <USelect
             v-model="form.protocol"
             :items="protocolItems"
-            class="w-full font-mono"
+            class="w-full"
           />
         </UFormField>
 
@@ -117,7 +117,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
               v-model="form.host"
               :placeholder="t('login.hostPlaceholder')"
               :disabled="hostLocked"
-              class="w-full font-mono"
+              class="w-full"
             />
           </UFormField>
           <UFormField name="port" :label="t('login.port')">
@@ -127,7 +127,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
               min="1"
               max="65535"
               :disabled="hostLocked"
-              class="w-full font-mono"
+              class="w-full"
             />
           </UFormField>
         </div>
@@ -137,7 +137,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
             v-model="form.username"
             :placeholder="t('login.usernamePlaceholder')"
             autocomplete="username"
-            class="w-full font-mono"
+            class="w-full"
           />
         </UFormField>
 
@@ -146,7 +146,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
             v-model="form.password"
             type="password"
             autocomplete="current-password"
-            class="w-full font-mono"
+            class="w-full"
           />
         </UFormField>
 
@@ -155,7 +155,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
             v-model="form.passive"
             size="sm"
             :label="t('login.passive')"
-            :ui="{ label: 'font-mono text-xs text-muted' }"
+            :ui="{ label: 'text-xs text-muted' }"
           />
         </UFormField>
 

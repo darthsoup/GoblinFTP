@@ -48,7 +48,7 @@ function formatBytes(n: number): string {
         </UTooltip>
         <UIcon name="i-lucide-arrow-up-down" class="size-4 text-primary" />
         <span class="label-caps text-highlighted">{{ t('upload.queue') }}</span>
-        <UBadge color="primary" variant="soft" size="sm" class="font-mono font-bold rounded-full">
+        <UBadge color="primary" variant="soft" size="sm" class="font-bold rounded-full">
           {{ uploadStore.items.length }}
         </UBadge>
       </div>
@@ -82,7 +82,7 @@ function formatBytes(n: number): string {
       <div
         v-for="item in uploadStore.items"
         :key="item.id"
-        class="flex items-center gap-4 px-4 py-2 border-b border-muted last:border-b-0 even:bg-elevated/40 font-mono text-xs"
+        class="flex items-center gap-4 px-4 py-2 border-b border-muted last:border-b-0 even:bg-elevated/40 text-xs"
       >
         <!-- Name + progress -->
         <div class="flex flex-col gap-1.5 flex-1 min-w-0 sm:max-w-md">

@@ -9,7 +9,7 @@ const activeCount = computed(() =>
 </script>
 
 <template>
-  <footer class="flex items-center justify-between px-4 h-8 bg-muted border-t border-default font-mono text-xs shrink-0 select-none">
+  <footer class="flex items-center justify-between px-4 h-8 bg-muted border-t border-default text-xs shrink-0 select-none">
     <div class="flex items-center gap-3 min-w-0" aria-live="polite">
       <span v-if="authStore.sessionLost" class="flex items-center gap-1.5 shrink-0">
         <span class="size-2 rounded-full bg-error" />
@@ -33,7 +33,6 @@ const activeCount = computed(() =>
         :color="activeCount > 0 ? 'primary' : 'neutral'"
         :variant="activeCount > 0 ? 'subtle' : 'soft'"
         size="sm"
-        class="font-mono"
       >
         {{ t('status.queue', { n: activeCount }) }}
       </UBadge>

@@ -38,7 +38,7 @@ async function requestClose(tab: EditorTab) {
     <div
       v-for="tab in editorStore.tabs"
       :key="tab.id"
-      class="flex items-center gap-1 px-3 py-1.5 text-sm font-mono cursor-pointer border-r border-default border-t-2 shrink-0 select-none transition-colors"
+      class="flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer border-r border-default border-t-2 shrink-0 select-none transition-colors"
       :class="tab.id === editorStore.activeId
         ? 'bg-default text-primary border-t-primary'
         : 'border-t-transparent text-muted hover:bg-elevated hover:text-default'"
@@ -70,7 +70,7 @@ async function requestClose(tab: EditorTab) {
         v-model="settingsStore.editorAutoSave"
         size="xs"
         :label="t('editor.autoSave')"
-        :ui="{ label: 'text-xs font-mono text-muted whitespace-nowrap' }"
+        :ui="{ label: 'text-xs text-muted whitespace-nowrap' }"
       />
 
       <UButton

@@ -50,14 +50,14 @@ const dateFormatItems = computed(() => [
     <template #body>
       <div class="space-y-5">
         <UFormField :label="t('settings.language')">
-          <LanguageSelect class="w-full font-mono" />
+          <LanguageSelect class="w-full" />
         </UFormField>
 
         <UFormField :label="t('settings.theme')">
           <USelect
             v-model="theme"
             :items="themeItems"
-            class="w-full font-mono"
+            class="w-full"
           />
         </UFormField>
 
@@ -66,14 +66,14 @@ const dateFormatItems = computed(() => [
             <USelect
               v-model="settingsStore.sizeFormat"
               :items="sizeFormatItems"
-              class="w-full font-mono"
+              class="w-full"
             />
           </UFormField>
           <UFormField :label="t('settings.dateFormat')">
             <USelect
               v-model="settingsStore.dateFormat"
               :items="dateFormatItems"
-              class="w-full font-mono"
+              class="w-full"
             />
           </UFormField>
         </div>
@@ -91,7 +91,7 @@ const dateFormatItems = computed(() => [
     <template #footer="{ close }">
       <div class="flex w-full items-center justify-between">
         <!-- Brand + semver is locale-invariant — no i18n key needed. -->
-        <span v-if="!hideAttribution" class="font-mono text-xs text-dimmed">{{ appName }} {{ authStore.systemVars?.version ?? '' }}</span>
+        <span v-if="!hideAttribution" class="text-xs text-dimmed">{{ appName }} {{ authStore.systemVars?.version ?? '' }}</span>
         <span v-else />
         <UButton :label="t('settings.close')" @click="close" />
       </div>

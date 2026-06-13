@@ -181,9 +181,9 @@ function formatDate(iso: string): string {
             />
           </div>
           <UFormField name="name" class="flex-1 min-w-0">
-            <UInput v-model="state.name" class="w-full font-mono" />
+            <UInput v-model="state.name" class="w-full" />
             <template #help>
-              <span class="block font-mono text-xs text-dimmed truncate" :title="fullPath">{{ fullPath }}</span>
+              <span class="block text-xs text-dimmed truncate" :title="fullPath">{{ fullPath }}</span>
             </template>
           </UFormField>
         </div>
@@ -192,19 +192,19 @@ function formatDate(iso: string): string {
         <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.size') }}</span>
-            <span class="font-mono text-sm text-default">{{ formatSize(file.size) }}</span>
+            <span class="text-sm text-default">{{ formatSize(file.size) }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.type') }}</span>
-            <span class="font-mono text-sm text-default">{{ file.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') }}</span>
+            <span class="text-sm text-default">{{ file.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.modified') }}</span>
-            <span class="font-mono text-sm text-default">{{ formatDate(file.modified) }}</span>
+            <span class="text-sm text-default">{{ formatDate(file.modified) }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.permissions') }}</span>
-            <span class="font-mono text-sm text-default">{{ file.mode || '--' }}</span>
+            <span class="text-sm text-default">{{ file.mode || '--' }}</span>
           </div>
         </div>
 
@@ -225,7 +225,7 @@ function formatDate(iso: string): string {
             <div
               v-for="group in PERM_GROUPS"
               :key="group.key"
-              class="grid grid-cols-4 p-2 border-b border-default/50 last:border-b-0 items-center text-center font-mono text-sm"
+              class="grid grid-cols-4 p-2 border-b border-default/50 last:border-b-0 items-center text-center text-sm"
             >
               <div class="text-left text-default pl-2">
                 {{ t(`modal.properties.${group.key}`) }}
@@ -246,7 +246,7 @@ function formatDate(iso: string): string {
                 id="properties-octal"
                 v-model="state.octal"
                 maxlength="4"
-                class="w-20 font-mono"
+                class="w-20"
                 :ui="{ base: 'text-center text-primary' }"
               />
             </UFormField>

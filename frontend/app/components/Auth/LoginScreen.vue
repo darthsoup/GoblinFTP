@@ -29,14 +29,14 @@ const { appName, hideAttribution } = useBranding()
     }"
   >
     <template #left>
-      <span v-if="!hideAttribution" class="font-mono text-xs text-dimmed select-none">
+      <span v-if="!hideAttribution" class="text-xs text-dimmed select-none">
         {{ appName }} {{ authStore.systemVars?.version ?? '' }}
       </span>
       <span v-else />
     </template>
 
     <template #right>
-      <LanguageSelect variant="ghost" size="sm" class="font-mono" />
+      <LanguageSelect variant="ghost" size="sm" />
       <UColorModeButton />
       <UTooltip :text="t('header.settings')">
         <UButton

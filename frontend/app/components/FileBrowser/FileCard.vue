@@ -170,7 +170,7 @@ function handleDownload() {
     </div>
 
     <!-- Meta -->
-    <div class="text-xs font-mono text-muted text-center truncate">
+    <div class="text-xs text-muted text-center truncate">
       {{ meta }}
     </div>
   </div>

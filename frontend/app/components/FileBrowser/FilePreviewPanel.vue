@@ -138,7 +138,7 @@ function fmtDate(iso: string): string {
         :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
         :style="iconDef.color ? { color: iconDef.color } : undefined"
       />
-      <span class="flex-1 min-w-0 truncate font-mono text-sm text-highlighted" :title="fullPath">{{ file.name }}</span>
+      <span class="flex-1 min-w-0 truncate text-sm text-highlighted" :title="fullPath">{{ file.name }}</span>
       <UButton
         size="sm"
         color="neutral"
@@ -161,7 +161,7 @@ function fmtDate(iso: string): string {
 
         <div
           v-else-if="status === 'error'"
-          class="flex flex-col items-center justify-center gap-2 min-h-40 rounded border border-default bg-muted/30 text-muted font-mono text-sm"
+          class="flex flex-col items-center justify-center gap-2 min-h-40 rounded border border-default bg-muted/30 text-muted text-sm"
         >
           <UIcon name="i-lucide-triangle-alert" class="size-7 text-error" />
           {{ t('preview.error') }}
@@ -169,7 +169,7 @@ function fmtDate(iso: string): string {
 
         <div
           v-else-if="status === 'tooLarge' || status === 'none'"
-          class="flex flex-col items-center justify-center gap-3 min-h-40 rounded border border-default bg-muted/30 text-muted font-mono text-sm"
+          class="flex flex-col items-center justify-center gap-3 min-h-40 rounded border border-default bg-muted/30 text-muted text-sm"
         >
           <UIcon :name="status === 'tooLarge' ? 'i-lucide-weight' : 'i-lucide-eye-off'" class="size-7 text-dimmed" />
           {{ status === 'tooLarge' ? t('preview.tooLarge') : t('preview.noPreview') }}
@@ -216,19 +216,19 @@ function fmtDate(iso: string): string {
         <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.size') }}</span>
-            <span class="font-mono text-sm text-default">{{ fmtSize(file.size) }}</span>
+            <span class="text-sm text-default">{{ fmtSize(file.size) }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.type') }}</span>
-            <span class="font-mono text-sm text-default">{{ file.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') }}</span>
+            <span class="text-sm text-default">{{ file.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.modified') }}</span>
-            <span class="font-mono text-sm text-default">{{ fmtDate(file.modified) }}</span>
+            <span class="text-sm text-default">{{ fmtDate(file.modified) }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.permissions') }}</span>
-            <span class="font-mono text-sm text-default">{{ file.mode || '--' }}</span>
+            <span class="text-sm text-default">{{ file.mode || '--' }}</span>
           </div>
         </div>
       </div>

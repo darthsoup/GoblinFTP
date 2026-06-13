@@ -62,7 +62,7 @@ onMounted(async () => {
       {{ t('editor.backToFiles') }}
     </UButton>
     <USeparator orientation="vertical" class="h-4" />
-    <span class="font-mono text-xs text-muted truncate">{{ filePath }}</span>
+    <span class="text-xs text-muted truncate">{{ filePath }}</span>
   </div>
 
   <EditorPane />
