@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPreviewKind, isImageFile, previewMime } from '~/utils/files'
+import { FILE_ICONS, getFileIcon, getPreviewKind, isImageFile, previewMime } from '~/utils/files'
 
 describe('getPreviewKind', () => {
   const textExts = ['md', 'txt', 'json', 'ts']
@@ -50,5 +50,32 @@ describe('previewMime', () => {
   it('returns an empty string for unknown extensions', () => {
     expect(previewMime('a.bin')).toBe('')
     expect(previewMime('noext')).toBe('')
+  })
+})
+
+describe('getFileIcon', () => {
+  it('renders folders as the primary (Goblin Green) folder icon', () => {
+    expect(getFileIcon({ name: 'photos', isDir: true })).toEqual({ icon: 'i-lucide-folder', primary: true })
+  })
+
+  it('maps known types to a distinct brand icon (incl. pdf / exe / office)', () => {
+    expect(getFileIcon({ name: 'report.pdf', isDir: false })).toMatchObject({ icon: 'i-simple-icons-adobeacrobatreader', color: '#ec1c24', primary: false })
+    expect(getFileIcon({ name: 'setup.exe', isDir: false }).icon).toBe('i-simple-icons-windows')
+    expect(getFileIcon({ name: 'notes.docx', isDir: false }).icon).toBe('i-simple-icons-microsoftword')
+    expect(getFileIcon({ name: 'main.go', isDir: false }).icon).toBe('i-simple-icons-go')
+  })
+
+  it('matches the extension case-insensitively', () => {
+    expect(getFileIcon({ name: 'REPORT.PDF', isDir: false })).toEqual(getFileIcon({ name: 'report.pdf', isDir: false }))
+  })
+
+  it('falls back to a plain, uncolored file icon for unknown / extensionless names', () => {
+    expect(getFileIcon({ name: 'thing.zzz', isDir: false })).toEqual({ icon: 'i-lucide-file', color: undefined, primary: false })
+    expect(getFileIcon({ name: 'README', isDir: false })).toEqual({ icon: 'i-lucide-file', color: undefined, primary: false })
+  })
+
+  it('only references the two offline-installed icon sets', () => {
+    for (const entry of FILE_ICONS)
+      expect(entry.icon).toMatch(/^i-(lucide|simple-icons)-/)
   })
 })
