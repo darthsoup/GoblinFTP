@@ -86,7 +86,7 @@ function formatBytes(n: number): string {
       >
         <!-- Name + progress -->
         <div class="flex flex-col gap-1.5 flex-1 min-w-0 sm:max-w-md">
-          <span class="truncate text-default" :title="item.file.name">{{ item.file.name }}</span>
+          <span class="truncate text-default" :title="item.relativePath ?? item.file.name">{{ item.relativePath ?? item.file.name }}</span>
           <UProgress
             :model-value="item.progress"
             size="sm"

@@ -6,6 +6,9 @@ export interface UploadItem {
   id: string
   file: File
   destPath: string
+  // Path shown in the queue, relative to the drop target (e.g. "folder/sub/a.txt").
+  // For loose files this is just the file name.
+  relativePath?: string
   status: UploadStatus
   progress: number
   bytesUploaded: number
@@ -31,18 +34,29 @@ export const useUploadStore = defineStore('upload', () => {
 
   const hasActive = computed(() => items.value.some(i => i.status === 'queued' || i.status === 'uploading'))
 
-  function addFiles(files: FileList | File[], destDir: string) {
-    const normalized = destDir.replace(/\/$/, '')
-    const newItems: UploadItem[] = Array.from(files).map(file => ({
+  // Refresh the listing once a burst of completions settles, instead of once per
+  // file — a folder upload otherwise fires a refresh storm (one list() per file).
+  const scheduleRefresh = useDebounceFn(() => filesStore.list(), 400)
+
+  // Enqueue files carrying their nested relative paths (from a folder drop).
+  // destPath preserves the structure; the backend creates missing parent dirs.
+  function addEntries(entries: { file: File, relativePath: string }[], destDir: string) {
+    const base = destDir.replace(/\/$/, '')
+    const newItems: UploadItem[] = entries.map(({ file, relativePath }) => ({
       id: crypto.randomUUID(),
       file,
-      destPath: `${normalized}/${file.name}`,
+      destPath: `${base}/${relativePath}`,
+      relativePath,
       status: 'queued' as UploadStatus,
       progress: 0,
       bytesUploaded: 0,
     }))
     items.value = [...items.value, ...newItems]
     _processQueue()
+  }
+
+  function addFiles(files: FileList | File[], destDir: string) {
+    addEntries(Array.from(files).map(file => ({ file, relativePath: file.name })), destDir)
   }
 
   function _processQueue() {
@@ -55,7 +69,7 @@ export const useUploadStore = defineStore('upload', () => {
       _runUpload(next).finally(() => {
         _active.value--
         if (next.status === 'done')
-          filesStore.list()
+          scheduleRefresh()
         _processQueue()
       })
     }
@@ -177,6 +191,7 @@ export const useUploadStore = defineStore('upload', () => {
     chunkSize,
     maxConcurrent,
     addFiles,
+    addEntries,
     cancelItem,
     cancelAll,
     clearDone,

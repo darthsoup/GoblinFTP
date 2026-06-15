@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -33,6 +34,7 @@ func TestUploadSimple(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{IsDir: true}, nil },
 		UploadFn: func(path string, r io.Reader) error {
 			uploadedPath = path
 			data, _ := io.ReadAll(r)
@@ -60,6 +62,66 @@ func TestUploadSimple(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 	assert.Equal(t, "/uploads/test.txt", uploadedPath)
 	assert.Equal(t, "file contents here", uploadedContent)
+}
+
+// TestUploadSimpleCreatesParentDirs: a simple upload into a missing directory
+// tree creates the parents (mkdir -p) before storing the file.
+func TestUploadSimpleCreatesParentDirs(t *testing.T) {
+	var made []string
+	var uploadedPath string
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
+		UploadFn: func(p string, r io.Reader) error {
+			uploadedPath = p
+			_, _ = io.ReadAll(r)
+			return nil
+		},
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	sess := connectAndGetSession(t, app)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("path", "/a/b/c.txt")
+	part, _ := writer.CreateFormFile("file", "c.txt")
+	_, _ = io.WriteString(part, "data")
+	writer.Close()
+	req := httptest.NewRequest(http.MethodPost, "/api/files/upload", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+	assert.Equal(t, []string{"/a", "/a/b"}, made)
+	assert.Equal(t, "/a/b/c.txt", uploadedPath)
+}
+
+// TestUploadCommitCreatesParentDirs: a chunked upload's commit also creates the
+// destination's missing parent tree before assembling the file.
+func TestUploadCommitCreatesParentDirs(t *testing.T) {
+	var made []string
+	var uploadedPath string
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
+		UploadFn: func(p string, r io.Reader) error {
+			uploadedPath = p
+			_, _ = io.ReadAll(r)
+			return nil
+		},
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)), api.WithChunkStore(newMemChunkStore()))
+	sess := connectAndGetSession(t, app)
+
+	require.NoError(t, driveChunkedUpload(app, sess, "/a/b/c.bin", []string{"hello", "world"}))
+	assert.Equal(t, []string{"/a", "/a/b"}, made)
+	assert.Equal(t, "/a/b/c.bin", uploadedPath)
 }
 
 func TestUploadChunked(t *testing.T) {

@@ -98,7 +98,7 @@ func (h *Handler) CreateDirectory(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || req.Path == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
-	if err := client.MakeDir(req.Path); err != nil {
+	if err := ensureDirAll(client, req.Path); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
@@ -179,6 +179,37 @@ func (h *Handler) CopyFile(c echo.Context) error {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
+}
+
+// ensureDirAll creates dir and any missing parents, idempotently and uniformly
+// across FTP and SFTP. FTP's MakeDir is single-level and errors if the target
+// already exists, while SFTP's is recursive; the Stat guard normalizes both so a
+// folder upload can recreate a tree without spurious "already exists" failures.
+func ensureDirAll(client transfer.Client, dir string) error {
+	dir = path.Clean(dir)
+	if dir == "/" || dir == "." || dir == "" {
+		return nil
+	}
+	if fi, err := client.Stat(dir); err == nil {
+		if fi.IsDir {
+			return nil
+		}
+		return errors.New("destination parent exists and is not a directory")
+	}
+	if parent := path.Dir(dir); parent != dir {
+		if err := ensureDirAll(client, parent); err != nil {
+			return err
+		}
+	}
+	if err := client.MakeDir(dir); err != nil {
+		// Tolerate an idempotent/raced create (SFTP MkdirAll, or another request
+		// won the race): an existing directory is success.
+		if fi, statErr := client.Stat(dir); statErr == nil && fi.IsDir {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // copyTree copies from src to dst, recursing into directories. Files are streamed

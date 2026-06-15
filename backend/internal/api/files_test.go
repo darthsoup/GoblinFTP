@@ -3,6 +3,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -87,23 +88,54 @@ func TestListFiles(t *testing.T) {
 }
 
 func TestCreateDirectory(t *testing.T) {
+	var made []string
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		MakeDirFn:    func(path string) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
 	}
-	dialFn := staticDial(mock)
-	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
 	sess := connectAndGetSession(t, app)
 
-	body := `{"path":"/newdir"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/files/directory", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	addSession(req, sess)
-	rec := httptest.NewRecorder()
-	app.ServeHTTP(rec, req)
+	rec := doJSON(app, sess, http.MethodPost, "/api/files/directory", `{"path":"/newdir"}`)
+	assert.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+	assert.Equal(t, []string{"/newdir"}, made)
+}
 
-	assert.Equal(t, http.StatusOK, rec.Code)
+// TestCreateDirectoryNested: a multi-segment path creates each missing ancestor.
+func TestCreateDirectoryNested(t *testing.T) {
+	var made []string
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	sess := connectAndGetSession(t, app)
+
+	rec := doJSON(app, sess, http.MethodPost, "/api/files/directory", `{"path":"/a/b/c"}`)
+	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+	assert.Equal(t, []string{"/a", "/a/b", "/a/b/c"}, made)
+}
+
+// TestCreateDirectoryIdempotent: an already-existing directory is a no-op success
+// (raw FTP MakeDir would otherwise error).
+func TestCreateDirectoryIdempotent(t *testing.T) {
+	var made []string
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{IsDir: true}, nil },
+		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	sess := connectAndGetSession(t, app)
+
+	rec := doJSON(app, sess, http.MethodPost, "/api/files/directory", `{"path":"/exists"}`)
+	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+	assert.Empty(t, made, "existing dir must not be re-created")
 }
 
 func TestDeleteFilesPartialFailure(t *testing.T) {

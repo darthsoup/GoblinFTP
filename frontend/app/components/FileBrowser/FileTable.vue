@@ -253,12 +253,25 @@ function onDragLeave() {
   }
 }
 
-function onDrop(e: DragEvent) {
+async function onDrop(e: DragEvent) {
   dragCounter = 0
   isDragOver.value = false
-  const files = e.dataTransfer?.files
-  if (files && files.length > 0)
-    uploadStore.addFiles(files, filesStore.currentPath)
+  if (!e.dataTransfer)
+    return
+  // readDropEntries snapshots the items synchronously (they're only valid during
+  // the event), then traverses dropped folders into nested relative paths.
+  const { files, emptyDirs } = await readDropEntries(e.dataTransfer)
+  const base = filesStore.currentPath.replace(/\/$/, '')
+  if (emptyDirs.length > 0) {
+    // Non-empty dirs are created implicitly by the upload; create the empty ones.
+    const results = await Promise.allSettled(emptyDirs.map(d => filesStore.ensureDir(`${base}/${d}`)))
+    if (results.some(r => r.status === 'rejected'))
+      notify.error(t('toast.folderCreateFailed'))
+  }
+  if (files.length > 0)
+    uploadStore.addEntries(files, filesStore.currentPath)
+  else if (emptyDirs.length > 0)
+    await filesStore.list() // empty-only drop → reveal the new folders now
 }
 </script>
 

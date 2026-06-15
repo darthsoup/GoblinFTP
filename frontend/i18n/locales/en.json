@@ -75,7 +75,7 @@
     "empty": "This directory is empty",
     "noMatches": "No files match your filter",
     "clearFilter": "Clear filter",
-    "dropToUpload": "Drop files to upload",
+    "dropToUpload": "Drop files or folders to upload",
     "retry": "Retry"
   },
   "toolbar": {
@@ -208,7 +208,8 @@
     "downloadFailed": "Download failed",
     "copied": "Copied {n} item(s)",
     "moved": "Moved {n} item(s)",
-    "pasteFailed": "Some items could not be pasted"
+    "pasteFailed": "Some items could not be pasted",
+    "folderCreateFailed": "Some folders could not be created"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

@@ -3,6 +3,7 @@ package api
 
 import (
 	"errors"
+	"path"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
@@ -44,6 +45,9 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 	}
 	defer f.Close()
 	sess, _ := c.Get("session").(*auth.Session)
+	if err := ensureDirAll(client, path.Dir(remotePath)); err != nil {
+		return failClient(c, gftperrors.ErrOperationFailed, err)
+	}
 	src := metrics.CountingReader(f, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
 	if err := client.Upload(remotePath, src); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
@@ -143,6 +147,11 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to assemble chunks"))
 	}
 	defer r.Close()
+	if err := ensureDirAll(client, path.Dir(meta.Destination)); err != nil {
+		_ = h.chunks.Cleanup(ctx, meta.ID)
+		sess.DeleteUpload(req.UploadID)
+		return failClient(c, gftperrors.ErrOperationFailed, err)
+	}
 	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
 	if err := client.Upload(meta.Destination, src); err != nil {
 		// The frontend never retries a failed commit, so the staged chunks

@@ -265,6 +265,14 @@ export const useFilesStore = defineStore('files', () => {
     await list()
   }
 
+  // Create a directory WITHOUT refreshing the listing — used during folder
+  // uploads to materialize empty subdirectories (the upload's own debounced
+  // refresh reveals them). Idempotent on the backend (mkdir -p).
+  async function ensureDir(path: string): Promise<void> {
+    const api = useApi()
+    await api.post('/api/files/directory', { path })
+  }
+
   async function chmod(path: string, mode: number): Promise<void> {
     const api = useApi()
     await api.patch('/api/files/permissions', { path, mode })
@@ -356,6 +364,7 @@ export const useFilesStore = defineStore('files', () => {
     paste,
     deleteFiles,
     mkdir,
+    ensureDir,
     chmod,
     createFile,
     downloadZip,

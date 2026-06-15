@@ -75,7 +75,7 @@
     "empty": "Dieses Verzeichnis ist leer",
     "noMatches": "Keine Dateien entsprechen dem Filter",
     "clearFilter": "Filter zurücksetzen",
-    "dropToUpload": "Dateien zum Hochladen ablegen",
+    "dropToUpload": "Dateien oder Ordner zum Hochladen ablegen",
     "retry": "Erneut versuchen"
   },
   "toolbar": {
@@ -208,7 +208,8 @@
     "downloadFailed": "Download fehlgeschlagen",
     "copied": "{n} Element(e) kopiert",
     "moved": "{n} Element(e) verschoben",
-    "pasteFailed": "Einige Elemente konnten nicht eingefügt werden"
+    "pasteFailed": "Einige Elemente konnten nicht eingefügt werden",
+    "folderCreateFailed": "Einige Ordner konnten nicht erstellt werden"
   },
   "shortcuts": {
     "title": "Tastenkürzel",
