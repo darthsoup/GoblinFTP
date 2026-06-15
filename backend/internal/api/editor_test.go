@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/config"
+	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 )
 
@@ -138,6 +140,47 @@ func TestWriteFileTooLarge(t *testing.T) {
 
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 	assert.Contains(t, rec.Body.String(), "ERR_FILE_TOO_LARGE")
+}
+
+// TestReadFileDownloadError: a protocol error from the server is classified into
+// a stable code + friendly message — the raw "550 ..." string must not leak.
+func TestReadFileDownloadError(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		DownloadFn: func(string) (io.ReadCloser, error) { return nil, errors.New("550 Permission denied") },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/files/read?path=/remote/file.txt", nil)
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	var resp api.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.NotEmpty(t, resp.Errors)
+	assert.Equal(t, string(gftperrors.ErrFilePermission), resp.Errors[0].Code)
+	assert.NotContains(t, resp.Errors[0].Message, "550", "raw protocol string must not leak")
+}
+
+// TestWriteFileUploadError: same classification guarantee on the write path.
+func TestWriteFileUploadError(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		UploadFn: func(string, io.Reader) error { return errors.New("550 Permission denied") },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	body := `{"path":"/remote/file.txt","content":"x"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/files/write", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	var resp api.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.NotEmpty(t, resp.Errors)
+	assert.Equal(t, string(gftperrors.ErrFilePermission), resp.Errors[0].Code)
+	assert.NotContains(t, resp.Errors[0].Message, "550", "raw protocol string must not leak")
 }
 
 func TestWriteFileViewOnly(t *testing.T) {

@@ -52,14 +52,14 @@ func (h *Handler) ReadFile(c echo.Context) error {
 
 	r, err := client.Download(path)
 	if err != nil {
-		return Fail(c, gftperrors.Wrap(gftperrors.ErrOperationFailed, err))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	defer r.Close()
 
 	lr := &io.LimitedReader{R: r, N: maxEditorReadSize + 1}
 	data, err := io.ReadAll(lr)
 	if err != nil {
-		return Fail(c, gftperrors.Wrap(gftperrors.ErrOperationFailed, err))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	if int64(len(data)) > maxEditorReadSize {
 		return Fail(c, gftperrors.New(gftperrors.ErrFileTooLarge, "file exceeds 1 MB editor limit"))
@@ -100,7 +100,7 @@ func (h *Handler) WriteFile(c echo.Context) error {
 	}
 
 	if err := client.Upload(req.Path, strings.NewReader(req.Content)); err != nil {
-		return Fail(c, gftperrors.Wrap(gftperrors.ErrOperationFailed, err))
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 
 	return OK(c, nil)
