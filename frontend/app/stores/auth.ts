@@ -5,7 +5,6 @@ import { ApiError } from '~/types/api'
 // A pending SFTP host-key confirmation (trust-on-first-use). `sso` distinguishes
 // which connect endpoint to retry once the user trusts the key.
 interface PendingHostKey extends HostKeyPrompt {
-  host: string
   sso: boolean
 }
 
@@ -69,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
       const api = useApi()
       const data = await api.post<ConnectData>('/api/auth/sso-connect', acceptHostKey ? { acceptHostKey } : undefined)
       if (data.hostKeyPrompt) {
-        pendingHostKey.value = { ...data.hostKeyPrompt, host: serverHost.value, sso: true }
+        pendingHostKey.value = { ...data.hostKeyPrompt, sso: true }
         return
       }
       csrfToken.value = data.csrfToken
@@ -107,7 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (data.hostKeyPrompt) {
         // Unknown SFTP host key — pause and ask the user to confirm before we
         // mark the session connected. The modal resumes via confirmHostKey().
-        pendingHostKey.value = { ...data.hostKeyPrompt, host: req.host, sso: false }
+        pendingHostKey.value = { ...data.hostKeyPrompt, sso: false }
         pendingReq = req
         return
       }
@@ -140,8 +139,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
     finally {
       // Clear unless the retry surfaced a NEW prompt (a different object).
-      if (pendingHostKey.value === p)
+      // Drop the stored request too so the password isn't held past resolution.
+      if (pendingHostKey.value === p) {
         pendingHostKey.value = null
+        pendingReq = null
+      }
     }
   }
 

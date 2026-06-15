@@ -27,6 +27,8 @@ export interface ConnectRequest {
 }
 
 export interface HostKeyPrompt {
+  // Bare host the key belongs to (shown in the confirmation prompt).
+  host: string
   fingerprint: string
   keyType: string
 }

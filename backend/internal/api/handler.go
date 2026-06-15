@@ -28,6 +28,7 @@ type DialRequest struct {
 // HostKeyPrompt is returned (with a nil client and nil error) when an SFTP host
 // key must be confirmed by the user before the connection can proceed.
 type HostKeyPrompt struct {
+	Host        string `json:"host"` // bare host the key belongs to (shown in the prompt)
 	Fingerprint string `json:"fingerprint"`
 	KeyType     string `json:"keyType"`
 }
