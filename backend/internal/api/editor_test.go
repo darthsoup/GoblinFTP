@@ -13,7 +13,6 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/config"
-	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 )
 
@@ -34,9 +33,7 @@ func editorDialOption(mock *testutil.MockClient) api.HandlerOption {
 	if mock.ChmodFn == nil {
 		mock.ChmodFn = func(string, uint32) error { return nil }
 	}
-	return api.WithDial(func(p, a, u, pw string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	})
+	return api.WithDial(staticDial(mock))
 }
 
 func TestReadFile(t *testing.T) {

@@ -42,6 +42,10 @@ type ConnectionSettings struct {
 	PresetPort  *int    `json:"presetPort"`
 	LockHost    bool    `json:"lockHost"`
 	PassiveMode bool    `json:"passiveMode"`
+	// FTPTLSInsecureSkipVerify disables FTPS (explicit TLS) certificate
+	// verification — for self-signed / internal servers only. Admin-only
+	// (env GFTP_FTP_TLS_INSECURE_SKIP_VERIFY); never expose to end users.
+	FTPTLSInsecureSkipVerify bool `json:"ftpTLSInsecureSkipVerify"`
 }
 
 // AccessSettings maps the `access` block.
@@ -143,7 +147,7 @@ func defaultSettings() Settings {
 			ViewOnly: false,
 		},
 		Connection: ConnectionSettings{
-			AllowedTypes:          []string{"ftp", "sftp"},
+			AllowedTypes:          []string{"ftp", "ftps", "sftp"},
 			DisableChmod:          false,
 			RequestTimeoutSeconds: 30,
 			PassiveMode:           true,
@@ -403,6 +407,9 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	}
 
 	conn := &cfg.Settings.Connection
+	if os.Getenv("GFTP_FTP_TLS_INSECURE_SKIP_VERIFY") == "true" {
+		conn.FTPTLSInsecureSkipVerify = true
+	}
 	if conn.PresetPort != nil && (*conn.PresetPort < 1 || *conn.PresetPort > 65535) {
 		return nil, fmt.Errorf("invalid connection.presetPort: must be 1-65535, got %d", *conn.PresetPort)
 	}

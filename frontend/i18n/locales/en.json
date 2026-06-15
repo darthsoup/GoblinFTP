@@ -9,9 +9,19 @@
     "password": "Password",
     "connect": "Connect",
     "tagline": "Self-hosted file transfer",
-    "passive": "Passive mode (FTP)",
+    "passive": "Passive mode",
     "errorRequired": "Required",
     "errorPort": "Invalid port"
+  },
+  "hostKey": {
+    "title": "Verify host key",
+    "message": "This server is presenting an SSH host key that hasn't been trusted yet. Confirm the fingerprint matches your server before connecting.",
+    "host": "Host",
+    "keyType": "Key type",
+    "fingerprint": "Fingerprint (SHA256)",
+    "warning": "Only trust this key if you recognize the fingerprint. If it changes later, the connection is refused as a possible man-in-the-middle.",
+    "trust": "Trust & connect",
+    "cancel": "Cancel"
   },
   "header": {
     "connected": "Connected",

@@ -31,8 +31,8 @@ func workingMock() *mocks.MockClient {
 }
 
 func mockDial(client transfer.Client, err error) api.HandlerOption {
-	return api.WithDial(func(string, string, string, string, bool) (transfer.Client, error) {
-		return client, err
+	return api.WithDial(func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		return client, nil, err
 	})
 }
 

@@ -24,7 +24,7 @@ func TestIssueDownloadToken(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -56,7 +56,7 @@ func TestDownloadFile(t *testing.T) {
 			return io.NopCloser(strings.NewReader(content)), nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -98,7 +98,7 @@ func TestDownloadZip(t *testing.T) {
 			return io.NopCloser(strings.NewReader(content)), nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -127,12 +127,10 @@ func TestDownloadZip(t *testing.T) {
 }
 
 func TestDownloadZipMissingPaths(t *testing.T) {
-	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(func(p, a, u, pw string, passive bool) (transfer.Client, error) {
-		return &testutil.MockClient{
-			WorkingDirFn: func() (string, error) { return "/", nil },
-			ChmodFn:      func(string, uint32) error { return nil },
-		}, nil
-	}))
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(&testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+	})))
 	sess := connectAndGetSession(t, app)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/files/download-zip", strings.NewReader(`{"paths":[]}`))
@@ -158,9 +156,7 @@ func TestDownloadZipRejectsOversizedArchive(t *testing.T) {
 			return io.NopCloser(strings.NewReader("unexpected")), nil
 		},
 	}
-	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(func(p, a, u, pw string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
 	sess := connectAndGetSession(t, app)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/files/download-zip", strings.NewReader(`{"paths":["/large.bin"]}`))

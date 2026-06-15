@@ -30,9 +30,7 @@ func TestListConnLost(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		ListFn:       func(path string) ([]transfer.FileInfo, error) { return nil, brokenPipe },
 	}
-	e, store, _ := newTestApp(t, cfg, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestApp(t, cfg, api.WithDial(staticDial(mock)))
 	defer store.Close()
 	sess := connectAndGetSession(t, e)
 
@@ -64,9 +62,7 @@ func TestListOtherErrorKeepsClient(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		ListFn:       func(path string) ([]transfer.FileInfo, error) { return nil, errors.New("550 permission denied") },
 	}
-	e, store, _ := newTestApp(t, cfg, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestApp(t, cfg, api.WithDial(staticDial(mock)))
 	defer store.Close()
 	sess := connectAndGetSession(t, e)
 

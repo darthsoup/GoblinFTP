@@ -34,6 +34,8 @@ const (
 	ErrEditorDisabled          Code = "ERR_EDITOR_DISABLED"
 	ErrStorageUnavailable      Code = "ERR_STORAGE_UNAVAILABLE"
 	ErrConnectionLost          Code = "ERR_CONNECTION_LOST"
+	ErrHostKeyMismatch         Code = "ERR_HOST_KEY_MISMATCH"
+	ErrTLSFailed               Code = "ERR_TLS_FAILED"
 )
 
 // GFTPError is a typed error with a machine-readable code and human-readable message.
@@ -123,7 +125,7 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusForbidden
 	case ErrStorageUnavailable:
 		return http.StatusServiceUnavailable
-	case ErrConnectionLost:
+	case ErrConnectionLost, ErrHostKeyMismatch, ErrTLSFailed:
 		return http.StatusBadGateway
 	default:
 		return http.StatusInternalServerError

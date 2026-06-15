@@ -30,7 +30,7 @@ func TestExtractZipArchive(t *testing.T) {
 		},
 		MakeDirFn: func(path string) error { return nil },
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
@@ -76,7 +76,7 @@ func TestCreateZipArchive(t *testing.T) {
 			return nil
 		},
 	}
-	dialFn := func(p, a, u, pw string, passive bool) (transfer.Client, error) { return mock, nil }
+	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 

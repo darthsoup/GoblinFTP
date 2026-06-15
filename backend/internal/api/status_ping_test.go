@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/darthsoup/goblinftp/internal/api"
-	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 )
 
@@ -45,9 +44,7 @@ func TestAuthStatusPingAlive(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		PingFn:       func() error { pinged = true; return nil },
 	}
-	e, store, _ := newTestApp(t, cfg, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestApp(t, cfg, api.WithDial(staticDial(mock)))
 	defer store.Close()
 	sess := connectAndGetSession(t, e)
 
@@ -64,9 +61,7 @@ func TestAuthStatusPingDead(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		PingFn:       func() error { return errors.New("connection reset") },
 	}
-	e, store, _ := newTestApp(t, cfg, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestApp(t, cfg, api.WithDial(staticDial(mock)))
 	defer store.Close()
 	sess := connectAndGetSession(t, e)
 
@@ -89,9 +84,7 @@ func TestAuthStatusWithoutPingDoesNotPing(t *testing.T) {
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 		PingFn:       func() error { pinged = true; return nil },
 	}
-	e, store, _ := newTestApp(t, cfg, api.WithDial(func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}))
+	e, store, _ := newTestApp(t, cfg, api.WithDial(staticDial(mock)))
 	defer store.Close()
 	sess := connectAndGetSession(t, e)
 

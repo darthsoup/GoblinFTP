@@ -1,6 +1,12 @@
-import type { AuthStatus, ConnectData, ConnectRequest, SystemVars } from '~/types/api'
+import type { AuthStatus, ConnectData, ConnectRequest, HostKeyPrompt, SystemVars } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
+
+// A pending SFTP host-key confirmation (trust-on-first-use). `sso` distinguishes
+// which connect endpoint to retry once the user trusts the key.
+interface PendingHostKey extends HostKeyPrompt {
+  sso: boolean
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const csrfToken = ref('')
@@ -14,6 +20,11 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const sessionLost = ref(false)
   let disconnecting = false
+
+  // Set when a connect attempt returns an unverified SFTP host key; drives the
+  // host-key confirmation modal on the login screen.
+  const pendingHostKey = ref<PendingHostKey | null>(null)
+  let pendingReq: ConnectRequest | null = null
 
   // Called on app mount — fetches system vars + auth status using $fetch directly
   // (no CSRF needed for these GET requests, and avoids circular dep with useApi)
@@ -48,13 +59,18 @@ export const useAuthStore = defineStore('auth', () => {
     catch {}
   }
 
-  // SSO auto-connect: called when ssoAutoConnect=true after init()
-  async function ssoConnect() {
+  // SSO auto-connect: called when ssoAutoConnect=true after init().
+  // acceptHostKey resumes after the user trusts an unknown SFTP host key.
+  async function ssoConnect(acceptHostKey?: string) {
     loading.value = true
     error.value = null
     try {
       const api = useApi()
-      const data = await api.post<ConnectData>('/api/auth/sso-connect')
+      const data = await api.post<ConnectData>('/api/auth/sso-connect', acceptHostKey ? { acceptHostKey } : undefined)
+      if (data.hostKeyPrompt) {
+        pendingHostKey.value = { ...data.hostKeyPrompt, sso: true }
+        return
+      }
       csrfToken.value = data.csrfToken
       connected.value = true
       ssoAutoConnect.value = false
@@ -87,6 +103,13 @@ export const useAuthStore = defineStore('auth', () => {
         throw new ApiError(err?.code ?? 'ERR_UNKNOWN', err?.message ?? 'Login failed')
       }
       const data = res.data!
+      if (data.hostKeyPrompt) {
+        // Unknown SFTP host key — pause and ask the user to confirm before we
+        // mark the session connected. The modal resumes via confirmHostKey().
+        pendingHostKey.value = { ...data.hostKeyPrompt, sso: false }
+        pendingReq = req
+        return
+      }
       csrfToken.value = data.csrfToken
       connected.value = true
       serverHost.value = req.host
@@ -100,6 +123,34 @@ export const useAuthStore = defineStore('auth', () => {
     finally {
       loading.value = false
     }
+  }
+
+  // User trusted the unknown host key — retry the same connect/SSO flow with the
+  // fingerprint so the backend pins it and proceeds.
+  async function confirmHostKey() {
+    const p = pendingHostKey.value
+    if (!p)
+      return
+    try {
+      if (p.sso)
+        await ssoConnect(p.fingerprint)
+      else if (pendingReq)
+        await connect({ ...pendingReq, acceptHostKey: p.fingerprint })
+    }
+    finally {
+      // Clear unless the retry surfaced a NEW prompt (a different object).
+      // Drop the stored request too so the password isn't held past resolution.
+      if (pendingHostKey.value === p) {
+        pendingHostKey.value = null
+        pendingReq = null
+      }
+    }
+  }
+
+  // User declined the host key — abandon the pending connection.
+  function cancelHostKey() {
+    pendingHostKey.value = null
+    pendingReq = null
   }
 
   async function disconnect() {
@@ -171,10 +222,13 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     loading,
     sessionLost,
+    pendingHostKey,
     allowedTypes,
     init,
     ssoConnect,
     connect,
+    confirmHostKey,
+    cancelHostKey,
     disconnect,
     markSessionLost,
     checkSession,

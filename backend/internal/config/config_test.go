@@ -56,7 +56,7 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, "9091", cfg.MetricsPort)
 
 	assert.Equal(t, "GoblinFTP", cfg.Settings.UI.PageTitle)
-	assert.Equal(t, []string{"ftp", "sftp"}, cfg.Settings.Connection.AllowedTypes)
+	assert.Equal(t, []string{"ftp", "ftps", "sftp"}, cfg.Settings.Connection.AllowedTypes)
 	assert.Equal(t, "en", cfg.Settings.Language)
 	assert.False(t, cfg.Settings.Connection.DisableChmod)
 	assert.Equal(t, 30, cfg.Settings.Connection.RequestTimeoutSeconds)

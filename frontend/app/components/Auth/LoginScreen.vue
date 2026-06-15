@@ -49,4 +49,6 @@ const { appName, hideAttribution } = useBranding()
       </UTooltip>
     </template>
   </UFooter>
+
+  <HostKeyVerifyModal />
 </template>

@@ -21,12 +21,25 @@ export interface ConnectRequest {
   username: string
   password: string
   passive: boolean
+  // SHA256 fingerprint the user agreed to trust for an unknown SFTP host
+  // (trust-on-first-use, step 2). Omitted on the first attempt.
+  acceptHostKey?: string
+}
+
+export interface HostKeyPrompt {
+  // Bare host the key belongs to (shown in the confirmation prompt).
+  host: string
+  fingerprint: string
+  keyType: string
 }
 
 export interface ConnectData {
   capabilities: { disableChmod: boolean }
   initialDirectory: string
   csrfToken: string
+  // Set (with the other fields empty and no session yet) when an SFTP host key
+  // must be confirmed before connecting.
+  hostKeyPrompt?: HostKeyPrompt
 }
 
 export interface FileInfo {

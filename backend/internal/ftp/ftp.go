@@ -1,10 +1,14 @@
 package ftp
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"path"
+	"strings"
 	"time"
 
 	jftp "github.com/jlaffaye/ftp"
@@ -26,10 +30,19 @@ func clampSize(v uint64) int64 {
 	return int64(v)
 }
 
-// Dial connects and authenticates. passive controls passive/active mode.
-func Dial(addr, user, pass string, passive bool) (*Client, error) {
-	conn, err := jftp.Dial(addr, jftp.DialWithTimeout(10*time.Second))
+// Dial connects and authenticates. passive controls passive/active mode. When
+// tlsConfig is non-nil the control connection is upgraded with explicit TLS
+// (AUTH TLS, RFC 4217) — i.e. FTPS.
+func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client, error) {
+	opts := []jftp.DialOption{jftp.DialWithTimeout(10 * time.Second)}
+	if tlsConfig != nil {
+		opts = append(opts, jftp.DialWithExplicitTLS(tlsConfig))
+	}
+	conn, err := jftp.Dial(addr, opts...)
 	if err != nil {
+		if tlsConfig != nil && isTLSError(err) {
+			return nil, fmt.Errorf("%w: %w", transfer.ErrTLSFailed, err)
+		}
 		return nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
 	}
 	if err := conn.Login(user, pass); err != nil {
@@ -37,6 +50,20 @@ func Dial(addr, user, pass string, passive bool) (*Client, error) {
 		return nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 	}
 	return &Client{conn: conn}, nil
+}
+
+// isTLSError reports whether err is a TLS / certificate-verification failure, so
+// the caller can surface ERR_TLS_FAILED (and hint at the insecure-skip-verify
+// escape hatch for self-signed servers) instead of a generic connection error.
+func isTLSError(err error) bool {
+	var certErr *tls.CertificateVerificationError
+	var unknownAuth x509.UnknownAuthorityError
+	var hostErr x509.HostnameError
+	if errors.As(err, &certErr) || errors.As(err, &unknownAuth) || errors.As(err, &hostErr) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "x509:") || strings.Contains(msg, "tls:") || strings.Contains(msg, "certificate")
 }
 
 func (c *Client) WorkingDir() (string, error) {

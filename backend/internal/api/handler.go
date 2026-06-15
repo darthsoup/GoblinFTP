@@ -12,8 +12,31 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// DialFunc creates a transfer.Client for the given protocol, address, credentials, and passive flag.
-type DialFunc func(protocol, addr, user, pass string, passive bool) (transfer.Client, error)
+// DialRequest carries the per-connection inputs for a dial attempt.
+type DialRequest struct {
+	Protocol string
+	Addr     string // host:port
+	Host     string // bare host (TLS SNI for FTPS)
+	User     string
+	Pass     string
+	Passive  bool
+	// AcceptHostKey, when non-empty, is the SHA256 fingerprint the user agreed
+	// to trust for an unknown SFTP host (trust-on-first-use, step 2).
+	AcceptHostKey string
+}
+
+// HostKeyPrompt is returned (with a nil client and nil error) when an SFTP host
+// key must be confirmed by the user before the connection can proceed.
+type HostKeyPrompt struct {
+	Host        string `json:"host"` // bare host the key belongs to (shown in the prompt)
+	Fingerprint string `json:"fingerprint"`
+	KeyType     string `json:"keyType"`
+}
+
+// DialFunc creates a transfer.Client. It returns (client, nil, nil) on success,
+// (nil, prompt, nil) when an SFTP host key needs user confirmation, and
+// (nil, nil, err) on failure.
+type DialFunc func(DialRequest) (transfer.Client, *HostKeyPrompt, error)
 
 // HandlerOption is a functional option for constructing a Handler.
 type HandlerOption func(*Handler)
@@ -79,7 +102,7 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 		store:       store,
 		throttle:    thr,
 		chunks:      staging.NewLocalStore(cfg.DataDir),
-		dial:        defaultDial,
+		dial:        newDefaultDial(cfg),
 		ssoUsed:     sso.NewUsedSet(),
 		logger:      slog.New(slog.DiscardHandler),
 		metrics:     metrics.New(),
@@ -100,13 +123,13 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 // cleanup drops expired sessions without closing the underlying connection —
 // a session is deliberately the unit counted here.
 func (h *Handler) connectionSnapshot() metrics.Snapshot {
-	snap := metrics.Snapshot{ConnsByProtocol: map[string]int{"ftp": 0, "sftp": 0}}
+	snap := metrics.Snapshot{ConnsByProtocol: map[string]int{"ftp": 0, "ftps": 0, "sftp": 0}}
 	h.store.Range(func(sess *auth.Session) {
 		snap.Sessions++
 		// "client" is only ever set to a live transfer.Client (and deleted on
 		// disconnect / connection loss), so key presence == has a connection.
 		if _, hasClient := sess.Get("client"); hasClient {
-			if proto := sess.GetString("protocol"); proto == "ftp" || proto == "sftp" {
+			if proto := sess.GetString("protocol"); proto == "ftp" || proto == "ftps" || proto == "sftp" {
 				snap.ConnsByProtocol[proto]++
 			}
 		}
@@ -120,7 +143,7 @@ func protocolFromSession(sess *auth.Session) string {
 	if sess == nil {
 		return "unknown"
 	}
-	if p := sess.GetString("protocol"); p == "ftp" || p == "sftp" {
+	if p := sess.GetString("protocol"); p == "ftp" || p == "ftps" || p == "sftp" {
 		return p
 	}
 	return "unknown"

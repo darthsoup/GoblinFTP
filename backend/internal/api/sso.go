@@ -173,19 +173,49 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no pending SSO connection"))
 	}
 
+	// Optional body: the SHA256 fingerprint the user agreed to trust when the
+	// first attempt returned an unknown SFTP host key (empty on first attempt).
+	var body struct {
+		AcceptHostKey string `json:"acceptHostKey"`
+	}
+	_ = c.Bind(&body)
+
 	if gftperr := h.checkIPAllowlist(c); gftperr != nil {
 		return Fail(c, gftperr)
 	}
 
 	addr := fmt.Sprintf("%s:%d", pending.Host, pending.Port)
-	client, dialErr := h.dial(pending.Protocol, addr, pending.Username, pending.Password, pending.Passive)
+	client, hostKey, dialErr := h.dial(DialRequest{
+		Protocol:      pending.Protocol,
+		Addr:          addr,
+		Host:          pending.Host,
+		User:          pending.Username,
+		Pass:          pending.Password,
+		Passive:       pending.Passive,
+		AcceptHostKey: body.AcceptHostKey,
+	})
+	if hostKey != nil {
+		// Keep the pending SSO request so the SPA can retry with the trusted key.
+		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "host_key_prompt").Inc()
+		return OK(c, ConnectData{HostKeyPrompt: hostKey})
+	}
 	if dialErr != nil {
-		if errors.Is(dialErr, transfer.ErrAuthFailed) {
+		switch {
+		case errors.Is(dialErr, transfer.ErrAuthFailed):
 			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "auth_failed").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
+		case errors.Is(dialErr, transfer.ErrHostKeyMismatch):
+			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "host_key_mismatch").Inc()
+			return Fail(c, gftperrors.New(gftperrors.ErrHostKeyMismatch,
+				"the server's host key changed since it was trusted — possible man-in-the-middle, connection refused").WithCause(dialErr))
+		case errors.Is(dialErr, transfer.ErrTLSFailed):
+			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "tls_failed").Inc()
+			return Fail(c, gftperrors.New(gftperrors.ErrTLSFailed,
+				"the server's TLS certificate could not be verified").WithCause(dialErr))
+		default:
+			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "failed").Inc()
+			return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 		}
-		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "failed").Inc()
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
 	}
 
 	initialDir, wdErr := client.WorkingDir()

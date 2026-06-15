@@ -26,13 +26,14 @@
   },
 
   "connection": {
-    "allowedTypes": ["ftp", "sftp"],
+    "allowedTypes": ["ftp", "ftps", "sftp"],
     "disableChmod": false,
     "requestTimeoutSeconds": 30,
     "presetHost": null,
     "presetPort": null,
     "lockHost": false,
-    "passiveMode": true
+    "passiveMode": true,
+    "ftpTLSInsecureSkipVerify": false
   },
 
   "access": {

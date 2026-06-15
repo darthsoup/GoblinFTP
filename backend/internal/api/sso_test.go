@@ -3,8 +3,10 @@ package api_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -233,9 +235,7 @@ func TestAuthStatusConnected(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/home/user", nil },
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 	}
-	dialFn := func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}
+	dialFn := staticDial(mock)
 	e, store, _ := newTestApp(t, cfg, api.WithDial(dialFn))
 	defer store.Close()
 
@@ -306,9 +306,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/home/user", nil },
 		ChmodFn:      func(path string, mode uint32) error { return nil },
 	}
-	dialFn := func(protocol, addr, user, pass string, passive bool) (transfer.Client, error) {
-		return mock, nil
-	}
+	dialFn := staticDial(mock)
 	e, store, _ := newTestApp(t, cfg, api.WithDial(dialFn))
 	defer store.Close()
 
@@ -371,4 +369,146 @@ func TestSSOConnectFullFlow(t *testing.T) {
 	assert.True(t, connectResp.Success)
 	assert.Equal(t, "/home/user", connectResp.Data.InitialDirectory)
 	assert.NotEmpty(t, connectResp.Data.CSRFToken)
+}
+
+// validSSOSFTP creates an encrypted SFTP SSO token with future expiry — the
+// host-key flow only applies to sftp.
+func validSSOSFTP(t *testing.T, secret []byte) string {
+	t.Helper()
+	payload := &sso.Payload{
+		Type:     "sftp",
+		Host:     "ssh.example.com",
+		Port:     22,
+		Username: "user",
+		Password: "pass",
+		Exp:      time.Now().Add(5 * time.Minute).Unix(),
+	}
+	tok, err := sso.Encrypt(payload, secret)
+	require.NoError(t, err)
+	return tok
+}
+
+// establishSSO runs the SSO login + status handshake and returns the session
+// cookie and CSRF token needed to POST /api/auth/sso-connect.
+func establishSSO(t *testing.T, e http.Handler, tok string) (*http.Cookie, string) {
+	t.Helper()
+	loginRec := httptest.NewRecorder()
+	e.ServeHTTP(loginRec, httptest.NewRequest(http.MethodGet, "/?sso="+tok, nil))
+	require.Equal(t, http.StatusFound, loginRec.Code)
+
+	var sessionCookie *http.Cookie
+	for _, c := range loginRec.Result().Cookies() {
+		if c.Name == api.SessionCookieName {
+			sessionCookie = c
+			break
+		}
+	}
+	require.NotNil(t, sessionCookie)
+
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
+	statusReq.AddCookie(sessionCookie)
+	statusRec := httptest.NewRecorder()
+	e.ServeHTTP(statusRec, statusReq)
+	require.Equal(t, http.StatusOK, statusRec.Code)
+
+	var statusResp struct {
+		Data struct {
+			CSRFToken string `json:"csrfToken"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(statusRec.Body.Bytes(), &statusResp))
+	require.NotEmpty(t, statusResp.Data.CSRFToken)
+	return sessionCookie, statusResp.Data.CSRFToken
+}
+
+// doSSOConnect POSTs /api/auth/sso-connect with the given session/CSRF and body
+// (empty body string → no JSON body).
+func doSSOConnect(e http.Handler, cookie *http.Cookie, csrf, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/sso-connect", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(cookie)
+	req.Header.Set(auth.CSRFHeaderName, csrf)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	return rec
+}
+
+// TestSSOConnectHostKeyPrompt: an unknown SFTP host key returns a 200 with the
+// fingerprint (and no client pinned to the session); confirming it with a second
+// request that carries the fingerprint completes the connection. The pending SSO
+// request survives the prompt so the retry can use it.
+func TestSSOConnectHostKeyPrompt(t *testing.T) {
+	cfg := ssoEnabledConfig()
+	mock := workingMock()
+	calls := 0
+	dialFn := api.WithDial(func(req api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		calls++
+		if req.AcceptHostKey == "" {
+			return nil, &api.HostKeyPrompt{Host: req.Host, Fingerprint: "SHA256:abc123", KeyType: "ssh-ed25519"}, nil
+		}
+		return mock, nil, nil
+	})
+	e, store, _ := newTestApp(t, cfg, dialFn)
+	defer store.Close()
+
+	cookie, csrf := establishSSO(t, e, validSSOSFTP(t, cfg.SSOSecret))
+
+	// First attempt → host-key prompt, no session client yet.
+	rec := doSSOConnect(e, cookie, csrf, "")
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Data struct {
+			HostKeyPrompt *struct {
+				Host        string `json:"host"`
+				Fingerprint string `json:"fingerprint"`
+				KeyType     string `json:"keyType"`
+			} `json:"hostKeyPrompt"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.NotNil(t, resp.Data.HostKeyPrompt)
+	assert.Equal(t, "SHA256:abc123", resp.Data.HostKeyPrompt.Fingerprint)
+	assert.Equal(t, "ssh-ed25519", resp.Data.HostKeyPrompt.KeyType)
+	assert.Equal(t, "ssh.example.com", resp.Data.HostKeyPrompt.Host)
+
+	sess, ok := store.Get(cookie.Value)
+	require.True(t, ok)
+	_, hasClient := sess.Get("client")
+	assert.False(t, hasClient, "no client until the host key is confirmed")
+
+	// Second attempt with the trusted fingerprint → connection proceeds.
+	rec2 := doSSOConnect(e, cookie, csrf, `{"acceptHostKey":"SHA256:abc123"}`)
+	require.Equal(t, http.StatusOK, rec2.Code)
+	var resp2 struct {
+		Success bool `json:"success"`
+		Data    struct {
+			InitialDirectory string `json:"initialDirectory"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec2.Body.Bytes(), &resp2))
+	assert.True(t, resp2.Success)
+	assert.Equal(t, "/", resp2.Data.InitialDirectory)
+	assert.Equal(t, 2, calls, "dial called once for the prompt and once for the confirmed retry")
+}
+
+// TestSSOConnectHostKeyMismatch: a changed host key is refused with
+// ERR_HOST_KEY_MISMATCH and the raw cause is not leaked into the envelope.
+func TestSSOConnectHostKeyMismatch(t *testing.T) {
+	cfg := ssoEnabledConfig()
+	dialFn := api.WithDial(func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		return nil, nil, fmt.Errorf("%w: raw-detail-xyz", transfer.ErrHostKeyMismatch)
+	})
+	e, store, _ := newTestApp(t, cfg, dialFn)
+	defer store.Close()
+
+	cookie, csrf := establishSSO(t, e, validSSOSFTP(t, cfg.SSOSecret))
+
+	rec := doSSOConnect(e, cookie, csrf, "")
+	require.Equal(t, http.StatusBadGateway, rec.Code)
+	var resp api.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.False(t, resp.Success)
+	require.NotEmpty(t, resp.Errors)
+	assert.Equal(t, string(gftperrors.ErrHostKeyMismatch), resp.Errors[0].Code)
+	assert.NotContains(t, resp.Errors[0].Message, "raw-detail-xyz", "raw cause must not leak")
 }
