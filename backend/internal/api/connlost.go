@@ -50,5 +50,14 @@ func failClient(c echo.Context, code gftperrors.Code, err error) error {
 		}
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionLost, "connection to the server was lost").WithCause(err))
 	}
-	return Fail(c, gftperrors.New(code, err.Error()).WithCause(err))
+	// Translate the raw protocol error into a stable code + friendly message so
+	// strings like `550 "..."` never reach the client. The classifier's specific
+	// code wins; for an unrecognized error keep the caller's category code (e.g.
+	// ErrListFailed) but still use the friendly generic message. The raw cause is
+	// attached for logs only, never serialized.
+	classified, msg := classify(err)
+	if classified == gftperrors.ErrOperationFailed && code != "" {
+		classified = code
+	}
+	return Fail(c, gftperrors.New(classified, msg).WithCause(err))
 }

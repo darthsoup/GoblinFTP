@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { ApiError } from '~/types/api'
+
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const notify = useNotify()
+const { localizeError, formatFailures } = useErrorMessage()
 const { t } = useI18n()
 
 const open = computed({
@@ -43,13 +46,22 @@ async function confirm() {
   loading.value = true
   apiError.value = null
   try {
-    const n = paths.value.length
-    await filesStore.deleteFiles(paths.value)
-    notify.success(t('toast.deleted', { n }))
+    const res = await filesStore.deleteFiles(paths.value)
+    if (res.failed.length === 0) {
+      notify.success(t('toast.deleted', { n: res.deleted.length }))
+    }
+    else {
+      notify.error(
+        t('toast.deleteFailed', { n: res.failed.length }),
+        formatFailures(res.failed.map(f => ({ label: basename(f.path), reason: localizeError(f.code, f.message) }))),
+      )
+    }
     modalStore.close()
   }
   catch (e) {
-    apiError.value = e instanceof Error ? e.message : t('error.operationFailed')
+    // Whole-request failure (e.g. bad request); session/connection loss routes to
+    // the reconnect dialog via useApi.
+    apiError.value = e instanceof ApiError ? localizeError(e.code, e.message) : t('error.operationFailed')
   }
   finally {
     loading.value = false

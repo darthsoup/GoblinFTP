@@ -199,6 +199,14 @@
     "connectionFailed": "Connection failed",
     "operationFailed": "Operation failed"
   },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "The folder is not empty or is in use",
+    "ERR_FILE_PERMISSION": "Permission denied by the server",
+    "ERR_FILE_NOT_FOUND": "The item no longer exists on the server",
+    "ERR_QUOTA_EXCEEDED": "The server is out of storage space",
+    "ERR_CONNECTION_LOST": "The connection to the server was lost",
+    "ERR_OPERATION_FAILED": "The operation could not be completed"
+  },
   "toast": {
     "folderCreated": "Folder created",
     "fileCreated": "File created",
@@ -209,7 +217,9 @@
     "copied": "Copied {n} item(s)",
     "moved": "Moved {n} item(s)",
     "pasteFailed": "Some items could not be pasted",
-    "folderCreateFailed": "Some folders could not be created"
+    "folderCreateFailed": "Some folders could not be created",
+    "deleteFailed": "{n} item(s) could not be deleted",
+    "andMore": "+{n} more"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

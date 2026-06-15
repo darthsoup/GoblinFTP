@@ -11,6 +11,7 @@ const (
 	ErrLoginThrottled          Code = "ERR_LOGIN_THROTTLED"
 	ErrFileNotFound            Code = "ERR_FILE_NOT_FOUND"
 	ErrFileExists              Code = "ERR_FILE_EXISTS"
+	ErrDirNotEmpty             Code = "ERR_DIR_NOT_EMPTY"
 	ErrFilePermission          Code = "ERR_FILE_PERMISSION"
 	ErrFileNotWritable         Code = "ERR_FILE_NOT_WRITABLE"
 	ErrListFailed              Code = "ERR_LIST_FAILED"
@@ -107,8 +108,10 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusForbidden
 	case ErrFileNotFound:
 		return http.StatusNotFound
-	case ErrFileExists:
+	case ErrFileExists, ErrDirNotEmpty:
 		return http.StatusConflict
+	case ErrQuotaExceeded:
+		return http.StatusInsufficientStorage
 	case ErrNotImplemented:
 		return http.StatusNotImplemented
 	case ErrConnectionTimeout:

@@ -4,7 +4,7 @@ package api
 import (
 	"errors"
 	"io"
-	"net/http"
+	"log/slog"
 	"os"
 	"path"
 	"time"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/logging"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
@@ -110,8 +111,9 @@ type deleteResult struct {
 }
 
 type deleteFailed struct {
-	Path  string `json:"path"`
-	Error string `json:"error"`
+	Path    string `json:"path"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
 }
 
 func (h *Handler) DeleteFiles(c echo.Context) error {
@@ -128,18 +130,27 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	}
 	result := deleteResult{}
 	for _, p := range req.Paths {
-		if err := client.Delete(p); err != nil {
-			result.Failed = append(result.Failed, deleteFailed{Path: p, Error: err.Error()})
-		} else {
+		err := client.Delete(p)
+		if err == nil {
 			result.Deleted = append(result.Deleted, p)
+			continue
 		}
+		// A dropped connection aborts the whole batch and triggers the SPA's
+		// reconnect flow, instead of reporting every remaining path as failed.
+		if isConnLost(err) {
+			return failClient(c, gftperrors.ErrOperationFailed, err)
+		}
+		// Per-item failures are part of a successful (HTTP 200) batch response;
+		// classify into a stable code + friendly message and log the raw cause
+		// here (it never reaches the client and no longer flows through Fail()).
+		code, msg := classify(err)
+		result.Failed = append(result.Failed, deleteFailed{Path: p, Code: string(code), Message: msg})
+		attrs := []slog.Attr{slog.String("path", p), slog.String("code", string(code))}
+		attrs = append(attrs, logging.SafeLogAttrs(slog.String("cause", err.Error()))...)
+		h.logger.LogAttrs(c.Request().Context(), slog.LevelWarn, "delete failed", attrs...)
 	}
-	if len(result.Failed) > 0 {
-		return c.JSON(http.StatusMultiStatus, Response{
-			Success: len(result.Deleted) > 0,
-			Data:    result,
-		})
-	}
+	// Always a 200 success once the request was processed; per-item outcomes live
+	// in data so the SPA surfaces which items failed and why.
 	return OK(c, result)
 }
 

@@ -58,13 +58,14 @@ func TestHTTPStatus(t *testing.T) {
 		{gftperrors.ErrLoginDisabled, http.StatusForbidden},
 		{gftperrors.ErrFileNotFound, http.StatusNotFound},
 		{gftperrors.ErrFileExists, http.StatusConflict},
+		{gftperrors.ErrDirNotEmpty, http.StatusConflict},
 		{gftperrors.ErrNotImplemented, http.StatusNotImplemented},
 		{gftperrors.ErrInternal, http.StatusInternalServerError},
 		{gftperrors.ErrConnectionFailed, http.StatusInternalServerError},
 		{gftperrors.ErrOperationFailed, http.StatusInternalServerError},
 		{gftperrors.ErrFileNotWritable, http.StatusInternalServerError},
 		{gftperrors.ErrListFailed, http.StatusInternalServerError},
-		{gftperrors.ErrQuotaExceeded, http.StatusInternalServerError},
+		{gftperrors.ErrQuotaExceeded, http.StatusInsufficientStorage},
 	}
 	for _, tt := range tests {
 		err := gftperrors.New(tt.code, "msg")

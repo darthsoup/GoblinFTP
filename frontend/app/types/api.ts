@@ -50,6 +50,22 @@ export interface FileInfo {
   mode: string // e.g., "drwxr-xr-x"
 }
 
+// A single per-item failure in a batch/multi-item operation. `code` is a stable
+// classifier code (localizable via errorCode.*); `message` is the server's
+// friendly fallback.
+export interface OperationFailure {
+  path: string
+  code: string
+  message: string
+}
+
+// Result of DELETE /api/files — the request succeeds (HTTP 200) once processed;
+// per-item outcomes live here.
+export interface DeleteResult {
+  deleted: string[]
+  failed: OperationFailure[]
+}
+
 export interface SystemVars {
   language: string
   ui: {

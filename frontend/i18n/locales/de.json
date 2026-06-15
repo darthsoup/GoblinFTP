@@ -199,6 +199,14 @@
     "connectionFailed": "Verbindung fehlgeschlagen",
     "operationFailed": "Vorgang fehlgeschlagen"
   },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Der Ordner ist nicht leer oder wird verwendet",
+    "ERR_FILE_PERMISSION": "Zugriff vom Server verweigert",
+    "ERR_FILE_NOT_FOUND": "Das Element existiert nicht mehr auf dem Server",
+    "ERR_QUOTA_EXCEEDED": "Auf dem Server ist kein Speicherplatz mehr verfügbar",
+    "ERR_CONNECTION_LOST": "Die Verbindung zum Server wurde getrennt",
+    "ERR_OPERATION_FAILED": "Der Vorgang konnte nicht abgeschlossen werden"
+  },
   "toast": {
     "folderCreated": "Ordner erstellt",
     "fileCreated": "Datei erstellt",
@@ -209,7 +217,9 @@
     "copied": "{n} Element(e) kopiert",
     "moved": "{n} Element(e) verschoben",
     "pasteFailed": "Einige Elemente konnten nicht eingefügt werden",
-    "folderCreateFailed": "Einige Ordner konnten nicht erstellt werden"
+    "folderCreateFailed": "Einige Ordner konnten nicht erstellt werden",
+    "deleteFailed": "{n} Element(e) konnten nicht gelöscht werden",
+    "andMore": "+{n} weitere"
   },
   "shortcuts": {
     "title": "Tastenkürzel",

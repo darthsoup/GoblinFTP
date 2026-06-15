@@ -6,6 +6,7 @@ import { ApiError } from '~/types/api'
 export function usePaste() {
   const filesStore = useFilesStore()
   const notify = useNotify()
+  const { localizeError, formatFailures } = useErrorMessage()
   const { t } = useI18n()
 
   return async function paste(): Promise<void> {
@@ -15,11 +16,15 @@ export function usePaste() {
         return
       if (res.ok > 0)
         notify.success(res.mode === 'copy' ? t('toast.copied', { n: res.ok }) : t('toast.moved', { n: res.ok }))
-      if (res.failed > 0)
-        notify.error(t('toast.pasteFailed'))
+      if (res.failures.length > 0) {
+        notify.error(
+          t('toast.pasteFailed'),
+          formatFailures(res.failures.map(f => ({ label: basename(f.path), reason: localizeError(f.code, f.message) }))),
+        )
+      }
     }
     catch (e) {
-      notify.error(e instanceof ApiError ? e.message : t('toast.pasteFailed'))
+      notify.error(e instanceof ApiError ? localizeError(e.code, e.message) : t('toast.pasteFailed'))
     }
   }
 }

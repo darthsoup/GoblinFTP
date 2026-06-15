@@ -1,5 +1,5 @@
 import type { PasteChoice } from '~/stores/modal'
-import type { FileInfo } from '~/types/api'
+import type { DeleteResult, FileInfo, OperationFailure } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
 
@@ -14,6 +14,7 @@ export interface PasteResult {
   ok: number
   failed: number
   cancelled?: boolean
+  failures: OperationFailure[]
 }
 
 // Returns a name not present in `existing`, suffixing " (copy)" / " (copy N)"
@@ -198,7 +199,7 @@ export const useFilesStore = defineStore('files', () => {
   async function paste(): Promise<PasteResult> {
     const cb = clipboard.value
     if (!cb)
-      return { mode: 'copy', ok: 0, failed: 0 }
+      return { mode: 'copy', ok: 0, failed: 0, failures: [] }
     const api = useApi()
     const dir = currentPath.value.replace(/\/$/, '')
     const existing = new Set(files.value.map(f => f.name))
@@ -209,12 +210,13 @@ export const useFilesStore = defineStore('files', () => {
     if (conflicts.length > 0) {
       choice = await useModalStore().pasteConflict(conflicts)
       if (choice === 'cancel')
-        return { mode: cb.mode, ok: 0, failed: 0, cancelled: true }
+        return { mode: cb.mode, ok: 0, failed: 0, cancelled: true, failures: [] }
     }
 
     // `taken` grows as we append copies so generated names don't collide with
     // each other within the same paste.
     const taken = new Set(existing)
+    const failures: OperationFailure[] = []
     let ok = 0
     let failed = 0
     for (const name of cb.names) {
@@ -243,20 +245,26 @@ export const useFilesStore = defineStore('files', () => {
         taken.add(toName)
         ok++
       }
-      catch {
+      catch (e) {
         failed++
+        failures.push({
+          path: to,
+          code: e instanceof ApiError ? e.code : 'ERR_UNKNOWN',
+          message: e instanceof Error ? e.message : 'Failed',
+        })
       }
     }
     await list()
     if (cb.mode === 'cut')
       clearClipboard()
-    return { mode: cb.mode, ok, failed }
+    return { mode: cb.mode, ok, failed, failures }
   }
 
-  async function deleteFiles(paths: string[]): Promise<void> {
+  async function deleteFiles(paths: string[]): Promise<DeleteResult> {
     const api = useApi()
-    await api.del('/api/files', { paths })
+    const res = await api.del<DeleteResult>('/api/files', { paths })
     await list()
+    return res
   }
 
   async function mkdir(path: string): Promise<void> {

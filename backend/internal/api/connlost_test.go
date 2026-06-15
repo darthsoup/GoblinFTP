@@ -53,8 +53,9 @@ func TestListConnLost(t *testing.T) {
 	assert.NotEmpty(t, status.Data.CSRFToken)
 }
 
-// TestListOtherErrorKeepsClient: non-connection errors keep the original
-// code/message and leave the connection in place.
+// TestListOtherErrorKeepsClient: a non-connection error leaves the connection in
+// place and is classified into a friendly code+message — the raw protocol string
+// ("550 ...") must not leak into the envelope.
 func TestListOtherErrorKeepsClient(t *testing.T) {
 	cfg := defaultTestConfig()
 	mock := &testutil.MockClient{
@@ -73,10 +74,35 @@ func TestListOtherErrorKeepsClient(t *testing.T) {
 
 	var resp api.Response
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.Equal(t, string(gftperrors.ErrListFailed), resp.Errors[0].Code)
-	assert.Contains(t, resp.Errors[0].Message, "permission denied")
+	assert.Equal(t, string(gftperrors.ErrFilePermission), resp.Errors[0].Code)
+	assert.Contains(t, resp.Errors[0].Message, "Permission denied")
+	assert.NotContains(t, resp.Errors[0].Message, "550", "raw protocol string must not leak")
 	assert.False(t, mock.Closed)
 
 	status := getStatus(t, e, sess, "")
 	assert.True(t, status.Data.Connected)
+}
+
+// TestListGenericErrorKeepsCode: an unrecognized (unclassifiable) error keeps the
+// caller's category code (ERR_LIST_FAILED) but still surfaces a friendly message
+// rather than the raw error string.
+func TestListGenericErrorKeepsCode(t *testing.T) {
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(path string, mode uint32) error { return nil },
+		ListFn:       func(path string) ([]transfer.FileInfo, error) { return nil, errors.New("weird unexpected error") },
+	}
+	e, store, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	defer store.Close()
+	sess := connectAndGetSession(t, e)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/files?path=/", nil)
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	var resp api.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, string(gftperrors.ErrListFailed), resp.Errors[0].Code)
+	assert.NotContains(t, resp.Errors[0].Message, "weird unexpected error", "raw error must not leak")
 }
