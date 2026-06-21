@@ -1,22 +1,7 @@
 <script setup lang="ts">
-import type { LanguageSupport } from '@codemirror/language'
 import type { Extension } from '@codemirror/state'
 import type { EditorTab } from '~/stores/editor'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { css } from '@codemirror/lang-css'
-import { go } from '@codemirror/lang-go'
-import { html } from '@codemirror/lang-html'
-import { javascript } from '@codemirror/lang-javascript'
-import { json } from '@codemirror/lang-json'
-import { less } from '@codemirror/lang-less'
-import { markdown } from '@codemirror/lang-markdown'
-import { php } from '@codemirror/lang-php'
-import { python } from '@codemirror/lang-python'
-import { sass } from '@codemirror/lang-sass'
-import { sql } from '@codemirror/lang-sql'
-import { vue } from '@codemirror/lang-vue'
-import { xml } from '@codemirror/lang-xml'
-import { yaml } from '@codemirror/lang-yaml'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { gotoLine, search, searchKeymap } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
@@ -38,38 +23,60 @@ const showEditor = computed(() => !!editorStore.activeTab && !editorStore.active
 let view: EditorView | null = null
 let mountedTabId: string | null = null
 
-function getLanguageExtension(filename: string): LanguageSupport | readonly Extension[] {
+// Each grammar is dynamic-imported so only the one a file needs is fetched (and
+// the 14 grammars stay out of the editor's main chunk). Applied after mount via
+// editorSession.languageCompartment.
+async function loadLanguage(filename: string): Promise<Extension> {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
-  const map: Record<string, LanguageSupport | readonly Extension[]> = {
-    js: javascript(),
-    mjs: javascript(),
-    cjs: javascript(),
-    ts: javascript({ typescript: true }),
-    jsx: javascript({ jsx: true }),
-    tsx: javascript({ jsx: true, typescript: true }),
-    html: html(),
-    htm: html(),
-    xhtml: html(),
-    css: css(),
-    scss: sass(),
-    sass: sass({ indented: true }),
-    less: less(),
-    vue: vue(),
-    php: php(),
-    phtml: php(),
-    json: json(),
-    json5: json(),
-    py: python(),
-    go: go(),
-    sql: sql(),
-    xml: xml(),
-    svg: xml(),
-    yaml: yaml(),
-    yml: yaml(),
-    md: markdown(),
-    markdown: markdown(),
+  switch (ext) {
+    case 'js':
+    case 'mjs':
+    case 'cjs':
+      return (await import('@codemirror/lang-javascript')).javascript()
+    case 'ts':
+      return (await import('@codemirror/lang-javascript')).javascript({ typescript: true })
+    case 'jsx':
+      return (await import('@codemirror/lang-javascript')).javascript({ jsx: true })
+    case 'tsx':
+      return (await import('@codemirror/lang-javascript')).javascript({ jsx: true, typescript: true })
+    case 'html':
+    case 'htm':
+    case 'xhtml':
+      return (await import('@codemirror/lang-html')).html()
+    case 'css':
+      return (await import('@codemirror/lang-css')).css()
+    case 'scss':
+      return (await import('@codemirror/lang-sass')).sass()
+    case 'sass':
+      return (await import('@codemirror/lang-sass')).sass({ indented: true })
+    case 'less':
+      return (await import('@codemirror/lang-less')).less()
+    case 'vue':
+      return (await import('@codemirror/lang-vue')).vue()
+    case 'php':
+    case 'phtml':
+      return (await import('@codemirror/lang-php')).php()
+    case 'json':
+    case 'json5':
+      return (await import('@codemirror/lang-json')).json()
+    case 'py':
+      return (await import('@codemirror/lang-python')).python()
+    case 'go':
+      return (await import('@codemirror/lang-go')).go()
+    case 'sql':
+      return (await import('@codemirror/lang-sql')).sql()
+    case 'xml':
+    case 'svg':
+      return (await import('@codemirror/lang-xml')).xml()
+    case 'yaml':
+    case 'yml':
+      return (await import('@codemirror/lang-yaml')).yaml()
+    case 'md':
+    case 'markdown':
+      return (await import('@codemirror/lang-markdown')).markdown()
+    default:
+      return []
   }
-  return map[ext] ?? []
 }
 
 // Align CodeMirror's chrome with the Goblin Tech-Dark surfaces (layered over oneDark)
@@ -110,7 +117,7 @@ function saveActive() {
   editorStore.saveTab(editorStore.activeId)
 }
 
-function buildExtensions(filename: string): Extension[] {
+function buildExtensions(): Extension[] {
   return [
     lineNumbers(),
     highlightActiveLine(),
@@ -132,7 +139,7 @@ function buildExtensions(filename: string): Extension[] {
         },
       },
     ]),
-    getLanguageExtension(filename),
+    editorSession.languageCompartment.of([]),
     EditorState.readOnly.of(viewOnly.value),
     EditorView.updateListener.of((update) => {
       // Route real edits to the tab whose state is mounted; ignore programmatic
@@ -144,7 +151,7 @@ function buildExtensions(filename: string): Extension[] {
 }
 
 function createState(tab: EditorTab): EditorState {
-  return EditorState.create({ doc: tab.content, extensions: buildExtensions(tab.name) })
+  return EditorState.create({ doc: tab.content, extensions: buildExtensions() })
 }
 
 function snapshotMounted() {
@@ -180,7 +187,8 @@ function sync() {
   if (mountedTabId === tab.id)
     return
 
-  const state = editorSession.tabStates.get(tab.id) ?? createState(tab)
+  const restored = editorSession.tabStates.get(tab.id)
+  const state = restored ?? createState(tab)
   if (!view)
     view = new EditorView({ state, parent: containerRef.value })
   else
@@ -188,6 +196,16 @@ function sync() {
   // Sync the theme to the current mode (a restored state may carry a stale one).
   view.dispatch({ effects: editorSession.themeCompartment.reconfigure(themeExtensions()) })
   mountedTabId = tab.id
+
+  // Fresh states start without a grammar — load it lazily and swap it in, guarded
+  // so a slow import for a since-switched tab can't apply to the wrong document.
+  // Restored states already carry their grammar in the compartment.
+  if (!restored) {
+    void loadLanguage(tab.name).then((lang) => {
+      if (view && mountedTabId === tab.id)
+        view.dispatch({ effects: editorSession.languageCompartment.reconfigure(lang) })
+    })
+  }
 
   const top = editorSession.tabScroll.get(tab.id) ?? 0
   requestAnimationFrame(() => {

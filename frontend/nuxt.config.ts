@@ -74,6 +74,13 @@ export default defineNuxtConfig({
     plugins: [
       tailwindcss(),
     ],
+    build: {
+      // The entry settles at ~505KB (174KB gz) — the irreducible @nuxt/ui + Vue
+      // core. Sentry and the CodeMirror grammars are already split into their own
+      // chunks; consolidating @nuxt/ui (~767KB) via manualChunks only made it
+      // worse, so we raise the warning bar rather than chase a counterproductive split.
+      chunkSizeWarningLimit: 600,
+    },
     server: {
       proxy: {
         '/api': {

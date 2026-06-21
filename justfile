@@ -28,6 +28,11 @@ build: build-fe build-be
 build-fe:
     cd frontend && pnpm run generate
 
+# Analyze the frontend bundle (treemap of chunk sizes)
+[group('build')]
+analyze-fe:
+    cd frontend && pnpm run analyze
+
 # Build Go binary → bin/gftp
 [group('build')]
 build-be:

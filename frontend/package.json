@@ -6,6 +6,7 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "generate": "nuxt generate",
+    "analyze": "nuxi analyze",
     "preview": "nuxt preview",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
@@ -57,6 +58,7 @@
     "eslint": "^10.5.0",
     "eslint-plugin-format": "^2.0.1",
     "happy-dom": "^20.10.3",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8",
     "vue-tsc": "^3.3.5"

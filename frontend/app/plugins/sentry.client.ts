@@ -1,11 +1,10 @@
-import * as Sentry from '@sentry/nuxt'
-
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin(async () => {
   const { public: pub } = useRuntimeConfig()
   const dsn = pub.sentryDsn as string | undefined
   if (!dsn)
     return
 
+  const Sentry = await import('@sentry/nuxt')
   Sentry.init({
     dsn,
     tracesSampleRate: 1.0,
