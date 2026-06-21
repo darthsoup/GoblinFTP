@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protokol",
+    "host": "Vært",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Brugernavn",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Adgangskode",
+    "connect": "Forbind",
+    "tagline": "Selvhostet filoverførsel",
+    "passive": "Passiv tilstand",
+    "errorRequired": "Påkrævet",
+    "errorPort": "Ugyldig port"
+  },
+  "hostKey": {
+    "title": "Bekræft værtsnøgle",
+    "message": "Denne server præsenterer en SSH-værtsnøgle, der endnu ikke er betroet. Bekræft, at fingeraftrykket matcher din server, før du forbinder.",
+    "host": "Vært",
+    "keyType": "Nøgletype",
+    "fingerprint": "Fingeraftryk (SHA256)",
+    "warning": "Stol kun på denne nøgle, hvis du genkender fingeraftrykket. Ændrer det sig senere, afvises forbindelsen som et muligt man-in-the-middle-angreb.",
+    "trust": "Stol på & forbind",
+    "cancel": "Annuller"
+  },
+  "header": {
+    "connected": "Forbundet",
+    "disconnected": "Afbrudt",
+    "disconnect": "Afbryd",
+    "settings": "Indstillinger",
+    "files": "Filer",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Indstillinger",
+    "language": "Sprog",
+    "theme": "Udseende",
+    "themeLight": "Lyst",
+    "themeDark": "Mørkt",
+    "themeAuto": "Automatisk",
+    "sizeFormat": "Filstørrelser",
+    "sizeBinary": "Binær (KiB)",
+    "sizeDecimal": "Decimal (KB)",
+    "sizeBytes": "Nøjagtige bytes",
+    "dateFormat": "Datoer",
+    "dateAuto": "Smart",
+    "dateAbsolute": "Absolut",
+    "dateRelative": "Relativ",
+    "showDotfiles": "Vis skjulte filer",
+    "showDotfilesHint": "Vis filer, der begynder med et punktum (f.eks. .htaccess).",
+    "gridThumbnails": "Miniaturebilleder",
+    "gridThumbnailsHint": "Vis billedforhåndsvisninger i kortvisningen.",
+    "close": "Færdig"
+  },
+  "session": {
+    "lostTitle": "Forbindelse mistet",
+    "lostMessage": "Din session er udløbet, eller forbindelsen til serveren blev mistet. Log venligst ind igen.",
+    "reconnect": "Tilbage til login"
+  },
+  "breadcrumb": {
+    "root": "Rod",
+    "back": "Tilbage",
+    "forward": "Frem"
+  },
+  "status": {
+    "queue": "Kø: {n}"
+  },
+  "files": {
+    "type": "Type",
+    "name": "Navn",
+    "size": "Størrelse",
+    "modified": "Ændret",
+    "permissions": "Tilladelser",
+    "loading": "Indlæser...",
+    "empty": "Denne mappe er tom",
+    "noMatches": "Ingen filer matcher dit filter",
+    "clearFilter": "Ryd filter",
+    "dropToUpload": "Slip filer eller mapper for at uploade",
+    "retry": "Prøv igen"
+  },
+  "toolbar": {
+    "newFolder": "Ny mappe",
+    "newFile": "Ny fil",
+    "upload": "Upload filer",
+    "refresh": "Opdater",
+    "filter": "Filtrer filer...",
+    "downloadZip": "Download ZIP",
+    "viewToggle": "Skift mellem tabel- og kortvisning",
+    "copy": "Kopiér",
+    "cut": "Klip",
+    "paste": "Indsæt ({n})",
+    "selectAll": "Vælg alle",
+    "deselectAll": "Fravælg alle",
+    "delete": "Slet",
+    "selected": "{n} valgt"
+  },
+  "upload": {
+    "queue": "Overførselskø",
+    "toggle": "Vis/skjul overførselskø",
+    "cancelAll": "Annuller alle",
+    "clear": "Ryd gennemførte",
+    "cancel": "Annuller upload",
+    "status": {
+      "queued": "I kø",
+      "uploading": "Uploader",
+      "done": "Gennemført",
+      "error": "Mislykkedes",
+      "cancelled": "Annulleret"
+    }
+  },
+  "context": {
+    "download": "Download",
+    "rename": "Omdøb",
+    "copy": "Kopiér",
+    "cut": "Klip",
+    "paste": "Indsæt",
+    "delete": "Slet",
+    "properties": "Egenskaber",
+    "edit": "Rediger",
+    "view": "Vis"
+  },
+  "preview": {
+    "loading": "Indlæser forhåndsvisning…",
+    "noPreview": "Ingen forhåndsvisning tilgængelig",
+    "tooLarge": "Filen er for stor til forhåndsvisning",
+    "error": "Kunne ikke indlæse forhåndsvisning",
+    "close": "Luk forhåndsvisning"
+  },
+  "editor": {
+    "loading": "Indlæser fil...",
+    "noFile": "Ingen fil åben",
+    "save": "Gem",
+    "autoSave": "Gem automatisk",
+    "closeTab": "Luk fane",
+    "unsavedChanges": "Du har ugemte ændringer",
+    "backToFiles": "Filer",
+    "unsavedTitle": "Ugemte ændringer",
+    "confirmCloseMessage": "Kassér ugemte ændringer i {name}?",
+    "confirmDisconnectMessage": "Du har {n} fil(er) med ugemte ændringer. Afbryd og kassér dem?",
+    "discard": "Kassér",
+    "keepEditing": "Fortsæt redigering"
+  },
+  "modal": {
+    "delete": {
+      "title": "Slet",
+      "message": "Slet \"{name}\"? Dette kan ikke fortrydes.",
+      "messageMulti": "Slet {n} elementer? Dette kan ikke fortrydes.",
+      "confirm": "Slet",
+      "cancel": "Annuller"
+    },
+    "newFolder": {
+      "title": "Ny mappe",
+      "label": "Mappenavn",
+      "placeholder": "min-mappe",
+      "confirm": "Opret",
+      "cancel": "Annuller",
+      "errorEmpty": "Indtast venligst et navn"
+    },
+    "newFile": {
+      "title": "Ny fil",
+      "label": "Filnavn",
+      "placeholder": "fil.txt",
+      "confirm": "Opret",
+      "cancel": "Annuller",
+      "errorEmpty": "Indtast venligst et navn"
+    },
+    "properties": {
+      "title": "Filegenskaber",
+      "name": "Navn",
+      "size": "Størrelse",
+      "modified": "Ændret",
+      "permissions": "Tilladelser",
+      "type": "Type",
+      "typeFile": "Fil",
+      "typeDir": "Mappe",
+      "chmodTitle": "Tilladelser (CHMOD)",
+      "permGroup": "Gruppe",
+      "owner": "Ejer",
+      "group": "Gruppe",
+      "public": "Offentlig",
+      "read": "Læs",
+      "write": "Skriv",
+      "execute": "Udfør",
+      "numeric": "Numerisk værdi:",
+      "apply": "Anvend ændringer",
+      "cancel": "Annuller",
+      "errorEmpty": "Indtast venligst et navn",
+      "errorInvalidMode": "Indtast en 3- eller 4-cifret oktal værdi (f.eks. 644)"
+    },
+    "pasteConflict": {
+      "title": "Elementer findes allerede",
+      "message": "Disse elementer findes allerede i denne mappe:",
+      "overwrite": "Overskriv",
+      "append": "Behold begge",
+      "cancel": "Annuller"
+    }
+  },
+  "error": {
+    "connectionFailed": "Forbindelse mislykkedes",
+    "operationFailed": "Handlingen mislykkedes"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i brug",
+    "ERR_FILE_PERMISSION": "Adgang nægtet af serveren",
+    "ERR_FILE_NOT_FOUND": "Elementet findes ikke længere på serveren",
+    "ERR_QUOTA_EXCEEDED": "Serveren er løbet tør for lagerplads",
+    "ERR_CONNECTION_LOST": "Forbindelsen til serveren blev mistet",
+    "ERR_OPERATION_FAILED": "Handlingen kunne ikke gennemføres"
+  },
+  "toast": {
+    "folderCreated": "Mappe oprettet",
+    "fileCreated": "Fil oprettet",
+    "renamed": "Omdøbt til {name}",
+    "deleted": "Slettede {n} element(er)",
+    "permissionsUpdated": "Tilladelser opdateret",
+    "downloadFailed": "Download mislykkedes",
+    "copied": "Kopierede {n} element(er)",
+    "moved": "Flyttede {n} element(er)",
+    "pasteFailed": "Nogle elementer kunne ikke indsættes",
+    "folderCreateFailed": "Nogle mapper kunne ikke oprettes",
+    "deleteFailed": "{n} element(er) kunne ikke slettes",
+    "andMore": "+{n} flere"
+  },
+  "shortcuts": {
+    "title": "Tastaturgenveje",
+    "groupActions": "Handlinger",
+    "groupSelect": "Markering",
+    "groupNav": "Navigation",
+    "rename": "Omdøb det valgte",
+    "delete": "Slet det valgte",
+    "copy": "Kopiér det valgte",
+    "cut": "Klip det valgte",
+    "paste": "Indsæt",
+    "clear": "Ryd markering",
+    "selectAll": "Vælg alle",
+    "up": "En mappe op",
+    "back": "Tilbage",
+    "forward": "Frem"
+  },
+  "sso": {
+    "errorExpired": "Dit SSO-loginlink er udløbet. Anmod venligst om et nyt.",
+    "errorInvalid": "Dette SSO-loginlink er ugyldigt. Anmod venligst om et nyt.",
+    "errorUsed": "Dette SSO-loginlink er allerede blevet brugt. Anmod venligst om et nyt.",
+    "errorDisabled": "SSO-login er ikke aktiveret på denne server.",
+    "errorInternal": "SSO-login mislykkedes på grund af en serverfejl. Prøv venligst igen.",
+    "errorGeneric": "SSO-login mislykkedes. Anmod venligst om et nyt link."
+  }
+}

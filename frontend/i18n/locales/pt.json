@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protocolo",
+    "host": "Servidor",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Porta",
+    "username": "Nome de utilizador",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Palavra-passe",
+    "connect": "Ligar",
+    "tagline": "Transferência de ficheiros auto-alojada",
+    "passive": "Modo passivo",
+    "errorRequired": "Obrigatório",
+    "errorPort": "Porta inválida"
+  },
+  "hostKey": {
+    "title": "Verificar chave do servidor",
+    "message": "Este servidor apresenta uma chave de servidor SSH em que ainda não confia. Confirme que a impressão digital corresponde ao seu servidor antes de ligar.",
+    "host": "Servidor",
+    "keyType": "Tipo de chave",
+    "fingerprint": "Impressão digital (SHA256)",
+    "warning": "Confie nesta chave apenas se reconhecer a impressão digital. Se esta mudar mais tarde, a ligação é recusada como possível ataque man-in-the-middle.",
+    "trust": "Confiar e ligar",
+    "cancel": "Cancelar"
+  },
+  "header": {
+    "connected": "Ligado",
+    "disconnected": "Desligado",
+    "disconnect": "Desligar",
+    "settings": "Definições",
+    "files": "Ficheiros",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Definições",
+    "language": "Idioma",
+    "theme": "Aspeto",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeAuto": "Automático",
+    "sizeFormat": "Tamanhos de ficheiro",
+    "sizeBinary": "Binário (KiB)",
+    "sizeDecimal": "Decimal (KB)",
+    "sizeBytes": "Bytes exatos",
+    "dateFormat": "Datas",
+    "dateAuto": "Inteligente",
+    "dateAbsolute": "Absoluta",
+    "dateRelative": "Relativa",
+    "showDotfiles": "Mostrar ficheiros ocultos",
+    "showDotfilesHint": "Listar ficheiros que começam por um ponto (p. ex. .htaccess).",
+    "gridThumbnails": "Miniaturas de imagens",
+    "gridThumbnailsHint": "Mostrar pré-visualizações de imagens na vista de cartões.",
+    "close": "Concluído"
+  },
+  "session": {
+    "lostTitle": "Ligação perdida",
+    "lostMessage": "A sua sessão expirou ou a ligação ao servidor foi perdida. Inicie sessão novamente.",
+    "reconnect": "Voltar ao início de sessão"
+  },
+  "breadcrumb": {
+    "root": "Raiz",
+    "back": "Recuar",
+    "forward": "Avançar"
+  },
+  "status": {
+    "queue": "Fila: {n}"
+  },
+  "files": {
+    "type": "Tipo",
+    "name": "Nome",
+    "size": "Tamanho",
+    "modified": "Modificado",
+    "permissions": "Permissões",
+    "loading": "A carregar...",
+    "empty": "Este diretório está vazio",
+    "noMatches": "Nenhum ficheiro corresponde ao filtro",
+    "clearFilter": "Limpar filtro",
+    "dropToUpload": "Largue ficheiros ou pastas para carregar",
+    "retry": "Tentar novamente"
+  },
+  "toolbar": {
+    "newFolder": "Nova pasta",
+    "newFile": "Novo ficheiro",
+    "upload": "Carregar ficheiros",
+    "refresh": "Atualizar",
+    "filter": "Filtrar ficheiros...",
+    "downloadZip": "Transferir ZIP",
+    "viewToggle": "Alternar vista de tabela / cartões",
+    "copy": "Copiar",
+    "cut": "Cortar",
+    "paste": "Colar ({n})",
+    "selectAll": "Selecionar tudo",
+    "deselectAll": "Desselecionar tudo",
+    "delete": "Eliminar",
+    "selected": "{n} selecionados"
+  },
+  "upload": {
+    "queue": "Fila de transferências",
+    "toggle": "Alternar fila de transferências",
+    "cancelAll": "Cancelar tudo",
+    "clear": "Limpar concluídas",
+    "cancel": "Cancelar carregamento",
+    "status": {
+      "queued": "Em fila",
+      "uploading": "A carregar",
+      "done": "Concluído",
+      "error": "Falhou",
+      "cancelled": "Cancelado"
+    }
+  },
+  "context": {
+    "download": "Transferir",
+    "rename": "Mudar o nome",
+    "copy": "Copiar",
+    "cut": "Cortar",
+    "paste": "Colar",
+    "delete": "Eliminar",
+    "properties": "Propriedades",
+    "edit": "Editar",
+    "view": "Ver"
+  },
+  "preview": {
+    "loading": "A carregar pré-visualização…",
+    "noPreview": "Nenhuma pré-visualização disponível",
+    "tooLarge": "Ficheiro demasiado grande para pré-visualizar",
+    "error": "Não foi possível carregar a pré-visualização",
+    "close": "Fechar pré-visualização"
+  },
+  "editor": {
+    "loading": "A carregar ficheiro...",
+    "noFile": "Nenhum ficheiro aberto",
+    "save": "Guardar",
+    "autoSave": "Guardar automaticamente",
+    "closeTab": "Fechar separador",
+    "unsavedChanges": "Tem alterações não guardadas",
+    "backToFiles": "Ficheiros",
+    "unsavedTitle": "Alterações não guardadas",
+    "confirmCloseMessage": "Descartar alterações não guardadas em {name}?",
+    "confirmDisconnectMessage": "Tem {n} ficheiro(s) com alterações não guardadas. Desligar e descartá-las?",
+    "discard": "Descartar",
+    "keepEditing": "Continuar a editar"
+  },
+  "modal": {
+    "delete": {
+      "title": "Eliminar",
+      "message": "Eliminar \"{name}\"? Esta ação não pode ser anulada.",
+      "messageMulti": "Eliminar {n} itens? Esta ação não pode ser anulada.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "newFolder": {
+      "title": "Nova pasta",
+      "label": "Nome da pasta",
+      "placeholder": "a-minha-pasta",
+      "confirm": "Criar",
+      "cancel": "Cancelar",
+      "errorEmpty": "Introduza um nome"
+    },
+    "newFile": {
+      "title": "Novo ficheiro",
+      "label": "Nome do ficheiro",
+      "placeholder": "ficheiro.txt",
+      "confirm": "Criar",
+      "cancel": "Cancelar",
+      "errorEmpty": "Introduza um nome"
+    },
+    "properties": {
+      "title": "Propriedades do ficheiro",
+      "name": "Nome",
+      "size": "Tamanho",
+      "modified": "Modificado",
+      "permissions": "Permissões",
+      "type": "Tipo",
+      "typeFile": "Ficheiro",
+      "typeDir": "Diretório",
+      "chmodTitle": "Permissões (CHMOD)",
+      "permGroup": "Grupo",
+      "owner": "Proprietário",
+      "group": "Grupo",
+      "public": "Público",
+      "read": "Ler",
+      "write": "Escrever",
+      "execute": "Executar",
+      "numeric": "Valor numérico:",
+      "apply": "Aplicar alterações",
+      "cancel": "Cancelar",
+      "errorEmpty": "Introduza um nome",
+      "errorInvalidMode": "Introduza um modo octal de 3 ou 4 dígitos (p. ex. 644)"
+    },
+    "pasteConflict": {
+      "title": "Os itens já existem",
+      "message": "Estes itens já existem nesta pasta:",
+      "overwrite": "Substituir",
+      "append": "Manter ambos",
+      "cancel": "Cancelar"
+    }
+  },
+  "error": {
+    "connectionFailed": "Falha na ligação",
+    "operationFailed": "Falha na operação"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "A pasta não está vazia ou está a ser utilizada",
+    "ERR_FILE_PERMISSION": "Acesso recusado pelo servidor",
+    "ERR_FILE_NOT_FOUND": "O item já não existe no servidor",
+    "ERR_QUOTA_EXCEEDED": "O servidor já não tem espaço de armazenamento",
+    "ERR_CONNECTION_LOST": "A ligação ao servidor foi perdida",
+    "ERR_OPERATION_FAILED": "Não foi possível concluir a operação"
+  },
+  "toast": {
+    "folderCreated": "Pasta criada",
+    "fileCreated": "Ficheiro criado",
+    "renamed": "Nome alterado para {name}",
+    "deleted": "{n} item(ns) eliminado(s)",
+    "permissionsUpdated": "Permissões atualizadas",
+    "downloadFailed": "Falha na transferência",
+    "copied": "{n} item(ns) copiado(s)",
+    "moved": "{n} item(ns) movido(s)",
+    "pasteFailed": "Não foi possível colar alguns itens",
+    "folderCreateFailed": "Não foi possível criar algumas pastas",
+    "deleteFailed": "Não foi possível eliminar {n} item(ns)",
+    "andMore": "+{n} mais"
+  },
+  "shortcuts": {
+    "title": "Atalhos de teclado",
+    "groupActions": "Ações",
+    "groupSelect": "Seleção",
+    "groupNav": "Navegação",
+    "rename": "Mudar o nome da seleção",
+    "delete": "Eliminar a seleção",
+    "copy": "Copiar a seleção",
+    "cut": "Cortar a seleção",
+    "paste": "Colar",
+    "clear": "Limpar a seleção",
+    "selectAll": "Selecionar tudo",
+    "up": "Subir uma pasta",
+    "back": "Recuar",
+    "forward": "Avançar"
+  },
+  "sso": {
+    "errorExpired": "A sua hiperligação de início de sessão SSO expirou. Solicite uma nova.",
+    "errorInvalid": "Esta hiperligação de início de sessão SSO é inválida. Solicite uma nova.",
+    "errorUsed": "Esta hiperligação de início de sessão SSO já foi utilizada. Solicite uma nova.",
+    "errorDisabled": "O início de sessão SSO não está ativado neste servidor.",
+    "errorInternal": "O início de sessão SSO falhou devido a um erro do servidor. Tente novamente.",
+    "errorGeneric": "O início de sessão SSO falhou. Solicite uma nova hiperligação."
+  }
+}

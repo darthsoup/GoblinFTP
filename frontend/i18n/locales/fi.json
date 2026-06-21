@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protokolla",
+    "host": "Palvelin",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Portti",
+    "username": "Käyttäjätunnus",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Salasana",
+    "connect": "Yhdistä",
+    "tagline": "Itse isännöity tiedostonsiirto",
+    "passive": "Passiivinen tila",
+    "errorRequired": "Pakollinen",
+    "errorPort": "Virheellinen portti"
+  },
+  "hostKey": {
+    "title": "Vahvista isäntäavain",
+    "message": "Tämä palvelin esittää SSH-isäntäavaimen, johon ei ole vielä luotettu. Varmista, että sormenjälki vastaa palvelintasi ennen yhdistämistä.",
+    "host": "Palvelin",
+    "keyType": "Avaimen tyyppi",
+    "fingerprint": "Sormenjälki (SHA256)",
+    "warning": "Luota tähän avaimeen vain, jos tunnistat sormenjäljen. Jos se muuttuu myöhemmin, yhteys hylätään mahdollisena välimieshyökkäyksenä.",
+    "trust": "Luota ja yhdistä",
+    "cancel": "Peruuta"
+  },
+  "header": {
+    "connected": "Yhdistetty",
+    "disconnected": "Yhteys katkaistu",
+    "disconnect": "Katkaise yhteys",
+    "settings": "Asetukset",
+    "files": "Tiedostot",
+    "editor": "Editori"
+  },
+  "settings": {
+    "title": "Asetukset",
+    "language": "Kieli",
+    "theme": "Ulkoasu",
+    "themeLight": "Vaalea",
+    "themeDark": "Tumma",
+    "themeAuto": "Automaattinen",
+    "sizeFormat": "Tiedostokoot",
+    "sizeBinary": "Binäärinen (KiB)",
+    "sizeDecimal": "Desimaalinen (KB)",
+    "sizeBytes": "Tarkat tavut",
+    "dateFormat": "Päivämäärät",
+    "dateAuto": "Älykäs",
+    "dateAbsolute": "Absoluuttinen",
+    "dateRelative": "Suhteellinen",
+    "showDotfiles": "Näytä piilotiedostot",
+    "showDotfilesHint": "Näytä pisteellä alkavat tiedostot (esim. .htaccess).",
+    "gridThumbnails": "Kuvien pikkukuvat",
+    "gridThumbnailsHint": "Näytä kuvien esikatselut korttinäkymässä.",
+    "close": "Valmis"
+  },
+  "session": {
+    "lostTitle": "Yhteys katkesi",
+    "lostMessage": "Istuntosi on vanhentunut tai yhteys palvelimeen katkesi. Kirjaudu sisään uudelleen.",
+    "reconnect": "Takaisin kirjautumiseen"
+  },
+  "breadcrumb": {
+    "root": "Juuri",
+    "back": "Takaisin",
+    "forward": "Eteenpäin"
+  },
+  "status": {
+    "queue": "Jono: {n}"
+  },
+  "files": {
+    "type": "Tyyppi",
+    "name": "Nimi",
+    "size": "Koko",
+    "modified": "Muokattu",
+    "permissions": "Oikeudet",
+    "loading": "Ladataan...",
+    "empty": "Tämä hakemisto on tyhjä",
+    "noMatches": "Mikään tiedosto ei vastaa suodatinta",
+    "clearFilter": "Tyhjennä suodatin",
+    "dropToUpload": "Pudota tiedostot tai kansiot lähetettäväksi",
+    "retry": "Yritä uudelleen"
+  },
+  "toolbar": {
+    "newFolder": "Uusi kansio",
+    "newFile": "Uusi tiedosto",
+    "upload": "Lähetä tiedostoja",
+    "refresh": "Päivitä",
+    "filter": "Suodata tiedostoja...",
+    "downloadZip": "Lataa ZIP",
+    "viewToggle": "Vaihda taulukko-/korttinäkymä",
+    "copy": "Kopioi",
+    "cut": "Leikkaa",
+    "paste": "Liitä ({n})",
+    "selectAll": "Valitse kaikki",
+    "deselectAll": "Poista valinnat",
+    "delete": "Poista",
+    "selected": "{n} valittu"
+  },
+  "upload": {
+    "queue": "Siirtojono",
+    "toggle": "Näytä/piilota siirtojono",
+    "cancelAll": "Peruuta kaikki",
+    "clear": "Tyhjennä valmiit",
+    "cancel": "Peruuta lähetys",
+    "status": {
+      "queued": "Jonossa",
+      "uploading": "Lähetetään",
+      "done": "Valmis",
+      "error": "Epäonnistui",
+      "cancelled": "Peruutettu"
+    }
+  },
+  "context": {
+    "download": "Lataa",
+    "rename": "Nimeä uudelleen",
+    "copy": "Kopioi",
+    "cut": "Leikkaa",
+    "paste": "Liitä",
+    "delete": "Poista",
+    "properties": "Ominaisuudet",
+    "edit": "Muokkaa",
+    "view": "Näytä"
+  },
+  "preview": {
+    "loading": "Ladataan esikatselua…",
+    "noPreview": "Esikatselua ei ole saatavilla",
+    "tooLarge": "Tiedosto on liian suuri esikatseluun",
+    "error": "Esikatselua ei voitu ladata",
+    "close": "Sulje esikatselu"
+  },
+  "editor": {
+    "loading": "Ladataan tiedostoa...",
+    "noFile": "Ei avointa tiedostoa",
+    "save": "Tallenna",
+    "autoSave": "Automaattitallennus",
+    "closeTab": "Sulje välilehti",
+    "unsavedChanges": "Sinulla on tallentamattomia muutoksia",
+    "backToFiles": "Tiedostot",
+    "unsavedTitle": "Tallentamattomia muutoksia",
+    "confirmCloseMessage": "Hylätäänkö tiedoston {name} tallentamattomat muutokset?",
+    "confirmDisconnectMessage": "Sinulla on {n} tiedostoa, joissa on tallentamattomia muutoksia. Katkaistaanko yhteys ja hylätäänkö ne?",
+    "discard": "Hylkää",
+    "keepEditing": "Jatka muokkausta"
+  },
+  "modal": {
+    "delete": {
+      "title": "Poista",
+      "message": "Poistetaanko \"{name}\"? Tätä ei voi kumota.",
+      "messageMulti": "Poistetaanko {n} kohdetta? Tätä ei voi kumota.",
+      "confirm": "Poista",
+      "cancel": "Peruuta"
+    },
+    "newFolder": {
+      "title": "Uusi kansio",
+      "label": "Kansion nimi",
+      "placeholder": "oma-kansio",
+      "confirm": "Luo",
+      "cancel": "Peruuta",
+      "errorEmpty": "Anna nimi"
+    },
+    "newFile": {
+      "title": "Uusi tiedosto",
+      "label": "Tiedoston nimi",
+      "placeholder": "tiedosto.txt",
+      "confirm": "Luo",
+      "cancel": "Peruuta",
+      "errorEmpty": "Anna nimi"
+    },
+    "properties": {
+      "title": "Tiedoston ominaisuudet",
+      "name": "Nimi",
+      "size": "Koko",
+      "modified": "Muokattu",
+      "permissions": "Oikeudet",
+      "type": "Tyyppi",
+      "typeFile": "Tiedosto",
+      "typeDir": "Hakemisto",
+      "chmodTitle": "Oikeudet (CHMOD)",
+      "permGroup": "Ryhmä",
+      "owner": "Omistaja",
+      "group": "Ryhmä",
+      "public": "Julkinen",
+      "read": "Luku",
+      "write": "Kirjoitus",
+      "execute": "Suoritus",
+      "numeric": "Numeerinen arvo:",
+      "apply": "Ota muutokset käyttöön",
+      "cancel": "Peruuta",
+      "errorEmpty": "Anna nimi",
+      "errorInvalidMode": "Anna 3- tai 4-numeroinen oktaalitila (esim. 644)"
+    },
+    "pasteConflict": {
+      "title": "Kohteet ovat jo olemassa",
+      "message": "Nämä kohteet ovat jo olemassa tässä kansiossa:",
+      "overwrite": "Korvaa",
+      "append": "Säilytä molemmat",
+      "cancel": "Peruuta"
+    }
+  },
+  "error": {
+    "connectionFailed": "Yhteys epäonnistui",
+    "operationFailed": "Toiminto epäonnistui"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Kansio ei ole tyhjä tai se on käytössä",
+    "ERR_FILE_PERMISSION": "Palvelin epäsi käyttöoikeuden",
+    "ERR_FILE_NOT_FOUND": "Kohdetta ei ole enää palvelimella",
+    "ERR_QUOTA_EXCEEDED": "Palvelimen tallennustila on lopussa",
+    "ERR_CONNECTION_LOST": "Yhteys palvelimeen katkesi",
+    "ERR_OPERATION_FAILED": "Toimintoa ei voitu suorittaa loppuun"
+  },
+  "toast": {
+    "folderCreated": "Kansio luotu",
+    "fileCreated": "Tiedosto luotu",
+    "renamed": "Nimetty uudelleen: {name}",
+    "deleted": "Poistettu {n} kohdetta",
+    "permissionsUpdated": "Oikeudet päivitetty",
+    "downloadFailed": "Lataus epäonnistui",
+    "copied": "Kopioitu {n} kohdetta",
+    "moved": "Siirretty {n} kohdetta",
+    "pasteFailed": "Joitakin kohteita ei voitu liittää",
+    "folderCreateFailed": "Joitakin kansioita ei voitu luoda",
+    "deleteFailed": "{n} kohdetta ei voitu poistaa",
+    "andMore": "+{n} muuta"
+  },
+  "shortcuts": {
+    "title": "Pikanäppäimet",
+    "groupActions": "Toiminnot",
+    "groupSelect": "Valinta",
+    "groupNav": "Navigointi",
+    "rename": "Nimeä valinta uudelleen",
+    "delete": "Poista valinta",
+    "copy": "Kopioi valinta",
+    "cut": "Leikkaa valinta",
+    "paste": "Liitä",
+    "clear": "Tyhjennä valinta",
+    "selectAll": "Valitse kaikki",
+    "up": "Ylempään kansioon",
+    "back": "Takaisin",
+    "forward": "Eteenpäin"
+  },
+  "sso": {
+    "errorExpired": "SSO-kirjautumislinkkisi on vanhentunut. Pyydä uusi.",
+    "errorInvalid": "Tämä SSO-kirjautumislinkki on virheellinen. Pyydä uusi.",
+    "errorUsed": "Tämä SSO-kirjautumislinkki on jo käytetty. Pyydä uusi.",
+    "errorDisabled": "SSO-kirjautuminen ei ole käytössä tällä palvelimella.",
+    "errorInternal": "SSO-kirjautuminen epäonnistui palvelinvirheen vuoksi. Yritä uudelleen.",
+    "errorGeneric": "SSO-kirjautuminen epäonnistui. Pyydä uusi linkki."
+  }
+}

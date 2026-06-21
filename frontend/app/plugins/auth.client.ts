@@ -1,3 +1,5 @@
+import { isAppLanguage } from '~/stores/settings'
+
 // Resolves session + system vars (and applies the language preference) once,
 // before the auth route middleware makes its first decision. This is what lets
 // a cold load or hard refresh of any route land correctly — without it, a
@@ -39,7 +41,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   } | undefined
   const adminLang = authStore.systemVars?.language
   const preferred = settingsStore.language
-    ?? (adminLang === 'en' || adminLang === 'de' ? adminLang : undefined)
+    ?? (isAppLanguage(adminLang) ? adminLang : undefined)
   if (i18n && preferred && i18n.locale.value !== preferred)
     await i18n.setLocale(preferred)
 

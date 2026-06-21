@@ -118,10 +118,10 @@ s3-down:
 sso-link *ARGS:
     cd backend && go run ./cmd/gftp-sso-link {{ ARGS }}
 
-# Report i18n keys in en.json missing from de.json
+# Check every locale file under frontend/i18n/locales for full key + {…} placeholder parity with en.json
 [group('utils')]
 i18n-check:
-    node -e "const en=require('./frontend/i18n/locales/en.json'),de=require('./frontend/i18n/locales/de.json'),m=Object.keys(en).filter(k=>de[k]===undefined);m.length?(console.log('Missing in de.json:',m),process.exit(1)):console.log('All keys present in de.json')"
+    node frontend/scripts/i18n-check.mjs
 
 # Remove build artifacts
 [group('utils')]

@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protocol",
+    "host": "Host",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Poort",
+    "username": "Gebruikersnaam",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Wachtwoord",
+    "connect": "Verbinden",
+    "tagline": "Zelfgehoste bestandsoverdracht",
+    "passive": "Passieve modus",
+    "errorRequired": "Verplicht",
+    "errorPort": "Ongeldige poort"
+  },
+  "hostKey": {
+    "title": "Hostsleutel verifiëren",
+    "message": "Deze server presenteert een SSH-hostsleutel die nog niet als vertrouwd is ingesteld. Bevestig dat de vingerafdruk overeenkomt met je server voordat je verbinding maakt.",
+    "host": "Host",
+    "keyType": "Sleuteltype",
+    "fingerprint": "Vingerafdruk (SHA256)",
+    "warning": "Vertrouw deze sleutel alleen als je de vingerafdruk herkent. Verandert hij later, dan wordt de verbinding geweigerd als mogelijke man-in-the-middle.",
+    "trust": "Vertrouwen & verbinden",
+    "cancel": "Annuleren"
+  },
+  "header": {
+    "connected": "Verbonden",
+    "disconnected": "Niet verbonden",
+    "disconnect": "Verbinding verbreken",
+    "settings": "Instellingen",
+    "files": "Bestanden",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "language": "Taal",
+    "theme": "Weergave",
+    "themeLight": "Licht",
+    "themeDark": "Donker",
+    "themeAuto": "Automatisch",
+    "sizeFormat": "Bestandsgroottes",
+    "sizeBinary": "Binair (KiB)",
+    "sizeDecimal": "Decimaal (KB)",
+    "sizeBytes": "Exacte bytes",
+    "dateFormat": "Datums",
+    "dateAuto": "Slim",
+    "dateAbsolute": "Absoluut",
+    "dateRelative": "Relatief",
+    "showDotfiles": "Verborgen bestanden tonen",
+    "showDotfilesHint": "Bestanden met een punt aan het begin tonen (bijv. .htaccess).",
+    "gridThumbnails": "Miniaturen van afbeeldingen",
+    "gridThumbnailsHint": "Voorbeelden van afbeeldingen tonen in de kaartweergave.",
+    "close": "Klaar"
+  },
+  "session": {
+    "lostTitle": "Verbinding verloren",
+    "lostMessage": "Je sessie is verlopen of de verbinding met de server is verbroken. Meld je opnieuw aan.",
+    "reconnect": "Terug naar aanmelden"
+  },
+  "breadcrumb": {
+    "root": "Hoofdmap",
+    "back": "Terug",
+    "forward": "Vooruit"
+  },
+  "status": {
+    "queue": "Wachtrij: {n}"
+  },
+  "files": {
+    "type": "Type",
+    "name": "Naam",
+    "size": "Grootte",
+    "modified": "Gewijzigd",
+    "permissions": "Rechten",
+    "loading": "Laden...",
+    "empty": "Deze map is leeg",
+    "noMatches": "Geen bestanden voldoen aan je filter",
+    "clearFilter": "Filter wissen",
+    "dropToUpload": "Sleep bestanden of mappen hierheen om te uploaden",
+    "retry": "Opnieuw proberen"
+  },
+  "toolbar": {
+    "newFolder": "Nieuwe map",
+    "newFile": "Nieuw bestand",
+    "upload": "Bestanden uploaden",
+    "refresh": "Vernieuwen",
+    "filter": "Bestanden filteren...",
+    "downloadZip": "ZIP downloaden",
+    "viewToggle": "Tabel-/kaartweergave wisselen",
+    "copy": "Kopiëren",
+    "cut": "Knippen",
+    "paste": "Plakken ({n})",
+    "selectAll": "Alles selecteren",
+    "deselectAll": "Selectie opheffen",
+    "delete": "Verwijderen",
+    "selected": "{n} geselecteerd"
+  },
+  "upload": {
+    "queue": "Overdrachtswachtrij",
+    "toggle": "Overdrachtswachtrij wisselen",
+    "cancelAll": "Alles annuleren",
+    "clear": "Voltooide wissen",
+    "cancel": "Upload annuleren",
+    "status": {
+      "queued": "In wachtrij",
+      "uploading": "Bezig met uploaden",
+      "done": "Voltooid",
+      "error": "Mislukt",
+      "cancelled": "Geannuleerd"
+    }
+  },
+  "context": {
+    "download": "Downloaden",
+    "rename": "Hernoemen",
+    "copy": "Kopiëren",
+    "cut": "Knippen",
+    "paste": "Plakken",
+    "delete": "Verwijderen",
+    "properties": "Eigenschappen",
+    "edit": "Bewerken",
+    "view": "Bekijken"
+  },
+  "preview": {
+    "loading": "Voorbeeld laden…",
+    "noPreview": "Geen voorbeeld beschikbaar",
+    "tooLarge": "Bestand te groot voor voorbeeld",
+    "error": "Voorbeeld kon niet worden geladen",
+    "close": "Voorbeeld sluiten"
+  },
+  "editor": {
+    "loading": "Bestand laden...",
+    "noFile": "Geen bestand geopend",
+    "save": "Opslaan",
+    "autoSave": "Automatisch opslaan",
+    "closeTab": "Tabblad sluiten",
+    "unsavedChanges": "Je hebt niet-opgeslagen wijzigingen",
+    "backToFiles": "Bestanden",
+    "unsavedTitle": "Niet-opgeslagen wijzigingen",
+    "confirmCloseMessage": "Niet-opgeslagen wijzigingen aan {name} verwerpen?",
+    "confirmDisconnectMessage": "Je hebt {n} bestand(en) met niet-opgeslagen wijzigingen. Verbinding verbreken en verwerpen?",
+    "discard": "Verwerpen",
+    "keepEditing": "Doorgaan met bewerken"
+  },
+  "modal": {
+    "delete": {
+      "title": "Verwijderen",
+      "message": "\"{name}\" verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      "messageMulti": "{n} items verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      "confirm": "Verwijderen",
+      "cancel": "Annuleren"
+    },
+    "newFolder": {
+      "title": "Nieuwe map",
+      "label": "Mapnaam",
+      "placeholder": "mijn-map",
+      "confirm": "Aanmaken",
+      "cancel": "Annuleren",
+      "errorEmpty": "Voer een naam in"
+    },
+    "newFile": {
+      "title": "Nieuw bestand",
+      "label": "Bestandsnaam",
+      "placeholder": "bestand.txt",
+      "confirm": "Aanmaken",
+      "cancel": "Annuleren",
+      "errorEmpty": "Voer een naam in"
+    },
+    "properties": {
+      "title": "Bestandseigenschappen",
+      "name": "Naam",
+      "size": "Grootte",
+      "modified": "Gewijzigd",
+      "permissions": "Rechten",
+      "type": "Type",
+      "typeFile": "Bestand",
+      "typeDir": "Map",
+      "chmodTitle": "Rechten (CHMOD)",
+      "permGroup": "Groep",
+      "owner": "Eigenaar",
+      "group": "Groep",
+      "public": "Openbaar",
+      "read": "Lezen",
+      "write": "Schrijven",
+      "execute": "Uitvoeren",
+      "numeric": "Numerieke waarde:",
+      "apply": "Wijzigingen toepassen",
+      "cancel": "Annuleren",
+      "errorEmpty": "Voer een naam in",
+      "errorInvalidMode": "Voer een 3- of 4-cijferige octale modus in (bijv. 644)"
+    },
+    "pasteConflict": {
+      "title": "Items bestaan al",
+      "message": "Deze items bestaan al in deze map:",
+      "overwrite": "Overschrijven",
+      "append": "Beide behouden",
+      "cancel": "Annuleren"
+    }
+  },
+  "error": {
+    "connectionFailed": "Verbinding mislukt",
+    "operationFailed": "Bewerking mislukt"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "De map is niet leeg of wordt gebruikt",
+    "ERR_FILE_PERMISSION": "Toegang geweigerd door de server",
+    "ERR_FILE_NOT_FOUND": "Het item bestaat niet meer op de server",
+    "ERR_QUOTA_EXCEEDED": "De server heeft geen opslagruimte meer",
+    "ERR_CONNECTION_LOST": "De verbinding met de server is verbroken",
+    "ERR_OPERATION_FAILED": "De bewerking kon niet worden voltooid"
+  },
+  "toast": {
+    "folderCreated": "Map aangemaakt",
+    "fileCreated": "Bestand aangemaakt",
+    "renamed": "Hernoemd naar {name}",
+    "deleted": "{n} item(s) verwijderd",
+    "permissionsUpdated": "Rechten bijgewerkt",
+    "downloadFailed": "Download mislukt",
+    "copied": "{n} item(s) gekopieerd",
+    "moved": "{n} item(s) verplaatst",
+    "pasteFailed": "Sommige items konden niet worden geplakt",
+    "folderCreateFailed": "Sommige mappen konden niet worden aangemaakt",
+    "deleteFailed": "{n} item(s) konden niet worden verwijderd",
+    "andMore": "+{n} meer"
+  },
+  "shortcuts": {
+    "title": "Sneltoetsen",
+    "groupActions": "Acties",
+    "groupSelect": "Selectie",
+    "groupNav": "Navigatie",
+    "rename": "Selectie hernoemen",
+    "delete": "Selectie verwijderen",
+    "copy": "Selectie kopiëren",
+    "cut": "Selectie knippen",
+    "paste": "Plakken",
+    "clear": "Selectie opheffen",
+    "selectAll": "Alles selecteren",
+    "up": "Een map omhoog",
+    "back": "Terug",
+    "forward": "Vooruit"
+  },
+  "sso": {
+    "errorExpired": "Je SSO-aanmeldlink is verlopen. Vraag een nieuwe aan.",
+    "errorInvalid": "Deze SSO-aanmeldlink is ongeldig. Vraag een nieuwe aan.",
+    "errorUsed": "Deze SSO-aanmeldlink is al gebruikt. Vraag een nieuwe aan.",
+    "errorDisabled": "SSO-aanmelden is niet ingeschakeld op deze server.",
+    "errorInternal": "SSO-aanmelden is mislukt door een serverfout. Probeer het opnieuw.",
+    "errorGeneric": "SSO-aanmelden mislukt. Vraag een nieuwe link aan."
+  }
+}

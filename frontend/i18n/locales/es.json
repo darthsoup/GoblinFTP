@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protocolo",
+    "host": "Host",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Puerto",
+    "username": "Usuario",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Contraseña",
+    "connect": "Conectar",
+    "tagline": "Transferencia de archivos autoalojada",
+    "passive": "Modo pasivo",
+    "errorRequired": "Obligatorio",
+    "errorPort": "Puerto no válido"
+  },
+  "hostKey": {
+    "title": "Verificar clave del host",
+    "message": "Este servidor presenta una clave de host SSH que aún no es de confianza. Confirma que la huella digital coincide con tu servidor antes de conectarte.",
+    "host": "Host",
+    "keyType": "Tipo de clave",
+    "fingerprint": "Huella digital (SHA256)",
+    "warning": "Confía en esta clave solo si reconoces la huella digital. Si cambia más adelante, la conexión se rechaza como posible ataque de intermediario.",
+    "trust": "Confiar y conectar",
+    "cancel": "Cancelar"
+  },
+  "header": {
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "disconnect": "Desconectar",
+    "settings": "Ajustes",
+    "files": "Archivos",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "theme": "Apariencia",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeAuto": "Automático",
+    "sizeFormat": "Tamaños de archivo",
+    "sizeBinary": "Binario (KiB)",
+    "sizeDecimal": "Decimal (KB)",
+    "sizeBytes": "Bytes exactos",
+    "dateFormat": "Fechas",
+    "dateAuto": "Inteligente",
+    "dateAbsolute": "Absoluta",
+    "dateRelative": "Relativa",
+    "showDotfiles": "Mostrar archivos ocultos",
+    "showDotfilesHint": "Mostrar archivos que empiezan por punto (p. ej. .htaccess).",
+    "gridThumbnails": "Miniaturas de imagen",
+    "gridThumbnailsHint": "Mostrar vistas previas de imágenes en la cuadrícula de tarjetas.",
+    "close": "Listo"
+  },
+  "session": {
+    "lostTitle": "Conexión perdida",
+    "lostMessage": "Tu sesión ha caducado o se perdió la conexión con el servidor. Inicia sesión de nuevo.",
+    "reconnect": "Volver al inicio de sesión"
+  },
+  "breadcrumb": {
+    "root": "Raíz",
+    "back": "Atrás",
+    "forward": "Adelante"
+  },
+  "status": {
+    "queue": "Cola: {n}"
+  },
+  "files": {
+    "type": "Tipo",
+    "name": "Nombre",
+    "size": "Tamaño",
+    "modified": "Modificado",
+    "permissions": "Permisos",
+    "loading": "Cargando...",
+    "empty": "Este directorio está vacío",
+    "noMatches": "Ningún archivo coincide con el filtro",
+    "clearFilter": "Borrar filtro",
+    "dropToUpload": "Suelta archivos o carpetas para subirlos",
+    "retry": "Reintentar"
+  },
+  "toolbar": {
+    "newFolder": "Nueva carpeta",
+    "newFile": "Nuevo archivo",
+    "upload": "Subir archivos",
+    "refresh": "Actualizar",
+    "filter": "Filtrar archivos...",
+    "downloadZip": "Descargar ZIP",
+    "viewToggle": "Alternar vista de tabla / tarjetas",
+    "copy": "Copiar",
+    "cut": "Cortar",
+    "paste": "Pegar ({n})",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "delete": "Eliminar",
+    "selected": "{n} seleccionados"
+  },
+  "upload": {
+    "queue": "Cola de transferencias",
+    "toggle": "Alternar cola de transferencias",
+    "cancelAll": "Cancelar todo",
+    "clear": "Borrar completadas",
+    "cancel": "Cancelar subida",
+    "status": {
+      "queued": "En cola",
+      "uploading": "Subiendo",
+      "done": "Completado",
+      "error": "Error",
+      "cancelled": "Cancelado"
+    }
+  },
+  "context": {
+    "download": "Descargar",
+    "rename": "Renombrar",
+    "copy": "Copiar",
+    "cut": "Cortar",
+    "paste": "Pegar",
+    "delete": "Eliminar",
+    "properties": "Propiedades",
+    "edit": "Editar",
+    "view": "Ver"
+  },
+  "preview": {
+    "loading": "Cargando vista previa…",
+    "noPreview": "No hay vista previa disponible",
+    "tooLarge": "Archivo demasiado grande para la vista previa",
+    "error": "No se pudo cargar la vista previa",
+    "close": "Cerrar vista previa"
+  },
+  "editor": {
+    "loading": "Cargando archivo...",
+    "noFile": "No hay ningún archivo abierto",
+    "save": "Guardar",
+    "autoSave": "Guardado automático",
+    "closeTab": "Cerrar pestaña",
+    "unsavedChanges": "Tienes cambios sin guardar",
+    "backToFiles": "Archivos",
+    "unsavedTitle": "Cambios sin guardar",
+    "confirmCloseMessage": "¿Descartar los cambios sin guardar en {name}?",
+    "confirmDisconnectMessage": "Tienes {n} archivo(s) con cambios sin guardar. ¿Desconectar y descartarlos?",
+    "discard": "Descartar",
+    "keepEditing": "Seguir editando"
+  },
+  "modal": {
+    "delete": {
+      "title": "Eliminar",
+      "message": "¿Eliminar \"{name}\"? Esto no se puede deshacer.",
+      "messageMulti": "¿Eliminar {n} elementos? Esto no se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "newFolder": {
+      "title": "Nueva carpeta",
+      "label": "Nombre de la carpeta",
+      "placeholder": "mi-carpeta",
+      "confirm": "Crear",
+      "cancel": "Cancelar",
+      "errorEmpty": "Introduce un nombre"
+    },
+    "newFile": {
+      "title": "Nuevo archivo",
+      "label": "Nombre del archivo",
+      "placeholder": "archivo.txt",
+      "confirm": "Crear",
+      "cancel": "Cancelar",
+      "errorEmpty": "Introduce un nombre"
+    },
+    "properties": {
+      "title": "Propiedades del archivo",
+      "name": "Nombre",
+      "size": "Tamaño",
+      "modified": "Modificado",
+      "permissions": "Permisos",
+      "type": "Tipo",
+      "typeFile": "Archivo",
+      "typeDir": "Directorio",
+      "chmodTitle": "Permisos (CHMOD)",
+      "permGroup": "Grupo",
+      "owner": "Propietario",
+      "group": "Grupo",
+      "public": "Público",
+      "read": "Lectura",
+      "write": "Escritura",
+      "execute": "Ejecución",
+      "numeric": "Valor numérico:",
+      "apply": "Aplicar cambios",
+      "cancel": "Cancelar",
+      "errorEmpty": "Introduce un nombre",
+      "errorInvalidMode": "Introduce un modo octal de 3 o 4 dígitos (p. ej. 644)"
+    },
+    "pasteConflict": {
+      "title": "Los elementos ya existen",
+      "message": "Estos elementos ya existen en esta carpeta:",
+      "overwrite": "Sobrescribir",
+      "append": "Conservar ambos",
+      "cancel": "Cancelar"
+    }
+  },
+  "error": {
+    "connectionFailed": "Error de conexión",
+    "operationFailed": "Error en la operación"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "La carpeta no está vacía o está en uso",
+    "ERR_FILE_PERMISSION": "El servidor denegó el permiso",
+    "ERR_FILE_NOT_FOUND": "El elemento ya no existe en el servidor",
+    "ERR_QUOTA_EXCEEDED": "El servidor se ha quedado sin espacio de almacenamiento",
+    "ERR_CONNECTION_LOST": "Se perdió la conexión con el servidor",
+    "ERR_OPERATION_FAILED": "No se pudo completar la operación"
+  },
+  "toast": {
+    "folderCreated": "Carpeta creada",
+    "fileCreated": "Archivo creado",
+    "renamed": "Renombrado a {name}",
+    "deleted": "{n} elemento(s) eliminado(s)",
+    "permissionsUpdated": "Permisos actualizados",
+    "downloadFailed": "Error en la descarga",
+    "copied": "{n} elemento(s) copiado(s)",
+    "moved": "{n} elemento(s) movido(s)",
+    "pasteFailed": "No se pudieron pegar algunos elementos",
+    "folderCreateFailed": "No se pudieron crear algunas carpetas",
+    "deleteFailed": "No se pudieron eliminar {n} elemento(s)",
+    "andMore": "+{n} más"
+  },
+  "shortcuts": {
+    "title": "Atajos de teclado",
+    "groupActions": "Acciones",
+    "groupSelect": "Selección",
+    "groupNav": "Navegación",
+    "rename": "Renombrar selección",
+    "delete": "Eliminar selección",
+    "copy": "Copiar selección",
+    "cut": "Cortar selección",
+    "paste": "Pegar",
+    "clear": "Limpiar selección",
+    "selectAll": "Seleccionar todo",
+    "up": "Subir una carpeta",
+    "back": "Atrás",
+    "forward": "Adelante"
+  },
+  "sso": {
+    "errorExpired": "Tu enlace de inicio de sesión SSO ha caducado. Solicita uno nuevo.",
+    "errorInvalid": "Este enlace de inicio de sesión SSO no es válido. Solicita uno nuevo.",
+    "errorUsed": "Este enlace de inicio de sesión SSO ya se ha utilizado. Solicita uno nuevo.",
+    "errorDisabled": "El inicio de sesión SSO no está habilitado en este servidor.",
+    "errorInternal": "El inicio de sesión SSO falló debido a un error del servidor. Inténtalo de nuevo.",
+    "errorGeneric": "El inicio de sesión SSO falló. Solicita un nuevo enlace."
+  }
+}

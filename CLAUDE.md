@@ -65,6 +65,10 @@ frontend/app/
 4. Session in `gftp_session` cookie (HTTP-only); `transfer.Client` lives in `session.Data["client"]`.
 5. FTP and SFTP share handler code via the `transfer.Client` interface.
 
+### Code style
+
+Keep comments sparse. Prefer self-explanatory names and structure; comment only the non-obvious *why* — a tricky invariant, a workaround, a gotcha. Avoid header banners, comments that restate what the code does, and step-by-step narration.
+
 ### Backend conventions
 
 - **Never** write raw `c.JSON` — always `api.OK(c, data)` or `api.Fail(c, gftperrors.New(errors.ErrX, "msg"))`. `GFTPError` codes map to HTTP status via `errors.go:HTTPStatus()`.
@@ -92,14 +96,14 @@ frontend/app/
 - `FileInfo` JSON fields: `name`, `size`, `isDir`, `modified` (RFC3339), `mode` (`"drwxr-xr-x"`). Backend's internal `transfer.FileInfo` uses different field names.
 - TypeScript strict mode incl. `noUncheckedIndexedAccess` — index access is `T | undefined`; use `!` after a length guard or optional chaining.
 - `UProgress` uses `:model-value`, not `:value`.
-- i18n: `en.json` is source of truth; run `just i18n-check` to verify `de.json` parity.
+- i18n: `en.json` is the source of truth; `just i18n-check` (`frontend/scripts/i18n-check.mjs`, gated in CI via `checks.yml`) verifies every locale file for recursive key parity + identical `{…}` placeholders. 13 locales ship: en, de, cs, da, es, fi, fr, it, nb-NO, nl, pt, sk, sv. Locale codes are enumerated in three frontend places only — `nuxt.config.ts` (`i18n.locales`), `stores/settings.ts` (`AppLanguage` + the exported `LANGUAGES`/`isAppLanguage`, reused by `plugins/auth.client.ts`), and `Layout/LanguageSelect.vue` (objects imported from `@nuxt/ui/locale`). Norwegian's code is `nb-NO` (matching `@nuxt/ui`, not `no`); Danish's picker name is overridden to its endonym "Dansk". The backend has no language allow-list — it passes `settings.json`'s `language` straight through.
 
 ### Adding a new modal
 
 1. Add the type to `ModalType` in `stores/modal.ts`.
 2. Create `components/Modals/YourModal.vue` using `<UModal :open="modalStore.active === 'yourType'" @update:open="modalStore.close()">`.
 3. Mount `<YourModal />` in `pages/index.vue`.
-4. Add i18n keys to both `i18n/locales/en.json` and `de.json`.
+4. Add i18n keys to `i18n/locales/en.json` (the source of truth), then add the same keys to every other locale file so `just i18n-check` stays green (translate the values; `de.json` is the reference for tone).
 
 ## Configuration
 

@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protokol",
+    "host": "Hostitel",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Uživatelské jméno",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Heslo",
+    "connect": "Připojit",
+    "tagline": "Přenos souborů na vlastním serveru",
+    "passive": "Pasivní režim",
+    "errorRequired": "Povinné",
+    "errorPort": "Neplatný port"
+  },
+  "hostKey": {
+    "title": "Ověřit klíč hostitele",
+    "message": "Tento server předkládá SSH klíč hostitele, který zatím není důvěryhodný. Před připojením potvrďte, že otisk odpovídá vašemu serveru.",
+    "host": "Hostitel",
+    "keyType": "Typ klíče",
+    "fingerprint": "Otisk (SHA256)",
+    "warning": "Tomuto klíči důvěřujte pouze tehdy, pokud otisk poznáváte. Pokud se později změní, bude připojení odmítnuto jako možný útok man-in-the-middle.",
+    "trust": "Důvěřovat a připojit",
+    "cancel": "Zrušit"
+  },
+  "header": {
+    "connected": "Připojeno",
+    "disconnected": "Odpojeno",
+    "disconnect": "Odpojit",
+    "settings": "Nastavení",
+    "files": "Soubory",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Nastavení",
+    "language": "Jazyk",
+    "theme": "Vzhled",
+    "themeLight": "Světlý",
+    "themeDark": "Tmavý",
+    "themeAuto": "Automaticky",
+    "sizeFormat": "Velikosti souborů",
+    "sizeBinary": "Binární (KiB)",
+    "sizeDecimal": "Desítkové (KB)",
+    "sizeBytes": "Přesné bajty",
+    "dateFormat": "Data",
+    "dateAuto": "Chytře",
+    "dateAbsolute": "Absolutní",
+    "dateRelative": "Relativní",
+    "showDotfiles": "Zobrazit skryté soubory",
+    "showDotfilesHint": "Zobrazit soubory začínající tečkou (např. .htaccess).",
+    "gridThumbnails": "Náhledy obrázků",
+    "gridThumbnailsHint": "Zobrazit náhledy obrázků v mřížce karet.",
+    "close": "Hotovo"
+  },
+  "session": {
+    "lostTitle": "Spojení ztraceno",
+    "lostMessage": "Vaše relace vypršela nebo bylo spojení se serverem ztraceno. Přihlaste se prosím znovu.",
+    "reconnect": "Zpět na přihlášení"
+  },
+  "breadcrumb": {
+    "root": "Kořen",
+    "back": "Zpět",
+    "forward": "Vpřed"
+  },
+  "status": {
+    "queue": "Fronta: {n}"
+  },
+  "files": {
+    "type": "Typ",
+    "name": "Název",
+    "size": "Velikost",
+    "modified": "Změněno",
+    "permissions": "Oprávnění",
+    "loading": "Načítání...",
+    "empty": "Tento adresář je prázdný",
+    "noMatches": "Filtru neodpovídají žádné soubory",
+    "clearFilter": "Vymazat filtr",
+    "dropToUpload": "Přetáhněte soubory nebo složky k nahrání",
+    "retry": "Zkusit znovu"
+  },
+  "toolbar": {
+    "newFolder": "Nová složka",
+    "newFile": "Nový soubor",
+    "upload": "Nahrát soubory",
+    "refresh": "Obnovit",
+    "filter": "Filtrovat soubory...",
+    "downloadZip": "Stáhnout ZIP",
+    "viewToggle": "Přepnout zobrazení tabulky / karet",
+    "copy": "Kopírovat",
+    "cut": "Vyjmout",
+    "paste": "Vložit ({n})",
+    "selectAll": "Vybrat vše",
+    "deselectAll": "Zrušit výběr",
+    "delete": "Smazat",
+    "selected": "Vybráno: {n}"
+  },
+  "upload": {
+    "queue": "Fronta přenosů",
+    "toggle": "Přepnout frontu přenosů",
+    "cancelAll": "Zrušit vše",
+    "clear": "Vymazat dokončené",
+    "cancel": "Zrušit nahrávání",
+    "status": {
+      "queued": "Ve frontě",
+      "uploading": "Nahrávání",
+      "done": "Dokončeno",
+      "error": "Selhalo",
+      "cancelled": "Zrušeno"
+    }
+  },
+  "context": {
+    "download": "Stáhnout",
+    "rename": "Přejmenovat",
+    "copy": "Kopírovat",
+    "cut": "Vyjmout",
+    "paste": "Vložit",
+    "delete": "Smazat",
+    "properties": "Vlastnosti",
+    "edit": "Upravit",
+    "view": "Zobrazit"
+  },
+  "preview": {
+    "loading": "Načítání náhledu…",
+    "noPreview": "Náhled není k dispozici",
+    "tooLarge": "Soubor je příliš velký pro náhled",
+    "error": "Náhled se nepodařilo načíst",
+    "close": "Zavřít náhled"
+  },
+  "editor": {
+    "loading": "Načítání souboru...",
+    "noFile": "Žádný otevřený soubor",
+    "save": "Uložit",
+    "autoSave": "Automatické ukládání",
+    "closeTab": "Zavřít kartu",
+    "unsavedChanges": "Máte neuložené změny",
+    "backToFiles": "Soubory",
+    "unsavedTitle": "Neuložené změny",
+    "confirmCloseMessage": "Zahodit neuložené změny v souboru {name}?",
+    "confirmDisconnectMessage": "Máte {n} souborů s neuloženými změnami. Odpojit a zahodit je?",
+    "discard": "Zahodit",
+    "keepEditing": "Pokračovat v úpravách"
+  },
+  "modal": {
+    "delete": {
+      "title": "Smazat",
+      "message": "Smazat „{name}“? Tuto akci nelze vrátit zpět.",
+      "messageMulti": "Smazat {n} položek? Tuto akci nelze vrátit zpět.",
+      "confirm": "Smazat",
+      "cancel": "Zrušit"
+    },
+    "newFolder": {
+      "title": "Nová složka",
+      "label": "Název složky",
+      "placeholder": "moje-slozka",
+      "confirm": "Vytvořit",
+      "cancel": "Zrušit",
+      "errorEmpty": "Zadejte prosím název"
+    },
+    "newFile": {
+      "title": "Nový soubor",
+      "label": "Název souboru",
+      "placeholder": "soubor.txt",
+      "confirm": "Vytvořit",
+      "cancel": "Zrušit",
+      "errorEmpty": "Zadejte prosím název"
+    },
+    "properties": {
+      "title": "Vlastnosti souboru",
+      "name": "Název",
+      "size": "Velikost",
+      "modified": "Změněno",
+      "permissions": "Oprávnění",
+      "type": "Typ",
+      "typeFile": "Soubor",
+      "typeDir": "Adresář",
+      "chmodTitle": "Oprávnění (CHMOD)",
+      "permGroup": "Skupina",
+      "owner": "Vlastník",
+      "group": "Skupina",
+      "public": "Veřejné",
+      "read": "Čtení",
+      "write": "Zápis",
+      "execute": "Spuštění",
+      "numeric": "Číselná hodnota:",
+      "apply": "Použít změny",
+      "cancel": "Zrušit",
+      "errorEmpty": "Zadejte prosím název",
+      "errorInvalidMode": "Zadejte 3- nebo 4místné osmičkové číslo (např. 644)"
+    },
+    "pasteConflict": {
+      "title": "Položky již existují",
+      "message": "Tyto položky již v této složce existují:",
+      "overwrite": "Přepsat",
+      "append": "Ponechat obě",
+      "cancel": "Zrušit"
+    }
+  },
+  "error": {
+    "connectionFailed": "Připojení selhalo",
+    "operationFailed": "Operace selhala"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Složka není prázdná nebo se používá",
+    "ERR_FILE_PERMISSION": "Server odepřel přístup",
+    "ERR_FILE_NOT_FOUND": "Položka na serveru již neexistuje",
+    "ERR_QUOTA_EXCEEDED": "Na serveru došlo úložné místo",
+    "ERR_CONNECTION_LOST": "Spojení se serverem bylo ztraceno",
+    "ERR_OPERATION_FAILED": "Operaci se nepodařilo dokončit"
+  },
+  "toast": {
+    "folderCreated": "Složka vytvořena",
+    "fileCreated": "Soubor vytvořen",
+    "renamed": "Přejmenováno na {name}",
+    "deleted": "Smazáno {n} položek",
+    "permissionsUpdated": "Oprávnění aktualizována",
+    "downloadFailed": "Stahování selhalo",
+    "copied": "Zkopírováno {n} položek",
+    "moved": "Přesunuto {n} položek",
+    "pasteFailed": "Některé položky se nepodařilo vložit",
+    "folderCreateFailed": "Některé složky se nepodařilo vytvořit",
+    "deleteFailed": "Nepodařilo se smazat {n} položek",
+    "andMore": "+{n} dalších"
+  },
+  "shortcuts": {
+    "title": "Klávesové zkratky",
+    "groupActions": "Akce",
+    "groupSelect": "Výběr",
+    "groupNav": "Navigace",
+    "rename": "Přejmenovat vybrané",
+    "delete": "Smazat vybrané",
+    "copy": "Kopírovat vybrané",
+    "cut": "Vyjmout vybrané",
+    "paste": "Vložit",
+    "clear": "Zrušit výběr",
+    "selectAll": "Vybrat vše",
+    "up": "O složku výš",
+    "back": "Zpět",
+    "forward": "Vpřed"
+  },
+  "sso": {
+    "errorExpired": "Váš přihlašovací odkaz SSO vypršel. Vyžádejte si prosím nový.",
+    "errorInvalid": "Tento přihlašovací odkaz SSO je neplatný. Vyžádejte si prosím nový.",
+    "errorUsed": "Tento přihlašovací odkaz SSO již byl použit. Vyžádejte si prosím nový.",
+    "errorDisabled": "Přihlášení přes SSO není na tomto serveru povoleno.",
+    "errorInternal": "Přihlášení přes SSO selhalo kvůli chybě serveru. Zkuste to prosím znovu.",
+    "errorGeneric": "Přihlášení přes SSO selhalo. Vyžádejte si prosím nový odkaz."
+  }
+}

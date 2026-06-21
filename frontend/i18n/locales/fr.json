@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protocole",
+    "host": "Hôte",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Nom d'utilisateur",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Mot de passe",
+    "connect": "Se connecter",
+    "tagline": "Transfert de fichiers auto-hébergé",
+    "passive": "Mode passif",
+    "errorRequired": "Requis",
+    "errorPort": "Port invalide"
+  },
+  "hostKey": {
+    "title": "Vérifier la clé d'hôte",
+    "message": "Ce serveur présente une clé d'hôte SSH qui n'est pas encore approuvée. Vérifiez que l'empreinte correspond à votre serveur avant de vous connecter.",
+    "host": "Hôte",
+    "keyType": "Type de clé",
+    "fingerprint": "Empreinte (SHA256)",
+    "warning": "N'approuvez cette clé que si vous reconnaissez l'empreinte. Si elle change par la suite, la connexion est refusée pour éviter une éventuelle attaque de l'homme du milieu.",
+    "trust": "Approuver et se connecter",
+    "cancel": "Annuler"
+  },
+  "header": {
+    "connected": "Connecté",
+    "disconnected": "Déconnecté",
+    "disconnect": "Se déconnecter",
+    "settings": "Paramètres",
+    "files": "Fichiers",
+    "editor": "Éditeur"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "theme": "Apparence",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeAuto": "Automatique",
+    "sizeFormat": "Tailles de fichier",
+    "sizeBinary": "Binaire (Kio)",
+    "sizeDecimal": "Décimal (Ko)",
+    "sizeBytes": "Octets exacts",
+    "dateFormat": "Dates",
+    "dateAuto": "Intelligent",
+    "dateAbsolute": "Absolue",
+    "dateRelative": "Relative",
+    "showDotfiles": "Afficher les fichiers cachés",
+    "showDotfilesHint": "Lister les fichiers commençant par un point (p. ex. .htaccess).",
+    "gridThumbnails": "Miniatures d'images",
+    "gridThumbnailsHint": "Afficher les aperçus d'images dans la grille de cartes.",
+    "close": "Terminé"
+  },
+  "session": {
+    "lostTitle": "Connexion perdue",
+    "lostMessage": "Votre session a expiré ou la connexion au serveur a été perdue. Veuillez vous reconnecter.",
+    "reconnect": "Retour à la connexion"
+  },
+  "breadcrumb": {
+    "root": "Racine",
+    "back": "Précédent",
+    "forward": "Suivant"
+  },
+  "status": {
+    "queue": "File d'attente : {n}"
+  },
+  "files": {
+    "type": "Type",
+    "name": "Nom",
+    "size": "Taille",
+    "modified": "Modifié",
+    "permissions": "Permissions",
+    "loading": "Chargement...",
+    "empty": "Ce répertoire est vide",
+    "noMatches": "Aucun fichier ne correspond au filtre",
+    "clearFilter": "Effacer le filtre",
+    "dropToUpload": "Déposez des fichiers ou des dossiers à téléverser",
+    "retry": "Réessayer"
+  },
+  "toolbar": {
+    "newFolder": "Nouveau dossier",
+    "newFile": "Nouveau fichier",
+    "upload": "Téléverser des fichiers",
+    "refresh": "Actualiser",
+    "filter": "Filtrer les fichiers...",
+    "downloadZip": "Télécharger en ZIP",
+    "viewToggle": "Basculer entre vue tableau et cartes",
+    "copy": "Copier",
+    "cut": "Couper",
+    "paste": "Coller ({n})",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "delete": "Supprimer",
+    "selected": "{n} sélectionné(s)"
+  },
+  "upload": {
+    "queue": "File de transfert",
+    "toggle": "Basculer la file de transfert",
+    "cancelAll": "Tout annuler",
+    "clear": "Effacer les terminés",
+    "cancel": "Annuler le téléversement",
+    "status": {
+      "queued": "En file d'attente",
+      "uploading": "Téléversement",
+      "done": "Terminé",
+      "error": "Échec",
+      "cancelled": "Annulé"
+    }
+  },
+  "context": {
+    "download": "Télécharger",
+    "rename": "Renommer",
+    "copy": "Copier",
+    "cut": "Couper",
+    "paste": "Coller",
+    "delete": "Supprimer",
+    "properties": "Propriétés",
+    "edit": "Modifier",
+    "view": "Afficher"
+  },
+  "preview": {
+    "loading": "Chargement de l'aperçu…",
+    "noPreview": "Aucun aperçu disponible",
+    "tooLarge": "Fichier trop volumineux pour l'aperçu",
+    "error": "Impossible de charger l'aperçu",
+    "close": "Fermer l'aperçu"
+  },
+  "editor": {
+    "loading": "Chargement du fichier...",
+    "noFile": "Aucun fichier ouvert",
+    "save": "Enregistrer",
+    "autoSave": "Enregistrement auto",
+    "closeTab": "Fermer l'onglet",
+    "unsavedChanges": "Vous avez des modifications non enregistrées",
+    "backToFiles": "Fichiers",
+    "unsavedTitle": "Modifications non enregistrées",
+    "confirmCloseMessage": "Abandonner les modifications non enregistrées de {name} ?",
+    "confirmDisconnectMessage": "Vous avez {n} fichier(s) avec des modifications non enregistrées. Se déconnecter et les abandonner ?",
+    "discard": "Abandonner",
+    "keepEditing": "Continuer l'édition"
+  },
+  "modal": {
+    "delete": {
+      "title": "Supprimer",
+      "message": "Supprimer « {name} » ? Cette action est irréversible.",
+      "messageMulti": "Supprimer {n} éléments ? Cette action est irréversible.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler"
+    },
+    "newFolder": {
+      "title": "Nouveau dossier",
+      "label": "Nom du dossier",
+      "placeholder": "mon-dossier",
+      "confirm": "Créer",
+      "cancel": "Annuler",
+      "errorEmpty": "Veuillez saisir un nom"
+    },
+    "newFile": {
+      "title": "Nouveau fichier",
+      "label": "Nom du fichier",
+      "placeholder": "fichier.txt",
+      "confirm": "Créer",
+      "cancel": "Annuler",
+      "errorEmpty": "Veuillez saisir un nom"
+    },
+    "properties": {
+      "title": "Propriétés du fichier",
+      "name": "Nom",
+      "size": "Taille",
+      "modified": "Modifié",
+      "permissions": "Permissions",
+      "type": "Type",
+      "typeFile": "Fichier",
+      "typeDir": "Répertoire",
+      "chmodTitle": "Permissions (CHMOD)",
+      "permGroup": "Groupe",
+      "owner": "Propriétaire",
+      "group": "Groupe",
+      "public": "Public",
+      "read": "Lecture",
+      "write": "Écriture",
+      "execute": "Exécution",
+      "numeric": "Valeur numérique :",
+      "apply": "Appliquer les modifications",
+      "cancel": "Annuler",
+      "errorEmpty": "Veuillez saisir un nom",
+      "errorInvalidMode": "Saisissez un mode octal à 3 ou 4 chiffres (p. ex. 644)"
+    },
+    "pasteConflict": {
+      "title": "Des éléments existent déjà",
+      "message": "Ces éléments existent déjà dans ce dossier :",
+      "overwrite": "Remplacer",
+      "append": "Conserver les deux",
+      "cancel": "Annuler"
+    }
+  },
+  "error": {
+    "connectionFailed": "Échec de la connexion",
+    "operationFailed": "Échec de l'opération"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Le dossier n'est pas vide ou est en cours d'utilisation",
+    "ERR_FILE_PERMISSION": "Accès refusé par le serveur",
+    "ERR_FILE_NOT_FOUND": "L'élément n'existe plus sur le serveur",
+    "ERR_QUOTA_EXCEEDED": "Le serveur n'a plus d'espace de stockage",
+    "ERR_CONNECTION_LOST": "La connexion au serveur a été perdue",
+    "ERR_OPERATION_FAILED": "L'opération n'a pas pu être effectuée"
+  },
+  "toast": {
+    "folderCreated": "Dossier créé",
+    "fileCreated": "Fichier créé",
+    "renamed": "Renommé en {name}",
+    "deleted": "{n} élément(s) supprimé(s)",
+    "permissionsUpdated": "Permissions mises à jour",
+    "downloadFailed": "Échec du téléchargement",
+    "copied": "{n} élément(s) copié(s)",
+    "moved": "{n} élément(s) déplacé(s)",
+    "pasteFailed": "Certains éléments n'ont pas pu être collés",
+    "folderCreateFailed": "Certains dossiers n'ont pas pu être créés",
+    "deleteFailed": "Échec de la suppression de {n} élément(s)",
+    "andMore": "+{n} de plus"
+  },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "groupActions": "Actions",
+    "groupSelect": "Sélection",
+    "groupNav": "Navigation",
+    "rename": "Renommer la sélection",
+    "delete": "Supprimer la sélection",
+    "copy": "Copier la sélection",
+    "cut": "Couper la sélection",
+    "paste": "Coller",
+    "clear": "Effacer la sélection",
+    "selectAll": "Tout sélectionner",
+    "up": "Dossier parent",
+    "back": "Précédent",
+    "forward": "Suivant"
+  },
+  "sso": {
+    "errorExpired": "Votre lien de connexion SSO a expiré. Veuillez en demander un nouveau.",
+    "errorInvalid": "Ce lien de connexion SSO est invalide. Veuillez en demander un nouveau.",
+    "errorUsed": "Ce lien de connexion SSO a déjà été utilisé. Veuillez en demander un nouveau.",
+    "errorDisabled": "La connexion SSO n'est pas activée sur ce serveur.",
+    "errorInternal": "La connexion SSO a échoué en raison d'une erreur du serveur. Veuillez réessayer.",
+    "errorGeneric": "La connexion SSO a échoué. Veuillez demander un nouveau lien."
+  }
+}

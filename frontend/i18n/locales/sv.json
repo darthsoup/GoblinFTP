@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protokoll",
+    "host": "Värd",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Användarnamn",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Lösenord",
+    "connect": "Anslut",
+    "tagline": "Egenhostad filöverföring",
+    "passive": "Passivt läge",
+    "errorRequired": "Obligatoriskt",
+    "errorPort": "Ogiltig port"
+  },
+  "hostKey": {
+    "title": "Verifiera värdnyckel",
+    "message": "Den här servern presenterar en SSH-värdnyckel som ännu inte är betrodd. Bekräfta att fingeravtrycket stämmer med din server innan du ansluter.",
+    "host": "Värd",
+    "keyType": "Nyckeltyp",
+    "fingerprint": "Fingeravtryck (SHA256)",
+    "warning": "Lita bara på den här nyckeln om du känner igen fingeravtrycket. Om det ändras senare avvisas anslutningen som en möjlig man-in-the-middle.",
+    "trust": "Lita på & anslut",
+    "cancel": "Avbryt"
+  },
+  "header": {
+    "connected": "Ansluten",
+    "disconnected": "Frånkopplad",
+    "disconnect": "Koppla från",
+    "settings": "Inställningar",
+    "files": "Filer",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Inställningar",
+    "language": "Språk",
+    "theme": "Utseende",
+    "themeLight": "Ljust",
+    "themeDark": "Mörkt",
+    "themeAuto": "Automatiskt",
+    "sizeFormat": "Filstorlekar",
+    "sizeBinary": "Binärt (KiB)",
+    "sizeDecimal": "Decimalt (KB)",
+    "sizeBytes": "Exakta byte",
+    "dateFormat": "Datum",
+    "dateAuto": "Smart",
+    "dateAbsolute": "Absolut",
+    "dateRelative": "Relativt",
+    "showDotfiles": "Visa punktfiler",
+    "showDotfilesHint": "Lista filer som börjar med en punkt (t.ex. .htaccess).",
+    "gridThumbnails": "Bildminiatyrer",
+    "gridThumbnailsHint": "Visa bildförhandsvisningar i kortrutnätet.",
+    "close": "Klar"
+  },
+  "session": {
+    "lostTitle": "Anslutningen förlorad",
+    "lostMessage": "Din session har gått ut eller anslutningen till servern bröts. Logga in igen.",
+    "reconnect": "Tillbaka till inloggning"
+  },
+  "breadcrumb": {
+    "root": "Rot",
+    "back": "Bakåt",
+    "forward": "Framåt"
+  },
+  "status": {
+    "queue": "Kö: {n}"
+  },
+  "files": {
+    "type": "Typ",
+    "name": "Namn",
+    "size": "Storlek",
+    "modified": "Ändrad",
+    "permissions": "Behörigheter",
+    "loading": "Laddar...",
+    "empty": "Den här katalogen är tom",
+    "noMatches": "Inga filer matchar filtret",
+    "clearFilter": "Rensa filter",
+    "dropToUpload": "Släpp filer eller mappar för att ladda upp",
+    "retry": "Försök igen"
+  },
+  "toolbar": {
+    "newFolder": "Ny mapp",
+    "newFile": "Ny fil",
+    "upload": "Ladda upp filer",
+    "refresh": "Uppdatera",
+    "filter": "Filtrera filer...",
+    "downloadZip": "Ladda ner ZIP",
+    "viewToggle": "Växla tabell-/kortvy",
+    "copy": "Kopiera",
+    "cut": "Klipp ut",
+    "paste": "Klistra in ({n})",
+    "selectAll": "Markera alla",
+    "deselectAll": "Avmarkera alla",
+    "delete": "Ta bort",
+    "selected": "{n} markerade"
+  },
+  "upload": {
+    "queue": "Överföringskö",
+    "toggle": "Växla överföringskö",
+    "cancelAll": "Avbryt alla",
+    "clear": "Rensa slutförda",
+    "cancel": "Avbryt uppladdning",
+    "status": {
+      "queued": "I kö",
+      "uploading": "Laddar upp",
+      "done": "Slutförd",
+      "error": "Misslyckades",
+      "cancelled": "Avbruten"
+    }
+  },
+  "context": {
+    "download": "Ladda ner",
+    "rename": "Byt namn",
+    "copy": "Kopiera",
+    "cut": "Klipp ut",
+    "paste": "Klistra in",
+    "delete": "Ta bort",
+    "properties": "Egenskaper",
+    "edit": "Redigera",
+    "view": "Visa"
+  },
+  "preview": {
+    "loading": "Laddar förhandsvisning…",
+    "noPreview": "Ingen förhandsvisning tillgänglig",
+    "tooLarge": "Filen är för stor för förhandsvisning",
+    "error": "Kunde inte ladda förhandsvisningen",
+    "close": "Stäng förhandsvisning"
+  },
+  "editor": {
+    "loading": "Laddar fil...",
+    "noFile": "Ingen fil öppen",
+    "save": "Spara",
+    "autoSave": "Spara automatiskt",
+    "closeTab": "Stäng flik",
+    "unsavedChanges": "Du har osparade ändringar",
+    "backToFiles": "Filer",
+    "unsavedTitle": "Osparade ändringar",
+    "confirmCloseMessage": "Kasta osparade ändringar i {name}?",
+    "confirmDisconnectMessage": "Du har {n} fil(er) med osparade ändringar. Koppla från och kasta dem?",
+    "discard": "Kasta",
+    "keepEditing": "Fortsätt redigera"
+  },
+  "modal": {
+    "delete": {
+      "title": "Ta bort",
+      "message": "Ta bort \"{name}\"? Detta kan inte ångras.",
+      "messageMulti": "Ta bort {n} objekt? Detta kan inte ångras.",
+      "confirm": "Ta bort",
+      "cancel": "Avbryt"
+    },
+    "newFolder": {
+      "title": "Ny mapp",
+      "label": "Mappnamn",
+      "placeholder": "min-mapp",
+      "confirm": "Skapa",
+      "cancel": "Avbryt",
+      "errorEmpty": "Ange ett namn"
+    },
+    "newFile": {
+      "title": "Ny fil",
+      "label": "Filnamn",
+      "placeholder": "fil.txt",
+      "confirm": "Skapa",
+      "cancel": "Avbryt",
+      "errorEmpty": "Ange ett namn"
+    },
+    "properties": {
+      "title": "Filegenskaper",
+      "name": "Namn",
+      "size": "Storlek",
+      "modified": "Ändrad",
+      "permissions": "Behörigheter",
+      "type": "Typ",
+      "typeFile": "Fil",
+      "typeDir": "Katalog",
+      "chmodTitle": "Behörigheter (CHMOD)",
+      "permGroup": "Grupp",
+      "owner": "Ägare",
+      "group": "Grupp",
+      "public": "Övriga",
+      "read": "Läs",
+      "write": "Skriv",
+      "execute": "Kör",
+      "numeric": "Numeriskt värde:",
+      "apply": "Tillämpa ändringar",
+      "cancel": "Avbryt",
+      "errorEmpty": "Ange ett namn",
+      "errorInvalidMode": "Ange ett 3- eller 4-siffrigt oktalt läge (t.ex. 644)"
+    },
+    "pasteConflict": {
+      "title": "Objekten finns redan",
+      "message": "Dessa objekt finns redan i den här mappen:",
+      "overwrite": "Skriv över",
+      "append": "Behåll båda",
+      "cancel": "Avbryt"
+    }
+  },
+  "error": {
+    "connectionFailed": "Anslutningen misslyckades",
+    "operationFailed": "Åtgärden misslyckades"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Mappen är inte tom eller används",
+    "ERR_FILE_PERMISSION": "Åtkomst nekad av servern",
+    "ERR_FILE_NOT_FOUND": "Objektet finns inte längre på servern",
+    "ERR_QUOTA_EXCEEDED": "Servern har slut på lagringsutrymme",
+    "ERR_CONNECTION_LOST": "Anslutningen till servern bröts",
+    "ERR_OPERATION_FAILED": "Åtgärden kunde inte slutföras"
+  },
+  "toast": {
+    "folderCreated": "Mapp skapad",
+    "fileCreated": "Fil skapad",
+    "renamed": "Bytt namn till {name}",
+    "deleted": "Tog bort {n} objekt",
+    "permissionsUpdated": "Behörigheter uppdaterade",
+    "downloadFailed": "Nedladdningen misslyckades",
+    "copied": "Kopierade {n} objekt",
+    "moved": "Flyttade {n} objekt",
+    "pasteFailed": "Vissa objekt kunde inte klistras in",
+    "folderCreateFailed": "Vissa mappar kunde inte skapas",
+    "deleteFailed": "{n} objekt kunde inte tas bort",
+    "andMore": "+{n} till"
+  },
+  "shortcuts": {
+    "title": "Tangentbordsgenvägar",
+    "groupActions": "Åtgärder",
+    "groupSelect": "Markering",
+    "groupNav": "Navigering",
+    "rename": "Byt namn på markering",
+    "delete": "Ta bort markering",
+    "copy": "Kopiera markering",
+    "cut": "Klipp ut markering",
+    "paste": "Klistra in",
+    "clear": "Rensa markering",
+    "selectAll": "Markera alla",
+    "up": "Upp en mapp",
+    "back": "Bakåt",
+    "forward": "Framåt"
+  },
+  "sso": {
+    "errorExpired": "Din SSO-inloggningslänk har gått ut. Begär en ny.",
+    "errorInvalid": "Den här SSO-inloggningslänken är ogiltig. Begär en ny.",
+    "errorUsed": "Den här SSO-inloggningslänken har redan använts. Begär en ny.",
+    "errorDisabled": "SSO-inloggning är inte aktiverad på den här servern.",
+    "errorInternal": "SSO-inloggningen misslyckades på grund av ett serverfel. Försök igen.",
+    "errorGeneric": "SSO-inloggningen misslyckades. Begär en ny länk."
+  }
+}

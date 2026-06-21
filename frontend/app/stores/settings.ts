@@ -12,7 +12,7 @@ const STORAGE_KEY = 'gftp_settings'
 
 export type SizeFormat = 'binary' | 'decimal' | 'bytes'
 export type DateFormat = 'auto' | 'absolute' | 'relative'
-export type AppLanguage = 'en' | 'de'
+export type AppLanguage = 'en' | 'de' | 'cs' | 'da' | 'es' | 'fi' | 'fr' | 'it' | 'nb-NO' | 'nl' | 'pt' | 'sk' | 'sv'
 export type FileViewMode = 'table' | 'cards'
 
 interface PersistedSettings {
@@ -27,7 +27,12 @@ interface PersistedSettings {
 
 const SIZE_FORMATS: SizeFormat[] = ['binary', 'decimal', 'bytes']
 const DATE_FORMATS: DateFormat[] = ['auto', 'absolute', 'relative']
-const LANGUAGES: AppLanguage[] = ['en', 'de']
+export const LANGUAGES: AppLanguage[] = ['en', 'de', 'cs', 'da', 'es', 'fi', 'fr', 'it', 'nb-NO', 'nl', 'pt', 'sk', 'sv']
+
+// Narrow the admin default (settings.json) to a supported language; shared with the auth plugin.
+export function isAppLanguage(value: string | null | undefined): value is AppLanguage {
+  return value != null && (LANGUAGES as readonly string[]).includes(value)
+}
 const FILE_VIEW_MODES: FileViewMode[] = ['table', 'cards']
 
 // Until the user picks, default to cards on phone-width viewports, table above.

@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protokoll",
+    "host": "Vert",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Brukernavn",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Passord",
+    "connect": "Koble til",
+    "tagline": "Selvhostet filoverføring",
+    "passive": "Passiv modus",
+    "errorRequired": "Påkrevd",
+    "errorPort": "Ugyldig port"
+  },
+  "hostKey": {
+    "title": "Bekreft vertsnøkkel",
+    "message": "Denne serveren viser en SSH-vertsnøkkel som ennå ikke er klarert. Bekreft at fingeravtrykket stemmer med serveren din før du kobler til.",
+    "host": "Vert",
+    "keyType": "Nøkkeltype",
+    "fingerprint": "Fingeravtrykk (SHA256)",
+    "warning": "Stol bare på denne nøkkelen hvis du kjenner igjen fingeravtrykket. Hvis det endrer seg senere, avvises tilkoblingen som et mulig mann-i-midten-angrep.",
+    "trust": "Stol på og koble til",
+    "cancel": "Avbryt"
+  },
+  "header": {
+    "connected": "Tilkoblet",
+    "disconnected": "Frakoblet",
+    "disconnect": "Koble fra",
+    "settings": "Innstillinger",
+    "files": "Filer",
+    "editor": "Redigering"
+  },
+  "settings": {
+    "title": "Innstillinger",
+    "language": "Språk",
+    "theme": "Utseende",
+    "themeLight": "Lyst",
+    "themeDark": "Mørkt",
+    "themeAuto": "Automatisk",
+    "sizeFormat": "Filstørrelser",
+    "sizeBinary": "Binær (KiB)",
+    "sizeDecimal": "Desimal (KB)",
+    "sizeBytes": "Eksakte byte",
+    "dateFormat": "Datoer",
+    "dateAuto": "Smart",
+    "dateAbsolute": "Absolutt",
+    "dateRelative": "Relativ",
+    "showDotfiles": "Vis skjulte filer",
+    "showDotfilesHint": "Vis filer som starter med punktum (f.eks. .htaccess).",
+    "gridThumbnails": "Bildeminiatyrer",
+    "gridThumbnailsHint": "Vis bildeforhåndsvisninger i kortrutenettet.",
+    "close": "Ferdig"
+  },
+  "session": {
+    "lostTitle": "Tilkobling mistet",
+    "lostMessage": "Økten din har utløpt eller tilkoblingen til serveren ble brutt. Logg inn på nytt.",
+    "reconnect": "Tilbake til innlogging"
+  },
+  "breadcrumb": {
+    "root": "Rot",
+    "back": "Tilbake",
+    "forward": "Fremover"
+  },
+  "status": {
+    "queue": "Kø: {n}"
+  },
+  "files": {
+    "type": "Type",
+    "name": "Navn",
+    "size": "Størrelse",
+    "modified": "Endret",
+    "permissions": "Tillatelser",
+    "loading": "Laster...",
+    "empty": "Denne mappen er tom",
+    "noMatches": "Ingen filer samsvarer med filteret",
+    "clearFilter": "Tøm filter",
+    "dropToUpload": "Slipp filer eller mapper for å laste opp",
+    "retry": "Prøv igjen"
+  },
+  "toolbar": {
+    "newFolder": "Ny mappe",
+    "newFile": "Ny fil",
+    "upload": "Last opp filer",
+    "refresh": "Oppdater",
+    "filter": "Filtrer filer...",
+    "downloadZip": "Last ned ZIP",
+    "viewToggle": "Veksle mellom tabell-/kortvisning",
+    "copy": "Kopier",
+    "cut": "Klipp ut",
+    "paste": "Lim inn ({n})",
+    "selectAll": "Velg alle",
+    "deselectAll": "Fjern alle valg",
+    "delete": "Slett",
+    "selected": "{n} valgt"
+  },
+  "upload": {
+    "queue": "Overføringskø",
+    "toggle": "Veksle overføringskø",
+    "cancelAll": "Avbryt alle",
+    "clear": "Fjern fullførte",
+    "cancel": "Avbryt opplasting",
+    "status": {
+      "queued": "I kø",
+      "uploading": "Laster opp",
+      "done": "Fullført",
+      "error": "Mislyktes",
+      "cancelled": "Avbrutt"
+    }
+  },
+  "context": {
+    "download": "Last ned",
+    "rename": "Gi nytt navn",
+    "copy": "Kopier",
+    "cut": "Klipp ut",
+    "paste": "Lim inn",
+    "delete": "Slett",
+    "properties": "Egenskaper",
+    "edit": "Rediger",
+    "view": "Vis"
+  },
+  "preview": {
+    "loading": "Laster forhåndsvisning…",
+    "noPreview": "Ingen forhåndsvisning tilgjengelig",
+    "tooLarge": "Filen er for stor til forhåndsvisning",
+    "error": "Kunne ikke laste forhåndsvisning",
+    "close": "Lukk forhåndsvisning"
+  },
+  "editor": {
+    "loading": "Laster fil...",
+    "noFile": "Ingen fil åpen",
+    "save": "Lagre",
+    "autoSave": "Autolagring",
+    "closeTab": "Lukk fane",
+    "unsavedChanges": "Du har ulagrede endringer",
+    "backToFiles": "Filer",
+    "unsavedTitle": "Ulagrede endringer",
+    "confirmCloseMessage": "Forkaste ulagrede endringer i {name}?",
+    "confirmDisconnectMessage": "Du har {n} fil(er) med ulagrede endringer. Koble fra og forkaste dem?",
+    "discard": "Forkast",
+    "keepEditing": "Fortsett å redigere"
+  },
+  "modal": {
+    "delete": {
+      "title": "Slett",
+      "message": "Slette \"{name}\"? Dette kan ikke angres.",
+      "messageMulti": "Slette {n} elementer? Dette kan ikke angres.",
+      "confirm": "Slett",
+      "cancel": "Avbryt"
+    },
+    "newFolder": {
+      "title": "Ny mappe",
+      "label": "Mappenavn",
+      "placeholder": "min-mappe",
+      "confirm": "Opprett",
+      "cancel": "Avbryt",
+      "errorEmpty": "Skriv inn et navn"
+    },
+    "newFile": {
+      "title": "Ny fil",
+      "label": "Filnavn",
+      "placeholder": "fil.txt",
+      "confirm": "Opprett",
+      "cancel": "Avbryt",
+      "errorEmpty": "Skriv inn et navn"
+    },
+    "properties": {
+      "title": "Filegenskaper",
+      "name": "Navn",
+      "size": "Størrelse",
+      "modified": "Endret",
+      "permissions": "Tillatelser",
+      "type": "Type",
+      "typeFile": "Fil",
+      "typeDir": "Mappe",
+      "chmodTitle": "Tillatelser (CHMOD)",
+      "permGroup": "Gruppe",
+      "owner": "Eier",
+      "group": "Gruppe",
+      "public": "Offentlig",
+      "read": "Lese",
+      "write": "Skrive",
+      "execute": "Kjøre",
+      "numeric": "Numerisk verdi:",
+      "apply": "Bruk endringer",
+      "cancel": "Avbryt",
+      "errorEmpty": "Skriv inn et navn",
+      "errorInvalidMode": "Skriv inn en 3- eller 4-sifret oktal modus (f.eks. 644)"
+    },
+    "pasteConflict": {
+      "title": "Elementer finnes allerede",
+      "message": "Disse elementene finnes allerede i denne mappen:",
+      "overwrite": "Overskriv",
+      "append": "Behold begge",
+      "cancel": "Avbryt"
+    }
+  },
+  "error": {
+    "connectionFailed": "Tilkobling mislyktes",
+    "operationFailed": "Operasjonen mislyktes"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i bruk",
+    "ERR_FILE_PERMISSION": "Tilgang nektet av serveren",
+    "ERR_FILE_NOT_FOUND": "Elementet finnes ikke lenger på serveren",
+    "ERR_QUOTA_EXCEEDED": "Serveren er tom for lagringsplass",
+    "ERR_CONNECTION_LOST": "Tilkoblingen til serveren ble brutt",
+    "ERR_OPERATION_FAILED": "Operasjonen kunne ikke fullføres"
+  },
+  "toast": {
+    "folderCreated": "Mappe opprettet",
+    "fileCreated": "Fil opprettet",
+    "renamed": "Omdøpt til {name}",
+    "deleted": "Slettet {n} element(er)",
+    "permissionsUpdated": "Tillatelser oppdatert",
+    "downloadFailed": "Nedlasting mislyktes",
+    "copied": "Kopierte {n} element(er)",
+    "moved": "Flyttet {n} element(er)",
+    "pasteFailed": "Noen elementer kunne ikke limes inn",
+    "folderCreateFailed": "Noen mapper kunne ikke opprettes",
+    "deleteFailed": "{n} element(er) kunne ikke slettes",
+    "andMore": "+{n} til"
+  },
+  "shortcuts": {
+    "title": "Hurtigtaster",
+    "groupActions": "Handlinger",
+    "groupSelect": "Utvalg",
+    "groupNav": "Navigasjon",
+    "rename": "Gi nytt navn til valgte",
+    "delete": "Slett valgte",
+    "copy": "Kopier valgte",
+    "cut": "Klipp ut valgte",
+    "paste": "Lim inn",
+    "clear": "Fjern utvalg",
+    "selectAll": "Velg alle",
+    "up": "Opp en mappe",
+    "back": "Tilbake",
+    "forward": "Fremover"
+  },
+  "sso": {
+    "errorExpired": "SSO-innloggingslenken din har utløpt. Be om en ny.",
+    "errorInvalid": "Denne SSO-innloggingslenken er ugyldig. Be om en ny.",
+    "errorUsed": "Denne SSO-innloggingslenken er allerede brukt. Be om en ny.",
+    "errorDisabled": "SSO-innlogging er ikke aktivert på denne serveren.",
+    "errorInternal": "SSO-innlogging mislyktes på grunn av en serverfeil. Prøv igjen.",
+    "errorGeneric": "SSO-innlogging mislyktes. Be om en ny lenke."
+  }
+}

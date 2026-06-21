@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protocollo",
+    "host": "Host",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Porta",
+    "username": "Nome utente",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Password",
+    "connect": "Connetti",
+    "tagline": "Trasferimento file self-hosted",
+    "passive": "Modalità passiva",
+    "errorRequired": "Obbligatorio",
+    "errorPort": "Porta non valida"
+  },
+  "hostKey": {
+    "title": "Verifica chiave host",
+    "message": "Questo server presenta una chiave host SSH non ancora considerata attendibile. Conferma che l'impronta corrisponda al tuo server prima di connetterti.",
+    "host": "Host",
+    "keyType": "Tipo di chiave",
+    "fingerprint": "Impronta (SHA256)",
+    "warning": "Considera attendibile questa chiave solo se riconosci l'impronta. Se in seguito cambia, la connessione viene rifiutata come possibile attacco man-in-the-middle.",
+    "trust": "Considera attendibile e connetti",
+    "cancel": "Annulla"
+  },
+  "header": {
+    "connected": "Connesso",
+    "disconnected": "Disconnesso",
+    "disconnect": "Disconnetti",
+    "settings": "Impostazioni",
+    "files": "File",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "language": "Lingua",
+    "theme": "Aspetto",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "themeAuto": "Automatico",
+    "sizeFormat": "Dimensioni file",
+    "sizeBinary": "Binario (KiB)",
+    "sizeDecimal": "Decimale (KB)",
+    "sizeBytes": "Byte esatti",
+    "dateFormat": "Date",
+    "dateAuto": "Intelligente",
+    "dateAbsolute": "Assoluta",
+    "dateRelative": "Relativa",
+    "showDotfiles": "Mostra file nascosti",
+    "showDotfilesHint": "Elenca i file che iniziano con un punto (es. .htaccess).",
+    "gridThumbnails": "Anteprime immagini",
+    "gridThumbnailsHint": "Mostra le anteprime delle immagini nella vista a schede.",
+    "close": "Fatto"
+  },
+  "session": {
+    "lostTitle": "Connessione persa",
+    "lostMessage": "La tua sessione è scaduta o la connessione al server è stata persa. Effettua nuovamente l'accesso.",
+    "reconnect": "Torna all'accesso"
+  },
+  "breadcrumb": {
+    "root": "Radice",
+    "back": "Indietro",
+    "forward": "Avanti"
+  },
+  "status": {
+    "queue": "Coda: {n}"
+  },
+  "files": {
+    "type": "Tipo",
+    "name": "Nome",
+    "size": "Dimensione",
+    "modified": "Modificato",
+    "permissions": "Permessi",
+    "loading": "Caricamento...",
+    "empty": "Questa cartella è vuota",
+    "noMatches": "Nessun file corrisponde al filtro",
+    "clearFilter": "Cancella filtro",
+    "dropToUpload": "Trascina qui file o cartelle da caricare",
+    "retry": "Riprova"
+  },
+  "toolbar": {
+    "newFolder": "Nuova cartella",
+    "newFile": "Nuovo file",
+    "upload": "Carica file",
+    "refresh": "Aggiorna",
+    "filter": "Filtra file...",
+    "downloadZip": "Scarica ZIP",
+    "viewToggle": "Alterna vista tabella / schede",
+    "copy": "Copia",
+    "cut": "Taglia",
+    "paste": "Incolla ({n})",
+    "selectAll": "Seleziona tutto",
+    "deselectAll": "Deseleziona tutto",
+    "delete": "Elimina",
+    "selected": "{n} selezionati"
+  },
+  "upload": {
+    "queue": "Coda di trasferimento",
+    "toggle": "Mostra/nascondi coda di trasferimento",
+    "cancelAll": "Annulla tutto",
+    "clear": "Rimuovi completati",
+    "cancel": "Annulla caricamento",
+    "status": {
+      "queued": "In coda",
+      "uploading": "Caricamento in corso",
+      "done": "Completato",
+      "error": "Non riuscito",
+      "cancelled": "Annullato"
+    }
+  },
+  "context": {
+    "download": "Scarica",
+    "rename": "Rinomina",
+    "copy": "Copia",
+    "cut": "Taglia",
+    "paste": "Incolla",
+    "delete": "Elimina",
+    "properties": "Proprietà",
+    "edit": "Modifica",
+    "view": "Visualizza"
+  },
+  "preview": {
+    "loading": "Caricamento anteprima…",
+    "noPreview": "Nessuna anteprima disponibile",
+    "tooLarge": "File troppo grande per l'anteprima",
+    "error": "Impossibile caricare l'anteprima",
+    "close": "Chiudi anteprima"
+  },
+  "editor": {
+    "loading": "Caricamento file...",
+    "noFile": "Nessun file aperto",
+    "save": "Salva",
+    "autoSave": "Salvataggio automatico",
+    "closeTab": "Chiudi scheda",
+    "unsavedChanges": "Hai modifiche non salvate",
+    "backToFiles": "File",
+    "unsavedTitle": "Modifiche non salvate",
+    "confirmCloseMessage": "Scartare le modifiche non salvate a {name}?",
+    "confirmDisconnectMessage": "Hai {n} file con modifiche non salvate. Disconnetterti e scartarle?",
+    "discard": "Scarta",
+    "keepEditing": "Continua a modificare"
+  },
+  "modal": {
+    "delete": {
+      "title": "Elimina",
+      "message": "Eliminare \"{name}\"? L'operazione non può essere annullata.",
+      "messageMulti": "Eliminare {n} elementi? L'operazione non può essere annullata.",
+      "confirm": "Elimina",
+      "cancel": "Annulla"
+    },
+    "newFolder": {
+      "title": "Nuova cartella",
+      "label": "Nome cartella",
+      "placeholder": "la-mia-cartella",
+      "confirm": "Crea",
+      "cancel": "Annulla",
+      "errorEmpty": "Inserisci un nome"
+    },
+    "newFile": {
+      "title": "Nuovo file",
+      "label": "Nome file",
+      "placeholder": "file.txt",
+      "confirm": "Crea",
+      "cancel": "Annulla",
+      "errorEmpty": "Inserisci un nome"
+    },
+    "properties": {
+      "title": "Proprietà file",
+      "name": "Nome",
+      "size": "Dimensione",
+      "modified": "Modificato",
+      "permissions": "Permessi",
+      "type": "Tipo",
+      "typeFile": "File",
+      "typeDir": "Cartella",
+      "chmodTitle": "Permessi (CHMOD)",
+      "permGroup": "Gruppo",
+      "owner": "Proprietario",
+      "group": "Gruppo",
+      "public": "Pubblico",
+      "read": "Lettura",
+      "write": "Scrittura",
+      "execute": "Esecuzione",
+      "numeric": "Valore numerico:",
+      "apply": "Applica modifiche",
+      "cancel": "Annulla",
+      "errorEmpty": "Inserisci un nome",
+      "errorInvalidMode": "Inserisci un valore ottale di 3 o 4 cifre (es. 644)"
+    },
+    "pasteConflict": {
+      "title": "Elementi già esistenti",
+      "message": "Questi elementi esistono già in questa cartella:",
+      "overwrite": "Sovrascrivi",
+      "append": "Mantieni entrambi",
+      "cancel": "Annulla"
+    }
+  },
+  "error": {
+    "connectionFailed": "Connessione non riuscita",
+    "operationFailed": "Operazione non riuscita"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "La cartella non è vuota o è in uso",
+    "ERR_FILE_PERMISSION": "Autorizzazione negata dal server",
+    "ERR_FILE_NOT_FOUND": "L'elemento non esiste più sul server",
+    "ERR_QUOTA_EXCEEDED": "Spazio di archiviazione del server esaurito",
+    "ERR_CONNECTION_LOST": "La connessione al server è stata persa",
+    "ERR_OPERATION_FAILED": "Impossibile completare l'operazione"
+  },
+  "toast": {
+    "folderCreated": "Cartella creata",
+    "fileCreated": "File creato",
+    "renamed": "Rinominato in {name}",
+    "deleted": "{n} elementi eliminati",
+    "permissionsUpdated": "Permessi aggiornati",
+    "downloadFailed": "Download non riuscito",
+    "copied": "{n} elementi copiati",
+    "moved": "{n} elementi spostati",
+    "pasteFailed": "Alcuni elementi non sono stati incollati",
+    "folderCreateFailed": "Alcune cartelle non sono state create",
+    "deleteFailed": "{n} elementi non sono stati eliminati",
+    "andMore": "+{n} altri"
+  },
+  "shortcuts": {
+    "title": "Scorciatoie da tastiera",
+    "groupActions": "Azioni",
+    "groupSelect": "Selezione",
+    "groupNav": "Navigazione",
+    "rename": "Rinomina selezione",
+    "delete": "Elimina selezione",
+    "copy": "Copia selezione",
+    "cut": "Taglia selezione",
+    "paste": "Incolla",
+    "clear": "Deseleziona",
+    "selectAll": "Seleziona tutto",
+    "up": "Cartella superiore",
+    "back": "Indietro",
+    "forward": "Avanti"
+  },
+  "sso": {
+    "errorExpired": "Il tuo link di accesso SSO è scaduto. Richiedine uno nuovo.",
+    "errorInvalid": "Questo link di accesso SSO non è valido. Richiedine uno nuovo.",
+    "errorUsed": "Questo link di accesso SSO è già stato utilizzato. Richiedine uno nuovo.",
+    "errorDisabled": "L'accesso SSO non è abilitato su questo server.",
+    "errorInternal": "Accesso SSO non riuscito a causa di un errore del server. Riprova.",
+    "errorGeneric": "Accesso SSO non riuscito. Richiedi un nuovo link."
+  }
+}

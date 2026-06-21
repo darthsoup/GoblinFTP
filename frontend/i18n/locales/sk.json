@@ -1,0 +1,248 @@
+{
+  "login": {
+    "protocol": "Protokol",
+    "host": "Hostiteľ",
+    "hostPlaceholder": "ftp.example.com",
+    "port": "Port",
+    "username": "Používateľské meno",
+    "usernamePlaceholder": "ftp_user",
+    "password": "Heslo",
+    "connect": "Pripojiť",
+    "tagline": "Samostatne hostovaný prenos súborov",
+    "passive": "Pasívny režim",
+    "errorRequired": "Povinné",
+    "errorPort": "Neplatný port"
+  },
+  "hostKey": {
+    "title": "Overiť kľúč hostiteľa",
+    "message": "Tento server predkladá SSH kľúč hostiteľa, ktorý zatiaľ nebol dôveryhodný. Pred pripojením potvrďte, že odtlačok zodpovedá vášmu serveru.",
+    "host": "Hostiteľ",
+    "keyType": "Typ kľúča",
+    "fingerprint": "Odtlačok (SHA256)",
+    "warning": "Tomuto kľúču dôverujte len vtedy, ak odtlačok poznáte. Ak sa neskôr zmení, pripojenie bude odmietnuté ako možný útok man-in-the-middle.",
+    "trust": "Dôverovať a pripojiť",
+    "cancel": "Zrušiť"
+  },
+  "header": {
+    "connected": "Pripojené",
+    "disconnected": "Odpojené",
+    "disconnect": "Odpojiť",
+    "settings": "Nastavenia",
+    "files": "Súbory",
+    "editor": "Editor"
+  },
+  "settings": {
+    "title": "Nastavenia",
+    "language": "Jazyk",
+    "theme": "Vzhľad",
+    "themeLight": "Svetlý",
+    "themeDark": "Tmavý",
+    "themeAuto": "Automatický",
+    "sizeFormat": "Veľkosti súborov",
+    "sizeBinary": "Binárne (KiB)",
+    "sizeDecimal": "Desiatkové (KB)",
+    "sizeBytes": "Presné bajty",
+    "dateFormat": "Dátumy",
+    "dateAuto": "Inteligentné",
+    "dateAbsolute": "Absolútne",
+    "dateRelative": "Relatívne",
+    "showDotfiles": "Zobraziť skryté súbory",
+    "showDotfilesHint": "Zobraziť súbory začínajúce bodkou (napr. .htaccess).",
+    "gridThumbnails": "Náhľady obrázkov",
+    "gridThumbnailsHint": "Zobraziť náhľady obrázkov v mriežke kariet.",
+    "close": "Hotovo"
+  },
+  "session": {
+    "lostTitle": "Spojenie stratené",
+    "lostMessage": "Vaša relácia vypršala alebo sa stratilo spojenie so serverom. Prihláste sa, prosím, znova.",
+    "reconnect": "Späť na prihlásenie"
+  },
+  "breadcrumb": {
+    "root": "Koreň",
+    "back": "Späť",
+    "forward": "Vpred"
+  },
+  "status": {
+    "queue": "Fronta: {n}"
+  },
+  "files": {
+    "type": "Typ",
+    "name": "Názov",
+    "size": "Veľkosť",
+    "modified": "Zmenené",
+    "permissions": "Oprávnenia",
+    "loading": "Načítava sa...",
+    "empty": "Tento priečinok je prázdny",
+    "noMatches": "Žiadne súbory nezodpovedajú filtru",
+    "clearFilter": "Zrušiť filter",
+    "dropToUpload": "Presuňte súbory alebo priečinky na nahranie",
+    "retry": "Skúsiť znova"
+  },
+  "toolbar": {
+    "newFolder": "Nový priečinok",
+    "newFile": "Nový súbor",
+    "upload": "Nahrať súbory",
+    "refresh": "Obnoviť",
+    "filter": "Filtrovať súbory...",
+    "downloadZip": "Stiahnuť ZIP",
+    "viewToggle": "Prepnúť zobrazenie tabuľky / kariet",
+    "copy": "Kopírovať",
+    "cut": "Vystrihnúť",
+    "paste": "Vložiť ({n})",
+    "selectAll": "Vybrať všetko",
+    "deselectAll": "Zrušiť výber",
+    "delete": "Odstrániť",
+    "selected": "Vybratých: {n}"
+  },
+  "upload": {
+    "queue": "Fronta prenosov",
+    "toggle": "Prepnúť frontu prenosov",
+    "cancelAll": "Zrušiť všetko",
+    "clear": "Vymazať dokončené",
+    "cancel": "Zrušiť nahrávanie",
+    "status": {
+      "queued": "Vo fronte",
+      "uploading": "Nahráva sa",
+      "done": "Dokončené",
+      "error": "Zlyhalo",
+      "cancelled": "Zrušené"
+    }
+  },
+  "context": {
+    "download": "Stiahnuť",
+    "rename": "Premenovať",
+    "copy": "Kopírovať",
+    "cut": "Vystrihnúť",
+    "paste": "Vložiť",
+    "delete": "Odstrániť",
+    "properties": "Vlastnosti",
+    "edit": "Upraviť",
+    "view": "Zobraziť"
+  },
+  "preview": {
+    "loading": "Načítava sa náhľad…",
+    "noPreview": "Náhľad nie je k dispozícii",
+    "tooLarge": "Súbor je príliš veľký na náhľad",
+    "error": "Náhľad sa nepodarilo načítať",
+    "close": "Zavrieť náhľad"
+  },
+  "editor": {
+    "loading": "Načítava sa súbor...",
+    "noFile": "Žiadny otvorený súbor",
+    "save": "Uložiť",
+    "autoSave": "Automatické ukladanie",
+    "closeTab": "Zavrieť kartu",
+    "unsavedChanges": "Máte neuložené zmeny",
+    "backToFiles": "Súbory",
+    "unsavedTitle": "Neuložené zmeny",
+    "confirmCloseMessage": "Zahodiť neuložené zmeny v {name}?",
+    "confirmDisconnectMessage": "Máte {n} súbor(ov) s neuloženými zmenami. Odpojiť a zahodiť ich?",
+    "discard": "Zahodiť",
+    "keepEditing": "Pokračovať v úpravách"
+  },
+  "modal": {
+    "delete": {
+      "title": "Odstrániť",
+      "message": "Odstrániť „{name}“? Túto akciu nie je možné vrátiť späť.",
+      "messageMulti": "Odstrániť {n} položiek? Túto akciu nie je možné vrátiť späť.",
+      "confirm": "Odstrániť",
+      "cancel": "Zrušiť"
+    },
+    "newFolder": {
+      "title": "Nový priečinok",
+      "label": "Názov priečinka",
+      "placeholder": "moj-priecinok",
+      "confirm": "Vytvoriť",
+      "cancel": "Zrušiť",
+      "errorEmpty": "Zadajte, prosím, názov"
+    },
+    "newFile": {
+      "title": "Nový súbor",
+      "label": "Názov súboru",
+      "placeholder": "subor.txt",
+      "confirm": "Vytvoriť",
+      "cancel": "Zrušiť",
+      "errorEmpty": "Zadajte, prosím, názov"
+    },
+    "properties": {
+      "title": "Vlastnosti súboru",
+      "name": "Názov",
+      "size": "Veľkosť",
+      "modified": "Zmenené",
+      "permissions": "Oprávnenia",
+      "type": "Typ",
+      "typeFile": "Súbor",
+      "typeDir": "Priečinok",
+      "chmodTitle": "Oprávnenia (CHMOD)",
+      "permGroup": "Skupina",
+      "owner": "Vlastník",
+      "group": "Skupina",
+      "public": "Verejné",
+      "read": "Čítanie",
+      "write": "Zápis",
+      "execute": "Spustenie",
+      "numeric": "Číselná hodnota:",
+      "apply": "Použiť zmeny",
+      "cancel": "Zrušiť",
+      "errorEmpty": "Zadajte, prosím, názov",
+      "errorInvalidMode": "Zadajte 3- alebo 4-miestny osmičkový režim (napr. 644)"
+    },
+    "pasteConflict": {
+      "title": "Položky už existujú",
+      "message": "Tieto položky už v tomto priečinku existujú:",
+      "overwrite": "Prepísať",
+      "append": "Ponechať obe",
+      "cancel": "Zrušiť"
+    }
+  },
+  "error": {
+    "connectionFailed": "Pripojenie zlyhalo",
+    "operationFailed": "Operácia zlyhala"
+  },
+  "errorCode": {
+    "ERR_DIR_NOT_EMPTY": "Priečinok nie je prázdny alebo sa používa",
+    "ERR_FILE_PERMISSION": "Prístup zamietnutý serverom",
+    "ERR_FILE_NOT_FOUND": "Položka už na serveri neexistuje",
+    "ERR_QUOTA_EXCEEDED": "Na serveri nie je dostatok úložného priestoru",
+    "ERR_CONNECTION_LOST": "Spojenie so serverom sa stratilo",
+    "ERR_OPERATION_FAILED": "Operáciu sa nepodarilo dokončiť"
+  },
+  "toast": {
+    "folderCreated": "Priečinok vytvorený",
+    "fileCreated": "Súbor vytvorený",
+    "renamed": "Premenované na {name}",
+    "deleted": "Odstránené položky: {n}",
+    "permissionsUpdated": "Oprávnenia aktualizované",
+    "downloadFailed": "Sťahovanie zlyhalo",
+    "copied": "Skopírované položky: {n}",
+    "moved": "Presunuté položky: {n}",
+    "pasteFailed": "Niektoré položky sa nepodarilo vložiť",
+    "folderCreateFailed": "Niektoré priečinky sa nepodarilo vytvoriť",
+    "deleteFailed": "Nepodarilo sa odstrániť {n} položiek",
+    "andMore": "+{n} ďalších"
+  },
+  "shortcuts": {
+    "title": "Klávesové skratky",
+    "groupActions": "Akcie",
+    "groupSelect": "Výber",
+    "groupNav": "Navigácia",
+    "rename": "Premenovať vybrané",
+    "delete": "Odstrániť vybrané",
+    "copy": "Kopírovať vybrané",
+    "cut": "Vystrihnúť vybrané",
+    "paste": "Vložiť",
+    "clear": "Zrušiť výber",
+    "selectAll": "Vybrať všetko",
+    "up": "O priečinok vyššie",
+    "back": "Späť",
+    "forward": "Vpred"
+  },
+  "sso": {
+    "errorExpired": "Váš prihlasovací odkaz SSO vypršal. Vyžiadajte si, prosím, nový.",
+    "errorInvalid": "Tento prihlasovací odkaz SSO je neplatný. Vyžiadajte si, prosím, nový.",
+    "errorUsed": "Tento prihlasovací odkaz SSO už bol použitý. Vyžiadajte si, prosím, nový.",
+    "errorDisabled": "Prihlásenie cez SSO nie je na tomto serveri povolené.",
+    "errorInternal": "Prihlásenie cez SSO zlyhalo kvôli chybe servera. Skúste to, prosím, znova.",
+    "errorGeneric": "Prihlásenie cez SSO zlyhalo. Vyžiadajte si, prosím, nový odkaz."
+  }
+}
