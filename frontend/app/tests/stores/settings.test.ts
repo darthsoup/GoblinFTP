@@ -86,7 +86,7 @@ describe('useSettingsStore', () => {
   })
 
   it('ignores corrupt or invalid persisted data', () => {
-    localStorage.setItem('gftp_settings', JSON.stringify({ sizeFormat: 'bogus', language: 'fr' }))
+    localStorage.setItem('gftp_settings', JSON.stringify({ sizeFormat: 'bogus', language: 'xx' }))
     setActivePinia(createPinia())
     const store = useSettingsStore()
     expect(store.sizeFormat).toBe('binary')
