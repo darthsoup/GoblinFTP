@@ -9,7 +9,7 @@ A self-hosted, web-based FTP/SFTP client. Deploy as a single Docker container an
 - **Text editor** with syntax highlighting (CodeMirror)
 - **Drag-and-drop upload** with chunked transfer and progress panel
 - **SSO** — generate signed login links for direct authentication
-- **i18n** — English and German
+- **i18n** — 13 languages: English, German, French, Spanish, Italian, Dutch, Portuguese, Swedish, Danish, Norwegian, Finnish, Czech, Slovak
 - **Error tracking** via Sentry (optional)
 
 ## Stack
@@ -41,6 +41,16 @@ The running version shows up in the startup log, `GET /healthz`, and the setting
 
 - **[Configuration](docs/configuration.md)** — environment variables, `settings.json`, logging, metrics, S3 chunk staging, and SSO login links.
 - **[Development](docs/development.md)** — local setup, common `just` commands, and testing against a local FTP / S3 server.
+
+## Contributing
+
+Contributions are welcome — see **[Development](docs/development.md)** for local setup. Before opening a PR:
+
+- `just fmt` — format frontend (eslint) and backend (gofmt)
+- `just lint` — eslint, Nuxt typecheck, golangci-lint
+- `just test` — backend (Go) and frontend (vitest) suites
+
+**Adding a language?** Copy `frontend/i18n/locales/en.json` to `<code>.json` and translate the values, then register the locale in `nuxt.config.ts`, `app/stores/settings.ts`, and `app/components/Layout/LanguageSelect.vue`. Run `just i18n-check` to verify key + placeholder parity.
 
 ## License
 
