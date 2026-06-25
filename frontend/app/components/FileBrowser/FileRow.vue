@@ -8,6 +8,9 @@ const props = defineProps<{
   editing: boolean
   isCut: boolean
   active: boolean
+  compact: boolean
+  showPermissions: boolean
+  index: number
 }>()
 
 const emit = defineEmits<{
@@ -39,8 +42,6 @@ function onNameDblClick() {
 }
 
 function formatSize(bytes: number): string {
-  if (props.file.isDir)
-    return '--'
   return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
 }
 
@@ -66,11 +67,13 @@ function handleDownload() {
 
 <template>
   <tr
-    class="group h-11 border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-[13px]"
+    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-[13px]"
     :class="[
+      compact ? 'h-9' : 'h-11',
       selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
       isCut ? 'opacity-50' : '',
     ]"
+    :style="{ '--row-i': index }"
     :data-file-name="file.name"
     @click="handleClick"
   >
@@ -84,14 +87,6 @@ function handleDownload() {
         @update:model-value="emit('select', file.name)"
       />
     </td>
-    <td class="w-12 px-2 text-center">
-      <UIcon
-        :name="iconDef.icon"
-        class="size-5 align-middle"
-        :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
-        :style="iconDef.color ? { color: iconDef.color } : undefined"
-      />
-    </td>
     <td class="px-3 truncate max-w-0">
       <input
         v-if="editing"
@@ -103,20 +98,30 @@ function handleDownload() {
         @keydown.escape.prevent="cancel"
         @blur="commit"
       >
-      <span
-        v-else
-        :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
-        @dblclick.stop="onNameDblClick"
-      >{{ file.name }}</span>
+      <div v-else class="flex items-center gap-2.5 min-w-0">
+        <UIcon
+          :name="iconDef.icon"
+          class="size-5 shrink-0"
+          :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+          :style="iconDef.color ? { color: iconDef.color } : undefined"
+        />
+        <span
+          class="truncate"
+          :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+          @dblclick.stop="onNameDblClick"
+        >{{ file.name }}</span>
+      </div>
     </td>
     <td class="w-24 px-3 text-right text-muted whitespace-nowrap hidden sm:table-cell">
-      {{ formatSize(file.size) }}
+      <span v-if="file.isDir" class="text-dimmed/50">–</span>
+      <span v-else>{{ formatSize(file.size) }}</span>
     </td>
     <td class="w-40 px-3 text-right text-muted whitespace-nowrap hidden md:table-cell">
       {{ formatDate(file.modified) }}
     </td>
-    <td class="w-28 px-3 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
-      {{ file.mode || '--' }}
+    <td v-if="showPermissions" class="w-28 px-3 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
+      <span v-if="file.mode">{{ file.mode }}</span>
+      <span v-else class="text-dimmed/50">–</span>
     </td>
     <td class="w-14 px-2 text-center">
       <UButton
@@ -131,3 +136,26 @@ function handleDownload() {
     </td>
   </tr>
 </template>
+
+<style scoped>
+/* Staggered reveal on directory load; delay capped so large listings settle fast. */
+.file-row {
+  animation: row-in 0.26s ease backwards;
+  animation-delay: min(calc(var(--row-i) * 12ms), 280ms);
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .file-row {
+    animation: none;
+  }
+}
+</style>

@@ -56,6 +56,9 @@
     "showDotfilesHint": "Zobrazit soubory začínající tečkou (např. .htaccess).",
     "gridThumbnails": "Náhledy obrázků",
     "gridThumbnailsHint": "Zobrazit náhledy obrázků v mřížce karet.",
+    "density": "Hustota",
+    "densityComfortable": "Pohodlné",
+    "densityCompact": "Kompaktní",
     "close": "Hotovo"
   },
   "session": {

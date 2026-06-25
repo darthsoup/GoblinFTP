@@ -56,6 +56,9 @@
     "showDotfilesHint": "Bestanden met een punt aan het begin tonen (bijv. .htaccess).",
     "gridThumbnails": "Miniaturen van afbeeldingen",
     "gridThumbnailsHint": "Voorbeelden van afbeeldingen tonen in de kaartweergave.",
+    "density": "Dichtheid",
+    "densityComfortable": "Comfortabel",
+    "densityCompact": "Compact",
     "close": "Klaar"
   },
   "session": {

@@ -56,6 +56,9 @@
     "showDotfilesHint": "Vis filer som starter med punktum (f.eks. .htaccess).",
     "gridThumbnails": "Bildeminiatyrer",
     "gridThumbnailsHint": "Vis bildeforhåndsvisninger i kortrutenettet.",
+    "density": "Tetthet",
+    "densityComfortable": "Komfortabel",
+    "densityCompact": "Kompakt",
     "close": "Ferdig"
   },
   "session": {

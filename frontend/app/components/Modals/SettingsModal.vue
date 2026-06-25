@@ -38,6 +38,10 @@ const dateFormatItems = computed(() => [
   { label: t('settings.dateAbsolute'), value: 'absolute' },
   { label: t('settings.dateRelative'), value: 'relative' },
 ])
+const densityItems = computed(() => [
+  { label: t('settings.densityComfortable'), value: 'comfortable' },
+  { label: t('settings.densityCompact'), value: 'compact' },
+])
 </script>
 
 <template>
@@ -77,6 +81,14 @@ const dateFormatItems = computed(() => [
             />
           </UFormField>
         </div>
+
+        <UFormField :label="t('settings.density')">
+          <USelect
+            v-model="settingsStore.density"
+            :items="densityItems"
+            class="w-full"
+          />
+        </UFormField>
 
         <UFormField :label="t('settings.showDotfiles')" :description="t('settings.showDotfilesHint')">
           <USwitch v-model="settingsStore.showDotfiles" />

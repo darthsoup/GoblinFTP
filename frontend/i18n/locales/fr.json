@@ -56,6 +56,9 @@
     "showDotfilesHint": "Lister les fichiers commençant par un point (p. ex. .htaccess).",
     "gridThumbnails": "Miniatures d'images",
     "gridThumbnailsHint": "Afficher les aperçus d'images dans la grille de cartes.",
+    "density": "Densité",
+    "densityComfortable": "Confortable",
+    "densityCompact": "Compact",
     "close": "Terminé"
   },
   "session": {

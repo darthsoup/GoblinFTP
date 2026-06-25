@@ -56,6 +56,9 @@
     "showDotfilesHint": "Elenca i file che iniziano con un punto (es. .htaccess).",
     "gridThumbnails": "Anteprime immagini",
     "gridThumbnailsHint": "Mostra le anteprime delle immagini nella vista a schede.",
+    "density": "Densità",
+    "densityComfortable": "Comoda",
+    "densityCompact": "Compatta",
     "close": "Fatto"
   },
   "session": {

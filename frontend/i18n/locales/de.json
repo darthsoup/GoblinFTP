@@ -56,6 +56,9 @@
     "showDotfilesHint": "Dateien mit führendem Punkt anzeigen (z. B. .htaccess).",
     "gridThumbnails": "Bildvorschau",
     "gridThumbnailsHint": "Bildvorschau in der Kartenansicht anzeigen.",
+    "density": "Dichte",
+    "densityComfortable": "Komfortabel",
+    "densityCompact": "Kompakt",
     "close": "Fertig"
   },
   "session": {

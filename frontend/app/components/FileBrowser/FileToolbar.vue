@@ -69,7 +69,7 @@ const paste = usePaste()
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-default bg-elevated/50 shrink-0">
+  <div class="flex flex-wrap items-center gap-2 px-4 min-h-11 py-1.5 bg-muted border-t border-muted border-b border-default shrink-0">
     <!-- Hidden file input for uploads -->
     <input
       ref="fileInputRef"
@@ -79,126 +79,130 @@ const paste = usePaste()
       @change="onFilesSelected"
     >
 
-    <UButton
-      size="sm"
-      color="primary"
-      icon="i-lucide-folder-plus"
-      @click="openNewFolder"
-    >
-      {{ t('toolbar.newFolder') }}
-    </UButton>
-    <UButton
-      size="sm"
-      color="neutral"
-      variant="subtle"
-      icon="i-lucide-file-plus"
-      @click="openNewFile"
-    >
-      {{ t('toolbar.newFile') }}
-    </UButton>
+    <!-- Left region swaps between the default command set and a selection mode.
+         The filter is anchored right (outside the transition) so it never shifts. -->
+    <Transition name="cmd-swap" mode="out-in">
+      <!-- Selection mode -->
+      <div v-if="selectedCount > 0" key="sel" class="flex flex-wrap items-center gap-2">
+        <UBadge color="primary" variant="subtle" size="sm" class="tabular-nums">
+          {{ t('toolbar.selected', { n: selectedCount }) }}
+        </UBadge>
+        <UTooltip :text="t('toolbar.deselectAll')">
+          <UButton
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-x"
+            :aria-label="t('toolbar.deselectAll')"
+            @click="filesStore.clearSelection()"
+          />
+        </UTooltip>
 
-    <USeparator orientation="vertical" class="h-5 mx-1" />
+        <USeparator orientation="vertical" class="h-5" />
 
-    <UTooltip :text="t('toolbar.refresh')">
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="subtle"
-        icon="i-lucide-refresh-cw"
-        :aria-label="t('toolbar.refresh')"
-        :loading="filesStore.loading"
-        @click="filesStore.list()"
-      />
-    </UTooltip>
-    <UTooltip :text="t('toolbar.upload')">
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="subtle"
-        icon="i-lucide-upload"
-        :aria-label="t('toolbar.upload')"
-        @click="triggerUpload"
-      />
-    </UTooltip>
-    <UTooltip :text="t('shortcuts.title')">
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-keyboard"
-        :aria-label="t('shortcuts.title')"
-        class="hidden sm:inline-flex"
-        @click="modalStore.open('shortcuts')"
-      />
-    </UTooltip>
-    <UTooltip :text="t('toolbar.viewToggle')">
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="ghost"
-        :icon="settingsStore.fileViewMode === 'table' ? 'i-lucide-layout-grid' : 'i-lucide-table'"
-        :aria-label="t('toolbar.viewToggle')"
-        @click="toggleView"
-      />
-    </UTooltip>
+        <UFieldGroup size="sm">
+          <UButton color="neutral" variant="subtle" icon="i-lucide-copy" :aria-label="t('toolbar.copy')" @click="copySelected">
+            <span class="hidden md:inline">{{ t('toolbar.copy') }}</span>
+          </UButton>
+          <UButton color="neutral" variant="subtle" icon="i-lucide-scissors" :aria-label="t('toolbar.cut')" @click="cutSelected">
+            <span class="hidden md:inline">{{ t('toolbar.cut') }}</span>
+          </UButton>
+          <UButton
+            v-if="selectedCount >= 2"
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-file-archive"
+            :aria-label="t('toolbar.downloadZip')"
+            @click="downloadZip"
+          >
+            <span class="hidden md:inline">{{ t('toolbar.downloadZip') }}</span>
+          </UButton>
+        </UFieldGroup>
 
-    <template v-if="filesStore.clipboard">
-      <USeparator orientation="vertical" class="h-5 mx-1" />
-      <UButton
-        size="sm"
-        color="primary"
-        variant="subtle"
-        icon="i-lucide-clipboard-paste"
-        @click="paste"
-      >
-        {{ t('toolbar.paste', { n: filesStore.clipboard.names.length }) }}
-      </UButton>
-    </template>
+        <UButton size="sm" color="error" variant="soft" icon="i-lucide-trash-2" @click="deleteSelected">
+          {{ t('toolbar.delete') }}
+        </UButton>
+      </div>
+
+      <!-- Default command set -->
+      <div v-else key="def" class="flex flex-wrap items-center gap-2">
+        <UButton
+          size="sm"
+          color="primary"
+          icon="i-lucide-folder-plus"
+          class="active:translate-y-px"
+          @click="openNewFolder"
+        >
+          {{ t('toolbar.newFolder') }}
+        </UButton>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-file-plus"
+          class="active:translate-y-px"
+          @click="openNewFile"
+        >
+          <span class="hidden sm:inline">{{ t('toolbar.newFile') }}</span>
+        </UButton>
+
+        <USeparator orientation="vertical" class="h-5" />
+
+        <UFieldGroup size="sm">
+          <UTooltip :text="t('toolbar.refresh')">
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-refresh-cw"
+              :aria-label="t('toolbar.refresh')"
+              :loading="filesStore.loading"
+              @click="filesStore.list()"
+            />
+          </UTooltip>
+          <UTooltip :text="t('toolbar.upload')">
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-upload"
+              :aria-label="t('toolbar.upload')"
+              @click="triggerUpload"
+            />
+          </UTooltip>
+          <UTooltip :text="t('shortcuts.title')">
+            <UButton
+              color="neutral"
+              variant="subtle"
+              icon="i-lucide-keyboard"
+              :aria-label="t('shortcuts.title')"
+              class="hidden sm:inline-flex"
+              @click="modalStore.open('shortcuts')"
+            />
+          </UTooltip>
+          <UTooltip :text="t('toolbar.viewToggle')">
+            <UButton
+              color="neutral"
+              variant="subtle"
+              :icon="settingsStore.fileViewMode === 'table' ? 'i-lucide-layout-grid' : 'i-lucide-table'"
+              :aria-label="t('toolbar.viewToggle')"
+              @click="toggleView"
+            />
+          </UTooltip>
+        </UFieldGroup>
+
+        <UButton
+          v-if="filesStore.clipboard"
+          size="sm"
+          color="primary"
+          variant="subtle"
+          icon="i-lucide-clipboard-paste"
+          @click="paste"
+        >
+          {{ t('toolbar.paste', { n: filesStore.clipboard.names.length }) }}
+        </UButton>
+      </div>
+    </Transition>
 
     <div class="flex-1" />
-
-    <template v-if="selectedCount > 0">
-      <span class="text-xs text-muted">
-        {{ t('toolbar.selected', { n: selectedCount }) }}
-      </span>
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="subtle"
-        icon="i-lucide-copy"
-        @click="copySelected"
-      >
-        {{ t('toolbar.copy') }}
-      </UButton>
-      <UButton
-        size="sm"
-        color="neutral"
-        variant="subtle"
-        icon="i-lucide-scissors"
-        @click="cutSelected"
-      >
-        {{ t('toolbar.cut') }}
-      </UButton>
-      <UButton
-        size="sm"
-        color="error"
-        variant="soft"
-        icon="i-lucide-trash-2"
-        @click="deleteSelected"
-      >
-        {{ t('toolbar.delete') }}
-      </UButton>
-      <UButton
-        v-if="selectedCount >= 2"
-        size="sm"
-        color="neutral"
-        variant="subtle"
-        icon="i-lucide-file-archive"
-        @click="downloadZip"
-      >
-        {{ t('toolbar.downloadZip') }}
-      </UButton>
-    </template>
 
     <UInput
       v-model="filter"
@@ -206,6 +210,41 @@ const paste = usePaste()
       icon="i-lucide-search"
       :placeholder="t('toolbar.filter')"
       class="w-full sm:w-44 md:w-56"
-    />
+    >
+      <template v-if="filter" #trailing>
+        <UButton
+          color="neutral"
+          variant="link"
+          size="xs"
+          icon="i-lucide-x"
+          :aria-label="t('files.clearFilter')"
+          @click="filter = ''"
+        />
+      </template>
+    </UInput>
   </div>
 </template>
+
+<style scoped>
+/* Left-region swap between default and selection modes — restrained slide+fade. */
+.cmd-swap-enter-active,
+.cmd-swap-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+.cmd-swap-enter-from {
+  opacity: 0;
+  transform: translateX(6px);
+}
+.cmd-swap-leave-to {
+  opacity: 0;
+  transform: translateX(-6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmd-swap-enter-active,
+  .cmd-swap-leave-active {
+    transition: none;
+  }
+}
+</style>

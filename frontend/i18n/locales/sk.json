@@ -56,6 +56,9 @@
     "showDotfilesHint": "Zobraziť súbory začínajúce bodkou (napr. .htaccess).",
     "gridThumbnails": "Náhľady obrázkov",
     "gridThumbnailsHint": "Zobraziť náhľady obrázkov v mriežke kariet.",
+    "density": "Hustota",
+    "densityComfortable": "Pohodlné",
+    "densityCompact": "Kompaktné",
     "close": "Hotovo"
   },
   "session": {

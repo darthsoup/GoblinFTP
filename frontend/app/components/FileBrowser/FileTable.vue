@@ -109,6 +109,11 @@ const visibleFiles = computed(() => {
   return arr.filter(f => f.name.toLowerCase().includes(q))
 })
 
+const compact = computed(() => settingsStore.density === 'compact')
+// Many FTP servers return no mode — hide the Permissions column entirely when
+// nothing in the listing carries one, rather than filling it with placeholders.
+const hasPermissions = computed(() => visibleFiles.value.some(f => !!f.mode))
+
 // Browser-only keyboard shortcuts (select-all matches the visible/filtered set).
 useFileBrowserShortcuts(() => visibleFiles.value.map(f => f.name))
 
@@ -323,15 +328,24 @@ async function onDrop(e: DragEvent) {
             </UButton>
           </div>
 
-          <div v-else-if="visibleFiles.length === 0" class="py-10">
-            <UEmpty
-              variant="naked"
-              :icon="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'"
-              :title="filter ? t('files.noMatches') : t('files.empty')"
-              :description="filter ? undefined : t('files.dropToUpload')"
-              :actions="emptyActions"
-              :ui="{ description: 'text-dimmed' }"
-            />
+          <div v-else-if="visibleFiles.length === 0" class="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <div class="relative flex items-center justify-center">
+              <div class="absolute size-20 rounded-full bg-primary/10 blur-xl" aria-hidden="true" />
+              <div class="relative flex size-16 items-center justify-center rounded-2xl border border-default bg-elevated/60 text-primary">
+                <UIcon :name="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'" class="size-8" />
+              </div>
+            </div>
+            <div class="space-y-1">
+              <p class="text-sm font-semibold text-highlighted">
+                {{ filter ? t('files.noMatches') : t('files.empty') }}
+              </p>
+              <p v-if="!filter" class="text-xs text-dimmed">
+                {{ t('files.dropToUpload') }}
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <UButton v-for="(action, idx) in emptyActions" :key="idx" v-bind="action" />
+            </div>
           </div>
 
           <!-- Table view -->
@@ -346,9 +360,6 @@ async function onDrop(e: DragEvent) {
                     @update:model-value="toggleSelectAll"
                   />
                 </th>
-                <th class="w-12 px-2 py-2.5 text-center font-bold">
-                  {{ t('files.type') }}
-                </th>
                 <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('name')" @click="toggleSort('name')">
                   {{ t('files.name') }}
                   <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
@@ -361,7 +372,7 @@ async function onDrop(e: DragEvent) {
                   {{ t('files.modified') }}
                   <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
+                <th v-if="hasPermissions" class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
                   {{ t('files.permissions') }}
                 </th>
                 <th class="w-14" />
@@ -370,7 +381,7 @@ async function onDrop(e: DragEvent) {
 
             <tbody>
               <FileRow
-                v-for="file in visibleFiles"
+                v-for="(file, i) in visibleFiles"
                 :key="file.name"
                 :file="file"
                 :selected="filesStore.selected.has(file.name)"
@@ -378,6 +389,9 @@ async function onDrop(e: DragEvent) {
                 :editing="filesStore.editingName === file.name"
                 :is-cut="cutNames.has(file.name)"
                 :active="previewName === file.name"
+                :compact="compact"
+                :show-permissions="hasPermissions"
+                :index="i"
                 @select="filesStore.toggleSelection"
                 @navigate="filesStore.navigate"
                 @download="onDownload"
@@ -392,7 +406,7 @@ async function onDrop(e: DragEvent) {
           <!-- Cards view -->
           <div v-else role="list" class="grid gap-3 p-3 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))]">
             <FileCard
-              v-for="file in visibleFiles"
+              v-for="(file, i) in visibleFiles"
               :key="file.name"
               :file="file"
               :selected="filesStore.selected.has(file.name)"
@@ -400,6 +414,7 @@ async function onDrop(e: DragEvent) {
               :editing="filesStore.editingName === file.name"
               :is-cut="cutNames.has(file.name)"
               :active="previewName === file.name"
+              :index="i"
               @select="filesStore.toggleSelection"
               @navigate="filesStore.navigate"
               @download="onDownload"
@@ -412,18 +427,42 @@ async function onDrop(e: DragEvent) {
         </div>
       </UContextMenu>
 
-      <FilePreviewPanel
-        v-if="previewFile"
-        :file="previewFile"
-        :dir="filesStore.currentPath"
-        class="absolute inset-0 z-20 w-full md:static md:inset-auto md:z-auto md:w-80 lg:w-96 md:shrink-0"
-        @close="previewName = null"
-      />
+      <!-- Inspector overlays the right edge at every width (rather than reserving a
+           column) so opening it never reflows the list / resizes the card grid.
+           Non-modal: clicking a visible file still swaps the preview in place. -->
+      <Transition name="preview">
+        <FilePreviewPanel
+          v-if="previewFile"
+          :file="previewFile"
+          :dir="filesStore.currentPath"
+          class="absolute inset-y-0 right-0 z-20 w-full sm:w-80 lg:w-96 shadow-xl shadow-black/20"
+          @close="previewName = null"
+        />
+      </Transition>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* Inspector slides in from the right edge it's pinned to. */
+.preview-enter-active,
+.preview-leave-active {
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+.preview-enter-from,
+.preview-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .preview-enter-active,
+  .preview-leave-active {
+    transition: none;
+  }
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease;

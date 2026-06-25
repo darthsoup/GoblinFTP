@@ -8,6 +8,7 @@ const props = defineProps<{
   editing: boolean
   isCut: boolean
   active: boolean
+  index: number
 }>()
 
 const emit = defineEmits<{
@@ -97,11 +98,12 @@ function handleDownload() {
 <template>
   <div
     role="listitem"
-    class="group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated/50 p-2 transition-colors hover:bg-accented/40 hover:border-accented"
+    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated/50 p-2 transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
     :class="[
       selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
       isCut ? 'opacity-50' : '',
     ]"
+    :style="{ '--card-i': index }"
     :data-file-name="file.name"
     @click="handleClick"
   >
@@ -120,7 +122,7 @@ function handleDownload() {
       <UIcon
         v-else
         :name="iconDef.icon"
-        class="size-10"
+        class="size-12 transition-transform duration-150 group-hover:scale-105"
         :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
         :style="iconDef.color ? { color: iconDef.color } : undefined"
       />
@@ -175,3 +177,26 @@ function handleDownload() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Staggered reveal on directory load; delay capped so large grids settle fast. */
+.file-card {
+  animation: card-in 0.26s ease backwards;
+  animation-delay: min(calc(var(--card-i) * 12ms), 280ms);
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .file-card {
+    animation: none;
+  }
+}
+</style>
