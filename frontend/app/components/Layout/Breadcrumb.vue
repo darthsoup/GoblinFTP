@@ -40,7 +40,7 @@ const items = computed<BreadcrumbItem[]>(() => {
 </script>
 
 <template>
-  <nav class="flex items-center gap-2 px-4 h-11 bg-muted overflow-x-auto whitespace-nowrap shrink-0">
+  <nav class="flex items-center gap-2 px-4 h-11 bg-elevated border-b border-default overflow-x-auto whitespace-nowrap shrink-0">
     <!-- Back / forward history as one attached segment -->
     <template v-if="showHistory">
       <UFieldGroup size="sm" class="shrink-0">

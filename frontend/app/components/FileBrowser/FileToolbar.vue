@@ -69,7 +69,7 @@ const paste = usePaste()
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2 px-4 min-h-11 py-1.5 bg-muted border-t border-muted border-b border-default shrink-0">
+  <div class="flex flex-wrap items-center gap-2 px-4 min-h-10 py-1.5 bg-elevated border-t border-muted border-b border-default shrink-0">
     <!-- Hidden file input for uploads -->
     <input
       ref="fileInputRef"

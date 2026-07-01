@@ -98,7 +98,7 @@ function handleDownload() {
 <template>
   <div
     role="listitem"
-    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated/50 p-2 transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
+    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated p-2 transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
     :class="[
       selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
       isCut ? 'opacity-50' : '',
@@ -110,7 +110,7 @@ function handleDownload() {
     <!-- Thumbnail / icon -->
     <div
       ref="thumbEl"
-      class="relative aspect-square mb-2 rounded-md bg-muted/40 overflow-hidden flex items-center justify-center"
+      class="relative aspect-square mb-2 rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
     >
       <img
         v-if="showThumb"
@@ -130,6 +130,7 @@ function handleDownload() {
       <!-- Selection checkbox (top-left), shown on hover or when selected -->
       <UCheckbox
         :model-value="selected"
+        size="md"
         class="absolute top-1 left-1 transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
         :aria-label="file.name"

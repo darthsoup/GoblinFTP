@@ -14,7 +14,7 @@ const { appName, hideAttribution } = useBranding()
   <UMain class="flex-1 min-h-0 flex flex-col">
     <UContainer class="flex flex-1 flex-col items-center justify-center py-10">
       <div v-if="booting" class="flex items-center justify-center">
-        <UIcon name="i-lucide-loader-circle" class="size-8 animate-spin text-primary" />
+        <UIcon name="i-lucide-loader-circle" class="size-10 animate-spin text-primary" />
       </div>
       <LoginForm v-else />
     </UContainer>
@@ -22,21 +22,21 @@ const { appName, hideAttribution } = useBranding()
 
   <UFooter
     :ui="{
-      root: 'shrink-0 border-t border-default bg-muted/50',
-      container: 'px-4 py-0 h-12 flex items-center justify-between gap-3',
+      root: 'shrink-0 border-t border-default bg-elevated/50',
+      container: 'px-4 py-0 h-14 flex items-center justify-between gap-3',
       left: 'mt-0 gap-x-1.5',
       right: 'mt-0 gap-x-1 justify-end',
     }"
   >
     <template #left>
-      <span v-if="!hideAttribution" class="text-xs text-dimmed select-none">
+      <span v-if="!hideAttribution" class="text-sm text-dimmed select-none">
         {{ appName }} {{ authStore.systemVars?.version ?? '' }}
       </span>
       <span v-else />
     </template>
 
     <template #right>
-      <LanguageSelect variant="ghost" size="sm" />
+      <LanguageSelect variant="ghost" size="lg" />
       <UColorModeButton />
       <UTooltip :text="t('header.settings')">
         <UButton

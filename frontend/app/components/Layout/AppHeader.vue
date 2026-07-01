@@ -51,7 +51,7 @@ async function handleDisconnect() {
     :title="appName"
     :toggle="false"
     :ui="{
-      root: 'bg-muted/75 shrink-0 z-30',
+      root: 'bg-elevated/75 border-b border-default shrink-0 z-30',
       container: 'max-w-full px-3 sm:px-4 gap-2',
       center: 'flex',
     }"

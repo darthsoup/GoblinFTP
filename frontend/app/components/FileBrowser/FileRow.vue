@@ -67,9 +67,9 @@ function handleDownload() {
 
 <template>
   <tr
-    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-[13px]"
+    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm"
     :class="[
-      compact ? 'h-9' : 'h-11',
+      compact ? 'h-9' : 'h-12',
       selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
       isCut ? 'opacity-50' : '',
     ]"
@@ -77,9 +77,10 @@ function handleDownload() {
     :data-file-name="file.name"
     @click="handleClick"
   >
-    <td class="w-10 px-3">
+    <td class="w-10 px-4">
       <UCheckbox
         :model-value="selected"
+        size="md"
         class="justify-center transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
         :aria-label="file.name"
@@ -87,7 +88,7 @@ function handleDownload() {
         @update:model-value="emit('select', file.name)"
       />
     </td>
-    <td class="px-3 truncate max-w-0">
+    <td class="px-4 truncate max-w-0">
       <input
         v-if="editing"
         ref="inputRef"
@@ -112,14 +113,14 @@ function handleDownload() {
         >{{ file.name }}</span>
       </div>
     </td>
-    <td class="w-24 px-3 text-right text-muted whitespace-nowrap hidden sm:table-cell">
+    <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
       <span v-if="file.isDir" class="text-dimmed/50">–</span>
       <span v-else>{{ formatSize(file.size) }}</span>
     </td>
-    <td class="w-40 px-3 text-right text-muted whitespace-nowrap hidden md:table-cell">
+    <td class="w-40 px-4 text-right text-muted whitespace-nowrap hidden md:table-cell">
       {{ formatDate(file.modified) }}
     </td>
-    <td v-if="showPermissions" class="w-28 px-3 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
+    <td v-if="showPermissions" class="w-28 px-4 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
       <span v-if="file.mode">{{ file.mode }}</span>
       <span v-else class="text-dimmed/50">–</span>
     </td>

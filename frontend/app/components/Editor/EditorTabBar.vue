@@ -34,14 +34,14 @@ async function requestClose(tab: EditorTab) {
 </script>
 
 <template>
-  <div class="flex items-center border-b border-default bg-muted overflow-x-auto shrink-0">
+  <div class="flex items-center border-b border-default bg-elevated overflow-x-auto shrink-0">
     <div
       v-for="tab in editorStore.tabs"
       :key="tab.id"
-      class="flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer border-r border-default border-t-2 shrink-0 select-none transition-colors"
+      class="flex items-center gap-2 h-11 px-4 text-sm cursor-pointer border-b-2 -mb-px shrink-0 select-none transition-colors"
       :class="tab.id === editorStore.activeId
-        ? 'bg-default text-primary border-t-primary'
-        : 'border-t-transparent text-muted hover:bg-elevated hover:text-default'"
+        ? 'border-b-primary text-highlighted font-semibold'
+        : 'border-b-transparent text-muted hover:text-default'"
       @click="editorStore.setActive(tab.id)"
       @mousedown.middle.prevent="requestClose(tab)"
     >

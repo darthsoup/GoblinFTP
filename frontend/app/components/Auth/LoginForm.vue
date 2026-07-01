@@ -153,9 +153,9 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
         <UFormField v-if="form.protocol === 'ftp' || form.protocol === 'ftps'" name="passive">
           <USwitch
             v-model="form.passive"
-            size="sm"
+            size="lg"
             :label="t('login.passive')"
-            :ui="{ label: 'text-xs text-muted' }"
+            :ui="{ label: 'text-sm text-muted' }"
           />
         </UFormField>
 

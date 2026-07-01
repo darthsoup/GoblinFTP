@@ -350,11 +350,12 @@ async function onDrop(e: DragEvent) {
 
           <!-- Table view -->
           <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse">
-            <thead class="sticky top-0 z-[5] bg-muted/95 backdrop-blur label-caps text-muted">
+            <thead class="sticky top-0 z-[5] bg-elevated/95 backdrop-blur label-caps text-muted">
               <tr class="border-b border-default shadow-sm">
-                <th class="w-10 px-3 py-2.5">
+                <th class="w-10 px-4 py-2">
                   <UCheckbox
                     :model-value="headerChecked"
+                    size="md"
                     class="justify-center"
                     :aria-label="allSelected ? t('toolbar.deselectAll') : t('toolbar.selectAll')"
                     @update:model-value="toggleSelectAll"
@@ -364,15 +365,15 @@ async function onDrop(e: DragEvent) {
                   {{ t('files.name') }}
                   <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-24 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden sm:table-cell" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
+                <th class="w-24 px-4 py-2 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden sm:table-cell" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
                   {{ t('files.size') }}
                   <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-40 px-3 py-2.5 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden md:table-cell" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
+                <th class="w-40 px-4 py-2 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden md:table-cell" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
                   {{ t('files.modified') }}
                   <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th v-if="hasPermissions" class="w-28 px-3 py-2.5 text-center font-bold hidden sm:table-cell">
+                <th v-if="hasPermissions" class="w-28 px-4 py-2 text-center font-bold hidden sm:table-cell">
                   {{ t('files.permissions') }}
                 </th>
                 <th class="w-14" />

@@ -31,7 +31,7 @@ function formatBytes(n: number): string {
   >
     <!-- Header -->
     <div
-      class="flex items-center justify-between px-4 h-10 bg-muted shrink-0"
+      class="flex items-center justify-between px-4 h-10 bg-elevated shrink-0"
       :class="{ 'border-b border-default': !collapsed }"
     >
       <div class="flex items-center gap-2 select-none">
