@@ -27,6 +27,13 @@ export default defineAppConfig({
       },
     },
 
+    // form-surface fill + 4px radius (reference .gv-checkbox); border + checked green unchanged
+    checkbox: {
+      slots: {
+        base: 'rounded-[4px] bg-[var(--gftp-input-bg)]',
+      },
+    },
+
     modal: {
       slots: {
         // elevated bg, no divider lines (whitespace-separated), generous padding
@@ -54,68 +61,113 @@ export default defineAppConfig({
         { size: 'lg', square: true },
       ],
     },
+
     input: {
       defaultVariants: { size: 'lg' },
 
       slots: {
-        base: `font-medium`,
+        base: `font-medium placeholder:text-[var(--gftp-input-placeholder)]`,
       },
 
       variants: {
+        variant: {
+          outline: 'bg-[var(--gftp-input-bg)]',
+        },
         size: {
+          // condensed: 16px H-padding / ~30px, mirrors the button condensed size
+          sm: { base: 'px-4 py-1.5 text-xs gap-1.5' },
           lg: { base: 'min-h-12 px-4 py-2 text-sm gap-2' },
         },
       },
+
+      compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
     inputNumber: {
       defaultVariants: { size: 'lg' },
 
       slots: {
-        base: `font-medium`,
+        base: `font-medium placeholder:text-[var(--gftp-input-placeholder)]`,
       },
 
       variants: {
+        variant: {
+          outline: 'bg-[var(--gftp-input-bg)]',
+        },
         size: {
+          sm: { base: 'px-4 py-1.5 text-xs gap-1.5' },
           lg: { base: 'min-h-12 px-4 py-2 text-sm gap-2' },
         },
       },
+
+      compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
     inputMenu: {
       defaultVariants: { size: 'lg' },
 
       slots: {
-        base: `font-medium`,
+        base: `font-medium placeholder:text-[var(--gftp-input-placeholder)]`,
       },
 
       variants: {
+        variant: {
+          outline: 'bg-[var(--gftp-input-bg)]',
+        },
         size: {
+          sm: { base: 'px-4 py-1.5 text-xs gap-1.5' },
           lg: { base: 'min-h-12 px-4 py-2 text-sm gap-2' },
         },
       },
+
+      compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
     select: {
       defaultVariants: { size: 'lg' },
+      // select's placeholder is a span slot, not an <input> ::placeholder
+      slots: {
+        placeholder: 'text-[var(--gftp-input-placeholder)]',
+      },
       variants: {
+        variant: {
+          outline: 'bg-[var(--gftp-input-bg)]',
+        },
         size: {
+          sm: { base: 'px-4 py-1.5 text-xs gap-1.5' },
           lg: { base: 'min-h-12 px-4 py-2 text-sm gap-2' },
         },
       },
+      compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
     selectMenu: {
       defaultVariants: { size: 'lg' },
+      slots: {
+        placeholder: 'text-[var(--gftp-input-placeholder)]',
+      },
       variants: {
+        variant: {
+          outline: 'bg-[var(--gftp-input-bg)]',
+        },
         size: {
+          sm: { base: 'px-4 py-1.5 text-xs gap-1.5' },
           lg: { base: 'min-h-12 px-4 py-2 text-sm gap-2' },
         },
       },
+      compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
     textarea: {
       defaultVariants: { size: 'lg' },
+      slots: {
+        base: 'placeholder:text-[var(--gftp-input-placeholder)]',
+      },
       variants: {
+        variant: {
+          outline: 'bg-[var(--gftp-input-bg)]',
+        },
         size: {
+          sm: { base: 'px-4 py-1.5 text-xs gap-1.5' },
           lg: { base: 'min-h-12 px-4 py-2 text-sm gap-2' },
         },
       },
+      compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
   },
 })

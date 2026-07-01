@@ -68,6 +68,9 @@
   --ui-border-accented: #cecece; /* stronger border */
   --ui-border-inverted: #2d3133;
 
+  --gftp-input-bg: #f7f7f7; /* surface-form */
+  --gftp-input-placeholder: #69686b; /* body-on-placeholder */
+
   --ui-primary: var(--color-goblin-700);
 
   /* Popovers: pure white with a slate border + ambient depth */
@@ -113,6 +116,8 @@
 
   --ui-primary: var(--color-goblin-400);
 
+  --gftp-input-bg: #3a383e; /* surface-form */
+  --gftp-input-placeholder: #cecece; /* body-on-placeholder */
   --gftp-popover: #282629;
   --gftp-popover-ring: #3a383e;
   --gftp-editor-bg: #141414; /* recessed code surface, darker than canvas */
