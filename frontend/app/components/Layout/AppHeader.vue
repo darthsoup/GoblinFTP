@@ -58,9 +58,11 @@ async function handleDisconnect() {
   >
     <template #left>
       <div class="flex items-center gap-2 select-none">
-        <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="size-6 object-contain">
-        <UIcon v-else name="i-lucide-server" class="size-5 text-primary" />
-        <span class="text-lg sm:text-xl font-bold tracking-tight text-primary truncate max-w-[40vw] sm:max-w-none">{{ appName }}</span>
+        <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="h-7 w-auto max-w-[200px] object-contain">
+        <template v-else>
+          <UIcon name="i-lucide-server" class="size-5 text-primary" />
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary truncate max-w-[40vw] sm:max-w-none">{{ appName }}</span>
+        </template>
       </div>
     </template>
 

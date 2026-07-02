@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Lösenord",
     "connect": "Anslut",
-    "tagline": "Egenhostad filöverföring",
     "passive": "Passivt läge",
     "errorRequired": "Obligatoriskt",
     "errorPort": "Ogiltig port"

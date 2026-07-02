@@ -45,9 +45,10 @@
   "branding": {
     "appName": "GoblinFTP",
     "logoUrl": null,
+    "logoDarkUrl": null,
     "faviconUrl": null,
     "primaryColor": null,
-    "tagline": null,
+    "primaryTextColor": null,
     "hideAttribution": false
   }
 }

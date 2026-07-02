@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Palavra-passe",
     "connect": "Ligar",
-    "tagline": "Transferência de ficheiros auto-alojada",
     "passive": "Modo passivo",
     "errorRequired": "Obrigatório",
     "errorPort": "Porta inválida"

@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Passord",
     "connect": "Koble til",
-    "tagline": "Selvhostet filoverføring",
     "passive": "Passiv modus",
     "errorRequired": "Påkrevd",
     "errorPort": "Ugyldig port"

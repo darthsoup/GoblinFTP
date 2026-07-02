@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Password",
     "connect": "Connetti",
-    "tagline": "Trasferimento file self-hosted",
     "passive": "Modalità passiva",
     "errorRequired": "Obbligatorio",
     "errorPort": "Porta non valida"

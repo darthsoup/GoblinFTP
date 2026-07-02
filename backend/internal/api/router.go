@@ -55,6 +55,9 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	e.GET("/api/system/vars", h.SystemVars)
 	e.GET("/api/files/download", h.DownloadFile)
 
+	// Per-tenant white-label theme assets (public; params allowlisted in-handler).
+	e.GET("/themes/:tenant/:file", h.ServeTheme)
+
 	// Browser-error forwarding (public, no CSRF — login-screen errors happen
 	// before any session exists; throttled per IP inside the handler)
 	e.POST("/api/log/frontend", h.FrontendLog, middleware.BodyLimit("16K"))

@@ -32,6 +32,7 @@ function gftp_sso_link(string $secret, string $baseUrl, array $conn): string
         'password' => $conn['password'],
         'initialDirectory' => $conn['initialDirectory'] ?? '',
         'language' => $conn['language'] ?? '',
+        'tenant' => $conn['tenant'] ?? '',
         'exp' => time() + (int) ($conn['ttlSeconds'] ?? 300),
     ];
 
@@ -60,7 +61,7 @@ function gftp_sso_link(string $secret, string $baseUrl, array $conn): string
 if (PHP_SAPI === 'cli' && realpath($argv[0] ?? '') === __FILE__) {
     $opts = getopt('', [
         'protocol::', 'host:', 'port::', 'username:', 'password::',
-        'dir::', 'lang::', 'ttl-seconds::', 'base-url::', 'secret::',
+        'dir::', 'lang::', 'tenant::', 'ttl-seconds::', 'base-url::', 'secret::',
     ]);
 
     $secret = $opts['secret'] ?? getenv('GFTP_SSO_SECRET');
@@ -78,6 +79,7 @@ if (PHP_SAPI === 'cli' && realpath($argv[0] ?? '') === __FILE__) {
         'password' => $password === false ? '' : $password,
         'initialDirectory' => $opts['dir'] ?? '',
         'language' => $opts['lang'] ?? '',
+        'tenant' => $opts['tenant'] ?? '',
         'ttlSeconds' => $opts['ttl-seconds'] ?? 300,
     ]) . "\n";
 }

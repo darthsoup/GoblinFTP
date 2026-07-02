@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Salasana",
     "connect": "Yhdistä",
-    "tagline": "Itse isännöity tiedostonsiirto",
     "passive": "Passiivinen tila",
     "errorRequired": "Pakollinen",
     "errorPort": "Virheellinen portti"

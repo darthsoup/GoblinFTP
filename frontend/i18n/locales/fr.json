@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Mot de passe",
     "connect": "Se connecter",
-    "tagline": "Transfert de fichiers auto-hébergé",
     "passive": "Mode passif",
     "errorRequired": "Requis",
     "errorPort": "Port invalide"

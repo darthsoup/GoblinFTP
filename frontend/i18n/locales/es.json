@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Contraseña",
     "connect": "Conectar",
-    "tagline": "Transferencia de archivos autoalojada",
     "passive": "Modo pasivo",
     "errorRequired": "Obligatorio",
     "errorPort": "Puerto no válido"

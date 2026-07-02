@@ -80,10 +80,12 @@ export interface SystemVars {
   branding: {
     appName: string
     logoUrl: string | null
+    logoDarkUrl: string | null
     faviconUrl: string | null
     primaryColor: string | null
-    tagline: string | null
+    primaryTextColor: string | null
     hideAttribution: boolean
+    themeCssUrl: string | null
   }
   upload: {
     chunkSize: number

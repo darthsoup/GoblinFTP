@@ -59,12 +59,13 @@ type AccessSettings struct {
 // the SPA via /api/system/vars. All pointers are nil (= "use the built-in
 // default") unless an admin sets them.
 type BrandingSettings struct {
-	AppName         string  `json:"appName"`
-	LogoURL         *string `json:"logoUrl"`
-	FaviconURL      *string `json:"faviconUrl"`
-	PrimaryColor    *string `json:"primaryColor"` // hex, e.g. "#2563eb"
-	Tagline         *string `json:"tagline"`
-	HideAttribution bool    `json:"hideAttribution"`
+	AppName          string  `json:"appName"`
+	LogoURL          *string `json:"logoUrl"`
+	LogoDarkURL      *string `json:"logoDarkUrl"` // optional dark-mode logo (swapped client-side)
+	FaviconURL       *string `json:"faviconUrl"`
+	PrimaryColor     *string `json:"primaryColor"`     // hex, e.g. "#2563eb"
+	PrimaryTextColor *string `json:"primaryTextColor"` // hex — button/primary text, for a light accent
+	HideAttribution  bool    `json:"hideAttribution"`
 }
 
 // Settings mirrors settings.json; used for runtime-configurable UI/editor/connection/access settings.
@@ -166,9 +167,13 @@ func defaultSettings() Settings {
 // Auto-generates SESSION_SECRET and DOWNLOAD_TOKEN_SECRET if not set, logging a warning.
 func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	cfg := &Config{
-		Port:                  envOr("GFTP_PORT", "8080"),
-		LogLevel:              envOr("GFTP_LOG_LEVEL", "info"),
-		ChunkSize:             5 * 1024 * 1024,
+		Port:      envOr("GFTP_PORT", "8080"),
+		LogLevel:  envOr("GFTP_LOG_LEVEL", "info"),
+		ChunkSize: 5 * 1024 * 1024,
+		// The container's mounted data volume. Not a user-facing setting (kept out
+		// of docs/.env.example) — but `just dev-be` injects GFTP_DATA_DIR to point
+		// at the repo's ./data so themes/known_hosts/staging work in local dev,
+		// where /app/data doesn't exist. Tests override the field directly.
 		DataDir:               envOr("GFTP_DATA_DIR", "/app/data"),
 		LoginMaxAttempts:      5,
 		LoginCooldownSeconds:  300,
@@ -387,14 +392,17 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	if v := os.Getenv("GFTP_LOGO_URL"); v != "" {
 		brand.LogoURL = &v
 	}
+	if v := os.Getenv("GFTP_LOGO_DARK_URL"); v != "" {
+		brand.LogoDarkURL = &v
+	}
 	if v := os.Getenv("GFTP_FAVICON_URL"); v != "" {
 		brand.FaviconURL = &v
 	}
 	if v := os.Getenv("GFTP_PRIMARY_COLOR"); v != "" {
 		brand.PrimaryColor = &v
 	}
-	if v := os.Getenv("GFTP_TAGLINE"); v != "" {
-		brand.Tagline = &v
+	if v := os.Getenv("GFTP_PRIMARY_TEXT_COLOR"); v != "" {
+		brand.PrimaryTextColor = &v
 	}
 	if os.Getenv("GFTP_HIDE_ATTRIBUTION") == "true" {
 		brand.HideAttribution = true
@@ -404,6 +412,9 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	}
 	if brand.PrimaryColor != nil && !hexColorRe.MatchString(*brand.PrimaryColor) {
 		return nil, fmt.Errorf("invalid branding.primaryColor: must be a hex color like #2563eb, got %q", *brand.PrimaryColor)
+	}
+	if brand.PrimaryTextColor != nil && !hexColorRe.MatchString(*brand.PrimaryTextColor) {
+		return nil, fmt.Errorf("invalid branding.primaryTextColor: must be a hex color like #0b1220, got %q", *brand.PrimaryTextColor)
 	}
 
 	conn := &cfg.Settings.Connection

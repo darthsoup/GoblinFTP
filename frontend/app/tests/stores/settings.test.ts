@@ -6,7 +6,7 @@ function systemVars(showDotFiles: boolean): SystemVars {
   return {
     language: 'en',
     ui: { pageTitle: 'GoblinFTP', showDotFiles, showNavigationHistory: true },
-    branding: { appName: 'GoblinFTP', logoUrl: null, faviconUrl: null, primaryColor: null, tagline: null, hideAttribution: false },
+    branding: { appName: 'GoblinFTP', logoUrl: null, logoDarkUrl: null, faviconUrl: null, primaryColor: null, primaryTextColor: null, hideAttribution: false, themeCssUrl: null },
     upload: { chunkSize: 1, maxConcurrentUploads: 1 },
     connection: { allowedTypes: ['ftp'], disableChmod: false, presetHost: null, presetPort: null, lockHost: false, passiveMode: true },
     editor: { disabled: false, viewOnly: false, allowedExtensions: [] },

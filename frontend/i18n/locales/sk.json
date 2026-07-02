@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Heslo",
     "connect": "Pripojiť",
-    "tagline": "Samostatne hostovaný prenos súborov",
     "passive": "Pasívny režim",
     "errorRequired": "Povinné",
     "errorPort": "Neplatný port"

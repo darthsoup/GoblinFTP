@@ -88,6 +88,11 @@ export default defineNuxtConfig({
           target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,
         },
+        // Per-tenant theme assets are served by the Go backend (Caddy does this in prod).
+        '/themes': {
+          target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
+          changeOrigin: true,
+        },
         // SSO entry point: forward only `GET /?sso=<token>` to the backend so
         // the one-time-link flow (decrypt → set session cookie → redirect to
         // /?) works in dev and stays same-origin on :3000. Every other request

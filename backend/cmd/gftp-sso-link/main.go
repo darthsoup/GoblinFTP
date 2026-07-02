@@ -30,6 +30,7 @@ func main() {
 	password := flag.String("password", "", "login password (or set GFTP_SSO_PASSWORD to keep it out of shell history)")
 	dir := flag.String("dir", "", "initial directory hint (optional)")
 	lang := flag.String("lang", "", "UI language hint, e.g. en or de (optional)")
+	tenant := flag.String("tenant", "", "tenant identifier for white-label theming (optional)")
 	ttl := flag.Duration("ttl", 5*time.Minute, "token validity window")
 	baseURL := flag.String("base-url", "http://localhost:8080", "public URL of the GoblinFTP instance")
 	secret := flag.String("secret", "", "shared SSO secret (default: $GFTP_SSO_SECRET)")
@@ -75,6 +76,7 @@ func main() {
 		Password:         *password,
 		InitialDirectory: *dir,
 		Language:         *lang,
+		Tenant:           *tenant,
 		Exp:              time.Now().Add(*ttl).Unix(),
 	}, []byte(*secret))
 	if err != nil {

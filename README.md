@@ -40,6 +40,7 @@ The running version shows up in the startup log, `GET /healthz`, and the setting
 ## Documentation
 
 - **[Configuration](docs/configuration.md)** — environment variables, `settings.json`, logging, metrics, S3 chunk staging, and SSO login links.
+- **[Theming](docs/theming.md)** — white-label branding and per-tenant themes (`themes/<tenant>/config.css` + logo) selected by SSO or subdomain.
 - **[Development](docs/development.md)** — local setup, common `just` commands, and testing against a local FTP / S3 server.
 
 ## Contributing

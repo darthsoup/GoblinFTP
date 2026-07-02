@@ -170,6 +170,17 @@ body {
   color: var(--gftp-selection-fg);
 }
 
+/* Primary solid surfaces (buttons, primary badges) carry BOTH .bg-primary and
+   .text-inverted. Give them a dedicated foreground token so a light accent
+   (e.g. a yellow brand) can use dark text WITHOUT dragging --ui-text-inverted
+   dark on the inverted surfaces (tooltips, bg-inverted) that also read it. The
+   two-class selector out-specifies the .text-inverted utility, and being
+   unlayered it wins the cascade too. Defaults to --ui-text-inverted, so nothing
+   changes unless a theme/brand sets --gftp-primary-text. */
+.bg-primary.text-inverted {
+  color: var(--gftp-primary-text, var(--ui-text-inverted));
+}
+
 /* Thin custom scrollbars — transparent tracks, subtle thumbs */
 * {
   scrollbar-width: thin;

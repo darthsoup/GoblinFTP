@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Wachtwoord",
     "connect": "Verbinden",
-    "tagline": "Zelfgehoste bestandsoverdracht",
     "passive": "Passieve modus",
     "errorRequired": "Verplicht",
     "errorPort": "Ongeldige poort"
