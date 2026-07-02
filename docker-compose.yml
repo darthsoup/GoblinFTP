@@ -38,6 +38,36 @@ services:
     profiles:
       - testing
 
+  # Local FTPS test server (explicit TLS)
+  ftps:
+    image: bfren/ftps:latest
+    environment:
+      BF_FTPS_VSFTPD_USER: "${FTP_USER:-ftpuser}"
+      BF_FTPS_VSFTPD_PASS: "${FTP_PASS:-ftppass}"
+      BF_FTPS_EXTERNAL_IP: "${PUBLIC_IP:-127.0.0.1}"
+      BF_FTPS_VSFTPD_MIN_PORT: "30000"
+      BF_FTPS_VSFTPD_MAX_PORT: "30009"
+    ports:
+      - "2121:21"
+      - "30000-30009:30000-30009"
+    volumes:
+      - ftps-data:/files
+      - ftps-ssl:/ssl
+    profiles:
+      - testing
+
+  # Local SFTP test server (jmcombs/sftp)
+  sftp:
+    image: jmcombs/sftp:latest
+    command: "${SFTP_USER:-ftpuser}:${SFTP_PASS:-ftppass}:1001:100:upload"
+    ports:
+      - "2222:22"
+    volumes:
+      - sftp-data:/home/ftpuser
+      - sftp-ssh:/etc/ssh
+    profiles:
+      - testing
+
   # Local S3-compatible server for the optional S3 chunk staging (just s3-up).
   minio:
     image: minio/minio:latest
@@ -72,4 +102,8 @@ services:
 
 volumes:
   ftp-data:
+  ftps-data:
+  ftps-ssl:
   minio-data:
+  sftp-data:
+  sftp-ssh:

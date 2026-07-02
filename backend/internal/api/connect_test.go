@@ -200,6 +200,44 @@ func TestConnectHostKeyPrompt(t *testing.T) {
 	assert.Equal(t, 0, store.Count(), "no session created for a host-key prompt")
 }
 
+// TestConnectHostKeyChangedPrompt: a changed SFTP host key surfaces both
+// fingerprints so the UI can show the re-trust warning.
+func TestConnectHostKeyChangedPrompt(t *testing.T) {
+	dialFn := func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
+		return nil, &api.HostKeyPrompt{
+			Fingerprint:    "SHA256:new456",
+			KeyType:        "ssh-ed25519",
+			Changed:        true,
+			OldFingerprint: "SHA256:old123",
+		}, nil
+	}
+	app, store, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
+	defer store.Close()
+
+	body := `{"protocol":"sftp","host":"ssh.example.com","port":22,"username":"u","password":"p"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/connect", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Data struct {
+			HostKeyPrompt *struct {
+				Fingerprint    string `json:"fingerprint"`
+				Changed        bool   `json:"changed"`
+				OldFingerprint string `json:"oldFingerprint"`
+			} `json:"hostKeyPrompt"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.NotNil(t, resp.Data.HostKeyPrompt)
+	assert.True(t, resp.Data.HostKeyPrompt.Changed)
+	assert.Equal(t, "SHA256:new456", resp.Data.HostKeyPrompt.Fingerprint)
+	assert.Equal(t, "SHA256:old123", resp.Data.HostKeyPrompt.OldFingerprint)
+	assert.Equal(t, 0, store.Count(), "no session created for a host-key prompt")
+}
+
 // TestConnectHostKeyMismatch: a changed host key is refused with
 // ERR_HOST_KEY_MISMATCH and the raw cause is not leaked into the envelope.
 func TestConnectHostKeyMismatch(t *testing.T) {

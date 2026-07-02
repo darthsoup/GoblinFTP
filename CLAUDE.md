@@ -24,12 +24,14 @@ just lint         # eslint + nuxt typecheck + golangci-lint
 just fmt          # eslint --fix (frontend) + gofmt (backend)
 just i18n-check   # verify de.json has all keys from en.json
 just ftp-up       # local FTP test server (ftpuser/ftppass on :21); ftp-down stops it
+just ftps-up      # local FTPS test server (explicit TLS, self-signed; ftpuser/ftppass on :2121); ftps-down stops it
+just sftp-up      # local SFTP test server (ftpuser/ftppass on :2222, writable /upload); sftp-down stops it
 just s3-up        # local MinIO for S3 chunk staging (minioadmin/minioadmin on :9000); s3-down stops it
 just sso-link     # generate a one-time SSO login link (examples/sso/ has Node + PHP generators)
 just build        # build-fe (nuxt generate) + build-be (go build → bin/gftp)
 ```
 
-Running the app (e.g. for visual verification): prefer `just dev` for the full stack — but check first whether the dev servers are already up (the user often has them running: frontend :3000, backend :8080). If only one half is missing, start just that half (`just dev-fe` / `just dev-be`) to avoid port conflicts; never kill the user's processes. For a backend with special env (custom port, SSO, S3), run `cd backend && GFTP_PORT=… go run ./cmd/gftp` directly on a free port instead.
+Running the app (e.g. for visual verification): prefer `just dev` for the full stack — but check first whether the dev servers are already up (the user often has them running: frontend :3000, backend :8080). If only one half is missing, start just that half (`just dev-fe` / `just dev-be`) to avoid port conflicts; never kill the user's processes. For a backend with special env (custom port, SSO, S3), run `cd backend && GFTP_PORT=… go run ./cmd/gftp` directly on a free port instead — include `GFTP_DATA_DIR=data` (or another writable path), otherwise SFTP connects fail trying to create `/app/data`.
 
 ## Architecture
 
@@ -76,7 +78,7 @@ Keep comments sparse. Prefer self-explanatory names and structure; comment only 
 - **API tests** live in `package api_test` (black-box). Use `newTestApp(t, defaultTestConfig())` + `testutil.MockClient` to avoid real FTP/SFTP. Inject the mock with the `WithDial(...)` handler option.
 - `transfer.Client` is retrieved from session via `clientFromContext(c)` → `(Client, bool)`.
 - Upload chunk staging is abstracted behind `staging.ChunkStore` (local disk default, S3 via `GFTP_S3_ENABLED`); inject mocks with the `WithChunkStore(...)` handler option. The aws-sdk-go-v2 dependency lives only in `internal/staging`.
-- `internal/ftp` and `internal/sftp` are integration-level — real-server tests require `just ftp-up`. S3 integration tests in `internal/staging` are gated by `GFTP_TEST_S3_ENDPOINT` (requires `just s3-up`).
+- `internal/ftp` and `internal/sftp` are integration-level — real-server tests are gated by `GFTP_TEST_FTP_HOST` / `GFTP_TEST_FTPS_HOST` / `GFTP_TEST_SFTP_HOST` (start servers with `just ftp-up` / `ftps-up` / `sftp-up`). S3 integration tests in `internal/staging` are gated by `GFTP_TEST_S3_ENDPOINT` (requires `just s3-up`).
 - `internal/sentry` is intentionally not unit-tested.
 - **Lint**: `just lint-be` runs golangci-lint v2 (config: `backend/.golangci.yml`; install: `brew install golangci-lint`; CI pins the same version). `nolint` directives must be specific and carry an explanation (`//nolint:gosec // G101: …`) — nolintlint enforces this. `just fmt` formats the backend via `golangci-lint fmt` (gofmt + goimports with local-prefix grouping).
 - **Metrics**: `internal/metrics` owns the Prometheus registry; the `Metrics` instance lives on `Handler` (default-constructed in `newHandler`, override via `WithMetrics(...)` — main.go shares its registry with the dedicated `/metrics` listener, served only when `GFTP_METRICS_ENABLED=true`, never on the main echo). Gauges (`sessions_active`, `connections_active{protocol}`) are scrape-time snapshots of `auth.Store` via a custom collector (`SetConnectionSnapshot`) — no inc/dec drift. Counters increment at call sites: connect results in `connect.go`/`sso.go`, transfer bytes via `metrics.CountingReader` wraps in `download.go`/`archive.go`/`upload.go` (chunk staging writes are NOT counted — only bytes to/from the FTP/SFTP server), frontend reports in `frontendlog.go`. `metricsMiddleware` sits between `RequestID` and `requestLogger` and must NOT call `c.Error` (the logger owns that); it labels by `c.Path()` route template (`"unmatched"` when empty) and skips `/healthz`.
@@ -116,6 +118,7 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_SSO_ENABLED` / `GFTP_SSO_SECRET` | SSO link validation |
 | `GFTP_SENTRY_DSN` / `NUXT_PUBLIC_SENTRY_DSN` | Sentry (optional) |
 | `GFTP_SETTINGS_PATH` | Path to `settings.json` |
+| `GFTP_DATA_DIR` | Writable data dir: SFTP `known_hosts`, local chunk staging, settings (default `/app/data` — container path; dev needs `data`, which `just dev-be` falls back to, resolved from `backend/`) |
 | `GFTP_PAGE_TITLE` | Browser tab title (overrides `ui.pageTitle`) |
 | `GFTP_APP_NAME` / `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` / `GFTP_PRIMARY_COLOR` / `GFTP_TAGLINE` / `GFTP_HIDE_ATTRIBUTION` | White-label branding (overrides the `branding` block); `primaryColor` is a hex that recolors the theme at runtime, exposed via `systemVars.branding` → `useBranding()`/`utils/branding.ts` |
 | `GFTP_LOG_LEVEL` / `GFTP_LOG_FORMAT` | Log level (`info`) and format (`json`\|`text`) |
@@ -125,7 +128,7 @@ Backend config is layered: env vars override `settings.json` (schema in `setting
 | `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY` | Skip FTPS (explicit TLS) certificate verification for self-signed/internal servers (overrides `connection.ftpTLSInsecureSkipVerify`; default `false`). FTPS = the `ftps` protocol; SFTP host keys are verified against `<DataDir>/known_hosts` (trust-on-first-use) |
 | `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
 
-The FTP test container and MinIO are on docker compose profile `testing` — only `just ftp-up/ftp-down` and `just s3-up/s3-down` activate them.
+The FTP/FTPS/SFTP test containers and MinIO are on docker compose profile `testing` — only the `just ftp-up/ftps-up/sftp-up/s3-up` (and matching `-down`) recipes activate them.
 
 ## Release
 

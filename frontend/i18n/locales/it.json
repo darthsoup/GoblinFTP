@@ -21,7 +21,13 @@
     "fingerprint": "Impronta (SHA256)",
     "warning": "Considera attendibile questa chiave solo se riconosci l'impronta. Se in seguito cambia, la connessione viene rifiutata come possibile attacco man-in-the-middle.",
     "trust": "Considera attendibile e connetti",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "changedTitle": "La chiave host è cambiata",
+    "changedMessage": "Questo server ha presentato una chiave host SSH diversa da quella considerata attendibile in precedenza. Può significare che il server è stato reinstallato o migrato — oppure che la connessione viene intercettata.",
+    "oldFingerprint": "Attendibile in precedenza (SHA256)",
+    "newFingerprint": "Nuova impronta (SHA256)",
+    "changedWarning": "Continua solo se ti aspettavi questa modifica e la nuova impronta corrisponde al tuo server. Accettando, la chiave attendibile viene sostituita.",
+    "trustChanged": "Accetta nuova chiave e connetti"
   },
   "header": {
     "connected": "Connesso",

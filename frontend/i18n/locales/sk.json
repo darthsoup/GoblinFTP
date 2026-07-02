@@ -21,7 +21,13 @@
     "fingerprint": "Odtlačok (SHA256)",
     "warning": "Tomuto kľúču dôverujte len vtedy, ak odtlačok poznáte. Ak sa neskôr zmení, pripojenie bude odmietnuté ako možný útok man-in-the-middle.",
     "trust": "Dôverovať a pripojiť",
-    "cancel": "Zrušiť"
+    "cancel": "Zrušiť",
+    "changedTitle": "Kľúč hostiteľa sa zmenil",
+    "changedMessage": "Tento server predložil iný SSH kľúč hostiteľa, než ktorému sa predtým dôverovalo. Môže to znamenať, že server bol preinštalovaný alebo presunutý — alebo že je spojenie odpočúvané.",
+    "oldFingerprint": "Predtým dôveryhodný (SHA256)",
+    "newFingerprint": "Nový odtlačok (SHA256)",
+    "changedWarning": "Pokračujte, len ak ste túto zmenu očakávali a nový odtlačok zodpovedá vášmu serveru. Prijatím sa dôveryhodný kľúč nahradí.",
+    "trustChanged": "Prijať nový kľúč a pripojiť"
   },
   "header": {
     "connected": "Pripojené",

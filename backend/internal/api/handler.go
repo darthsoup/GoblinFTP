@@ -26,11 +26,15 @@ type DialRequest struct {
 }
 
 // HostKeyPrompt is returned (with a nil client and nil error) when an SFTP host
-// key must be confirmed by the user before the connection can proceed.
+// key must be confirmed by the user before the connection can proceed — either
+// an unknown host (trust-on-first-use) or, when changed is set, a key that
+// differs from the pinned one and needs explicit re-trust.
 type HostKeyPrompt struct {
-	Host        string `json:"host"` // bare host the key belongs to (shown in the prompt)
-	Fingerprint string `json:"fingerprint"`
-	KeyType     string `json:"keyType"`
+	Host           string `json:"host"` // bare host the key belongs to (shown in the prompt)
+	Fingerprint    string `json:"fingerprint"`
+	KeyType        string `json:"keyType"`
+	Changed        bool   `json:"changed,omitempty"`
+	OldFingerprint string `json:"oldFingerprint,omitempty"`
 }
 
 // DialFunc creates a transfer.Client. It returns (client, nil, nil) on success,

@@ -20,6 +20,13 @@ func sftpHost(t *testing.T) string {
 	return h
 }
 
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
 func TestDialBadHost(t *testing.T) {
 	kh := filepath.Join(t.TempDir(), "known_hosts")
 	_, _, err := gsftp.Dial("127.0.0.1:1", "user", "pass", "", kh)
@@ -28,8 +35,8 @@ func TestDialBadHost(t *testing.T) {
 
 func TestDialIntegration(t *testing.T) {
 	host := sftpHost(t)
-	user := os.Getenv("GFTP_TEST_SFTP_USER")
-	pass := os.Getenv("GFTP_TEST_SFTP_PASS")
+	user := envOr("GFTP_TEST_SFTP_USER", "ftpuser")
+	pass := envOr("GFTP_TEST_SFTP_PASS", "ftppass")
 	kh := filepath.Join(t.TempDir(), "known_hosts")
 
 	// First connect to an unknown host returns a trust-on-first-use prompt.

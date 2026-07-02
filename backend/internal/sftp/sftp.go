@@ -21,11 +21,11 @@ type Client struct {
 }
 
 // Dial connects via SSH and opens an SFTP subsystem, verifying the server's
-// host key against knownHostsPath (trust-on-first-use). When the host is unknown
-// and acceptFingerprint is empty, it returns a *HostKeyPrompt (and a nil client)
-// so the caller can ask the user to confirm the key; a second Dial with
-// acceptFingerprint set to the shown fingerprint pins the key and proceeds. A
-// key that differs from the pinned one returns transfer.ErrHostKeyMismatch.
+// host key against knownHostsPath (trust-on-first-use). When the key is unknown
+// (or differs from the pinned one — prompt.Changed) and acceptFingerprint is
+// empty, it returns a *HostKeyPrompt (and a nil client) so the caller can ask
+// the user to confirm the key; a second Dial with acceptFingerprint set to the
+// shown fingerprint pins (or replaces) the key and proceeds.
 func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, *HostKeyPrompt, error) {
 	var res hostKeyResult
 	cb, err := buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint, &res)
@@ -41,10 +41,8 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 	sshConn, err := ssh.Dial("tcp", addr, cfg)
 	if err != nil {
 		switch {
-		case res.mismatch:
-			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrHostKeyMismatch, err)
 		case res.prompt != nil:
-			return nil, res.prompt, nil // unknown host key — needs confirmation
+			return nil, res.prompt, nil // unknown or changed host key — needs confirmation
 		case isAuthErr(err.Error()):
 			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 		default:

@@ -31,6 +31,10 @@ export interface HostKeyPrompt {
   host: string
   fingerprint: string
   keyType: string
+  // Set when a DIFFERENT key was pinned before (server reinstalled — or MITM);
+  // confirming replaces the pin instead of adding a first-trust entry.
+  changed?: boolean
+  oldFingerprint?: string
 }
 
 export interface ConnectData {

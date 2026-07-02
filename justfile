@@ -17,7 +17,7 @@ dev-fe:
 # Start backend dev server only (:8080)
 [group('dev')]
 dev-be:
-    cd backend && go run ./cmd/gftp
+    cd backend && GFTP_DATA_DIR="${GFTP_DATA_DIR:-data}" go run ./cmd/gftp
 
 # Build everything
 [group('build')]
@@ -107,6 +107,26 @@ ftp-up:
 [group('services')]
 ftp-down:
     docker compose --profile testing down ftp
+
+# Start local FTPS test server (explicit TLS, self-signed cert; ftpuser/ftppass on :2121, passive 30000-30009)
+[group('services')]
+ftps-up:
+    docker compose --profile testing up ftps -d
+
+# Stop local FTPS test server
+[group('services')]
+ftps-down:
+    docker compose --profile testing down ftps
+
+# Start local SFTP test server (ftpuser/ftppass on :2222, writable dir: /upload)
+[group('services')]
+sftp-up:
+    docker compose --profile testing up sftp -d
+
+# Stop local SFTP test server
+[group('services')]
+sftp-down:
+    docker compose --profile testing down sftp
 
 # Start local S3 server for chunk staging (minioadmin/minioadmin on :9000, console :9001)
 [group('services')]

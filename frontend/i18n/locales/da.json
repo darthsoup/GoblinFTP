@@ -21,7 +21,13 @@
     "fingerprint": "Fingeraftryk (SHA256)",
     "warning": "Stol kun på denne nøgle, hvis du genkender fingeraftrykket. Ændrer det sig senere, afvises forbindelsen som et muligt man-in-the-middle-angreb.",
     "trust": "Stol på & forbind",
-    "cancel": "Annuller"
+    "cancel": "Annuller",
+    "changedTitle": "Værtsnøglen er ændret",
+    "changedMessage": "Denne server præsenterede en anden SSH-værtsnøgle end den, der tidligere var betroet. Det kan betyde, at serveren er geninstalleret eller flyttet — eller at forbindelsen opsnappes.",
+    "oldFingerprint": "Tidligere betroet (SHA256)",
+    "newFingerprint": "Nyt fingeraftryk (SHA256)",
+    "changedWarning": "Fortsæt kun, hvis du forventede denne ændring, og det nye fingeraftryk matcher din server. Ved accept erstattes den betroede nøgle.",
+    "trustChanged": "Acceptér ny nøgle & forbind"
   },
   "header": {
     "connected": "Forbundet",

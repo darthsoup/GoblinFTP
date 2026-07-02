@@ -21,7 +21,13 @@
     "fingerprint": "Huella digital (SHA256)",
     "warning": "Confía en esta clave solo si reconoces la huella digital. Si cambia más adelante, la conexión se rechaza como posible ataque de intermediario.",
     "trust": "Confiar y conectar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "changedTitle": "La clave del host ha cambiado",
+    "changedMessage": "Este servidor presentó una clave de host SSH diferente a la que era de confianza antes. Puede significar que el servidor fue reinstalado o migrado — o que la conexión está siendo interceptada.",
+    "oldFingerprint": "De confianza anteriormente (SHA256)",
+    "newFingerprint": "Nueva huella digital (SHA256)",
+    "changedWarning": "Continúa solo si esperabas este cambio y la nueva huella digital coincide con tu servidor. Al aceptar se reemplaza la clave de confianza.",
+    "trustChanged": "Aceptar nueva clave y conectar"
   },
   "header": {
     "connected": "Conectado",

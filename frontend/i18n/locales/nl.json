@@ -21,7 +21,13 @@
     "fingerprint": "Vingerafdruk (SHA256)",
     "warning": "Vertrouw deze sleutel alleen als je de vingerafdruk herkent. Verandert hij later, dan wordt de verbinding geweigerd als mogelijke man-in-the-middle.",
     "trust": "Vertrouwen & verbinden",
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "changedTitle": "Hostsleutel is gewijzigd",
+    "changedMessage": "Deze server presenteerde een andere SSH-hostsleutel dan de eerder vertrouwde. Dit kan betekenen dat de server opnieuw is geïnstalleerd of gemigreerd — of dat de verbinding wordt onderschept.",
+    "oldFingerprint": "Eerder vertrouwd (SHA256)",
+    "newFingerprint": "Nieuwe vingerafdruk (SHA256)",
+    "changedWarning": "Ga alleen verder als je deze wijziging verwachtte en de nieuwe vingerafdruk bij je server past. Bij accepteren wordt de vertrouwde sleutel vervangen.",
+    "trustChanged": "Nieuwe sleutel accepteren & verbinden"
   },
   "header": {
     "connected": "Verbonden",

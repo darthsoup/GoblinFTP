@@ -21,7 +21,13 @@
     "fingerprint": "Fingerprint (SHA256)",
     "warning": "Only trust this key if you recognize the fingerprint. If it changes later, the connection is refused as a possible man-in-the-middle.",
     "trust": "Trust & connect",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "changedTitle": "Host key changed",
+    "changedMessage": "This server presented a different SSH host key than the one trusted before. This can mean the server was reinstalled or migrated — or that the connection is being intercepted.",
+    "oldFingerprint": "Previously trusted (SHA256)",
+    "newFingerprint": "New fingerprint (SHA256)",
+    "changedWarning": "Only continue if you expected this change and the new fingerprint matches your server. Accepting replaces the trusted key.",
+    "trustChanged": "Accept new key & connect"
   },
   "header": {
     "connected": "Connected",

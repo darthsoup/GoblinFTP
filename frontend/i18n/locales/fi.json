@@ -21,7 +21,13 @@
     "fingerprint": "Sormenjälki (SHA256)",
     "warning": "Luota tähän avaimeen vain, jos tunnistat sormenjäljen. Jos se muuttuu myöhemmin, yhteys hylätään mahdollisena välimieshyökkäyksenä.",
     "trust": "Luota ja yhdistä",
-    "cancel": "Peruuta"
+    "cancel": "Peruuta",
+    "changedTitle": "Isäntäavain on vaihtunut",
+    "changedMessage": "Palvelin esitti eri SSH-isäntäavaimen kuin aiemmin luotettu. Tämä voi tarkoittaa, että palvelin on asennettu uudelleen tai siirretty — tai että yhteyttä siepataan.",
+    "oldFingerprint": "Aiemmin luotettu (SHA256)",
+    "newFingerprint": "Uusi sormenjälki (SHA256)",
+    "changedWarning": "Jatka vain, jos odotit tätä muutosta ja uusi sormenjälki vastaa palvelintasi. Hyväksyminen korvaa luotetun avaimen.",
+    "trustChanged": "Hyväksy uusi avain ja yhdistä"
   },
   "header": {
     "connected": "Yhdistetty",

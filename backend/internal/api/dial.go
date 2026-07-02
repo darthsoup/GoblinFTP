@@ -38,7 +38,13 @@ func newDefaultDial(cfg *config.Config) DialFunc {
 		case "sftp":
 			c, prompt, err := sftpadapter.Dial(req.Addr, req.User, req.Pass, req.AcceptHostKey, knownHostsPath)
 			if prompt != nil {
-				return nil, &HostKeyPrompt{Host: req.Host, Fingerprint: prompt.Fingerprint, KeyType: prompt.KeyType}, nil
+				return nil, &HostKeyPrompt{
+					Host:           req.Host,
+					Fingerprint:    prompt.Fingerprint,
+					KeyType:        prompt.KeyType,
+					Changed:        prompt.Changed,
+					OldFingerprint: prompt.OldFingerprint,
+				}, nil
 			}
 			if err != nil {
 				return nil, nil, err

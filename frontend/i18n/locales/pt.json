@@ -21,7 +21,13 @@
     "fingerprint": "Impressão digital (SHA256)",
     "warning": "Confie nesta chave apenas se reconhecer a impressão digital. Se esta mudar mais tarde, a ligação é recusada como possível ataque man-in-the-middle.",
     "trust": "Confiar e ligar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "changedTitle": "A chave do servidor foi alterada",
+    "changedMessage": "Este servidor apresentou uma chave de servidor SSH diferente da que era confiável antes. Isso pode significar que o servidor foi reinstalado ou migrado — ou que a ligação está a ser intercetada.",
+    "oldFingerprint": "Confiável anteriormente (SHA256)",
+    "newFingerprint": "Nova impressão digital (SHA256)",
+    "changedWarning": "Continue apenas se esperava esta alteração e a nova impressão digital corresponder ao seu servidor. Ao aceitar, a chave confiável é substituída.",
+    "trustChanged": "Aceitar nova chave e ligar"
   },
   "header": {
     "connected": "Ligado",

@@ -21,7 +21,13 @@
     "fingerprint": "Empreinte (SHA256)",
     "warning": "N'approuvez cette clé que si vous reconnaissez l'empreinte. Si elle change par la suite, la connexion est refusée pour éviter une éventuelle attaque de l'homme du milieu.",
     "trust": "Approuver et se connecter",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "changedTitle": "La clé d'hôte a changé",
+    "changedMessage": "Ce serveur a présenté une clé d'hôte SSH différente de celle approuvée auparavant. Cela peut signifier que le serveur a été réinstallé ou migré — ou que la connexion est interceptée.",
+    "oldFingerprint": "Approuvée précédemment (SHA256)",
+    "newFingerprint": "Nouvelle empreinte (SHA256)",
+    "changedWarning": "Ne continuez que si vous attendiez ce changement et que la nouvelle empreinte correspond à votre serveur. L'acceptation remplace la clé approuvée.",
+    "trustChanged": "Accepter la nouvelle clé et se connecter"
   },
   "header": {
     "connected": "Connecté",

@@ -21,7 +21,13 @@
     "fingerprint": "Fingerabdruck (SHA256)",
     "warning": "Vertraue diesem Schlüssel nur, wenn du den Fingerabdruck erkennst. Ändert er sich später, wird die Verbindung als möglicher Man-in-the-Middle abgelehnt.",
     "trust": "Vertrauen & verbinden",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "changedTitle": "Hostschlüssel geändert",
+    "changedMessage": "Dieser Server präsentiert einen anderen SSH-Hostschlüssel als den bisher vertrauten. Das kann bedeuten, dass der Server neu aufgesetzt oder umgezogen wurde — oder dass die Verbindung abgefangen wird.",
+    "oldFingerprint": "Bisher vertraut (SHA256)",
+    "newFingerprint": "Neuer Fingerabdruck (SHA256)",
+    "changedWarning": "Fahre nur fort, wenn du diese Änderung erwartet hast und der neue Fingerabdruck zu deinem Server passt. Beim Akzeptieren wird der vertraute Schlüssel ersetzt.",
+    "trustChanged": "Neuen Schlüssel akzeptieren & verbinden"
   },
   "header": {
     "connected": "Verbunden",

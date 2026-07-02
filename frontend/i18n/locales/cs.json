@@ -21,7 +21,13 @@
     "fingerprint": "Otisk (SHA256)",
     "warning": "Tomuto klíči důvěřujte pouze tehdy, pokud otisk poznáváte. Pokud se později změní, bude připojení odmítnuto jako možný útok man-in-the-middle.",
     "trust": "Důvěřovat a připojit",
-    "cancel": "Zrušit"
+    "cancel": "Zrušit",
+    "changedTitle": "Klíč hostitele se změnil",
+    "changedMessage": "Tento server předložil jiný SSH klíč hostitele, než kterému bylo dříve důvěřováno. Může to znamenat, že byl server přeinstalován nebo přesunut — nebo že je spojení odposloucháváno.",
+    "oldFingerprint": "Dříve důvěryhodný (SHA256)",
+    "newFingerprint": "Nový otisk (SHA256)",
+    "changedWarning": "Pokračujte, pouze pokud jste tuto změnu očekávali a nový otisk odpovídá vašemu serveru. Přijetím se důvěryhodný klíč nahradí.",
+    "trustChanged": "Přijmout nový klíč a připojit"
   },
   "header": {
     "connected": "Připojeno",
