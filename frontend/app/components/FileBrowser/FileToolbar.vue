@@ -12,6 +12,10 @@ const { t } = useI18n()
 
 const selectedCount = computed(() => filesStore.selected.size)
 
+function clearFilter() {
+  filter.value = ''
+}
+
 function toggleView() {
   settingsStore.fileViewMode = settingsStore.fileViewMode === 'table' ? 'cards' : 'table'
 }
@@ -208,7 +212,7 @@ const paste = usePaste()
           size="xs"
           icon="i-lucide-x"
           :aria-label="t('files.clearFilter')"
-          @click="filter = ''"
+          @click="clearFilter"
         />
       </template>
     </UInput>
