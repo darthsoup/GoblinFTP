@@ -20,7 +20,7 @@ import (
 const tenantSessionKey = "tenant"
 
 // tenantRe bounds a tenant identifier to a filesystem- and URL-safe slug. It
-// doubles as the first line of defence against path traversal (no '.', '/').
+// doubles as the first line of defense against path traversal (no '.', '/').
 var tenantRe = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
 
 // themeFileRe allowlists the exact filenames a tenant theme directory may serve.
