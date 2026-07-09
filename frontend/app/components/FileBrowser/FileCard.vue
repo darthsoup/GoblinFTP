@@ -8,6 +8,7 @@ const props = defineProps<{
   editing: boolean
   isCut: boolean
   active: boolean
+  compact: boolean
   index: number
 }>()
 
@@ -98,8 +99,9 @@ function handleDownload() {
 <template>
   <div
     role="listitem"
-    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated p-2 transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
+    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
     :class="[
+      compact ? 'p-1.5' : 'p-2',
       selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
       isCut ? 'opacity-50' : '',
     ]"
@@ -110,7 +112,8 @@ function handleDownload() {
     <!-- Thumbnail / icon -->
     <div
       ref="thumbEl"
-      class="relative aspect-square mb-2 rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
+      class="relative aspect-square rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
+      :class="compact ? 'mb-1.5' : 'mb-2'"
     >
       <img
         v-if="showThumb"
@@ -122,8 +125,11 @@ function handleDownload() {
       <UIcon
         v-else
         :name="iconDef.icon"
-        class="size-12 transition-transform duration-150 group-hover:scale-105"
-        :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+        class="transition-transform duration-150 group-hover:scale-105"
+        :class="[
+          compact ? 'size-9' : 'size-12',
+          iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed'),
+        ]"
         :style="iconDef.color ? { color: iconDef.color } : undefined"
       />
 
@@ -164,8 +170,11 @@ function handleDownload() {
     >
     <div
       v-else
-      class="text-sm text-center truncate"
-      :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+      class="text-center truncate"
+      :class="[
+        compact ? 'text-xs' : 'text-sm',
+        file.isDir ? 'font-semibold text-highlighted' : 'text-default',
+      ]"
       :title="file.name"
       @dblclick.stop="onNameDblClick"
     >

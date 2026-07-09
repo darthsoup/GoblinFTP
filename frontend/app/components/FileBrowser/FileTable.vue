@@ -405,7 +405,14 @@ async function onDrop(e: DragEvent) {
           </table>
 
           <!-- Cards view -->
-          <div v-else role="list" class="grid gap-3 p-3 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))]">
+          <div
+            v-else
+            role="list"
+            class="grid"
+            :class="compact
+              ? 'gap-2 p-2 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'
+              : 'gap-3 p-3 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))]'"
+          >
             <FileCard
               v-for="(file, i) in visibleFiles"
               :key="file.name"
@@ -415,6 +422,7 @@ async function onDrop(e: DragEvent) {
               :editing="filesStore.editingName === file.name"
               :is-cut="cutNames.has(file.name)"
               :active="previewName === file.name"
+              :compact="compact"
               :index="i"
               @select="filesStore.toggleSelection"
               @navigate="filesStore.navigate"
