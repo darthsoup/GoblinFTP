@@ -76,6 +76,19 @@ async function handleDisconnect() {
     <template #right>
       <ColorModeButton />
 
+      <!-- Browser-only: the shortcuts modal lists file-browser shortcuts, which are
+           inactive on /edit (registered from FileTable). -->
+      <UTooltip v-if="route.path === '/'" :text="t('shortcuts.title')">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-keyboard"
+          :aria-label="t('shortcuts.title')"
+          class="hidden sm:inline-flex"
+          @click="modalStore.open('shortcuts')"
+        />
+      </UTooltip>
+
       <UTooltip :text="t('header.settings')">
         <UButton
           color="neutral"

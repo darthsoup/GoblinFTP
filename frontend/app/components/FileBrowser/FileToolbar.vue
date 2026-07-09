@@ -168,16 +168,6 @@ const paste = usePaste()
               @click="triggerUpload"
             />
           </UTooltip>
-          <UTooltip :text="t('shortcuts.title')">
-            <UButton
-              color="neutral"
-              variant="subtle"
-              icon="i-lucide-keyboard"
-              :aria-label="t('shortcuts.title')"
-              class="hidden sm:inline-flex"
-              @click="modalStore.open('shortcuts')"
-            />
-          </UTooltip>
           <UTooltip :text="t('toolbar.viewToggle')">
             <UButton
               color="neutral"
