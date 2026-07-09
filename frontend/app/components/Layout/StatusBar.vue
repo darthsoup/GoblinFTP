@@ -15,7 +15,7 @@ const activeCount = computed(() =>
         <span class="text-error">{{ t('header.disconnected') }}</span>
       </span>
       <span v-else class="flex items-center gap-1.5 shrink-0">
-        <span class="text-primary">{{ t('header.connected') }}</span>
+        <span>{{ t('header.connected') }}</span>
       </span>
       <template v-if="authStore.serverHost">
         <span class="text-dimmed hidden sm:inline">|</span>
