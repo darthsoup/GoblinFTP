@@ -4,6 +4,13 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
 
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 @theme {
   --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
