@@ -108,6 +108,7 @@
     "cancelAll": "Peruuta kaikki",
     "clear": "Tyhjennä valmiit",
     "cancel": "Peruuta lähetys",
+    "retry": "Yritä lähetystä uudelleen",
     "status": {
       "queued": "Jonossa",
       "uploading": "Lähetetään",

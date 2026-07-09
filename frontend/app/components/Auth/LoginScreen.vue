@@ -37,7 +37,7 @@ const { appName, hideAttribution } = useBranding()
 
     <template #right>
       <LanguageSelect variant="ghost" size="lg" />
-      <UColorModeButton />
+      <ColorModeButton />
       <UTooltip :text="t('header.settings')">
         <UButton
           color="neutral"

@@ -10,3 +10,4 @@ frontend/.nuxt/
 frontend/dist
 backend/gftp
 backend/data/
+data/known_hosts

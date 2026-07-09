@@ -108,6 +108,7 @@
     "cancelAll": "Tout annuler",
     "clear": "Effacer les terminés",
     "cancel": "Annuler le téléversement",
+    "retry": "Réessayer l'envoi",
     "status": {
       "queued": "En file d'attente",
       "uploading": "Téléversement",

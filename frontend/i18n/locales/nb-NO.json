@@ -108,6 +108,7 @@
     "cancelAll": "Avbryt alle",
     "clear": "Fjern fullførte",
     "cancel": "Avbryt opplasting",
+    "retry": "Prøv opplasting på nytt",
     "status": {
       "queued": "I kø",
       "uploading": "Laster opp",

@@ -14,10 +14,16 @@ dev:
 dev-fe:
     cd frontend && pnpm run dev
 
+# A relative GFTP_DATA_DIR (e.g. `data` from .env) resolves against the repo root —
+# dev data (themes/known_hosts/staging) lives in <repo>/data, but `go run` runs
+# from backend/, so a bare relative path would otherwise land in backend/data.
 # Start backend dev server only (:8080)
 [group('dev')]
 dev-be:
-    cd backend && GFTP_DATA_DIR="${GFTP_DATA_DIR:-data}" go run ./cmd/gftp
+    #!/usr/bin/env bash
+    dir="${GFTP_DATA_DIR:-data}"
+    [[ "$dir" = /* ]] || dir="{{ justfile_directory() }}/$dir"
+    cd "{{ justfile_directory() }}/backend" && GFTP_DATA_DIR="$dir" go run ./cmd/gftp
 
 # Build everything
 [group('build')]

@@ -108,6 +108,7 @@
     "cancelAll": "Zrušiť všetko",
     "clear": "Vymazať dokončené",
     "cancel": "Zrušiť nahrávanie",
+    "retry": "Zopakovať nahrávanie",
     "status": {
       "queued": "Vo fronte",
       "uploading": "Nahráva sa",

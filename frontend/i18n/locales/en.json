@@ -108,6 +108,7 @@
     "cancelAll": "Cancel All",
     "clear": "Clear Completed",
     "cancel": "Cancel upload",
+    "retry": "Retry upload",
     "status": {
       "queued": "Queued",
       "uploading": "Uploading",

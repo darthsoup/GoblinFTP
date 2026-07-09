@@ -108,6 +108,7 @@
     "cancelAll": "Cancelar todo",
     "clear": "Borrar completadas",
     "cancel": "Cancelar subida",
+    "retry": "Reintentar subida",
     "status": {
       "queued": "En cola",
       "uploading": "Subiendo",

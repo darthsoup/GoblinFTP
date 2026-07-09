@@ -108,6 +108,7 @@
     "cancelAll": "Alles annuleren",
     "clear": "Voltooide wissen",
     "cancel": "Upload annuleren",
+    "retry": "Upload opnieuw proberen",
     "status": {
       "queued": "In wachtrij",
       "uploading": "Bezig met uploaden",

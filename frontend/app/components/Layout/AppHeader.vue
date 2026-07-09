@@ -74,7 +74,7 @@ async function handleDisconnect() {
     />
 
     <template #right>
-      <UColorModeButton />
+      <ColorModeButton />
 
       <UTooltip :text="t('header.settings')">
         <UButton

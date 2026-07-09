@@ -200,3 +200,25 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background: var(--gftp-scrollbar-thumb-hover);
 }
+
+/* Light/dark flip (useColorModeTransition, View Transitions API). The circular
+   reveal clips the NEW theme in over a STATIC old snapshot, so suppress the old
+   snapshot's default cross-fade while `.vt-circle` is set (the JS drives the new
+   snapshot's clip-path). Without the class — the settings selector — the browser's
+   default cross-fade is kept. */
+:root.vt-circle::view-transition-old(root) {
+  animation: none;
+}
+:root.vt-circle::view-transition-new(root) {
+  animation: none;
+  z-index: 1;
+}
+
+/* Never animate the flip when the user asks for less motion (JS also guards). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

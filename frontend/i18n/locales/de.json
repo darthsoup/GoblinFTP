@@ -108,6 +108,7 @@
     "cancelAll": "Alle abbrechen",
     "clear": "Abgeschlossene entfernen",
     "cancel": "Upload abbrechen",
+    "retry": "Upload wiederholen",
     "status": {
       "queued": "In Warteschlange",
       "uploading": "Wird hochgeladen",

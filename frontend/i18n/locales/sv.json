@@ -108,6 +108,7 @@
     "cancelAll": "Avbryt alla",
     "clear": "Rensa slutförda",
     "cancel": "Avbryt uppladdning",
+    "retry": "Försök ladda upp igen",
     "status": {
       "queued": "I kö",
       "uploading": "Laddar upp",

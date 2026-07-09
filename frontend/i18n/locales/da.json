@@ -108,6 +108,7 @@
     "cancelAll": "Annuller alle",
     "clear": "Ryd gennemførte",
     "cancel": "Annuller upload",
+    "retry": "Prøv upload igen",
     "status": {
       "queued": "I kø",
       "uploading": "Uploader",

@@ -3,6 +3,7 @@ const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
 const colorMode = useColorMode()
+const { apply: applyColorMode } = useColorModeTransition()
 const { t } = useI18n()
 const { appName, hideAttribution } = useBranding()
 
@@ -19,7 +20,7 @@ const open = computed({
 const theme = computed({
   get: () => colorMode.preference,
   set: (v: string) => {
-    colorMode.preference = v
+    applyColorMode(v) // cross-fade the flip (no pointer origin here)
   },
 })
 const themeItems = computed(() => [

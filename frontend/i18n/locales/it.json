@@ -108,6 +108,7 @@
     "cancelAll": "Annulla tutto",
     "clear": "Rimuovi completati",
     "cancel": "Annulla caricamento",
+    "retry": "Riprova caricamento",
     "status": {
       "queued": "In coda",
       "uploading": "Caricamento in corso",

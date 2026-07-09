@@ -108,6 +108,7 @@
     "cancelAll": "Cancelar tudo",
     "clear": "Limpar concluídas",
     "cancel": "Cancelar carregamento",
+    "retry": "Repetir envio",
     "status": {
       "queued": "Em fila",
       "uploading": "A carregar",
