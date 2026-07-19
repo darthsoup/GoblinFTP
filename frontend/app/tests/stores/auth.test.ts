@@ -1,14 +1,18 @@
 import type { ConnectData, ConnectRequest } from '~/types/api'
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { createTestingPinia } from '@pinia/testing'
 import { setActivePinia } from 'pinia'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // ssoConnect goes through useApi (CSRF-aware, returns unwrapped data); connect
 // hits $fetch directly (public endpoint, full envelope) — so we mock both.
+// $fetch is auto-imported (Nuxt 4.5+), so it's mocked via mockNuxtImport
+// instead of by stubbing a global.
 const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() }
 vi.mock('~/composables/useApi', () => ({ useApi: () => mockApi }))
 
-const fetchMock = vi.fn()
+const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }))
+mockNuxtImport('$fetch', () => fetchMock)
 
 const promptData: ConnectData = {
   capabilities: { disableChmod: false },
@@ -27,11 +31,6 @@ describe('useAuthStore host-key flow', () => {
   beforeEach(() => {
     setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
     vi.clearAllMocks()
-    vi.stubGlobal('$fetch', fetchMock)
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
   })
 
   it('connect() with a host-key prompt pauses without connecting', async () => {

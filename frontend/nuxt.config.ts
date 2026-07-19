@@ -68,7 +68,7 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-05-01',
 
-  css: ['./app/assets/css/main.css'],
+  css: ['~/assets/css/main.css'],
 
   vite: {
     plugins: [

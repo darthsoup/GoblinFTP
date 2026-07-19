@@ -20,7 +20,12 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     const title = authStore.connected && authStore.serverHost
       ? `${authStore.serverHost} — ${appName}`
       : appName
-    const link: { rel: string, href: string, key: string }[] = []
+    // unhead v3 types link `rel` as a discriminated union (one literal per
+    // shape), so each entry needs its own concrete `rel` rather than a shared
+    // `rel: string`.
+    const link: Array<
+      { rel: 'icon', href: string, key: string } | { rel: 'stylesheet', href: string, key: string }
+    > = []
     if (branding?.faviconUrl)
       link.push({ rel: 'icon', href: branding.faviconUrl, key: 'favicon' })
     // Per-tenant theme stylesheet: lands after the bundled main.css, so its
