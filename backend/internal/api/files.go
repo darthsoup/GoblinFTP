@@ -128,7 +128,9 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
 	}
-	result := deleteResult{}
+	// Initialize non-nil so the JSON always carries arrays (never null) — the SPA
+	// reads result.failed.length unconditionally, and a null there would throw.
+	result := deleteResult{Deleted: []string{}, Failed: []deleteFailed{}}
 	for _, p := range req.Paths {
 		err := client.Delete(p)
 		if err == nil {

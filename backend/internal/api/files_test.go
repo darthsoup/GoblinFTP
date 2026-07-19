@@ -209,3 +209,25 @@ func TestDeleteFilesAllFailStillSucceeds(t *testing.T) {
 	require.Len(t, resp.Data.Failed, 2)
 	assert.Equal(t, string(gftperrors.ErrFilePermission), resp.Data.Failed[0].Code)
 }
+
+// TestDeleteFilesAllSuccessArraysNotNull: an all-success delete must serialize
+// `deleted`/`failed` as arrays, never null. The SPA reads `result.failed.length`
+// unconditionally, so a null there throws and surfaces a spurious "Operation
+// failed" even though every file was removed.
+func TestDeleteFilesAllSuccessArraysNotNull(t *testing.T) {
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		ChmodFn:      func(string, uint32) error { return nil },
+		DeleteFn:     func(string) error { return nil },
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	sess := connectAndGetSession(t, app)
+
+	rec := doJSON(app, sess, http.MethodDelete, "/api/files", `{"paths":["/upload/a.txt"]}`)
+	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+	body := rec.Body.String()
+	assert.NotContains(t, body, `"failed":null`, "failed must be [] not null")
+	assert.NotContains(t, body, `"deleted":null`, "deleted must be [] not null")
+	assert.Contains(t, strings.ReplaceAll(body, " ", ""), `"failed":[]`)
+}
