@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Passord",
     "connect": "Koble til",
-    "tagline": "Selvhostet filoverføring",
     "passive": "Passiv modus",
     "errorRequired": "Påkrevd",
     "errorPort": "Ugyldig port"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "Vis filer som starter med punktum (f.eks. .htaccess).",
     "gridThumbnails": "Bildeminiatyrer",
     "gridThumbnailsHint": "Vis bildeforhåndsvisninger i kortrutenettet.",
+    "density": "Tetthet",
+    "densityComfortable": "Komfortabel",
+    "densityCompact": "Kompakt",
     "close": "Ferdig"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Avbryt alle",
     "clear": "Fjern fullførte",
     "cancel": "Avbryt opplasting",
+    "retry": "Prøv opplasting på nytt",
     "status": {
       "queued": "I kø",
       "uploading": "Laster opp",
@@ -123,7 +126,8 @@
     "delete": "Slett",
     "properties": "Egenskaper",
     "edit": "Rediger",
-    "view": "Vis"
+    "view": "Vis",
+    "actions": "Handlinger"
   },
   "preview": {
     "loading": "Laster forhåndsvisning…",

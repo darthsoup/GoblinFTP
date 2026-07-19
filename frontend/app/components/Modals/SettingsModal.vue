@@ -3,6 +3,7 @@ const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
 const colorMode = useColorMode()
+const { apply: applyColorMode } = useColorModeTransition()
 const { t } = useI18n()
 const { appName, hideAttribution } = useBranding()
 
@@ -19,7 +20,7 @@ const open = computed({
 const theme = computed({
   get: () => colorMode.preference,
   set: (v: string) => {
-    colorMode.preference = v
+    applyColorMode(v) // cross-fade the flip (no pointer origin here)
   },
 })
 const themeItems = computed(() => [
@@ -37,6 +38,10 @@ const dateFormatItems = computed(() => [
   { label: t('settings.dateAuto'), value: 'auto' },
   { label: t('settings.dateAbsolute'), value: 'absolute' },
   { label: t('settings.dateRelative'), value: 'relative' },
+])
+const densityItems = computed(() => [
+  { label: t('settings.densityComfortable'), value: 'comfortable' },
+  { label: t('settings.densityCompact'), value: 'compact' },
 ])
 </script>
 
@@ -78,6 +83,14 @@ const dateFormatItems = computed(() => [
           </UFormField>
         </div>
 
+        <UFormField :label="t('settings.density')">
+          <USelect
+            v-model="settingsStore.density"
+            :items="densityItems"
+            class="w-full"
+          />
+        </UFormField>
+
         <UFormField :label="t('settings.showDotfiles')" :description="t('settings.showDotfilesHint')">
           <USwitch v-model="settingsStore.showDotfiles" />
         </UFormField>
@@ -90,10 +103,14 @@ const dateFormatItems = computed(() => [
 
     <template #footer="{ close }">
       <div class="flex w-full items-center justify-between">
-        <!-- Brand + semver is locale-invariant — no i18n key needed. -->
-        <span v-if="!hideAttribution" class="text-xs text-dimmed">{{ appName }} {{ authStore.systemVars?.version ?? '' }}</span>
-        <span v-else />
         <UButton :label="t('settings.close')" @click="close" />
+        <!-- Brand + semver is locale-invariant — no i18n key needed. -->
+        <span
+          v-if="!hideAttribution"
+          class="text-xs text-dimmed"
+        >
+          {{ appName }} {{ authStore.systemVars?.version ?? '' }}
+        </span>
       </div>
     </template>
   </UModal>

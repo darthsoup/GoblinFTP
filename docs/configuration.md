@@ -4,9 +4,10 @@
 |---|---|---|
 | `GFTP_PAGE_TITLE` | `GoblinFTP` | Browser tab title |
 | `GFTP_APP_NAME` | `GoblinFTP` | White-label app name (header, login, title, footer) |
-| `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` | — | White-label logo + favicon image URLs |
+| `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` | — | White-label logo + favicon image URLs (a set logo hides the app-name text; favicon falls back to the logo) |
+| `GFTP_LOGO_DARK_URL` | — | Optional dark-mode logo (light wordmark) swapped in automatically in dark mode |
 | `GFTP_PRIMARY_COLOR` | — | Accent color as hex (e.g. `#2563eb`) — recolors the theme at runtime |
-| `GFTP_TAGLINE` | — | Login tagline override |
+| `GFTP_PRIMARY_TEXT_COLOR` | — | Button/primary text color as hex — pair a light accent (e.g. yellow) with dark text so buttons stay readable |
 | `GFTP_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer |
 | `GFTP_SESSION_SECRET` | _(auto-generated)_ | Session signing key — set this in production |
 | `GFTP_DOWNLOAD_TOKEN_SECRET` | _(auto-generated)_ | Download token signing key — set this in production |
@@ -95,7 +96,7 @@ Note: the session/connection gauges are scrape-time snapshots of the in-memory s
 
 ## S3 chunk staging
 
-By default, chunked uploads are staged on local disk (`GFTP_DATA_DIR`) before being streamed to the connected FTP/SFTP server. Optionally, chunks can be staged in an S3-compatible bucket (MinIO, AWS S3, …) instead — useful for read-only containers, offloading disk I/O, or multi-replica deployments. This works identically for FTP and SFTP connections; nothing changes in the browser.
+By default, chunked uploads are staged on local disk (under `/app/data`) before being streamed to the connected FTP/SFTP server. Optionally, chunks can be staged in an S3-compatible bucket (MinIO, AWS S3, …) instead — useful for read-only containers, offloading disk I/O, or multi-replica deployments. This works identically for FTP and SFTP connections; nothing changes in the browser.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -151,7 +152,7 @@ With `GFTP_SSO_ENABLED=true` and a `GFTP_SSO_SECRET` set, your application can g
 just sso-link -host ftp.example.com -username alice -password s3cret -base-url https://files.example.com
 ```
 
-See [`examples/sso/`](../examples/sso/) for the token format and ready-to-use generators in Go, Node.js, and PHP.
+See [`examples/sso/`](../examples/sso/) for the token format and ready-to-use generators in Go, Node.js, and PHP. Add `-tenant <name>` to select a per-tenant white-label theme — see [Theming](theming.md).
 
 ## settings.json
 

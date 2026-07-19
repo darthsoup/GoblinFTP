@@ -1,8 +1,15 @@
-/* Goblin design system — Tech-Dark (/DESIGN.md) + Tech-Light (/DESIGN-Gobin-Tech-Light.md) */
+/* GoblinFTP Tailwind Design */
 @import '@fontsource-variable/plus-jakarta-sans';
 @import '@fontsource-variable/jetbrains-mono';
 @import 'tailwindcss';
 @import '@nuxt/ui';
+
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 @theme {
   --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
@@ -21,7 +28,7 @@
   --color-goblin-900: #003907;
   --color-goblin-950: #002203;
 
-  /* Charcoal-navy surface tiers (Level 0 #0d1117 → popovers #21262d) */
+  /* Charcoal-navy neutral scale (text + accents) */
   --color-neutral-50: #f0f3fa;
   --color-neutral-100: #dfe2eb;
   --color-neutral-200: #c9cdd8;
@@ -33,15 +40,22 @@
   --color-neutral-800: #161b22;
   --color-neutral-900: #10141a;
   --color-neutral-950: #0d1117;
+
+  /* 6px */
+  --radius-xs: var(--ui-radius);
+  --radius-sm: var(--ui-radius);
+  --radius-md: var(--ui-radius);
+  --radius-lg: var(--ui-radius);
+  --radius-xl: var(--ui-radius);
+  --radius-2xl: var(--ui-radius);
+  --radius-3xl: var(--ui-radius);
 }
 
-/* ── Goblin Tech-Light ─────────────────────────────────────────────────────────
-   Tonal layers on a clinical slate backdrop: slate-50 canvas, pure-white cards,
-   thin slate borders, deep goblin green as the accent. */
+/* ── Goblin Tech-Light — neutral-gray surfaces, white cards, goblin green accent */
 :root,
 .light {
-  --ui-radius: 0.25rem;
-  --ui-header-height: 3.5rem; /* compact app bar (UHeader / UMain offset) */
+  --ui-radius: 0.375rem;
+  --ui-header-height: 3.5rem; /* 56px app bar */
 
   --ui-text-dimmed: #7c8794;
   --ui-text-muted: #64748b;
@@ -50,16 +64,19 @@
   --ui-text-highlighted: #0f172a;
   --ui-text-inverted: #ffffff;
 
-  --ui-bg: #f7f9fb; /* Level 0 canvas */
-  --ui-bg-muted: #f1f5f9; /* nav strips / table header tint */
+  --ui-bg: #f7f7f7; /* Level 0 canvas */
+  --ui-bg-muted: #f1f1f1; /* nav strips / table header tint */
   --ui-bg-elevated: #ffffff; /* Level 1 cards & panels */
-  --ui-bg-accented: #e6e8ea; /* hover surfaces */
+  --ui-bg-accented: #e2e2e2; /* hover surfaces */
   --ui-bg-inverted: #2d3133;
 
-  --ui-border: #e2e8f0; /* slate-200 */
-  --ui-border-muted: #f1f5f9; /* slate-100 hairlines */
-  --ui-border-accented: #cbd5e1; /* slate-300 */
+  --ui-border: #e2e2e2; /* default border */
+  --ui-border-muted: #f1f1f1; /* faint hairline */
+  --ui-border-accented: #cecece; /* stronger border */
   --ui-border-inverted: #2d3133;
+
+  --gftp-input-bg: #f7f7f7; /* surface-form */
+  --gftp-input-placeholder: #69686b; /* body-on-placeholder */
 
   --ui-primary: var(--color-goblin-700);
 
@@ -71,12 +88,20 @@
   --gftp-scrollbar-thumb-hover: #94a3b8;
   --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 25%, transparent);
   --gftp-selection-fg: var(--color-goblin-950);
+
+  /* Faint goblin-green wash so the canvas reads as atmosphere, not a flat fill. */
+  --gftp-atmosphere:
+    radial-gradient(
+      120% 70% at 50% -10%,
+      color-mix(in oklab, var(--color-goblin-500) 5%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(80% 60% at 100% 100%, color-mix(in oklab, var(--color-goblin-700) 4%, transparent), transparent 55%);
 }
 
-/* ── Goblin Tech-Dark ──────────────────────────────────────────────────────────
-   Charcoal-navy tonal tiers with the bright goblin green accent. */
+/* ── Goblin Tech-Dark — neutral-gray surfaces, bright goblin green accent */
 .dark {
-  --ui-radius: 0.25rem;
+  --ui-radius: 0.375rem;
 
   --ui-text-dimmed: var(--color-neutral-500);
   --ui-text-muted: var(--color-neutral-400);
@@ -85,26 +110,37 @@
   --ui-text-highlighted: var(--color-neutral-100);
   --ui-text-inverted: var(--color-neutral-950);
 
-  --ui-bg: var(--color-neutral-950);
-  --ui-bg-muted: var(--color-neutral-900);
-  --ui-bg-elevated: var(--color-neutral-800);
-  --ui-bg-accented: var(--color-neutral-700);
+  --ui-bg: #1e1d1f; /* page canvas */
+  --ui-bg-muted: #312f34; /* nav strips / table header tint */
+  --ui-bg-elevated: #282629; /* cards & panels */
+  --ui-bg-accented: #3a383e; /* hover surfaces */
   --ui-bg-inverted: var(--color-neutral-100);
 
-  --ui-border: var(--color-neutral-700);
-  --ui-border-muted: var(--color-neutral-800);
-  --ui-border-accented: var(--color-neutral-600);
+  --ui-border: #3a383e; /* default border */
+  --ui-border-muted: #312f34; /* faint hairline */
+  --ui-border-accented: #69686b; /* stronger border */
   --ui-border-inverted: var(--color-neutral-100);
 
   --ui-primary: var(--color-goblin-400);
 
-  --gftp-popover: var(--color-neutral-700);
-  --gftp-popover-ring: var(--color-neutral-600);
-  --gftp-editor-bg: var(--color-neutral-950);
-  --gftp-scrollbar-thumb: var(--color-neutral-600);
-  --gftp-scrollbar-thumb-hover: var(--color-neutral-500);
+  --gftp-input-bg: #3a383e; /* surface-form */
+  --gftp-input-placeholder: #cecece; /* body-on-placeholder */
+  --gftp-popover: #282629;
+  --gftp-popover-ring: #3a383e;
+  --gftp-editor-bg: #141414; /* recessed code surface, darker than canvas */
+  --gftp-scrollbar-thumb: #3a383e;
+  --gftp-scrollbar-thumb-hover: #69686b;
   --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 30%, transparent);
   --gftp-selection-fg: var(--color-goblin-50);
+
+  /* Brighter wash in the dark canvas — the charcoal-navy tiers carry more green. */
+  --gftp-atmosphere:
+    radial-gradient(
+      120% 75% at 50% -10%,
+      color-mix(in oklab, var(--color-goblin-500) 9%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(90% 65% at 100% 100%, color-mix(in oklab, var(--color-goblin-600) 7%, transparent), transparent 55%);
 }
 
 /* Label-caps type style from the design system (11px / 700 / 0.05em) */
@@ -119,6 +155,13 @@
 body {
   background-color: var(--ui-bg);
   color: var(--ui-text);
+  /* medium (500) is the default text weight, not regular (400) */
+  font-weight: 500;
+}
+
+/* Decorative canvas wash (default layout); sits behind all content, never interactive. */
+.gftp-atmosphere {
+  background: var(--gftp-atmosphere);
 }
 
 /* Always-visible keyboard focus ring (mouse clicks don't trigger :focus-visible),
@@ -132,6 +175,17 @@ body {
 ::selection {
   background-color: var(--gftp-selection-bg);
   color: var(--gftp-selection-fg);
+}
+
+/* Primary solid surfaces (buttons, primary badges) carry BOTH .bg-primary and
+   .text-inverted. Give them a dedicated foreground token so a light accent
+   (e.g. a yellow brand) can use dark text WITHOUT dragging --ui-text-inverted
+   dark on the inverted surfaces (tooltips, bg-inverted) that also read it. The
+   two-class selector out-specifies the .text-inverted utility, and being
+   unlayered it wins the cascade too. Defaults to --ui-text-inverted, so nothing
+   changes unless a theme/brand sets --gftp-primary-text. */
+.bg-primary.text-inverted {
+  color: var(--gftp-primary-text, var(--ui-text-inverted));
 }
 
 /* Thin custom scrollbars — transparent tracks, subtle thumbs */
@@ -152,4 +206,26 @@ body {
 }
 *::-webkit-scrollbar-thumb:hover {
   background: var(--gftp-scrollbar-thumb-hover);
+}
+
+/* Light/dark flip (useColorModeTransition, View Transitions API). The circular
+   reveal clips the NEW theme in over a STATIC old snapshot, so suppress the old
+   snapshot's default cross-fade while `.vt-circle` is set (the JS drives the new
+   snapshot's clip-path). Without the class — the settings selector — the browser's
+   default cross-fade is kept. */
+:root.vt-circle::view-transition-old(root) {
+  animation: none;
+}
+:root.vt-circle::view-transition-new(root) {
+  animation: none;
+  z-index: 1;
+}
+
+/* Never animate the flip when the user asks for less motion (JS also guards). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

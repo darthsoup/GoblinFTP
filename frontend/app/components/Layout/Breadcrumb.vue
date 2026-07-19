@@ -13,13 +13,17 @@ const isNarrow = useMediaQuery('(max-width: 639px)')
 const items = computed<BreadcrumbItem[]>(() => {
   const root: BreadcrumbItem = {
     'label': '/',
-    'icon': 'i-lucide-monitor',
+    'icon': 'i-lucide-server',
     'aria-label': t('breadcrumb.root'),
     'onClick': () => filesStore.navigate('/'),
   }
   const segs = filesStore.pathSegments
-  let segItems: BreadcrumbItem[] = segs.map(seg => ({
+  // The current folder (last segment) carries a leading folder glyph; with
+  // color="neutral" UBreadcrumb renders the active segment highlighted + semibold
+  // (no accent colour) against the muted ancestors.
+  let segItems: BreadcrumbItem[] = segs.map((seg, i) => ({
     label: seg.label,
+    ...(i === segs.length - 1 ? { icon: 'i-lucide-folder-open' } : {}),
     onClick: () => filesStore.navigate(seg.path),
   }))
 
@@ -37,43 +41,46 @@ const items = computed<BreadcrumbItem[]>(() => {
 </script>
 
 <template>
-  <nav class="flex items-center px-4 py-2 bg-muted border-b border-default overflow-x-auto whitespace-nowrap shrink-0">
-    <!-- Back / forward history -->
-    <div v-if="showHistory" class="flex items-center gap-0.5 mr-2 shrink-0">
-      <UTooltip :text="t('breadcrumb.back')">
-        <UButton
-          size="sm"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-chevron-left"
-          :disabled="!filesStore.canGoBack"
-          :aria-label="t('breadcrumb.back')"
-          @click="filesStore.goBack()"
-        />
-      </UTooltip>
-      <UTooltip :text="t('breadcrumb.forward')">
-        <UButton
-          size="sm"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-chevron-right"
-          :disabled="!filesStore.canGoForward"
-          :aria-label="t('breadcrumb.forward')"
-          @click="filesStore.goForward()"
-        />
-      </UTooltip>
-      <USeparator orientation="vertical" class="h-4 mx-1.5" />
-    </div>
+  <nav class="flex items-center gap-2 px-4 h-11 bg-elevated border-b border-default overflow-x-auto whitespace-nowrap shrink-0">
+    <!-- Back / forward history as one attached segment -->
+    <template v-if="showHistory">
+      <UFieldGroup size="sm" class="shrink-0">
+        <UTooltip :text="t('breadcrumb.back')">
+          <UButton
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-chevron-left"
+            :disabled="!filesStore.canGoBack"
+            :aria-label="t('breadcrumb.back')"
+            @click="filesStore.goBack()"
+          />
+        </UTooltip>
+        <UTooltip :text="t('breadcrumb.forward')">
+          <UButton
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-chevron-right"
+            :disabled="!filesStore.canGoForward"
+            :aria-label="t('breadcrumb.forward')"
+            @click="filesStore.goForward()"
+          />
+        </UTooltip>
+      </UFieldGroup>
+      <USeparator orientation="vertical" class="h-5 shrink-0" />
+    </template>
 
     <UBreadcrumb
       :items="items"
+      color="neutral"
       class="min-w-0"
       :ui="{
         list: 'gap-1',
-        link: 'text-xs transition-colors cursor-pointer',
+        link: 'rounded-sm px-1.5 py-0.5 hover:bg-accented/60 transition-colors duration-150 cursor-pointer',
         linkLabel: 'truncate max-w-32 sm:max-w-48',
-        linkLeadingIcon: 'size-4 text-primary',
-        separatorIcon: 'size-3 text-dimmed',
+        // Inherit the segment's text colour (currentColor) so the active glyph is
+        // highlighted like its label and ancestors stay muted — no accent colour.
+        linkLeadingIcon: 'size-4 shrink-0',
+        separatorIcon: 'size-3.5 text-dimmed',
       }"
     />
   </nav>

@@ -51,16 +51,18 @@ async function handleDisconnect() {
     :title="appName"
     :toggle="false"
     :ui="{
-      root: 'bg-muted/75 shrink-0 z-30',
+      root: 'bg-elevated/75 border-b border-default shrink-0 z-30',
       container: 'max-w-full px-3 sm:px-4 gap-2',
       center: 'flex',
     }"
   >
     <template #left>
       <div class="flex items-center gap-2 select-none">
-        <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="size-6 object-contain">
-        <UIcon v-else name="i-lucide-server" class="size-5 text-primary" />
-        <span class="text-lg sm:text-xl font-bold tracking-tight text-primary truncate max-w-[40vw] sm:max-w-none">{{ appName }}</span>
+        <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="h-7 w-auto max-w-[200px] object-contain">
+        <template v-else>
+          <UIcon name="i-lucide-server" class="size-5 text-primary" />
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-primary truncate max-w-[40vw] sm:max-w-none">{{ appName }}</span>
+        </template>
       </div>
     </template>
 
@@ -72,7 +74,20 @@ async function handleDisconnect() {
     />
 
     <template #right>
-      <UColorModeButton />
+      <ColorModeButton />
+
+      <!-- Browser-only: the shortcuts modal lists file-browser shortcuts, which are
+           inactive on /edit (registered from FileTable). -->
+      <UTooltip v-if="route.path === '/'" :text="t('shortcuts.title')">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-keyboard"
+          :aria-label="t('shortcuts.title')"
+          class="hidden sm:inline-flex"
+          @click="modalStore.open('shortcuts')"
+        />
+      </UTooltip>
 
       <UTooltip :text="t('header.settings')">
         <UButton

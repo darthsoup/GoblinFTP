@@ -29,6 +29,7 @@ type Payload struct {
 	Password         string `json:"password"`
 	InitialDirectory string `json:"initialDirectory"`
 	Language         string `json:"language,omitempty"`
+	Tenant           string `json:"tenant,omitempty"`
 	Exp              int64  `json:"exp"`
 }
 

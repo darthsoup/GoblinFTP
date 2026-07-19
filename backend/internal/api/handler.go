@@ -98,6 +98,9 @@ type Handler struct {
 	// frontendLog rate-limits /api/log/frontend per client IP — deliberately
 	// separate from the login throttle so report spam cannot lock out logins.
 	frontendLog *auth.Throttle
+	// themeHosts caches the custom-domain→tenant map from each theme's
+	// theme.json, so the public SystemVars endpoint avoids a per-request scan.
+	themeHosts *themeHostIndex
 }
 
 func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts []HandlerOption) *Handler {
@@ -112,6 +115,7 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 		metrics:     metrics.New(),
 		version:     "dev",
 		frontendLog: auth.NewThrottle(),
+		themeHosts:  newThemeHostIndex(cfg.DataDir),
 	}
 	for _, opt := range opts {
 		opt(h)

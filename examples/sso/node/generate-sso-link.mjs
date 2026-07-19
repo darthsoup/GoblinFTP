@@ -22,6 +22,7 @@ const { values: opts } = parseArgs({
     password: { type: 'string', default: process.env.GFTP_SSO_PASSWORD ?? '' },
     dir: { type: 'string', default: '' }, // initial directory hint
     lang: { type: 'string', default: '' }, // UI language hint (en, de)
+    tenant: { type: 'string', default: '' }, // white-label tenant (theme selector)
     'ttl-seconds': { type: 'string', default: '300' },
     'base-url': { type: 'string', default: 'http://localhost:8080' },
     secret: { type: 'string', default: process.env.GFTP_SSO_SECRET ?? '' },
@@ -46,6 +47,7 @@ const payload = {
   password: opts.password,
   initialDirectory: opts.dir,
   language: opts.lang,
+  tenant: opts.tenant,
   exp: Math.floor(Date.now() / 1000) + Number(opts['ttl-seconds']),
 }
 

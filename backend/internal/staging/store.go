@@ -2,7 +2,7 @@
 //
 // Package staging abstracts where upload chunks are staged before being
 // assembled and streamed to the connected FTP/SFTP server. The default
-// LocalStore keeps chunks on local disk (GFTP_DATA_DIR); the optional
+// LocalStore keeps chunks on local disk (under /app/data); the optional
 // S3Store keeps them in an S3-compatible bucket.
 package staging
 

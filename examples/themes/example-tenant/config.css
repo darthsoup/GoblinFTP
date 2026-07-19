@@ -1,0 +1,57 @@
+/* Example white-label tenant theme for GoblinFTP.
+ *
+ * GoblinFTP is fully CSS-variable-driven, so a theme just redefines a curated
+ * set of COLOR tokens under the SAME selectors the base theme uses
+ * (`:root, .light` and `.dark`). This file is injected AFTER the bundled
+ * stylesheet, so equal-specificity `:root` rules win by source order.
+ *
+ * Set each token you override in BOTH blocks (or leave the default). A value
+ * placed only under `:root, .light` also applies in DARK mode — `:root` always
+ * matches, and this sheet loads last, so it beats the base `.dark` rule.
+ *
+ * Install: copy this folder to  <dataDir>/themes/<tenant>/  (default
+ *   /app/data/themes/<tenant>/), then mint a login link with:
+ *     gftp-sso-link -tenant <tenant> -host … -username …
+ *   (or map a custom domain to the tenant via theme.json "hosts" — see README).
+ *
+ * Drive --ui-primary DIRECTLY and leave the global branding.primaryColor unset:
+ * the runtime accent injector is skipped whenever a tenant stylesheet is present.
+ * If you pick a LIGHT accent (e.g. yellow), set --gftp-primary-text to a dark color
+ * so primary-button text stays legible — do NOT override --ui-text-inverted for
+ * this (it's shared with tooltips). Drop a logo-dark.* for a dark-mode logo.
+ */
+
+:root,
+.light {
+  --ui-primary: #2563eb; /* brand accent (pairs with white button text) */
+
+  --ui-bg: #f6f8fc; /* Level 0 canvas */
+  --ui-bg-muted: #eef2f9; /* nav strips / table header tint */
+  --ui-bg-elevated: #ffffff; /* cards & panels */
+  --ui-bg-accented: #e2e8f4; /* hover surfaces */
+
+  --ui-border: #dbe3f0;
+  --ui-text-highlighted: #0b1220;
+
+  --gftp-editor-bg: #eef2f9;
+  --gftp-input-bg: #f6f8fc;
+  --gftp-selection-bg: color-mix(in oklab, #2563eb 25%, transparent);
+  --gftp-selection-fg: #0b1220;
+}
+
+.dark {
+  --ui-primary: #60a5fa; /* lighter accent for the dark canvas */
+
+  --ui-bg: #0b1220;
+  --ui-bg-muted: #131c2e;
+  --ui-bg-elevated: #111a2b;
+  --ui-bg-accented: #1e293b;
+
+  --ui-border: #1e293b;
+  --ui-text-highlighted: #f1f5f9; /* light — the .light value above would bleed here otherwise */
+
+  --gftp-editor-bg: #080d16;
+  --gftp-input-bg: #1e293b;
+  --gftp-selection-bg: color-mix(in oklab, #2563eb 30%, transparent);
+  --gftp-selection-fg: #dbeafe;
+}

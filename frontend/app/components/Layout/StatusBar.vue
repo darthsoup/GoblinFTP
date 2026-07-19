@@ -9,15 +9,13 @@ const activeCount = computed(() =>
 </script>
 
 <template>
-  <footer class="flex items-center justify-between px-4 h-8 bg-muted border-t border-default text-xs shrink-0 select-none">
+  <footer class="flex items-center justify-between px-4 h-8 bg-elevated border-t border-default text-xs shrink-0 select-none">
     <div class="flex items-center gap-3 min-w-0" aria-live="polite">
       <span v-if="authStore.sessionLost" class="flex items-center gap-1.5 shrink-0">
-        <span class="size-2 rounded-full bg-error" />
         <span class="text-error">{{ t('header.disconnected') }}</span>
       </span>
       <span v-else class="flex items-center gap-1.5 shrink-0">
-        <span class="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_color-mix(in_oklab,var(--color-goblin-400)_60%,transparent)]" />
-        <span class="text-primary">{{ t('header.connected') }}</span>
+        <span>{{ t('header.connected') }}</span>
       </span>
       <template v-if="authStore.serverHost">
         <span class="text-dimmed hidden sm:inline">|</span>

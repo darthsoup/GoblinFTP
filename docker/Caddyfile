@@ -14,6 +14,11 @@
 		reverse_proxy localhost:8080
 	}
 
+	# Per-tenant white-label theme assets → Go binary (validates + serves from the data dir)
+	handle /themes/* {
+		reverse_proxy localhost:8080
+	}
+
 	# SSO entry point → Go binary (must intercept before SPA fallback)
 	handle @sso {
 		reverse_proxy localhost:8080

@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Lösenord",
     "connect": "Anslut",
-    "tagline": "Egenhostad filöverföring",
     "passive": "Passivt läge",
     "errorRequired": "Obligatoriskt",
     "errorPort": "Ogiltig port"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "Lista filer som börjar med en punkt (t.ex. .htaccess).",
     "gridThumbnails": "Bildminiatyrer",
     "gridThumbnailsHint": "Visa bildförhandsvisningar i kortrutnätet.",
+    "density": "Täthet",
+    "densityComfortable": "Bekväm",
+    "densityCompact": "Kompakt",
     "close": "Klar"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Avbryt alla",
     "clear": "Rensa slutförda",
     "cancel": "Avbryt uppladdning",
+    "retry": "Försök ladda upp igen",
     "status": {
       "queued": "I kö",
       "uploading": "Laddar upp",
@@ -123,7 +126,8 @@
     "delete": "Ta bort",
     "properties": "Egenskaper",
     "edit": "Redigera",
-    "view": "Visa"
+    "view": "Visa",
+    "actions": "Åtgärder"
   },
   "preview": {
     "loading": "Laddar förhandsvisning…",

@@ -4,7 +4,7 @@ import { ApiError } from '~/types/api'
 
 const authStore = useAuthStore()
 const { t } = useI18n()
-const { appName, logoUrl, tagline } = useBranding()
+const { appName, logoUrl } = useBranding()
 
 const form = reactive({
   protocol: 'ftp',
@@ -80,17 +80,14 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
 <template>
   <div class="flex flex-1 items-center justify-center p-4">
     <div class="w-full max-w-md bg-elevated border border-default rounded-lg p-8 shadow-xl">
-      <div class="flex flex-col items-center gap-1.5 mb-8 select-none">
-        <div class="flex items-center gap-2">
-          <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="size-8 object-contain">
-          <UIcon v-else name="i-lucide-server" class="size-7 text-primary" />
+      <div class="flex flex-col items-center mb-8 select-none">
+        <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="h-11 w-auto max-w-[240px] object-contain">
+        <div v-else class="flex items-center gap-2">
+          <UIcon name="i-lucide-server" class="size-7 text-primary" />
           <h1 class="text-2xl font-bold tracking-tight text-highlighted">
             {{ appName }}
           </h1>
         </div>
-        <p class="text-xs text-dimmed">
-          {{ tagline }}
-        </p>
       </div>
 
       <UAlert
@@ -153,9 +150,9 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
         <UFormField v-if="form.protocol === 'ftp' || form.protocol === 'ftps'" name="passive">
           <USwitch
             v-model="form.passive"
-            size="sm"
+            size="lg"
             :label="t('login.passive')"
-            :ui="{ label: 'text-xs text-muted' }"
+            :ui="{ label: 'text-sm text-muted' }"
           />
         </UFormField>
 

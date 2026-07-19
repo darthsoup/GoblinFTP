@@ -83,6 +83,12 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		Username: payload.Username,
 		Password: payload.Password,
 	})
+	// White-label theming: carry the (validated) tenant on the session directly so
+	// it survives the pending→connected transition and reaches SystemVars. An
+	// invalid/unknown tenant is dropped silently — login still succeeds.
+	if tenant := sanitizeTenant(payload.Tenant); tenant != "" {
+		sess.Set(tenantSessionKey, tenant)
+	}
 
 	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
 		Name:     SessionCookieName,

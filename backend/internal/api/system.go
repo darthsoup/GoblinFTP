@@ -22,12 +22,16 @@ type systemVarsData struct {
 }
 
 type systemBrandingVars struct {
-	AppName         string  `json:"appName"`
-	LogoURL         *string `json:"logoUrl"`
-	FaviconURL      *string `json:"faviconUrl"`
-	PrimaryColor    *string `json:"primaryColor"`
-	Tagline         *string `json:"tagline"`
-	HideAttribution bool    `json:"hideAttribution"`
+	AppName          string  `json:"appName"`
+	LogoURL          *string `json:"logoUrl"`
+	LogoDarkURL      *string `json:"logoDarkUrl"`
+	FaviconURL       *string `json:"faviconUrl"`
+	PrimaryColor     *string `json:"primaryColor"`
+	PrimaryTextColor *string `json:"primaryTextColor"`
+	HideAttribution  bool    `json:"hideAttribution"`
+	// ThemeCssURL is the per-tenant stylesheet the SPA injects at runtime; nil
+	// when no tenant theme applies.
+	ThemeCssURL *string `json:"themeCssUrl"`
 }
 
 type systemUIVars struct {
@@ -57,6 +61,38 @@ type systemEditorVars struct {
 }
 
 func (h *Handler) SystemVars(c echo.Context) error {
+	branding := systemBrandingVars{
+		AppName:          h.cfg.Settings.Branding.AppName,
+		LogoURL:          h.cfg.Settings.Branding.LogoURL,
+		LogoDarkURL:      h.cfg.Settings.Branding.LogoDarkURL,
+		FaviconURL:       h.cfg.Settings.Branding.FaviconURL,
+		PrimaryColor:     h.cfg.Settings.Branding.PrimaryColor,
+		PrimaryTextColor: h.cfg.Settings.Branding.PrimaryTextColor,
+		HideAttribution:  h.cfg.Settings.Branding.HideAttribution,
+	}
+
+	// Per-tenant white-label theme (resolved from the SSO session or the host).
+	// The response now depends on the cookie/host, so it must not be shared-cached.
+	if themeCSS, tenantLogo, tenantLogoDark, tenantFavicon := h.resolveTenantBranding(c); themeCSS != nil {
+		branding.ThemeCssURL = themeCSS
+		if tenantLogo != nil { // tenant assets win when a theme resolves
+			branding.LogoURL = tenantLogo
+		}
+		if tenantLogoDark != nil {
+			branding.LogoDarkURL = tenantLogoDark
+		}
+		if tenantFavicon != nil {
+			branding.FaviconURL = tenantFavicon
+		}
+	}
+	// A logo doubles as a favicon when none is set explicitly (SVG/PNG both work
+	// as tab icons), so any brand that ships only a logo still gets a tab icon.
+	if branding.FaviconURL == nil {
+		branding.FaviconURL = branding.LogoURL
+	}
+	c.Response().Header().Set("Cache-Control", "private, no-store")
+	c.Response().Header().Set("Vary", "Cookie")
+
 	return OK(c, systemVarsData{
 		Language: h.cfg.Settings.Language,
 		UI: systemUIVars{
@@ -64,14 +100,7 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			ShowDotFiles:          h.cfg.Settings.UI.ShowDotFiles,
 			ShowNavigationHistory: h.cfg.Settings.UI.ShowNavigationHistory,
 		},
-		Branding: systemBrandingVars{
-			AppName:         h.cfg.Settings.Branding.AppName,
-			LogoURL:         h.cfg.Settings.Branding.LogoURL,
-			FaviconURL:      h.cfg.Settings.Branding.FaviconURL,
-			PrimaryColor:    h.cfg.Settings.Branding.PrimaryColor,
-			Tagline:         h.cfg.Settings.Branding.Tagline,
-			HideAttribution: h.cfg.Settings.Branding.HideAttribution,
-		},
+		Branding: branding,
 		Upload: systemUploadVars{
 			ChunkSize:            h.cfg.ChunkSize,
 			MaxConcurrentUploads: h.cfg.MaxConcurrentUploads,

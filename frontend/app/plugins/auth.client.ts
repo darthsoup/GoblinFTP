@@ -20,17 +20,37 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     const title = authStore.connected && authStore.serverHost
       ? `${authStore.serverHost} — ${appName}`
       : appName
-    return {
-      title,
-      link: branding?.faviconUrl ? [{ rel: 'icon', href: branding.faviconUrl, key: 'favicon' }] : [],
-    }
+    // unhead v3 types link `rel` as a discriminated union (one literal per
+    // shape), so each entry needs its own concrete `rel` rather than a shared
+    // `rel: string`.
+    const link: Array<
+      { rel: 'icon', href: string, key: string } | { rel: 'stylesheet', href: string, key: string }
+    > = []
+    if (branding?.faviconUrl)
+      link.push({ rel: 'icon', href: branding.faviconUrl, key: 'favicon' })
+    // Per-tenant theme stylesheet: lands after the bundled main.css, so its
+    // :root/.light/.dark overrides win by source order.
+    if (branding?.themeCssUrl)
+      link.push({ rel: 'stylesheet', href: branding.themeCssUrl, key: 'tenant-theme' })
+    return { title, link }
   })
 
   await authStore.init()
 
   // Accent color (white-label): override the goblin scale at runtime. No-op when
-  // unset, so the default green stays.
-  applyBrandColor(authStore.systemVars?.branding?.primaryColor)
+  // unset, so the default green stays. Skipped when a tenant theme stylesheet is
+  // present — it drives --ui-primary directly, and applyBrandColor's inline
+  // --color-goblin-* would otherwise beat the stylesheet's :root rules.
+  const branding = authStore.systemVars?.branding
+  if (!branding?.themeCssUrl) {
+    applyBrandColor(branding?.primaryColor)
+    // Selectable button/primary text color — drives --gftp-primary-text, which
+    // only the primary solid surfaces read (not the shared --ui-text-inverted),
+    // so a light accent (e.g. yellow) pairs with dark button text without
+    // breaking tooltips. Skipped for tenant themes — their config.css owns it.
+    if (branding?.primaryTextColor)
+      document.documentElement.style.setProperty('--gftp-primary-text', branding.primaryTextColor)
+  }
 
   // Language precedence: explicit user choice > admin default > en. Applied
   // here (not on a page) so a restored session landing straight on the

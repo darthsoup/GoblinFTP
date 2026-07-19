@@ -233,6 +233,7 @@ function formatDate(iso: string): string {
               <div v-for="perm in PERM_BITS" :key="perm.key" class="flex justify-center">
                 <UCheckbox
                   :model-value="permChecked(group.index, perm.bit)"
+                  size="sm"
                   :aria-label="`${t(`modal.properties.${group.key}`)}: ${t(`modal.properties.${perm.key}`)}`"
                   @update:model-value="togglePerm(group.index, perm.bit)"
                 />
@@ -245,9 +246,10 @@ function formatDate(iso: string): string {
               <UInput
                 id="properties-octal"
                 v-model="state.octal"
+                size="sm"
                 maxlength="4"
                 class="w-20"
-                :ui="{ base: 'text-center text-primary' }"
+                :ui="{ base: 'text-center' }"
               />
             </UFormField>
           </div>

@@ -50,12 +50,14 @@ func TestSystemVarsPublic(t *testing.T) {
 func TestSystemVarsBranding(t *testing.T) {
 	cfg := defaultTestConfig()
 	color := "#2563eb"
+	textColor := "#0b1220"
 	logo := "https://acme.example/logo.svg"
 	cfg.Settings.Branding = config.BrandingSettings{
-		AppName:         "Acme Transfer",
-		LogoURL:         &logo,
-		PrimaryColor:    &color,
-		HideAttribution: true,
+		AppName:          "Acme Transfer",
+		LogoURL:          &logo,
+		PrimaryColor:     &color,
+		PrimaryTextColor: &textColor,
+		HideAttribution:  true,
 	}
 	app, _, _ := newTestApp(t, cfg)
 	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
@@ -66,11 +68,12 @@ func TestSystemVarsBranding(t *testing.T) {
 	var resp struct {
 		Data struct {
 			Branding struct {
-				AppName         string  `json:"appName"`
-				LogoURL         *string `json:"logoUrl"`
-				FaviconURL      *string `json:"faviconUrl"`
-				PrimaryColor    *string `json:"primaryColor"`
-				HideAttribution bool    `json:"hideAttribution"`
+				AppName          string  `json:"appName"`
+				LogoURL          *string `json:"logoUrl"`
+				FaviconURL       *string `json:"faviconUrl"`
+				PrimaryColor     *string `json:"primaryColor"`
+				PrimaryTextColor *string `json:"primaryTextColor"`
+				HideAttribution  bool    `json:"hideAttribution"`
 			} `json:"branding"`
 		} `json:"data"`
 	}
@@ -80,7 +83,11 @@ func TestSystemVarsBranding(t *testing.T) {
 	assert.Equal(t, logo, *resp.Data.Branding.LogoURL)
 	require.NotNil(t, resp.Data.Branding.PrimaryColor)
 	assert.Equal(t, color, *resp.Data.Branding.PrimaryColor)
-	assert.Nil(t, resp.Data.Branding.FaviconURL)
+	require.NotNil(t, resp.Data.Branding.PrimaryTextColor)
+	assert.Equal(t, textColor, *resp.Data.Branding.PrimaryTextColor)
+	// No favicon set → falls back to the logo so the tab icon is still branded.
+	require.NotNil(t, resp.Data.Branding.FaviconURL)
+	assert.Equal(t, logo, *resp.Data.Branding.FaviconURL)
 	assert.True(t, resp.Data.Branding.HideAttribution)
 }
 

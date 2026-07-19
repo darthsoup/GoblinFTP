@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Salasana",
     "connect": "Yhdistä",
-    "tagline": "Itse isännöity tiedostonsiirto",
     "passive": "Passiivinen tila",
     "errorRequired": "Pakollinen",
     "errorPort": "Virheellinen portti"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "Näytä pisteellä alkavat tiedostot (esim. .htaccess).",
     "gridThumbnails": "Kuvien pikkukuvat",
     "gridThumbnailsHint": "Näytä kuvien esikatselut korttinäkymässä.",
+    "density": "Tiheys",
+    "densityComfortable": "Väljä",
+    "densityCompact": "Tiivis",
     "close": "Valmis"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Peruuta kaikki",
     "clear": "Tyhjennä valmiit",
     "cancel": "Peruuta lähetys",
+    "retry": "Yritä lähetystä uudelleen",
     "status": {
       "queued": "Jonossa",
       "uploading": "Lähetetään",
@@ -123,7 +126,8 @@
     "delete": "Poista",
     "properties": "Ominaisuudet",
     "edit": "Muokkaa",
-    "view": "Näytä"
+    "view": "Näytä",
+    "actions": "Toiminnot"
   },
   "preview": {
     "loading": "Ladataan esikatselua…",

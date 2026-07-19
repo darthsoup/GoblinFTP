@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
 
 const props = defineProps<{
@@ -8,19 +9,24 @@ const props = defineProps<{
   editing: boolean
   isCut: boolean
   active: boolean
+  compact: boolean
+  showPermissions: boolean
+  index: number
+  // Action menu for this row, built by the parent so the "⋮" dropdown and the
+  // right-click context menu share one source of truth.
+  menuItems: DropdownMenuItem[][]
 }>()
 
 const emit = defineEmits<{
   select: [name: string]
   navigate: [path: string]
-  download: [path: string]
   commitRename: [newName: string]
   cancelRename: []
   requestRename: []
   preview: []
 }>()
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
@@ -39,8 +45,6 @@ function onNameDblClick() {
 }
 
 function formatSize(bytes: number): string {
-  if (props.file.isDir)
-    return '--'
   return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
 }
 
@@ -57,26 +61,24 @@ function handleClick() {
     emit('preview')
   }
 }
-
-function handleDownload() {
-  const path = `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`
-  emit('download', path)
-}
 </script>
 
 <template>
   <tr
-    class="group h-11 border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-[13px]"
+    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm"
     :class="[
+      compact ? 'h-9' : 'h-12',
       selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
       isCut ? 'opacity-50' : '',
     ]"
+    :style="{ '--row-i': index }"
     :data-file-name="file.name"
     @click="handleClick"
   >
-    <td class="w-10 px-3">
+    <td class="w-10 px-4">
       <UCheckbox
         :model-value="selected"
+        size="md"
         class="justify-center transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
         :aria-label="file.name"
@@ -84,15 +86,7 @@ function handleDownload() {
         @update:model-value="emit('select', file.name)"
       />
     </td>
-    <td class="w-12 px-2 text-center">
-      <UIcon
-        :name="iconDef.icon"
-        class="size-5 align-middle"
-        :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
-        :style="iconDef.color ? { color: iconDef.color } : undefined"
-      />
-    </td>
-    <td class="px-3 truncate max-w-0">
+    <td class="px-4 truncate max-w-0">
       <input
         v-if="editing"
         ref="inputRef"
@@ -103,31 +97,66 @@ function handleDownload() {
         @keydown.escape.prevent="cancel"
         @blur="commit"
       >
-      <span
-        v-else
-        :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
-        @dblclick.stop="onNameDblClick"
-      >{{ file.name }}</span>
+      <div v-else class="flex items-center gap-2.5 min-w-0">
+        <UIcon
+          :name="iconDef.icon"
+          class="size-5 shrink-0"
+          :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+          :style="iconDef.color ? { color: iconDef.color } : undefined"
+        />
+        <span
+          class="truncate"
+          :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+          @dblclick.stop="onNameDblClick"
+        >{{ file.name }}</span>
+      </div>
     </td>
-    <td class="w-24 px-3 text-right text-muted whitespace-nowrap hidden sm:table-cell">
-      {{ formatSize(file.size) }}
+    <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
+      <span v-if="file.isDir" class="text-dimmed/50">–</span>
+      <span v-else>{{ formatSize(file.size) }}</span>
     </td>
-    <td class="w-40 px-3 text-right text-muted whitespace-nowrap hidden md:table-cell">
+    <td class="w-40 px-4 text-right text-muted whitespace-nowrap hidden md:table-cell">
       {{ formatDate(file.modified) }}
     </td>
-    <td class="w-28 px-3 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
-      {{ file.mode || '--' }}
+    <td v-if="showPermissions" class="w-28 px-4 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
+      <span v-if="file.mode">{{ file.mode }}</span>
+      <span v-else class="text-dimmed/50">–</span>
     </td>
     <td class="w-14 px-2 text-center">
-      <UButton
-        v-if="!file.isDir"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-download"
-        class="opacity-0 group-hover:opacity-100 transition-opacity"
-        @click.stop="handleDownload"
-      />
+      <UDropdownMenu :items="menuItems" :content="{ align: 'end' }">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-ellipsis-vertical"
+          :aria-label="t('context.actions')"
+          class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+          @click.stop
+        />
+      </UDropdownMenu>
     </td>
   </tr>
 </template>
+
+<style scoped>
+/* Staggered reveal on directory load; delay capped so large listings settle fast. */
+.file-row {
+  animation: row-in 0.26s ease backwards;
+  animation-delay: min(calc(var(--row-i) * 12ms), 280ms);
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .file-row {
+    animation: none;
+  }
+}
+</style>

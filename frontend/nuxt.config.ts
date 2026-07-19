@@ -68,7 +68,7 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2026-05-01',
 
-  css: ['./app/assets/css/main.css'],
+  css: ['~/assets/css/main.css'],
 
   vite: {
     plugins: [
@@ -85,6 +85,11 @@ export default defineNuxtConfig({
       proxy: {
         '/api': {
           // override with GFTP_DEV_PROXY to point at a backend on another port
+          target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
+          changeOrigin: true,
+        },
+        // Per-tenant theme assets are served by the Go backend (Caddy does this in prod).
+        '/themes': {
           target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,
         },

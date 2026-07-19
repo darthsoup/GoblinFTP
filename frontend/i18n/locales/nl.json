@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Wachtwoord",
     "connect": "Verbinden",
-    "tagline": "Zelfgehoste bestandsoverdracht",
     "passive": "Passieve modus",
     "errorRequired": "Verplicht",
     "errorPort": "Ongeldige poort"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "Bestanden met een punt aan het begin tonen (bijv. .htaccess).",
     "gridThumbnails": "Miniaturen van afbeeldingen",
     "gridThumbnailsHint": "Voorbeelden van afbeeldingen tonen in de kaartweergave.",
+    "density": "Dichtheid",
+    "densityComfortable": "Comfortabel",
+    "densityCompact": "Compact",
     "close": "Klaar"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Alles annuleren",
     "clear": "Voltooide wissen",
     "cancel": "Upload annuleren",
+    "retry": "Upload opnieuw proberen",
     "status": {
       "queued": "In wachtrij",
       "uploading": "Bezig met uploaden",
@@ -123,7 +126,8 @@
     "delete": "Verwijderen",
     "properties": "Eigenschappen",
     "edit": "Bewerken",
-    "view": "Bekijken"
+    "view": "Bekijken",
+    "actions": "Acties"
   },
   "preview": {
     "loading": "Voorbeeld laden…",

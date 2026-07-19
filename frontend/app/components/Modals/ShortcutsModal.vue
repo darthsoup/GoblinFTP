@@ -62,7 +62,7 @@ const groups = computed(() => [
             >
               <span class="text-sm text-default">{{ item.label }}</span>
               <span class="flex items-center gap-1">
-                <UKbd v-for="k in item.keys" :key="k" :value="k" />
+                <UKbd v-for="k in item.keys" :key="k" :value="k" size="md" />
               </span>
             </li>
           </ul>

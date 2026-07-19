@@ -93,6 +93,7 @@ For implementing a generator in any other language
    | `password` | string | login password |
    | `initialDirectory` | string | optional hint (currently the server's working directory wins) |
    | `language` | string | optional UI language hint (`en`, `de`) |
+   | `tenant` | string | optional white-label tenant slug; selects `themes/<tenant>/` (see `examples/themes/`) |
    | `exp` | int | Unix timestamp; token rejected after this |
 
 2. **Key derivation** — `HKDF-SHA256(secret, salt = empty, info = "gftp-sso")`, 32 bytes.

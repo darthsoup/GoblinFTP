@@ -8,6 +8,8 @@ const props = defineProps<{
   editing: boolean
   isCut: boolean
   active: boolean
+  compact: boolean
+  index: number
 }>()
 
 const emit = defineEmits<{
@@ -97,18 +99,21 @@ function handleDownload() {
 <template>
   <div
     role="listitem"
-    class="group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated/50 p-2 transition-colors hover:bg-accented/40 hover:border-accented"
+    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
     :class="[
+      compact ? 'p-1.5' : 'p-2',
       selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
       isCut ? 'opacity-50' : '',
     ]"
+    :style="{ '--card-i': index }"
     :data-file-name="file.name"
     @click="handleClick"
   >
     <!-- Thumbnail / icon -->
     <div
       ref="thumbEl"
-      class="relative aspect-square mb-2 rounded-md bg-muted/40 overflow-hidden flex items-center justify-center"
+      class="relative aspect-square rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
+      :class="compact ? 'mb-1.5' : 'mb-2'"
     >
       <img
         v-if="showThumb"
@@ -120,14 +125,18 @@ function handleDownload() {
       <UIcon
         v-else
         :name="iconDef.icon"
-        class="size-10"
-        :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+        class="transition-transform duration-150 group-hover:scale-105"
+        :class="[
+          compact ? 'size-9' : 'size-12',
+          iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed'),
+        ]"
         :style="iconDef.color ? { color: iconDef.color } : undefined"
       />
 
       <!-- Selection checkbox (top-left), shown on hover or when selected -->
       <UCheckbox
         :model-value="selected"
+        size="md"
         class="absolute top-1 left-1 transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
         :aria-label="file.name"
@@ -161,8 +170,11 @@ function handleDownload() {
     >
     <div
       v-else
-      class="text-sm text-center truncate"
-      :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+      class="text-center truncate"
+      :class="[
+        compact ? 'text-xs' : 'text-sm',
+        file.isDir ? 'font-semibold text-highlighted' : 'text-default',
+      ]"
       :title="file.name"
       @dblclick.stop="onNameDblClick"
     >
@@ -175,3 +187,26 @@ function handleDownload() {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Staggered reveal on directory load; delay capped so large grids settle fast. */
+.file-card {
+  animation: card-in 0.26s ease backwards;
+  animation-delay: min(calc(var(--card-i) * 12ms), 280ms);
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .file-card {
+    animation: none;
+  }
+}
+</style>

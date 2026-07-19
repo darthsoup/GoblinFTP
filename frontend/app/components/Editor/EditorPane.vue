@@ -79,30 +79,32 @@ async function loadLanguage(filename: string): Promise<Extension> {
   }
 }
 
-// Align CodeMirror's chrome with the Goblin Tech-Dark surfaces (layered over oneDark)
+// Align CodeMirror's chrome with the Goblin design tokens (layered over oneDark in
+// dark mode). The themes are mode-scoped, so the design-system custom properties —
+// which flip per mode — resolve to the right surface here.
 const goblinDarkTheme = EditorView.theme({
-  '&': { backgroundColor: '#0d1117' },
+  '&': { backgroundColor: 'var(--ui-bg)' },
   '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
-  '.cm-gutters': { backgroundColor: '#10141a', borderRight: '1px solid #21262d' },
-  '.cm-activeLine': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
-  '.cm-activeLineGutter': { backgroundColor: 'rgba(33, 38, 45, 0.5)' },
-  '.cm-panels': { backgroundColor: '#10141a', color: '#c9d1d9' },
-  '.cm-panels.cm-panels-top': { borderBottom: '1px solid #21262d' },
-  '.cm-textfield': { backgroundColor: '#0d1117', border: '1px solid #21262d', color: '#c9d1d9' },
-  '.cm-button': { backgroundColor: '#21262d', border: '1px solid #30363d', color: '#c9d1d9', backgroundImage: 'none' },
+  '.cm-gutters': { backgroundColor: 'var(--ui-bg-muted)', borderRight: '1px solid var(--ui-border)' },
+  '.cm-activeLine': { backgroundColor: 'color-mix(in oklab, var(--ui-bg-accented) 50%, transparent)' },
+  '.cm-activeLineGutter': { backgroundColor: 'color-mix(in oklab, var(--ui-bg-accented) 50%, transparent)' },
+  '.cm-panels': { backgroundColor: 'var(--ui-bg-muted)', color: 'var(--ui-text)' },
+  '.cm-panels.cm-panels-top': { borderBottom: '1px solid var(--ui-border)' },
+  '.cm-textfield': { backgroundColor: 'var(--ui-bg)', border: '1px solid var(--ui-border)', color: 'var(--ui-text)' },
+  '.cm-button': { backgroundColor: 'var(--ui-bg-accented)', border: '1px solid var(--ui-border-accented)', color: 'var(--ui-text)', backgroundImage: 'none' },
 }, { dark: true })
 
-// Goblin Tech-Light: recessed code surface (#f1f5f9) with slate chrome
+// Goblin Tech-Light: recessed code surface with slate chrome (same tokens, light values).
 const goblinLightTheme = EditorView.theme({
-  '&': { backgroundColor: '#f1f5f9' },
+  '&': { backgroundColor: 'var(--gftp-editor-bg)' },
   '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
-  '.cm-gutters': { backgroundColor: '#e6e8ea', borderRight: '1px solid #cbd5e1', color: '#64748b' },
-  '.cm-activeLine': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
-  '.cm-activeLineGutter': { backgroundColor: 'rgba(203, 213, 225, 0.35)' },
-  '.cm-panels': { backgroundColor: '#e6e8ea', color: '#334155' },
-  '.cm-panels.cm-panels-top': { borderBottom: '1px solid #cbd5e1' },
-  '.cm-textfield': { backgroundColor: '#ffffff', border: '1px solid #cbd5e1', color: '#334155' },
-  '.cm-button': { backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', backgroundImage: 'none' },
+  '.cm-gutters': { backgroundColor: 'var(--ui-bg-accented)', borderRight: '1px solid var(--ui-border-accented)', color: 'var(--ui-text-muted)' },
+  '.cm-activeLine': { backgroundColor: 'color-mix(in oklab, var(--ui-border-accented) 35%, transparent)' },
+  '.cm-activeLineGutter': { backgroundColor: 'color-mix(in oklab, var(--ui-border-accented) 35%, transparent)' },
+  '.cm-panels': { backgroundColor: 'var(--ui-bg-accented)', color: 'var(--ui-text)' },
+  '.cm-panels.cm-panels-top': { borderBottom: '1px solid var(--ui-border-accented)' },
+  '.cm-textfield': { backgroundColor: 'var(--ui-bg-elevated)', border: '1px solid var(--ui-border-accented)', color: 'var(--ui-text)' },
+  '.cm-button': { backgroundColor: 'var(--gftp-editor-bg)', border: '1px solid var(--ui-border-accented)', color: 'var(--ui-text)', backgroundImage: 'none' },
 }, { dark: false })
 
 function themeExtensions(): Extension {

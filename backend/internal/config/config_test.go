@@ -24,7 +24,7 @@ func clearEnv(t *testing.T) {
 		"GFTP_LOG_FILE_MAX_BACKUPS", "GFTP_LOG_FILE_MAX_AGE_DAYS", "GFTP_LOG_FRONTEND",
 		"GFTP_METRICS_ENABLED", "GFTP_METRICS_PORT",
 		"GFTP_APP_NAME", "GFTP_LOGO_URL", "GFTP_FAVICON_URL", "GFTP_PRIMARY_COLOR",
-		"GFTP_TAGLINE", "GFTP_HIDE_ATTRIBUTION",
+		"GFTP_PRIMARY_TEXT_COLOR", "GFTP_HIDE_ATTRIBUTION",
 	} {
 		t.Setenv(k, "")
 	}
@@ -73,7 +73,7 @@ func TestLoadBrandingFromEnv(t *testing.T) {
 	t.Setenv("GFTP_LOGO_URL", "https://acme.example/logo.svg")
 	t.Setenv("GFTP_FAVICON_URL", "https://acme.example/favicon.ico")
 	t.Setenv("GFTP_PRIMARY_COLOR", "#2563eb")
-	t.Setenv("GFTP_TAGLINE", "Move bits, not mountains")
+	t.Setenv("GFTP_PRIMARY_TEXT_COLOR", "#0b1220")
 	t.Setenv("GFTP_HIDE_ATTRIBUTION", "true")
 
 	cfg, err := config.Load(nil, "")
@@ -87,8 +87,8 @@ func TestLoadBrandingFromEnv(t *testing.T) {
 	assert.Equal(t, "https://acme.example/favicon.ico", *b.FaviconURL)
 	require.NotNil(t, b.PrimaryColor)
 	assert.Equal(t, "#2563eb", *b.PrimaryColor)
-	require.NotNil(t, b.Tagline)
-	assert.Equal(t, "Move bits, not mountains", *b.Tagline)
+	require.NotNil(t, b.PrimaryTextColor)
+	assert.Equal(t, "#0b1220", *b.PrimaryTextColor)
 	assert.True(t, b.HideAttribution)
 }
 

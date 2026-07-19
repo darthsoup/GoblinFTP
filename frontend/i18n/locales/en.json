@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Password",
     "connect": "Connect",
-    "tagline": "Self-hosted file transfer",
     "passive": "Passive mode",
     "errorRequired": "Required",
     "errorPort": "Invalid port"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "List files starting with a dot (e.g. .htaccess).",
     "gridThumbnails": "Image thumbnails",
     "gridThumbnailsHint": "Show image previews in the card grid.",
+    "density": "Density",
+    "densityComfortable": "Comfortable",
+    "densityCompact": "Compact",
     "close": "Done"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Cancel All",
     "clear": "Clear Completed",
     "cancel": "Cancel upload",
+    "retry": "Retry upload",
     "status": {
       "queued": "Queued",
       "uploading": "Uploading",
@@ -123,7 +126,8 @@
     "delete": "Delete",
     "properties": "Properties",
     "edit": "Edit",
-    "view": "View"
+    "view": "View",
+    "actions": "Actions"
   },
   "preview": {
     "loading": "Loading preview…",

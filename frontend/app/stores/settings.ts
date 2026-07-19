@@ -14,6 +14,7 @@ export type SizeFormat = 'binary' | 'decimal' | 'bytes'
 export type DateFormat = 'auto' | 'absolute' | 'relative'
 export type AppLanguage = 'en' | 'de' | 'cs' | 'da' | 'es' | 'fi' | 'fr' | 'it' | 'nb-NO' | 'nl' | 'pt' | 'sk' | 'sv'
 export type FileViewMode = 'table' | 'cards'
+export type Density = 'comfortable' | 'compact'
 
 interface PersistedSettings {
   showDotfiles?: boolean | null
@@ -23,10 +24,12 @@ interface PersistedSettings {
   dateFormat?: DateFormat
   fileViewMode?: FileViewMode
   gridThumbnails?: boolean
+  density?: Density
 }
 
 const SIZE_FORMATS: SizeFormat[] = ['binary', 'decimal', 'bytes']
 const DATE_FORMATS: DateFormat[] = ['auto', 'absolute', 'relative']
+const DENSITIES: Density[] = ['comfortable', 'compact']
 export const LANGUAGES: AppLanguage[] = ['en', 'de', 'cs', 'da', 'es', 'fi', 'fr', 'it', 'nb-NO', 'nl', 'pt', 'sk', 'sv']
 
 // Narrow the admin default (settings.json) to a supported language; shared with the auth plugin.
@@ -52,6 +55,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const fileViewMode = ref<FileViewMode>(defaultFileViewMode())
   // Show image thumbnails in the card grid (end-user preference).
   const gridThumbnails = ref(true)
+  // Row height in the file table: comfortable (default) or compact.
+  const density = ref<Density>('comfortable')
 
   const showDotfiles = computed({
     get: () => userShowDotfiles.value ?? authStore.systemVars?.ui.showDotFiles ?? false,
@@ -78,11 +83,13 @@ export const useSettingsStore = defineStore('settings', () => {
         fileViewMode.value = parsed.fileViewMode
       if (typeof parsed.gridThumbnails === 'boolean')
         gridThumbnails.value = parsed.gridThumbnails
+      if (parsed.density && DENSITIES.includes(parsed.density))
+        density.value = parsed.density
     }
   }
   catch {}
 
-  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails], () => {
+  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails, density], () => {
     try {
       const persisted: PersistedSettings = {
         showDotfiles: userShowDotfiles.value,
@@ -92,11 +99,12 @@ export const useSettingsStore = defineStore('settings', () => {
         dateFormat: dateFormat.value,
         fileViewMode: fileViewMode.value,
         gridThumbnails: gridThumbnails.value,
+        density: density.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
     }
     catch {}
   })
 
-  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails }
+  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails, density }
 })

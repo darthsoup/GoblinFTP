@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Heslo",
     "connect": "Pripojiť",
-    "tagline": "Samostatne hostovaný prenos súborov",
     "passive": "Pasívny režim",
     "errorRequired": "Povinné",
     "errorPort": "Neplatný port"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "Zobraziť súbory začínajúce bodkou (napr. .htaccess).",
     "gridThumbnails": "Náhľady obrázkov",
     "gridThumbnailsHint": "Zobraziť náhľady obrázkov v mriežke kariet.",
+    "density": "Hustota",
+    "densityComfortable": "Pohodlné",
+    "densityCompact": "Kompaktné",
     "close": "Hotovo"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Zrušiť všetko",
     "clear": "Vymazať dokončené",
     "cancel": "Zrušiť nahrávanie",
+    "retry": "Zopakovať nahrávanie",
     "status": {
       "queued": "Vo fronte",
       "uploading": "Nahráva sa",
@@ -123,7 +126,8 @@
     "delete": "Odstrániť",
     "properties": "Vlastnosti",
     "edit": "Upraviť",
-    "view": "Zobraziť"
+    "view": "Zobraziť",
+    "actions": "Akcie"
   },
   "preview": {
     "loading": "Načítava sa náhľad…",

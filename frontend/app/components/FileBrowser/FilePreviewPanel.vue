@@ -129,7 +129,7 @@ function fmtDate(iso: string): string {
 </script>
 
 <template>
-  <aside class="flex flex-col overflow-hidden border-l border-default bg-default md:bg-elevated/30">
+  <aside class="flex flex-col overflow-hidden border-l border-default bg-elevated">
     <!-- Header -->
     <div class="flex items-center gap-2 px-3 h-11 border-b border-default shrink-0">
       <UIcon
@@ -202,7 +202,7 @@ function fmtDate(iso: string): string {
             v-else-if="kind === 'pdf' && mediaUrl"
             :src="mediaUrl"
             :title="file.name"
-            class="block w-full h-96 rounded border border-default bg-white"
+            class="block w-full h-96 rounded border border-default bg-muted/30"
           />
           <pre
             v-else-if="kind === 'text' && textContent !== null"
@@ -228,7 +228,7 @@ function fmtDate(iso: string): string {
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.permissions') }}</span>
-            <span class="text-sm text-default">{{ file.mode || '--' }}</span>
+            <span class="text-sm" :class="file.mode ? 'text-default' : 'text-dimmed/60'">{{ file.mode || '–' }}</span>
           </div>
         </div>
       </div>

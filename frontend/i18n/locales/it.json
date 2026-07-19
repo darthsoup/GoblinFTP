@@ -8,7 +8,6 @@
     "usernamePlaceholder": "ftp_user",
     "password": "Password",
     "connect": "Connetti",
-    "tagline": "Trasferimento file self-hosted",
     "passive": "Modalità passiva",
     "errorRequired": "Obbligatorio",
     "errorPort": "Porta non valida"
@@ -56,6 +55,9 @@
     "showDotfilesHint": "Elenca i file che iniziano con un punto (es. .htaccess).",
     "gridThumbnails": "Anteprime immagini",
     "gridThumbnailsHint": "Mostra le anteprime delle immagini nella vista a schede.",
+    "density": "Densità",
+    "densityComfortable": "Comoda",
+    "densityCompact": "Compatta",
     "close": "Fatto"
   },
   "session": {
@@ -106,6 +108,7 @@
     "cancelAll": "Annulla tutto",
     "clear": "Rimuovi completati",
     "cancel": "Annulla caricamento",
+    "retry": "Riprova caricamento",
     "status": {
       "queued": "In coda",
       "uploading": "Caricamento in corso",
@@ -123,7 +126,8 @@
     "delete": "Elimina",
     "properties": "Proprietà",
     "edit": "Modifica",
-    "view": "Visualizza"
+    "view": "Visualizza",
+    "actions": "Azioni"
   },
   "preview": {
     "loading": "Caricamento anteprima…",

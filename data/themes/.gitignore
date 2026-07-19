@@ -1,0 +1,5 @@
+# Tenant themes are operator-provided at runtime.
+# Keep this directory in git, but don't commit any themes dropped in.
+*
+!.gitignore
+!README.md

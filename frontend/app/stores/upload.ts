@@ -174,6 +174,18 @@ export const useUploadStore = defineStore('upload', () => {
     })
   }
 
+  // Re-queue a failed or cancelled item; _runUpload re-runs it from scratch.
+  function retryItem(id: string) {
+    const item = items.value.find(i => i.id === id)
+    if (item && (item.status === 'error' || item.status === 'cancelled')) {
+      item.status = 'queued'
+      item.progress = 0
+      item.bytesUploaded = 0
+      item.error = undefined
+      _processQueue()
+    }
+  }
+
   function clearDone() {
     items.value = items.value.filter(
       i => i.status !== 'done' && i.status !== 'error' && i.status !== 'cancelled',
@@ -194,6 +206,7 @@ export const useUploadStore = defineStore('upload', () => {
     addEntries,
     cancelItem,
     cancelAll,
+    retryItem,
     clearDone,
     $reset,
   }
