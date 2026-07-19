@@ -249,7 +249,7 @@ function formatDate(iso: string): string {
                 size="sm"
                 maxlength="4"
                 class="w-20"
-                :ui="{ base: 'text-center text-primary' }"
+                :ui="{ base: 'text-center' }"
               />
             </UFormField>
           </div>
