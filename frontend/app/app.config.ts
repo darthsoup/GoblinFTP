@@ -1,6 +1,12 @@
 export default defineAppConfig({
   ui: {
-    // white panel, comfortable lg items
+
+    header: {
+      slots: {
+        container: 'lg:px-4',
+      },
+    },
+
     contextMenu: {
       slots: { content: 'min-w-48 bg-elevated' },
       defaultVariants: { size: 'lg' },
