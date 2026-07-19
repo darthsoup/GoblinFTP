@@ -126,7 +126,8 @@
     "delete": "Smazat",
     "properties": "Vlastnosti",
     "edit": "Upravit",
-    "view": "Zobrazit"
+    "view": "Zobrazit",
+    "actions": "Akce"
   },
   "preview": {
     "loading": "Načítání náhledu…",

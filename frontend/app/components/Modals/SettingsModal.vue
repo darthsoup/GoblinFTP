@@ -103,10 +103,14 @@ const densityItems = computed(() => [
 
     <template #footer="{ close }">
       <div class="flex w-full items-center justify-between">
-        <!-- Brand + semver is locale-invariant — no i18n key needed. -->
-        <span v-if="!hideAttribution" class="text-xs text-dimmed">{{ appName }} {{ authStore.systemVars?.version ?? '' }}</span>
-        <span v-else />
         <UButton :label="t('settings.close')" @click="close" />
+        <!-- Brand + semver is locale-invariant — no i18n key needed. -->
+        <span
+          v-if="!hideAttribution"
+          class="text-xs text-dimmed"
+        >
+          {{ appName }} {{ authStore.systemVars?.version ?? '' }}
+        </span>
       </div>
     </template>
   </UModal>

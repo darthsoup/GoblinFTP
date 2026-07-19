@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
 
 const props = defineProps<{
@@ -11,19 +12,21 @@ const props = defineProps<{
   compact: boolean
   showPermissions: boolean
   index: number
+  // Action menu for this row, built by the parent so the "⋮" dropdown and the
+  // right-click context menu share one source of truth.
+  menuItems: DropdownMenuItem[][]
 }>()
 
 const emit = defineEmits<{
   select: [name: string]
   navigate: [path: string]
-  download: [path: string]
   commitRename: [newName: string]
   cancelRename: []
   requestRename: []
   preview: []
 }>()
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
@@ -57,11 +60,6 @@ function handleClick() {
   else {
     emit('preview')
   }
-}
-
-function handleDownload() {
-  const path = `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`
-  emit('download', path)
 }
 </script>
 
@@ -125,15 +123,17 @@ function handleDownload() {
       <span v-else class="text-dimmed/50">–</span>
     </td>
     <td class="w-14 px-2 text-center">
-      <UButton
-        v-if="!file.isDir"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        icon="i-lucide-download"
-        class="opacity-0 group-hover:opacity-100 transition-opacity"
-        @click.stop="handleDownload"
-      />
+      <UDropdownMenu :items="menuItems" :content="{ align: 'end' }">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-ellipsis-vertical"
+          :aria-label="t('context.actions')"
+          class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+          @click.stop
+        />
+      </UDropdownMenu>
     </td>
   </tr>
 </template>

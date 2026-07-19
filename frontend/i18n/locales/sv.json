@@ -126,7 +126,8 @@
     "delete": "Ta bort",
     "properties": "Egenskaper",
     "edit": "Redigera",
-    "view": "Visa"
+    "view": "Visa",
+    "actions": "Åtgärder"
   },
   "preview": {
     "loading": "Laddar förhandsvisning…",

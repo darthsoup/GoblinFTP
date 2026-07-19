@@ -126,7 +126,8 @@
     "delete": "Elimina",
     "properties": "Proprietà",
     "edit": "Modifica",
-    "view": "Visualizza"
+    "view": "Visualizza",
+    "actions": "Azioni"
   },
   "preview": {
     "loading": "Caricamento anteprima…",

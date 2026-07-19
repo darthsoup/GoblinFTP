@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ButtonProps, ContextMenuItem } from '@nuxt/ui'
+import type { ButtonProps, DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
 import { ApiError } from '~/types/api'
 
@@ -191,14 +191,18 @@ const editEnabled = computed(() => {
   }
 })
 
-const menuItems = computed<ContextMenuItem[][]>(() => {
-  const file = menuFile.value
-  if (!file)
-    return []
+// Shared by the row/card "⋮" dropdown and the right-click context menu, so both
+// expose an identical action set. Grouped arrays render as separated sections.
+function buildFileMenu(file: FileInfo): DropdownMenuItem[][] {
   const dir = filesStore.currentPath.replace(/\/$/, '')
   const path = `${dir}/${file.name}`
 
-  const middle: ContextMenuItem[] = [
+  // Directories can't be downloaded — the group is dropped below when empty.
+  const primary: DropdownMenuItem[] = []
+  if (!file.isDir)
+    primary.push({ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) })
+
+  const middle: DropdownMenuItem[] = [
     { label: t('context.rename'), icon: 'i-lucide-pencil-line', onSelect: () => filesStore.startRename(file.name) },
   ]
   if (editEnabled.value(file)) {
@@ -210,20 +214,21 @@ const menuItems = computed<ContextMenuItem[][]>(() => {
   }
   middle.push({ label: t('context.properties'), icon: 'i-lucide-info', onSelect: () => modalStore.open('properties', { file }) })
 
-  const clipboard: ContextMenuItem[] = [
+  const clipboard: DropdownMenuItem[] = [
     { label: t('context.copy'), icon: 'i-lucide-copy', onSelect: () => filesStore.copyToClipboard(clipboardNames(file)) },
     { label: t('context.cut'), icon: 'i-lucide-scissors', onSelect: () => filesStore.cutToClipboard(clipboardNames(file)) },
   ]
   if (filesStore.clipboard)
     clipboard.push({ label: t('context.paste'), icon: 'i-lucide-clipboard-paste', onSelect: runPaste })
 
-  return [
-    [{ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) }],
-    middle,
-    clipboard,
-    [{ label: t('context.delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => modalStore.open('delete', { file }) }],
+  const del: DropdownMenuItem[] = [
+    { label: t('context.delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => modalStore.open('delete', { file }) },
   ]
-})
+
+  return [primary, middle, clipboard, del].filter(group => group.length > 0)
+}
+
+const menuItems = computed<DropdownMenuItem[][]>(() => menuFile.value ? buildFileMenu(menuFile.value) : [])
 
 // Capture-phase: resolve the right-clicked row/card before Reka's trigger opens
 // the menu; on empty space, stop the event so the browser menu shows instead.
@@ -365,11 +370,11 @@ async function onDrop(e: DragEvent) {
                   {{ t('files.name') }}
                   <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-24 px-4 py-2 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden sm:table-cell" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
+                <th class="w-24 px-4 py-2 text-right whitespace-nowrap cursor-pointer hover:text-primary font-bold transition-colors hidden sm:table-cell" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
                   {{ t('files.size') }}
                   <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
                 </th>
-                <th class="w-40 px-4 py-2 text-right cursor-pointer hover:text-primary font-bold transition-colors hidden md:table-cell" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
+                <th class="w-40 px-4 py-2 text-right whitespace-nowrap cursor-pointer hover:text-primary font-bold transition-colors hidden md:table-cell" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
                   {{ t('files.modified') }}
                   <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
                 </th>
@@ -393,9 +398,9 @@ async function onDrop(e: DragEvent) {
                 :compact="compact"
                 :show-permissions="hasPermissions"
                 :index="i"
+                :menu-items="buildFileMenu(file)"
                 @select="filesStore.toggleSelection"
                 @navigate="filesStore.navigate"
-                @download="onDownload"
                 @request-rename="filesStore.startRename(file.name)"
                 @cancel-rename="filesStore.cancelRename"
                 @commit-rename="(name: string) => onCommitRename(file, name)"
@@ -405,34 +410,58 @@ async function onDrop(e: DragEvent) {
           </table>
 
           <!-- Cards view -->
-          <div
-            v-else
-            role="list"
-            class="grid"
-            :class="compact
-              ? 'gap-2 p-2 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'
-              : 'gap-3 p-3 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))]'"
-          >
-            <FileCard
-              v-for="(file, i) in visibleFiles"
-              :key="file.name"
-              :file="file"
-              :selected="filesStore.selected.has(file.name)"
-              :current-path="filesStore.currentPath"
-              :editing="filesStore.editingName === file.name"
-              :is-cut="cutNames.has(file.name)"
-              :active="previewName === file.name"
-              :compact="compact"
-              :index="i"
-              @select="filesStore.toggleSelection"
-              @navigate="filesStore.navigate"
-              @download="onDownload"
-              @request-rename="filesStore.startRename(file.name)"
-              @cancel-rename="filesStore.cancelRename"
-              @commit-rename="(name: string) => onCommitRename(file, name)"
-              @preview="previewName = file.name"
-            />
-          </div>
+          <template v-else>
+            <!-- The grid has no column header, so this sticky bar carries the
+                 select-all affordance the table gets from its <thead> checkbox. -->
+            <div
+              class="sticky top-0 z-[5] flex items-center bg-elevated/95 backdrop-blur border-b border-default"
+              :class="compact ? 'px-2.5 py-1.5' : 'px-3.5 py-2'"
+            >
+              <!-- Stable label + explicit reactive :aria-label. Two reasons the label
+                   must stay constant ("Select all") rather than showing the count:
+                   (1) the count is already surfaced in the toolbar's selection badge;
+                   (2) a dynamic label whose text isn't in the accessible name fails
+                   WCAG 2.5.3. The explicit :aria-label is required because Reka's
+                   CheckboxRoot otherwise freezes an aria-label from the label's
+                   uppercased innerText at mount, going stale across locale/state. -->
+              <UCheckbox
+                :model-value="headerChecked"
+                size="md"
+                :label="t('toolbar.selectAll')"
+                :aria-label="t('toolbar.selectAll')"
+                :ui="{ label: 'label-caps text-muted' }"
+                @update:model-value="toggleSelectAll"
+              />
+            </div>
+
+            <div
+              role="list"
+              class="grid"
+              :class="compact
+                ? 'gap-2 p-2 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'
+                : 'gap-3 p-3 grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))]'"
+            >
+              <FileCard
+                v-for="(file, i) in visibleFiles"
+                :key="file.name"
+                :file="file"
+                :selected="filesStore.selected.has(file.name)"
+                :current-path="filesStore.currentPath"
+                :editing="filesStore.editingName === file.name"
+                :is-cut="cutNames.has(file.name)"
+                :active="previewName === file.name"
+                :compact="compact"
+                :index="i"
+                @select="filesStore.toggleSelection"
+                @navigate="filesStore.navigate"
+                @download="onDownload"
+                @request-rename="filesStore.startRename(file.name)"
+                @cancel-rename="filesStore.cancelRename"
+                @commit-rename="(name: string) => onCommitRename(file, name)"
+                @preview="previewName = file.name"
+              />
+            </div>
+          </template>
         </div>
       </UContextMenu>
 

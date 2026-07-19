@@ -126,7 +126,8 @@
     "delete": "Slet",
     "properties": "Egenskaber",
     "edit": "Rediger",
-    "view": "Vis"
+    "view": "Vis",
+    "actions": "Handlinger"
   },
   "preview": {
     "loading": "Indlæser forhåndsvisning…",

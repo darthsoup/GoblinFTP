@@ -6,6 +6,11 @@ export default defineAppConfig({
       defaultVariants: { size: 'lg' },
     },
 
+    dropdownMenu: {
+      slots: { content: 'min-w-48 bg-elevated' },
+      defaultVariants: { size: 'lg' },
+    },
+
     // inverted bubble (no ring/shadow); the v4 default is a light surface
     tooltip: {
       slots: {
@@ -82,6 +87,7 @@ export default defineAppConfig({
 
       compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
+
     inputNumber: {
       defaultVariants: { size: 'lg' },
 
@@ -101,6 +107,7 @@ export default defineAppConfig({
 
       compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
+
     inputMenu: {
       defaultVariants: { size: 'lg' },
 
@@ -120,6 +127,7 @@ export default defineAppConfig({
 
       compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
+
     select: {
       defaultVariants: { size: 'lg' },
       // select's placeholder is a span slot, not an <input> ::placeholder
@@ -137,6 +145,7 @@ export default defineAppConfig({
       },
       compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
+
     selectMenu: {
       defaultVariants: { size: 'lg' },
       slots: {
@@ -153,6 +162,7 @@ export default defineAppConfig({
       },
       compoundVariants: [{ color: 'primary', variant: 'outline', class: 'focus-visible:ring-1' }],
     },
+
     textarea: {
       defaultVariants: { size: 'lg' },
       slots: {

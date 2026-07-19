@@ -126,7 +126,8 @@
     "delete": "Poista",
     "properties": "Ominaisuudet",
     "edit": "Muokkaa",
-    "view": "Näytä"
+    "view": "Näytä",
+    "actions": "Toiminnot"
   },
   "preview": {
     "loading": "Ladataan esikatselua…",

@@ -126,7 +126,8 @@
     "delete": "Delete",
     "properties": "Properties",
     "edit": "Edit",
-    "view": "View"
+    "view": "View",
+    "actions": "Actions"
   },
   "preview": {
     "loading": "Loading preview…",

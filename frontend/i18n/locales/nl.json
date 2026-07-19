@@ -126,7 +126,8 @@
     "delete": "Verwijderen",
     "properties": "Eigenschappen",
     "edit": "Bewerken",
-    "view": "Bekijken"
+    "view": "Bekijken",
+    "actions": "Acties"
   },
   "preview": {
     "loading": "Voorbeeld laden…",
