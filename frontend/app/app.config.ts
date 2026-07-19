@@ -7,6 +7,19 @@ export default defineAppConfig({
       },
     },
 
+    breadcrumb: {
+      variants: {
+        active: {
+          true: {
+            link: 'font-semibold',
+          },
+          false: {
+            link: 'text-muted font-medium',
+          },
+        },
+      },
+    },
+
     contextMenu: {
       slots: { content: 'min-w-48 bg-elevated' },
       defaultVariants: { size: 'lg' },

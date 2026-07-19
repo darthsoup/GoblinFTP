@@ -18,8 +18,9 @@ const items = computed<BreadcrumbItem[]>(() => {
     'onClick': () => filesStore.navigate('/'),
   }
   const segs = filesStore.pathSegments
-  // The current folder (last segment) carries a leading folder glyph; UBreadcrumb's
-  // active variant already renders it green + semibold against the muted ancestors.
+  // The current folder (last segment) carries a leading folder glyph; with
+  // color="neutral" UBreadcrumb renders the active segment highlighted + semibold
+  // (no accent colour) against the muted ancestors.
   let segItems: BreadcrumbItem[] = segs.map((seg, i) => ({
     label: seg.label,
     ...(i === segs.length - 1 ? { icon: 'i-lucide-folder-open' } : {}),
@@ -70,12 +71,15 @@ const items = computed<BreadcrumbItem[]>(() => {
 
     <UBreadcrumb
       :items="items"
+      color="neutral"
       class="min-w-0"
       :ui="{
         list: 'gap-1',
         link: 'rounded-sm px-1.5 py-0.5 hover:bg-accented/60 transition-colors duration-150 cursor-pointer',
         linkLabel: 'truncate max-w-32 sm:max-w-48',
-        linkLeadingIcon: 'size-4 text-primary shrink-0',
+        // Inherit the segment's text colour (currentColor) so the active glyph is
+        // highlighted like its label and ancestors stay muted — no accent colour.
+        linkLeadingIcon: 'size-4 shrink-0',
         separatorIcon: 'size-3.5 text-dimmed',
       }"
     />
