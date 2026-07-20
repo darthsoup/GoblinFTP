@@ -94,15 +94,25 @@ docker-run:
 docker-push:
     docker push ghcr.io/darthsoup/goblinftp
 
-# Start with docker compose
+# Start dev stack (builds from source; docker-compose.override.yml auto-merges)
 [group('docker')]
 docker-up:
     docker compose up --build
 
-# Stop docker compose
+# Stop dev stack
 [group('docker')]
 docker-down:
     docker compose down
+
+# Start prod stack (pulls the published image; needs secrets in .env)
+[group('docker')]
+docker-up-prod:
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Stop prod stack
+[group('docker')]
+docker-down-prod:
+    docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
 # Start local FTP test server (ftpuser/ftppass on :21)
 [group('services')]

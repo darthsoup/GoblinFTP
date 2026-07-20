@@ -1,8 +1,14 @@
+# Base compose config, shared by development and production.
+#
+#   Dev:  docker compose up --build
+#         (docker-compose.override.yml is auto-merged; builds from source and
+#          provides the FTP/FTPS/SFTP/S3 test servers)
+#   Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#         (pulls the published image, requires secrets, persists /app/data)
+#
+# The `just docker-up` / `docker-up-prod` recipes wrap these commands.
 services:
   gftp:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
     image: ghcr.io/darthsoup/goblinftp
     ports:
       - "8080:80"
@@ -13,97 +19,16 @@ services:
       GFTP_SSO_ENABLED: "${GFTP_SSO_ENABLED:-false}"
       GFTP_SSO_SECRET: "${GFTP_SSO_SECRET:-}"
       GFTP_SENTRY_DSN: "${GFTP_SENTRY_DSN:-}"
-      # Optional S3 chunk staging (see docs/configuration.md#s3-chunk-staging):
+      # Optional S3 chunk staging (see docs/s3-staging.md):
       GFTP_S3_ENABLED: "${GFTP_S3_ENABLED:-false}"
       GFTP_S3_ENDPOINT: "${GFTP_S3_ENDPOINT:-}"
       GFTP_S3_BUCKET: "${GFTP_S3_BUCKET:-}"
       GFTP_S3_ACCESS_KEY: "${GFTP_S3_ACCESS_KEY:-}"
       GFTP_S3_SECRET_KEY: "${GFTP_S3_SECRET_KEY:-}"
-    # Uncomment to mount custom settings:
-    # volumes:
-    #   - ./settings.json:/app/settings.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
-
-  ftp:
-    image: garethflowers/ftp-server:latest
-    environment:
-      FTP_USER: "${FTP_USER:-ftpuser}"
-      FTP_PASS: "${FTP_PASS:-ftppass}"
-      PUBLIC_IP: "${PUBLIC_IP:-127.0.0.1}"
-    ports:
-      - "20-21:20-21/tcp"
-      - "40000-40009:40000-40009/tcp"
-    volumes:
-      - ftp-data:/home/ftpuser
-    profiles:
-      - testing
-
-  # Local FTPS test server (explicit TLS)
-  ftps:
-    image: bfren/ftps:latest
-    environment:
-      BF_FTPS_VSFTPD_USER: "${FTP_USER:-ftpuser}"
-      BF_FTPS_VSFTPD_PASS: "${FTP_PASS:-ftppass}"
-      BF_FTPS_EXTERNAL_IP: "${PUBLIC_IP:-127.0.0.1}"
-      BF_FTPS_VSFTPD_MIN_PORT: "30000"
-      BF_FTPS_VSFTPD_MAX_PORT: "30009"
-    ports:
-      - "2121:21"
-      - "30000-30009:30000-30009"
-    volumes:
-      - ftps-data:/files
-      - ftps-ssl:/ssl
-    profiles:
-      - testing
-
-  # Local SFTP test server (jmcombs/sftp)
-  sftp:
-    image: jmcombs/sftp:latest
-    command: "${SFTP_USER:-ftpuser}:${SFTP_PASS:-ftppass}:1001:100:upload"
-    ports:
-      - "2222:22"
-    volumes:
-      - sftp-data:/home/ftpuser
-      - sftp-ssh:/etc/ssh
-    profiles:
-      - testing
-
-  # Local S3-compatible server for the optional S3 chunk staging (just s3-up).
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: "${GFTP_S3_ACCESS_KEY:-minioadmin}"
-      MINIO_ROOT_PASSWORD: "${GFTP_S3_SECRET_KEY:-minioadmin}"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio-data:/data
-    profiles:
-      - testing
-
-  # One-shot job that creates the staging bucket on the minio service.
-  minio-init:
-    image: minio/mc:latest
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      until mc alias set local http://minio:9000 \"$${MINIO_USER}\" \"$${MINIO_PASS}\"; do sleep 1; done;
-      mc mb --ignore-existing local/$${MINIO_BUCKET};
-      "
-    environment:
-      MINIO_USER: "${GFTP_S3_ACCESS_KEY:-minioadmin}"
-      MINIO_PASS: "${GFTP_S3_SECRET_KEY:-minioadmin}"
-      MINIO_BUCKET: "${GFTP_S3_BUCKET:-gftp-chunks}"
-    profiles:
-      - testing
-
-volumes:
-  ftp-data:
-  ftps-data:
-  ftps-ssl:
-  minio-data:
-  sftp-data:
-  sftp-ssh:
