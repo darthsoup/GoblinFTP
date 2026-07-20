@@ -1,172 +1,148 @@
 # Configuration
 
+Configuration resolves in two layers, evaluated once at process start:
+
+1. **Environment variables** (below) for secrets, deployment toggles, and per-environment values. They always win.
+2. **`settings.json`** for runtime UI, editor, connection, and access defaults. Where an env var and a `settings.json` field overlap (page title, branding, FTPS verification), the env var overrides.
+
+Both are read once at startup by `config.Load`. There is no hot reload, so a change to either requires a restart. Invalid values in most variables abort startup with a specific error rather than being silently coerced; the exceptions are called out below.
+
+Larger subsystems have dedicated pages: [Logging](logging.md), [Metrics](metrics.md), [S3 chunk staging](s3-staging.md), [Theming](theming.md), and [SSO login links](../examples/sso/README.md). The complete annotated variable list is [`.env.example`](../.env.example).
+
+## Environment variables
+
+Notation: "(none)" means unset by default; "fails startup" means `config.Load` returns an error and the process exits non-zero.
+
+### Server
+
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_PAGE_TITLE` | `GoblinFTP` | Browser tab title |
-| `GFTP_APP_NAME` | `GoblinFTP` | White-label app name (header, login, title, footer) |
-| `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` | — | White-label logo + favicon image URLs (a set logo hides the app-name text; favicon falls back to the logo) |
-| `GFTP_LOGO_DARK_URL` | — | Optional dark-mode logo (light wordmark) swapped in automatically in dark mode |
-| `GFTP_PRIMARY_COLOR` | — | Accent color as hex (e.g. `#2563eb`) — recolors the theme at runtime |
-| `GFTP_PRIMARY_TEXT_COLOR` | — | Button/primary text color as hex — pair a light accent (e.g. yellow) with dark text so buttons stay readable |
-| `GFTP_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer |
-| `GFTP_SESSION_SECRET` | _(auto-generated)_ | Session signing key — set this in production |
-| `GFTP_DOWNLOAD_TOKEN_SECRET` | _(auto-generated)_ | Download token signing key — set this in production |
-| `GFTP_SSO_ENABLED` | `false` | Enable SSO login links |
-| `GFTP_SSO_SECRET` | — | Shared secret for SSO token validation |
-| `GFTP_SENTRY_DSN` | — | Sentry DSN for backend error tracking |
-| `GFTP_SETTINGS_PATH` | `/app/data/settings.json` | Path to settings file |
-| `NUXT_PUBLIC_SENTRY_DSN` | — | Sentry DSN for frontend error tracking |
+| `GFTP_PORT` | `8080` | Listen port for the Go backend (Caddy proxies to it inside the container). Not range-validated; an unusable value fails at `Start`, not at config load. |
+| `GFTP_SETTINGS_PATH` | `/app/data/settings.json` | Path to `settings.json`. Read once at startup. |
+| `GFTP_PAGE_TITLE` | `GoblinFTP` | Browser tab title. When non-empty, overrides `ui.pageTitle`. |
 
-Mount a `settings.json` for UI/connection/access settings (see [`settings.example.json`](../settings.example.json)).
+### Secrets
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_SESSION_SECRET` | (auto-generated) | Session cookie signing key, used verbatim as bytes. When unset, a 32-byte CSPRNG key is generated and a warning is logged; every session is then invalidated on restart. |
+| `GFTP_DOWNLOAD_TOKEN_SECRET` | (auto-generated) | HMAC key for signed download tokens. Same 32-byte auto-generation and restart caveat as the session secret. |
+
+Generate a stable value with `openssl rand -hex 32`.
+
+### Login and sessions
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_SESSION_TTL_SECS` | `7200` | Session lifetime in seconds. Must be a positive integer or startup fails. |
+| `GFTP_LOGIN_MAX_ATTEMPTS` | `5` | Failed connect attempts tolerated per `host:username` key before the cooldown rejects further attempts. Positive integer. |
+| `GFTP_LOGIN_COOLDOWN_SECS` | `300` | Sliding cooldown in seconds, keyed on `host:username`. Each failed attempt extends the window; a successful connect clears the counter. Positive integer. Throttle state is in-memory and reset on restart. |
+| `GFTP_DISABLE_LOGIN_FORM` | `false` | Hide the manual login form (SSO-only deployments). Enabled only by the exact string `true`. |
+| `GFTP_LOGIN_DISABLED_REDIRECT` | (none) | Optional URL to redirect users who hit the disabled login form. |
+
+### Uploads and chunking
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_CHUNK_SIZE` | `5242880` | Upload chunk size in bytes (5 MiB). Parsed as a base-10 int64; must be greater than 0 or startup fails. |
+| `GFTP_MAX_CONCURRENT_UPLOADS` | `1` | Maximum parallel chunk uploads per session. Positive integer. A single control connection serializes transfers under a per-session lock, so values above 1 mostly queue on that lock rather than adding throughput. |
+
+### Connections and TLS
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY` | `false` | Skip FTPS (explicit TLS) certificate verification, for self-signed or internal servers only. Enabled only by the exact string `true`. Overrides `connection.ftpTLSInsecureSkipVerify`. Applies to the `ftps` protocol; it does not affect SFTP. |
+
+SFTP host keys are verified separately against `<GFTP_DATA_DIR>/known_hosts` on a trust-on-first-use basis: the first connection to a host pins its key, and later key changes are rejected as a mismatch.
+
+### White-label branding
+
+Empty values leave the `settings.json` value (or built-in default) in place.
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_APP_NAME` | `GoblinFTP` | App name in header, login card, title, and footer. Falls back to `GoblinFTP` if resolved empty. |
+| `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` | (none) | Logo and favicon image URLs. A set logo hides the app-name text; the favicon falls back to the logo. |
+| `GFTP_LOGO_DARK_URL` | (none) | Dark-mode logo (a light wordmark), swapped in client-side under dark mode. |
+| `GFTP_PRIMARY_COLOR` | (none) | Accent color as hex matching `^#([0-9a-fA-F]{3}\|[0-9a-fA-F]{6})$` (`#RGB` or `#RRGGBB`). Recolors the theme at runtime. An invalid value fails startup. |
+| `GFTP_PRIMARY_TEXT_COLOR` | (none) | Button/primary text color, same hex constraint. Pair a light accent with dark text for legible buttons. |
+| `GFTP_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer. Enabled only by the exact string `true`. |
+
+These override the matching `branding` block in `settings.json`. For per-tenant themes, see [Theming](theming.md).
+
+### SSO login links
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_SSO_ENABLED` | `false` | Enable one-time SSO login links. Enabled only by the exact string `true`. |
+| `GFTP_SSO_SECRET` | (none) | Shared secret for SSO token validation, used as HKDF input keying material. Required when SSO is enabled, or startup fails. |
+
+Tokens are AES-256-GCM sealed under an `HKDF-SHA256(secret, info="gftp-sso")` key, carry an `exp` timestamp, and are single-use. Replay protection is in-memory: a token becomes replayable if the backend restarts before it expires, so keep TTLs short (minutes). Generate links with `just sso-link` or the generators in [`examples/sso/`](../examples/sso/). The `-tenant <name>` flag selects a per-tenant theme (see [Theming](theming.md)).
+
+### Error tracking (Sentry, optional)
+
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_SENTRY_DSN` | (none) | Backend DSN. Empty disables backend reporting. An init failure logs a warning and does not block startup. |
+| `NUXT_PUBLIC_SENTRY_DSN` | (none) | Frontend DSN, read at SPA build time (baked into the static output). |
+| `GFTP_SENTRY_ENVIRONMENT` | (none) | Environment tag passed through verbatim. |
+| `GFTP_SENTRY_RELEASE` | (build version) | Release tag. Defaults to `main.version` (the release tag, or `dev` for non-release builds). |
+| `GFTP_SENTRY_SAMPLE_RATE` | `0` | Traces sample rate, parsed as a float. Unparseable values fall back to `0` (no error). |
+
+### Logging, metrics, and S3
+
+Dedicated pages own these variable groups:
+
+- `GFTP_LOG_*`: [Logging](logging.md).
+- `GFTP_METRICS_*`: [Metrics](metrics.md).
+- `GFTP_S3_*`: [S3 chunk staging](s3-staging.md).
+
+## settings.json
+
+Read once at startup from `GFTP_SETTINGS_PATH`. Load semantics:
+
+- **File missing:** built-in defaults are used, no error.
+- **File present but unreadable** (permissions, and similar): startup fails.
+- **File present but invalid JSON:** startup fails.
+- **Env overrides** are applied after the file loads: `GFTP_PAGE_TITLE`, all branding variables, and `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY`.
+
+Validated fields: `connection.presetPort` must be `1-65535`; `connection.lockHost` requires a non-empty `connection.presetHost`; `branding.primaryColor` / `branding.primaryTextColor` must match the hex pattern above. Any violation fails startup.
 
 ```bash
 docker run -p 8080:80 \
-  -e GFTP_PAGE_TITLE="My FTP Client" \
   -e GFTP_SESSION_SECRET="change-me" \
   -e GFTP_DOWNLOAD_TOKEN_SECRET="change-me" \
   -v ./settings.json:/app/data/settings.json:ro \
   ghcr.io/darthsoup/goblinftp
 ```
 
-## Logging
-
-The backend writes structured logs to stdout — one line per request (method, path, status, duration, request ID, client IP, and the connected user/host once logged in) plus a `frontend error` line for browser-side errors forwarded by the SPA. Failed operations carry the machine-readable `error_code` and the underlying `cause`, so `docker logs` tells you *why* something failed without leaking raw socket errors to the browser.
-
-| Variable | Default | Description |
-|---|---|---|
-| `GFTP_LOG_LEVEL` | `info` | `debug` \| `info` \| `warn` \| `error` — at `warn`, successful-request lines disappear but failures stay |
-| `GFTP_LOG_FORMAT` | `json` | `json` (machine-readable) or `text` (human-friendly, nice for development) |
-| `GFTP_LOG_FILE` | — | Additionally mirror logs into this file with size-based rotation (stdout is always written) |
-| `GFTP_LOG_FILE_MAX_SIZE_MB` | `10` | Rotate the file after this size |
-| `GFTP_LOG_FILE_MAX_BACKUPS` | `5` | Rotated files to keep |
-| `GFTP_LOG_FILE_MAX_AGE_DAYS` | `0` | Delete rotated files older than this (`0` = keep regardless of age) |
-| `GFTP_LOG_FRONTEND` | `true` | Accept browser-error reports on `POST /api/log/frontend` (rate-limited per IP, no auth required) |
-
-```bash
-# Docker-native: just read the container output (ship it with your log driver / Loki / ELK)
-docker logs -f goblinftp
-
-# Optional file sink on the data volume, e.g. for setups without a log collector
-docker run -p 8080:80 \
-  -e GFTP_LOG_FILE=/app/data/logs/gftp.log \
-  -v gftp-data:/app/data \
-  ghcr.io/darthsoup/goblinftp
-```
-
-Notes: the full session ID never appears in logs (only an 8-character prefix), passwords and tokens are never logged, and `/healthz` polling logs at `debug` only. For streaming downloads the status reflects the response headers — a transfer that dies mid-stream still shows `status=200` with a short `bytes_out`.
-
-## Metrics
-
-Optionally, GoblinFTP exposes Prometheus metrics on a **dedicated port** — separate from the app server, so Caddy never proxies it and it stays unreachable from outside the container unless you publish the port to your monitoring network.
-
-| Variable | Default | Description |
-|---|---|---|
-| `GFTP_METRICS_ENABLED` | `false` | Enable the Prometheus `/metrics` endpoint |
-| `GFTP_METRICS_PORT` | `9091` | Port for the metrics-only listener (separate from the app port) |
-
-| Series | Type | Labels | Meaning |
-|---|---|---|---|
-| `gftp_http_requests_total` | counter | `method`, `path`, `status` | API requests by route template |
-| `gftp_http_request_duration_seconds` | histogram | `method`, `path` | API request latency |
-| `gftp_connect_attempts_total` | counter | `protocol`, `result` | Dial outcomes: `success`, `auth_failed`, `failed`, `throttled` |
-| `gftp_transfer_bytes_total` | counter | `direction`, `protocol` | File bytes moved between browser and server (`upload`/`download`) |
-| `gftp_frontend_errors_total` | counter | — | Accepted browser-error reports |
-| `gftp_sessions_active` | gauge | — | Live sessions (computed at scrape time) |
-| `gftp_connections_active` | gauge | `protocol` | Live FTP/SFTP connections (computed at scrape time) |
-| `go_*`, `process_*` | — | — | Standard Go runtime / process collectors |
-
-```yaml
-# docker-compose: publish the metrics port to your monitoring network only
-services:
-  goblinftp:
-    image: ghcr.io/darthsoup/goblinftp
-    environment:
-      GFTP_METRICS_ENABLED: "true"
-    ports:
-      - "9091:9091"   # ideally on an internal/monitoring network, not public
-
-# prometheus.yml
-scrape_configs:
-  - job_name: goblinftp
-    static_configs:
-      - targets: ["goblinftp:9091"]
-```
-
-Note: the session/connection gauges are scrape-time snapshots of the in-memory session store. Sessions that expire by TTL disappear from the gauges immediately, even though the underlying FTP/SFTP connection may linger until the remote server times it out.
-
-## S3 chunk staging
-
-By default, chunked uploads are staged on local disk (under `/app/data`) before being streamed to the connected FTP/SFTP server. Optionally, chunks can be staged in an S3-compatible bucket (MinIO, AWS S3, …) instead — useful for read-only containers, offloading disk I/O, or multi-replica deployments. This works identically for FTP and SFTP connections; nothing changes in the browser.
-
-| Variable | Default | Description |
-|---|---|---|
-| `GFTP_S3_ENABLED` | `false` | Enable S3 chunk staging |
-| `GFTP_S3_ENDPOINT` | — | Full endpoint URL incl. scheme, e.g. `http://minio:9000` or `https://s3.amazonaws.com` |
-| `GFTP_S3_BUCKET` | — | Bucket for staged chunks (must already exist) |
-| `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` | — | Credentials (object read/write/delete + list is enough — no bucket-create needed) |
-| `GFTP_S3_REGION` | `us-east-1` | Bucket region |
-| `GFTP_S3_USE_PATH_STYLE` | `true` | Path-style addressing — keep `true` for MinIO, set `false` for AWS S3 |
-| `GFTP_S3_PREFIX` | `gftp-uploads` | Key prefix for staged chunks |
-| `GFTP_S3_TIMEOUT_SECS` | `60` | Per-request timeout for S3 calls |
-
-Endpoint, bucket, and credentials are required when enabled — the server refuses to start without them. Credentials are env-only and never read from `settings.json`; use your orchestrator's secrets mechanism in production.
-
-```bash
-docker run -p 8080:80 \
-  -e GFTP_S3_ENABLED=true \
-  -e GFTP_S3_ENDPOINT=http://minio:9000 \
-  -e GFTP_S3_BUCKET=gftp-chunks \
-  -e GFTP_S3_ACCESS_KEY=minioadmin \
-  -e GFTP_S3_SECRET_KEY=minioadmin \
-  ghcr.io/darthsoup/goblinftp
-```
-
-Chunks live under `{prefix}/{uploadId}/` only for the duration of an upload and are deleted after the file is committed to the FTP/SFTP server. Uploads abandoned mid-flight (closed browser tab, cancelled transfer) are not reaped automatically — add a bucket lifecycle rule that expires objects under the prefix after a day:
-
-```bash
-# MinIO
-mc ilm rule add --expire-days 1 --prefix "gftp-uploads/" local/gftp-chunks
-```
-
-```bash
-# AWS S3 — save the JSON below as lifecycle.json, then:
-aws s3api put-bucket-lifecycle-configuration --bucket gftp-chunks --lifecycle-configuration file://lifecycle.json
-```
-
-```json
-{
-  "Rules": [{
-    "ID": "expire-abandoned-gftp-uploads",
-    "Status": "Enabled",
-    "Filter": { "Prefix": "gftp-uploads/" },
-    "Expiration": { "Days": 1 }
-  }]
-}
-```
-
-## SSO login links
-
-With `GFTP_SSO_ENABLED=true` and a `GFTP_SSO_SECRET` set, your application can generate one-time login links (`/?sso=<token>`) that connect users directly — no login form. Tokens are AES-256-GCM-encrypted, single-use, and short-lived.
-
-```bash
-just sso-link -host ftp.example.com -username alice -password s3cret -base-url https://files.example.com
-```
-
-See [`examples/sso/`](../examples/sso/) for the token format and ready-to-use generators in Go, Node.js, and PHP. Add `-tenant <name>` to select a per-tenant white-label theme — see [Theming](theming.md).
-
-## settings.json
-
 Key options (full schema in [`settings.example.json`](../settings.example.json)):
 
-| Setting | Description |
-|---|---|
-| `connection.allowedTypes` | Restrict to `["ftp"]`, `["sftp"]`, or both |
-| `connection.disableChmod` | Hide chmod UI |
-| `connection.presetHost` / `presetPort` | Prefill the login form (panel deployments) |
-| `connection.lockHost` | Make host + port read-only (requires `presetHost`) |
-| `connection.passiveMode` | Default for the FTP passive-mode toggle |
-| `editor.disabled` | Disable the file editor entirely |
-| `editor.allowedExtensions` | Restrict editable file extensions |
-| `access.allowedClientAddresses` | IP allowlist (empty = allow all) |
-| `language` | Default UI language (users can override in settings) |
-| `ui.showDotFiles` | Show hidden files by default (users can override) |
+| Setting | Type | Description |
+|---|---|---|
+| `language` | string | Default UI language. Not allow-listed server-side; passed through to the SPA, which gates the actual set. Users can override it locally. |
+| `ui.pageTitle` | string | Browser tab title (`GFTP_PAGE_TITLE` overrides). |
+| `ui.showDotFiles` | bool | Show dotfiles by default (users can override). |
+| `ui.showNavigationHistory` | bool | Show the recent-paths navigation history. |
+| `ui.helpUrl` | string \| null | Optional help-link URL. |
+| `editor.disabled` | bool | Disable the file editor entirely. |
+| `editor.viewOnly` | bool | Open files read-only. |
+| `editor.openOnCreate` | bool | Open a newly created file automatically. |
+| `editor.allowedExtensions` | string[] | Editable extensions (without the dot). |
+| `connection.allowedTypes` | string[] | Any subset of `["ftp","ftps","sftp"]`. |
+| `connection.disableChmod` | bool | Hide the chmod UI. |
+| `connection.requestTimeoutSeconds` | int | Timeout for FTP/SFTP operations. |
+| `connection.presetHost` / `presetPort` | string / int | Prefill the login form (`presetPort` in `1-65535`). |
+| `connection.lockHost` | bool | Make host and port read-only (requires `presetHost`). |
+| `connection.passiveMode` | bool | Default for the FTP passive-mode toggle. |
+| `connection.ftpTLSInsecureSkipVerify` | bool | Skip FTPS cert verification (env overrides). |
+| `access.allowedClientAddresses` | string[] | IP allowlist (empty allows all). |
+| `access.deniedMessage` | string \| null | Message shown to blocked clients. |
+| `access.postLogoutUrl` | string \| null | Redirect target after logout. |
+| `branding.*` | object | App name, logos, colors, attribution (see [Theming](theming.md)). |
+
+## See also
+
+- [Installation](installation.md) for Docker and manual setup.
+- [System requirements](system-requirements.md).
+- [Development](development.md) for the local workflow.

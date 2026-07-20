@@ -23,7 +23,7 @@ just docker-up    # start via docker compose
 
 just lint         # eslint + nuxt typecheck + golangci-lint
 just fmt          # eslint --fix + gofmt
-just i18n-check   # verify German translations are complete
+just i18n-check   # verify every locale file matches en.json (keys + placeholders)
 
 just ftp-up       # start local FTP test server (garethflowers/ftp-server)
 just ftp-down     # stop local FTP test server
@@ -100,3 +100,10 @@ cd backend && GFTP_TEST_S3_ENDPOINT=http://localhost:9000 go test ./internal/sta
 
 just s3-down
 ```
+
+## See also
+
+- [Installation](installation.md) for Docker and manual (from-source) setup.
+- [Configuration](configuration.md) for environment variables and `settings.json`.
+- [Translations (i18n)](i18n.md) for adding or improving a language.
+

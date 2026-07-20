@@ -1,21 +1,22 @@
 # GoblinFTP
 
-A self-hosted, web-based FTP/SFTP client. Deploy as a single Docker container and manage remote files from any browser.
+A self-hosted, web-based FTP, FTPS, and SFTP client. Deploy as a single Docker container and manage remote files from any browser.
 
 ## Features
 
-- **FTP & SFTP** support with passive mode
-- **File browser** — upload, download, rename, delete, chmod, zip download
+- **FTP, FTPS & SFTP** with passive mode and SFTP host-key pinning
+- **File browser**: upload, download, rename, delete, chmod, and zip download
 - **Text editor** with syntax highlighting (CodeMirror)
-- **Drag-and-drop upload** with chunked transfer and progress panel
-- **SSO** — generate signed login links for direct authentication
-- **i18n** — 13 languages: English, German, French, Spanish, Italian, Dutch, Portuguese, Swedish, Danish, Norwegian, Finnish, Czech, Slovak
-- **Error tracking** via Sentry (optional)
+- **Drag-and-drop uploads** with chunked transfer and a progress panel
+- **SSO**: signed, one-time login links for direct authentication
+- **White-label branding** and per-tenant themes
+- **i18n**: 13 languages, including English, German, French, Spanish, Italian, Dutch, Portuguese, Swedish, Danish, Norwegian, Finnish, Czech, and Slovak
+- **Observability**: structured logging, optional Prometheus metrics, and optional Sentry error tracking
 
 ## Stack
 
 - **Backend:** Go + Echo v4
-- **Frontend:** Nuxt 4 (SPA) · Nuxt UI v4 · Tailwind CSS v4 · Pinia
+- **Frontend:** Nuxt 4 (SPA), Nuxt UI v4, Tailwind CSS v4, Pinia
 - **Container:** Docker (Caddy + Go binary)
 
 ## Quick start
@@ -24,34 +25,33 @@ A self-hosted, web-based FTP/SFTP client. Deploy as a single Docker container an
 docker run -p 8080:80 ghcr.io/darthsoup/goblinftp
 ```
 
-Open <http://localhost:8080>, enter your FTP/SFTP credentials and connect.
+Open <http://localhost:8080>, enter your FTP/SFTP credentials, and connect.
 
-## Releases / image tags
+For a production setup (signing secrets, persistent storage, Docker Compose) and for building from source, see the [Installation guide](docs/installation.md). Check the [system requirements](docs/system-requirements.md) first.
 
-Images are published to GHCR on every `v*` tag — all multi-arch (`linux/amd64`, `linux/arm64`):
+## Releases
 
-- `ghcr.io/darthsoup/goblinftp:1.2.3` — exact release (pin this in production)
-- `ghcr.io/darthsoup/goblinftp:1.2` / `:1` — latest patch / latest minor of a line
-- `ghcr.io/darthsoup/goblinftp:latest` — latest release (exists once the first version is tagged)
-- `ghcr.io/darthsoup/goblinftp:main` — current `main`, unreleased (reports version `dev`)
-
-The running version shows up in the startup log, `GET /healthz`, and the settings dialog.
+Images are published to GHCR on every `v*` tag, multi-arch (`linux/amd64`, `linux/arm64`). Pin an exact version (`:1.2.3`) in production. `:latest` tracks releases and `:main` tracks the unreleased `main` branch. See [image tags](docs/installation.md#image-tags) for the full list. The running version shows up in the startup log, at `GET /healthz`, and in the settings dialog.
 
 ## Documentation
 
-- **[Configuration](docs/configuration.md)** — environment variables, `settings.json`, logging, metrics, S3 chunk staging, and SSO login links.
-- **[Theming](docs/theming.md)** — white-label branding and per-tenant themes (`themes/<tenant>/config.css` + logo) selected by SSO or subdomain.
-- **[Development](docs/development.md)** — local setup, common `just` commands, and testing against a local FTP / S3 server.
+- **[Installation](docs/installation.md)**: Docker, Docker Compose, and building from source.
+- **[System requirements](docs/system-requirements.md)**: runtime footprint, networking, and build toolchain.
+- **[Configuration](docs/configuration.md)**: environment variables and `settings.json`, with dedicated pages for [Logging](docs/logging.md), [Metrics](docs/metrics.md), and [S3 chunk staging](docs/s3-staging.md).
+- **[Theming](docs/theming.md)**: white-label branding and per-tenant themes selected by SSO or subdomain.
+- **[SSO login links](examples/sso/README.md)**: one-time direct-login links, with generators in Go, Node.js, and PHP.
+- **[Development](docs/development.md)**: local setup, `just` commands, and testing against local FTP / SFTP / S3 servers.
+- **[Translations (i18n)](docs/i18n.md)**: how to add or improve a language.
 
 ## Contributing
 
-Contributions are welcome — see **[Development](docs/development.md)** for local setup. Before opening a PR:
+Contributions are welcome. See **[Development](docs/development.md)** for local setup. Before opening a PR:
 
-- `just fmt` — format frontend (eslint) and backend (gofmt)
-- `just lint` — eslint, Nuxt typecheck, golangci-lint
-- `just test` — backend (Go) and frontend (vitest) suites
+- `just fmt`: format frontend (eslint) and backend (gofmt)
+- `just lint`: eslint, Nuxt typecheck, golangci-lint
+- `just test`: backend (Go) and frontend (vitest) suites
 
-**Adding a language?** Copy `frontend/i18n/locales/en.json` to `<code>.json` and translate the values, then register the locale in `nuxt.config.ts`, `app/stores/settings.ts`, and `app/components/Layout/LanguageSelect.vue`. Run `just i18n-check` to verify key + placeholder parity.
+**Adding or improving a translation?** See **[Translations (i18n)](docs/i18n.md)**.
 
 ## License
 
