@@ -1,6 +1,9 @@
+import type { UploadConflictAction, UploadConflictResolution } from '~/stores/modal'
+import type { UploadConflict } from '~/types/api'
 import { defineStore } from 'pinia'
+import { ApiError } from '~/types/api'
 
-export type UploadStatus = 'queued' | 'uploading' | 'done' | 'error' | 'cancelled'
+export type UploadStatus = 'checking' | 'queued' | 'uploading' | 'done' | 'error' | 'cancelled' | 'skipped'
 
 export interface UploadItem {
   id: string
@@ -13,13 +16,31 @@ export interface UploadItem {
   progress: number
   bytesUploaded: number
   error?: string
+  errorCode?: string
+  // The user agreed to replace an existing file, so the backend guard is waived.
+  overwrite?: boolean
+  // Set once chunks are staged. Keeping it lets a conflict at commit time be
+  // resolved by re-committing rather than re-uploading the whole file.
+  uploadId?: string
+  // A conflict raised mid-transfer is re-prompted once; a second one is an error
+  // rather than another prompt, so a racing server cannot loop the dialog.
+  reprompted?: boolean
 }
 
 const MAX_RETRIES = 5
 
+// Retrying these is pointless — nothing about the request will change. Without
+// ERR_FILE_EXISTS here a conflict would burn ~31s of backoff before surfacing.
+const NON_RETRYABLE = new Set(['ERR_FILE_EXISTS', 'ERR_FILE_PERMISSION', 'ERR_QUOTA_EXCEEDED'])
+
 export const useUploadStore = defineStore('upload', () => {
   const items = ref<UploadItem[]>([])
   const _active = ref(0)
+  // "Apply to all" from the batch dialog, reused for conflicts that only appear
+  // once transfers are under way.
+  const _blanketPolicy = ref<UploadConflictAction | null>(null)
+  // Serializes conflict dialogs; the modal store holds one resolver at a time.
+  let _conflictChain: Promise<unknown> = Promise.resolve()
 
   const authStore = useAuthStore()
   const filesStore = useFilesStore()
@@ -32,7 +53,9 @@ export const useUploadStore = defineStore('upload', () => {
   // queue on the backend transfer lock rather than truly running in parallel.
   const maxConcurrent = computed(() => authStore.systemVars?.upload.maxConcurrentUploads ?? 1)
 
-  const hasActive = computed(() => items.value.some(i => i.status === 'queued' || i.status === 'uploading'))
+  const hasActive = computed(() => items.value.some(
+    i => i.status === 'checking' || i.status === 'queued' || i.status === 'uploading',
+  ))
 
   // Refresh the listing once a burst of completions settles, instead of once per
   // file — a folder upload otherwise fires a refresh storm (one list() per file).
@@ -40,23 +63,92 @@ export const useUploadStore = defineStore('upload', () => {
 
   // Enqueue files carrying their nested relative paths (from a folder drop).
   // destPath preserves the structure; the backend creates missing parent dirs.
-  function addEntries(entries: { file: File, relativePath: string }[], destDir: string) {
+  //
+  // Nothing is sent until the pre-flight has reported which destinations are
+  // already occupied and the user has said what to do about them.
+  async function addEntries(entries: { file: File, relativePath: string }[], destDir: string) {
     const base = destDir.replace(/\/$/, '')
     const newItems: UploadItem[] = entries.map(({ file, relativePath }) => ({
       id: crypto.randomUUID(),
       file,
       destPath: `${base}/${relativePath}`,
       relativePath,
-      status: 'queued' as UploadStatus,
+      status: 'checking' as UploadStatus,
       progress: 0,
       bytesUploaded: 0,
     }))
+    if (newItems.length === 0)
+      return
+    // Added as 'checking' first so the queue panel shows the batch while a slow
+    // pre-flight runs.
+    const ids = new Set(newItems.map(i => i.id))
     items.value = [...items.value, ...newItems]
+
+    // Always go back through items.value: newItems holds the raw objects, and
+    // mutating those bypasses the reactive proxy, so the queue would keep
+    // rendering a stale status.
+    const mine = () => items.value.filter(i => ids.has(i.id))
+    const live = () => mine().filter(i => i.status === 'checking')
+
+    const conflicts = await _checkConflicts(mine().map(i => i.destPath))
+
+    if (conflicts.length > 0) {
+      const resolution = await useModalStore().uploadConflict(conflicts)
+      if (resolution.kind === 'cancel') {
+        live().forEach((i) => {
+          i.status = 'cancelled'
+        })
+        return
+      }
+      _blanketPolicy.value = resolution.applyToAll ?? null
+      const byPath = new Map(conflicts.map(c => [c.path, c]))
+      for (const item of live()) {
+        const conflict = byPath.get(item.destPath)
+        if (!conflict)
+          continue
+        _applyDecision(item, resolution.decisions[item.destPath] ?? 'rename', conflict.suggestedName)
+      }
+    }
+
+    live().forEach((i) => {
+      i.status = 'queued'
+    })
     _processQueue()
   }
 
-  function addFiles(files: FileList | File[], destDir: string) {
-    addEntries(Array.from(files).map(file => ({ file, relativePath: file.name })), destDir)
+  async function addFiles(files: FileList | File[], destDir: string) {
+    await addEntries(Array.from(files).map(file => ({ file, relativePath: file.name })), destDir)
+  }
+
+  // A pre-flight failure must never block the upload: the per-request guard on
+  // the backend still raises conflicts, they just surface one file at a time.
+  async function _checkConflicts(paths: string[]): Promise<UploadConflict[]> {
+    try {
+      const res = await useApi().post<{ conflicts: UploadConflict[] }>('/api/files/upload/check', { paths })
+      return res.conflicts ?? []
+    }
+    catch {
+      return []
+    }
+  }
+
+  function _applyDecision(item: UploadItem, action: UploadConflictAction, suggestedName: string) {
+    if (action === 'overwrite') {
+      item.overwrite = true
+      return
+    }
+    if (action === 'skip') {
+      item.status = 'skipped'
+      return
+    }
+    item.destPath = _withName(item.destPath, suggestedName)
+    if (item.relativePath)
+      item.relativePath = _withName(item.relativePath, suggestedName)
+  }
+
+  function _withName(path: string, name: string): string {
+    const slash = path.lastIndexOf('/')
+    return slash < 0 ? name : `${path.slice(0, slash)}/${name}`
   }
 
   function _processQueue() {
@@ -70,6 +162,9 @@ export const useUploadStore = defineStore('upload', () => {
         _active.value--
         if (next.status === 'done')
           scheduleRefresh()
+        // The batch is over, so its "apply to all" should not leak into the next.
+        if (!hasActive.value)
+          _blanketPolicy.value = null
         _processQueue()
       })
     }
@@ -77,12 +172,7 @@ export const useUploadStore = defineStore('upload', () => {
 
   async function _runUpload(item: UploadItem) {
     try {
-      if (item.file.size <= chunkSize.value) {
-        await _uploadSimple(item)
-      }
-      else {
-        await _uploadChunked(item)
-      }
+      await _transfer(item)
       // Guard: if cancelled mid-request, don't overwrite 'cancelled' with 'done'
       if (item.status !== 'cancelled') {
         item.progress = 100
@@ -91,10 +181,75 @@ export const useUploadStore = defineStore('upload', () => {
       }
     }
     catch (e) {
-      if (item.status !== 'cancelled') {
-        item.status = 'error'
-        item.error = e instanceof Error ? e.message : 'Upload failed'
+      if (item.status === 'cancelled' || item.status === 'skipped')
+        return
+      item.status = 'error'
+      item.errorCode = e instanceof ApiError ? e.code : undefined
+      item.error = e instanceof Error ? e.message : 'Upload failed'
+    }
+  }
+
+  async function _transfer(item: UploadItem) {
+    try {
+      if (item.file.size <= chunkSize.value)
+        await _uploadSimple(item)
+      else
+        await _uploadChunked(item)
+    }
+    catch (e) {
+      // The destination was free at pre-flight but is occupied now: re-decide
+      // rather than failing, since the user never saw this conflict.
+      if (e instanceof ApiError && e.code === 'ERR_FILE_EXISTS' && !item.reprompted) {
+        item.reprompted = true
+        await _resolveRaced(item)
+        if (item.status === 'skipped')
+          return
+        await _transfer(item)
+        return
       }
+      throw e
+    }
+  }
+
+  // Applies the batch-wide choice if there is one, otherwise asks. Prompts are
+  // serialized because the modal store keeps a single resolver — two concurrent
+  // conflicts would otherwise cancel each other's dialog.
+  async function _resolveRaced(item: UploadItem) {
+    const [conflict] = await _checkConflicts([item.destPath])
+    // Vanished again — just retry as-is.
+    if (!conflict)
+      return
+
+    let action = _blanketPolicy.value
+    if (!action) {
+      _conflictChain = _conflictChain.then(() => useModalStore().uploadConflict([conflict]))
+      const resolution = await (_conflictChain as Promise<UploadConflictResolution>)
+      if (resolution.kind === 'cancel') {
+        item.status = 'cancelled'
+        await _discardStaged(item)
+        return
+      }
+      _blanketPolicy.value = resolution.applyToAll ?? null
+      action = resolution.decisions[conflict.path] ?? 'rename'
+    }
+
+    _applyDecision(item, action, conflict.suggestedName)
+    if (item.status === 'skipped')
+      await _discardStaged(item)
+  }
+
+  // Nothing sweeps the staging area, so an abandoned chunked upload must be
+  // released explicitly or its chunks live until the disk fills.
+  async function _discardStaged(item: UploadItem) {
+    if (!item.uploadId)
+      return
+    const uploadId = item.uploadId
+    item.uploadId = undefined
+    try {
+      await useApi().post('/api/files/upload/abort', { uploadId })
+    }
+    catch {
+      // Best effort: a failed abort must not mask the user's decision.
     }
   }
 
@@ -106,43 +261,59 @@ export const useUploadStore = defineStore('upload', () => {
       const form = new FormData()
       form.append('path', item.destPath)
       form.append('file', item.file, item.file.name)
+      if (item.overwrite)
+        form.append('overwrite', 'true')
       await api.post('/api/files/upload', form)
     })
   }
 
   async function _uploadChunked(item: UploadItem) {
     const api = useApi()
-    const totalChunks = Math.ceil(item.file.size / chunkSize.value)
-    const { uploadId } = await api.post<{ uploadId: string }>('/api/files/upload/reserve', {
-      path: item.destPath,
-      totalChunks,
-      totalSize: item.file.size,
-      chunkSize: chunkSize.value,
-    })
 
-    for (let i = 0; i < totalChunks; i++) {
-      if (item.status === 'cancelled')
-        throw new Error('Cancelled')
+    // Already staged (a conflict was resolved after the bytes went up): commit
+    // the existing chunks instead of sending the file again.
+    if (!item.uploadId) {
+      const totalChunks = Math.ceil(item.file.size / chunkSize.value)
+      const { uploadId } = await api.post<{ uploadId: string }>('/api/files/upload/reserve', {
+        path: item.destPath,
+        totalChunks,
+        totalSize: item.file.size,
+        chunkSize: chunkSize.value,
+        overwrite: item.overwrite ?? false,
+      })
+      item.uploadId = uploadId
 
-      const start = i * chunkSize.value
-      const end = Math.min(start + chunkSize.value, item.file.size)
-      const chunk = item.file.slice(start, end)
-
-      await _withRetry(async () => {
+      for (let i = 0; i < totalChunks; i++) {
         if (item.status === 'cancelled')
           throw new Error('Cancelled')
-        const form = new FormData()
-        form.append('uploadId', uploadId)
-        form.append('chunkIndex', String(i))
-        form.append('chunk', chunk, item.file.name)
-        await api.post('/api/files/upload/chunk', form)
-      })
 
-      item.bytesUploaded = end
-      item.progress = Math.round((end / item.file.size) * 100)
+        const start = i * chunkSize.value
+        const end = Math.min(start + chunkSize.value, item.file.size)
+        const chunk = item.file.slice(start, end)
+
+        await _withRetry(async () => {
+          if (item.status === 'cancelled')
+            throw new Error('Cancelled')
+          const form = new FormData()
+          form.append('uploadId', uploadId)
+          form.append('chunkIndex', String(i))
+          form.append('chunk', chunk, item.file.name)
+          await api.post('/api/files/upload/chunk', form)
+        })
+
+        item.bytesUploaded = end
+        item.progress = Math.round((end / item.file.size) * 100)
+      }
     }
 
-    await api.post('/api/files/upload/commit', { uploadId })
+    // destination carries a rename decided after the reserve; the backend keeps
+    // it inside the reserved directory.
+    await api.post('/api/files/upload/commit', {
+      uploadId: item.uploadId,
+      overwrite: item.overwrite ?? false,
+      destination: item.destPath,
+    })
+    item.uploadId = undefined
   }
 
   async function _withRetry<T>(fn: () => Promise<T>): Promise<T> {
@@ -154,6 +325,8 @@ export const useUploadStore = defineStore('upload', () => {
       catch (e) {
         if (e instanceof Error && e.message === 'Cancelled')
           throw e
+        if (e instanceof ApiError && NON_RETRYABLE.has(e.code))
+          throw e
         lastError = e
         await new Promise(r => setTimeout(r, Math.min(30_000, 1000 * 2 ** attempt)))
       }
@@ -161,40 +334,51 @@ export const useUploadStore = defineStore('upload', () => {
     throw lastError
   }
 
+  const CANCELLABLE: UploadStatus[] = ['checking', 'queued', 'uploading']
+
   function cancelItem(id: string) {
     const item = items.value.find(i => i.id === id)
-    if (item && (item.status === 'queued' || item.status === 'uploading'))
+    if (item && CANCELLABLE.includes(item.status)) {
       item.status = 'cancelled'
+      void _discardStaged(item)
+    }
   }
 
   function cancelAll() {
     items.value.forEach((item) => {
-      if (item.status === 'queued' || item.status === 'uploading')
+      if (CANCELLABLE.includes(item.status)) {
         item.status = 'cancelled'
+        void _discardStaged(item)
+      }
     })
   }
 
-  // Re-queue a failed or cancelled item; _runUpload re-runs it from scratch.
+  // Re-queue a failed, cancelled or skipped item; _runUpload re-runs it from
+  // scratch. A skipped item re-runs without consent, so it conflicts again and
+  // re-prompts rather than silently overwriting.
   function retryItem(id: string) {
     const item = items.value.find(i => i.id === id)
-    if (item && (item.status === 'error' || item.status === 'cancelled')) {
+    if (item && (item.status === 'error' || item.status === 'cancelled' || item.status === 'skipped')) {
       item.status = 'queued'
       item.progress = 0
       item.bytesUploaded = 0
       item.error = undefined
+      item.errorCode = undefined
+      item.reprompted = false
       _processQueue()
     }
   }
 
   function clearDone() {
     items.value = items.value.filter(
-      i => i.status !== 'done' && i.status !== 'error' && i.status !== 'cancelled',
+      i => i.status !== 'done' && i.status !== 'error' && i.status !== 'cancelled' && i.status !== 'skipped',
     )
   }
 
   function $reset() {
     items.value = []
     _active.value = 0
+    _blanketPolicy.value = null
   }
 
   return {

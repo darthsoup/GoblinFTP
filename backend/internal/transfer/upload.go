@@ -29,6 +29,9 @@ type UploadMeta struct {
 	TotalChunks    int
 	ReceivedChunks int
 	ChunkSize      int64
+	// Overwrite records the caller's consent to replace an existing
+	// destination, carried from reserve through to commit.
+	Overwrite bool
 }
 
 // UploadStore is a thread-safe in-memory store for upload metadata.

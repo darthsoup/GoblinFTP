@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+import { ApiError } from '~/types/api'
 
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const notify = useNotify()
 const { t } = useI18n()
+const { localizeError } = useErrorMessage()
 
 const open = computed({
   get: () => modalStore.active === 'newFile',
@@ -43,7 +45,11 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
     modalStore.close()
   }
   catch (e) {
-    apiError.value = e instanceof Error ? e.message : t('error.operationFailed')
+    // A name that is already taken now comes back as ERR_FILE_EXISTS instead of
+    // silently truncating the existing file.
+    apiError.value = e instanceof ApiError
+      ? localizeError(e.code, e.message)
+      : e instanceof Error ? e.message : t('error.operationFailed')
   }
   finally {
     loading.value = false

@@ -110,11 +110,13 @@
     "cancel": "Annuler le téléversement",
     "retry": "Réessayer l'envoi",
     "status": {
+      "checking": "Vérification",
       "queued": "En file d'attente",
       "uploading": "Téléversement",
       "done": "Terminé",
       "error": "Échec",
-      "cancelled": "Annulé"
+      "cancelled": "Annulé",
+      "skipped": "Ignoré"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Remplacer",
       "append": "Conserver les deux",
       "cancel": "Annuler"
+    },
+    "uploadConflict": {
+      "title": "Ces fichiers existent déjà",
+      "message": "{n} élément(s) existent déjà dans la destination. Choisissez quoi faire pour chacun.",
+      "applyToAll": "Appliquer à tout",
+      "action": {
+        "overwrite": "Remplacer",
+        "rename": "Conserver les deux",
+        "skip": "Ignorer"
+      },
+      "renameHint": "Sera enregistré sous « {name} »",
+      "folderConflict": "Un dossier portant ce nom existe déjà",
+      "cancel": "Annuler le téléversement",
+      "continue": "Continuer"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Le dossier n'est pas vide ou est en cours d'utilisation",
+    "ERR_FILE_EXISTS": "Un fichier portant ce nom existe déjà sur le serveur",
     "ERR_FILE_PERMISSION": "Accès refusé par le serveur",
     "ERR_FILE_NOT_FOUND": "L'élément n'existe plus sur le serveur",
     "ERR_QUOTA_EXCEEDED": "Le serveur n'a plus d'espace de stockage",

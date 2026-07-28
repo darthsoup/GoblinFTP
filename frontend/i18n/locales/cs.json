@@ -110,11 +110,13 @@
     "cancel": "Zrušit nahrávání",
     "retry": "Zkusit nahrávání znovu",
     "status": {
+      "checking": "Kontrola",
       "queued": "Ve frontě",
       "uploading": "Nahrávání",
       "done": "Dokončeno",
       "error": "Selhalo",
-      "cancelled": "Zrušeno"
+      "cancelled": "Zrušeno",
+      "skipped": "Přeskočeno"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Přepsat",
       "append": "Ponechat obě",
       "cancel": "Zrušit"
+    },
+    "uploadConflict": {
+      "title": "Soubory již existují",
+      "message": "{n} položek v cíli již existuje. Zvolte, co s každou provést.",
+      "applyToAll": "Použít na vše",
+      "action": {
+        "overwrite": "Přepsat",
+        "rename": "Ponechat obě",
+        "skip": "Přeskočit"
+      },
+      "renameHint": "Uloží se jako „{name}“",
+      "folderConflict": "Složka s tímto názvem již existuje",
+      "cancel": "Zrušit nahrávání",
+      "continue": "Pokračovat"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Složka není prázdná nebo se používá",
+    "ERR_FILE_EXISTS": "Soubor s tímto názvem již na serveru existuje",
     "ERR_FILE_PERMISSION": "Server odepřel přístup",
     "ERR_FILE_NOT_FOUND": "Položka na serveru již neexistuje",
     "ERR_QUOTA_EXCEEDED": "Na serveru došlo úložné místo",

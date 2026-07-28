@@ -110,11 +110,13 @@
     "cancel": "Peruuta lähetys",
     "retry": "Yritä lähetystä uudelleen",
     "status": {
+      "checking": "Tarkistetaan",
       "queued": "Jonossa",
       "uploading": "Lähetetään",
       "done": "Valmis",
       "error": "Epäonnistui",
-      "cancelled": "Peruutettu"
+      "cancelled": "Peruutettu",
+      "skipped": "Ohitettu"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Korvaa",
       "append": "Säilytä molemmat",
       "cancel": "Peruuta"
+    },
+    "uploadConflict": {
+      "title": "Tiedostot ovat jo olemassa",
+      "message": "{n} kohdetta on jo kohdesijainnissa. Valitse, mitä kullekin tehdään.",
+      "applyToAll": "Käytä kaikkiin",
+      "action": {
+        "overwrite": "Korvaa",
+        "rename": "Säilytä molemmat",
+        "skip": "Ohita"
+      },
+      "renameHint": "Tallennetaan nimellä ”{name}”",
+      "folderConflict": "Samanniminen kansio on jo olemassa",
+      "cancel": "Peruuta lähetys",
+      "continue": "Jatka"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Kansio ei ole tyhjä tai se on käytössä",
+    "ERR_FILE_EXISTS": "Samanniminen tiedosto on jo palvelimella",
     "ERR_FILE_PERMISSION": "Palvelin epäsi käyttöoikeuden",
     "ERR_FILE_NOT_FOUND": "Kohdetta ei ole enää palvelimella",
     "ERR_QUOTA_EXCEEDED": "Palvelimen tallennustila on lopussa",

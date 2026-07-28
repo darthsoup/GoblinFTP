@@ -110,11 +110,13 @@
     "cancel": "Cancel upload",
     "retry": "Retry upload",
     "status": {
+      "checking": "Checking",
       "queued": "Queued",
       "uploading": "Uploading",
       "done": "Completed",
       "error": "Failed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "skipped": "Skipped"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Overwrite",
       "append": "Keep both",
       "cancel": "Cancel"
+    },
+    "uploadConflict": {
+      "title": "Files already exist",
+      "message": "{n} item(s) already exist in the destination. Choose what to do with each.",
+      "applyToAll": "Apply to all",
+      "action": {
+        "overwrite": "Overwrite",
+        "rename": "Keep both",
+        "skip": "Skip"
+      },
+      "renameHint": "Saved as “{name}”",
+      "folderConflict": "A folder with this name already exists",
+      "cancel": "Cancel upload",
+      "continue": "Continue"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "The folder is not empty or is in use",
+    "ERR_FILE_EXISTS": "A file with that name already exists on the server",
     "ERR_FILE_PERMISSION": "Permission denied by the server",
     "ERR_FILE_NOT_FOUND": "The item no longer exists on the server",
     "ERR_QUOTA_EXCEEDED": "The server is out of storage space",

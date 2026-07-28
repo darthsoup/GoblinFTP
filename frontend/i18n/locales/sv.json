@@ -110,11 +110,13 @@
     "cancel": "Avbryt uppladdning",
     "retry": "Försök ladda upp igen",
     "status": {
+      "checking": "Kontrollerar",
       "queued": "I kö",
       "uploading": "Laddar upp",
       "done": "Slutförd",
       "error": "Misslyckades",
-      "cancelled": "Avbruten"
+      "cancelled": "Avbruten",
+      "skipped": "Överhoppad"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Skriv över",
       "append": "Behåll båda",
       "cancel": "Avbryt"
+    },
+    "uploadConflict": {
+      "title": "Filerna finns redan",
+      "message": "{n} objekt finns redan på målet. Välj vad som ska hända med vart och ett.",
+      "applyToAll": "Tillämpa på alla",
+      "action": {
+        "overwrite": "Skriv över",
+        "rename": "Behåll båda",
+        "skip": "Hoppa över"
+      },
+      "renameHint": "Sparas som ”{name}”",
+      "folderConflict": "En mapp med det här namnet finns redan",
+      "cancel": "Avbryt uppladdning",
+      "continue": "Fortsätt"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Mappen är inte tom eller används",
+    "ERR_FILE_EXISTS": "En fil med det namnet finns redan på servern",
     "ERR_FILE_PERMISSION": "Åtkomst nekad av servern",
     "ERR_FILE_NOT_FOUND": "Objektet finns inte längre på servern",
     "ERR_QUOTA_EXCEEDED": "Servern har slut på lagringsutrymme",

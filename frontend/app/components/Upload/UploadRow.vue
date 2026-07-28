@@ -9,18 +9,25 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
+const { localizeError } = useErrorMessage()
 
 const STATUS_CLASS: Record<UploadStatus, string> = {
+  checking: 'text-dimmed',
   uploading: 'text-primary',
   queued: 'text-dimmed',
   done: 'text-muted',
   error: 'text-error',
   cancelled: 'text-dimmed',
+  skipped: 'text-dimmed',
 }
 
+const ACTIVE: UploadStatus[] = ['checking', 'queued', 'uploading']
+const RETRYABLE: UploadStatus[] = ['error', 'cancelled', 'skipped']
+
 const path = computed(() => props.item.relativePath ?? props.item.file.name)
-const isActive = computed(() => props.item.status === 'uploading' || props.item.status === 'queued')
-const isRetryable = computed(() => props.item.status === 'error' || props.item.status === 'cancelled')
+const isActive = computed(() => ACTIVE.includes(props.item.status))
+const isRetryable = computed(() => RETRYABLE.includes(props.item.status))
+const failure = computed(() => localizeError(props.item.errorCode ?? '', props.item.error ?? ''))
 
 function fmt(n: number): string {
   return formatFileSize(n, settingsStore.sizeFormat, locale.value)
@@ -55,8 +62,8 @@ function fmt(n: number): string {
       </div>
 
       <!-- Failure reason — always reachable now (was hidden below lg). -->
-      <p v-if="item.status === 'error' && item.error" class="truncate text-error" :title="item.error">
-        {{ item.error }}
+      <p v-if="item.status === 'error' && failure" class="truncate text-error" :title="failure">
+        {{ failure }}
       </p>
     </div>
 

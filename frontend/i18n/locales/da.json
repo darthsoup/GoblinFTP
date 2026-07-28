@@ -110,11 +110,13 @@
     "cancel": "Annuller upload",
     "retry": "Prøv upload igen",
     "status": {
+      "checking": "Kontrollerer",
       "queued": "I kø",
       "uploading": "Uploader",
       "done": "Gennemført",
       "error": "Mislykkedes",
-      "cancelled": "Annulleret"
+      "cancelled": "Annulleret",
+      "skipped": "Sprunget over"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Overskriv",
       "append": "Behold begge",
       "cancel": "Annuller"
+    },
+    "uploadConflict": {
+      "title": "Filerne findes allerede",
+      "message": "{n} element(er) findes allerede på destinationen. Vælg, hvad der skal ske med hver enkelt.",
+      "applyToAll": "Anvend på alle",
+      "action": {
+        "overwrite": "Overskriv",
+        "rename": "Behold begge",
+        "skip": "Spring over"
+      },
+      "renameHint": "Gemmes som “{name}”",
+      "folderConflict": "En mappe med dette navn findes allerede",
+      "cancel": "Annuller upload",
+      "continue": "Fortsæt"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i brug",
+    "ERR_FILE_EXISTS": "En fil med det navn findes allerede på serveren",
     "ERR_FILE_PERMISSION": "Adgang nægtet af serveren",
     "ERR_FILE_NOT_FOUND": "Elementet findes ikke længere på serveren",
     "ERR_QUOTA_EXCEEDED": "Serveren er løbet tør for lagerplads",
