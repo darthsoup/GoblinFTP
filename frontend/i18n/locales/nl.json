@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "De map is niet leeg of wordt gebruikt",
     "ERR_FILE_EXISTS": "Er bestaat al een bestand met die naam op de server",
     "ERR_FILE_PERMISSION": "Toegang geweigerd door de server",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Deze server ondersteunt het wijzigen van rechten niet",
     "ERR_FILE_NOT_FOUND": "Het item bestaat niet meer op de server",
     "ERR_QUOTA_EXCEEDED": "De server heeft geen opslagruimte meer",
     "ERR_CONNECTION_LOST": "De verbinding met de server is verbroken",

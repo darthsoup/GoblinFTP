@@ -169,6 +169,8 @@ export const useAuthStore = defineStore('auth', () => {
     ssoAutoConnect.value = false
     serverHost.value = ''
     initialDirectory.value = '/'
+    // Otherwise an FTP session's "no chmod" would carry into the next connection.
+    capabilities.value = { disableChmod: false }
     error.value = null
   }
 
@@ -204,6 +206,7 @@ export const useAuthStore = defineStore('auth', () => {
     ssoAutoConnect.value = false
     serverHost.value = ''
     initialDirectory.value = '/'
+    capabilities.value = { disableChmod: false }
     error.value = null
   }
 

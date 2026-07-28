@@ -123,7 +123,7 @@ func (h *Handler) Connect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
 	}
 
-	disableChmod := detectChmod(client, req.Protocol, initialDir)
+	disableChmod := !client.SupportsChmod()
 
 	csrfToken, csrfErr := auth.GenerateCSRFToken()
 	if csrfErr != nil {
@@ -215,13 +215,4 @@ func (h *Handler) checkIPAllowlist(c echo.Context) *gftperrors.GFTPError {
 		}
 	}
 	return gftperrors.New(gftperrors.ErrForbidden, "client IP address is not in the allowlist")
-}
-
-// detectChmod probes whether the server supports chmod operations.
-func detectChmod(client transfer.Client, protocol, dir string) bool {
-	if protocol == "ftp" || protocol == "ftps" {
-		return false // assume FTP servers support SITE CHMOD
-	}
-	err := client.Chmod(dir, 0o755)
-	return errors.Is(err, transfer.ErrPermissionsNotSupported)
 }

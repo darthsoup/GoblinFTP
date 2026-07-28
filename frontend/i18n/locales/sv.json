@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Mappen är inte tom eller används",
     "ERR_FILE_EXISTS": "En fil med det namnet finns redan på servern",
     "ERR_FILE_PERMISSION": "Åtkomst nekad av servern",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Den här servern stöder inte ändring av behörigheter",
     "ERR_FILE_NOT_FOUND": "Objektet finns inte längre på servern",
     "ERR_QUOTA_EXCEEDED": "Servern har slut på lagringsutrymme",
     "ERR_CONNECTION_LOST": "Anslutningen till servern bröts",

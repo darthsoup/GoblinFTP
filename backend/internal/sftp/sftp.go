@@ -100,6 +100,10 @@ func (c *Client) Rename(src, dst string) error {
 	return c.sftp.Rename(src, dst)
 }
 
+// SupportsChmod is true because SFTP defines SETSTAT; an individual server may
+// still refuse a given path, which surfaces as a normal error from Chmod.
+func (c *Client) SupportsChmod() bool { return true }
+
 func (c *Client) Chmod(p string, mode uint32) error {
 	err := c.sftp.Chmod(p, fs.FileMode(mode))
 	if err != nil && errors.Is(err, sftp.ErrSSHFxOpUnsupported) {

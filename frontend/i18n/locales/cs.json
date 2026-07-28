@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Složka není prázdná nebo se používá",
     "ERR_FILE_EXISTS": "Soubor s tímto názvem již na serveru existuje",
     "ERR_FILE_PERMISSION": "Server odepřel přístup",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Tento server nepodporuje změnu oprávnění",
     "ERR_FILE_NOT_FOUND": "Položka na serveru již neexistuje",
     "ERR_QUOTA_EXCEEDED": "Na serveru došlo úložné místo",
     "ERR_CONNECTION_LOST": "Spojení se serverem bylo ztraceno",

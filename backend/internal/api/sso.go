@@ -230,7 +230,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
 	}
 
-	disableChmod := detectChmod(client, pending.Protocol, initialDir)
+	disableChmod := !client.SupportsChmod()
 
 	sess.Set("client", client)
 	sess.Set("initialDir", initialDir)

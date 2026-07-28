@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Kansio ei ole tyhjä tai se on käytössä",
     "ERR_FILE_EXISTS": "Samanniminen tiedosto on jo palvelimella",
     "ERR_FILE_PERMISSION": "Palvelin epäsi käyttöoikeuden",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Tämä palvelin ei tue oikeuksien muuttamista",
     "ERR_FILE_NOT_FOUND": "Kohdetta ei ole enää palvelimella",
     "ERR_QUOTA_EXCEEDED": "Palvelimen tallennustila on lopussa",
     "ERR_CONNECTION_LOST": "Yhteys palvelimeen katkesi",

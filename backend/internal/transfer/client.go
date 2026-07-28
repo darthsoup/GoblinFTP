@@ -34,6 +34,11 @@ type Client interface {
 	// Chmod sets permissions on the given path.
 	// Returns ErrPermissionsNotSupported if the server does not support it.
 	Chmod(path string, mode uint32) error
+	// SupportsChmod reports whether this protocol implements Chmod at all. It is
+	// a static property of the adapter, never a probe — callers use it to avoid
+	// offering an operation that could only fail. True does not promise any
+	// particular path is chmod-able; the server may still refuse.
+	SupportsChmod() bool
 	// Download opens a reader for the given file. Caller must close it.
 	Download(path string) (io.ReadCloser, error)
 	// Upload streams from r into the given path, overwriting if it exists.

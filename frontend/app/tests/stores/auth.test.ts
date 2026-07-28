@@ -93,3 +93,37 @@ describe('useAuthStore host-key flow', () => {
     })
   })
 })
+
+// The Properties dialog gates its chmod control on this, so a stale value from a
+// previous FTP session would hide the control on a following SFTP one.
+describe('useAuthStore capability reset', () => {
+  beforeEach(() => {
+    setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
+    vi.clearAllMocks()
+  })
+
+  it('disconnect() clears the chmod capability', async () => {
+    fetchMock.mockResolvedValue({ success: true, data: { ...successData, capabilities: { disableChmod: true } } })
+    const store = useAuthStore()
+
+    await store.connect({ ...req })
+    expect(store.capabilities.disableChmod).toBe(true)
+
+    mockApi.post.mockResolvedValue({})
+    await store.disconnect()
+
+    expect(store.capabilities.disableChmod).toBe(false)
+  })
+
+  it('acknowledgeSessionLost() clears the chmod capability', async () => {
+    fetchMock.mockResolvedValue({ success: true, data: { ...successData, capabilities: { disableChmod: true } } })
+    const store = useAuthStore()
+
+    await store.connect({ ...req })
+    expect(store.capabilities.disableChmod).toBe(true)
+
+    store.acknowledgeSessionLost()
+
+    expect(store.capabilities.disableChmod).toBe(false)
+  })
+})
