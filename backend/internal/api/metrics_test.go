@@ -27,6 +27,10 @@ func workingMock() *mocks.MockClient {
 	return &mocks.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
+		// Nothing exists, so uploads never hit the overwrite guard.
+		StatFn: func(string) (transfer.FileInfo, error) {
+			return transfer.FileInfo{}, errors.New("not found")
+		},
 	}
 }
 

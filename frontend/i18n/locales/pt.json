@@ -110,11 +110,13 @@
     "cancel": "Cancelar carregamento",
     "retry": "Repetir envio",
     "status": {
+      "checking": "A verificar",
       "queued": "Em fila",
       "uploading": "A carregar",
       "done": "Concluído",
       "error": "Falhou",
-      "cancelled": "Cancelado"
+      "cancelled": "Cancelado",
+      "skipped": "Ignorado"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Substituir",
       "append": "Manter ambos",
       "cancel": "Cancelar"
+    },
+    "uploadConflict": {
+      "title": "Os ficheiros já existem",
+      "message": "{n} item(ns) já existem no destino. Escolha o que fazer com cada um.",
+      "applyToAll": "Aplicar a todos",
+      "action": {
+        "overwrite": "Substituir",
+        "rename": "Manter ambos",
+        "skip": "Ignorar"
+      },
+      "renameHint": "Será guardado como «{name}»",
+      "folderConflict": "Já existe uma pasta com este nome",
+      "cancel": "Cancelar carregamento",
+      "continue": "Continuar"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "A pasta não está vazia ou está a ser utilizada",
+    "ERR_FILE_EXISTS": "Já existe um ficheiro com esse nome no servidor",
     "ERR_FILE_PERMISSION": "Acesso recusado pelo servidor",
     "ERR_FILE_NOT_FOUND": "O item já não existe no servidor",
     "ERR_QUOTA_EXCEEDED": "O servidor já não tem espaço de armazenamento",

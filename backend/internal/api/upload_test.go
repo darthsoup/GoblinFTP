@@ -34,7 +34,14 @@ func TestUploadSimple(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{IsDir: true}, nil },
+		// The parent exists, the destination does not — otherwise the overwrite
+		// guard would (correctly) refuse this upload with 409.
+		StatFn: func(p string) (transfer.FileInfo, error) {
+			if p == "/uploads" {
+				return transfer.FileInfo{IsDir: true}, nil
+			}
+			return transfer.FileInfo{}, errors.New("not found")
+		},
 		UploadFn: func(path string, r io.Reader) error {
 			uploadedPath = path
 			data, _ := io.ReadAll(r)
@@ -129,6 +136,7 @@ func TestUploadChunked(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
 		UploadFn: func(path string, r io.Reader) error {
 			data, _ := io.ReadAll(r)
 			assembled = string(data)
@@ -193,6 +201,7 @@ type memChunkStore struct {
 	mu       sync.Mutex
 	chunks   map[string]map[int][]byte
 	cleaned  []string
+	reserved []string
 	writeErr error
 }
 
@@ -201,6 +210,9 @@ func newMemChunkStore() *memChunkStore {
 }
 
 func (m *memChunkStore) NewUpload(_ context.Context, dest string, total int, size int64) (*transfer.UploadMeta, error) {
+	m.mu.Lock()
+	m.reserved = append(m.reserved, dest)
+	m.mu.Unlock()
 	return &transfer.UploadMeta{ID: uuid.NewString(), Destination: dest, TotalChunks: total, ChunkSize: size}, nil
 }
 
@@ -295,6 +307,7 @@ func TestUploadChunkedWithCustomChunkStore(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
 		UploadFn: func(path string, r io.Reader) error {
 			data, _ := io.ReadAll(r)
 			assembled = string(data)
@@ -316,6 +329,7 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
 		UploadFn: func(path string, r io.Reader) error {
 			_, _ = io.ReadAll(r)
 			return fmt.Errorf("ftp server went away")
@@ -340,6 +354,40 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	app.ServeHTTP(retryRec, retryReq)
 	assert.Equal(t, http.StatusNotFound, retryRec.Code)
 	assert.Contains(t, retryRec.Body.String(), "ERR_UPLOAD_NOT_FOUND")
+}
+
+// reserveAndSendChunks stages an upload without committing it, so a test can
+// control what the destination looks like at commit time.
+func reserveAndSendChunks(t *testing.T, app http.Handler, sess sessionCtx, dest string, chunks []string) string {
+	t.Helper()
+
+	rrec := doJSON(app, sess, http.MethodPost, "/api/files/upload/reserve",
+		fmt.Sprintf(`{"path":%q,"totalChunks":%d,"totalSize":10,"chunkSize":5}`, dest, len(chunks)))
+	require.Equal(t, http.StatusOK, rrec.Code, "reserve: %s", rrec.Body.String())
+	var rr struct {
+		Data struct {
+			UploadID string `json:"uploadId"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rrec.Body.Bytes(), &rr))
+	require.NotEmpty(t, rr.Data.UploadID)
+
+	for n, data := range chunks {
+		body := &bytes.Buffer{}
+		w := multipart.NewWriter(body)
+		_ = w.WriteField("uploadId", rr.Data.UploadID)
+		_ = w.WriteField("chunkIndex", fmt.Sprintf("%d", n))
+		part, _ := w.CreateFormFile("chunk", "chunk")
+		_, _ = io.WriteString(part, data)
+		w.Close()
+		req := httptest.NewRequest(http.MethodPost, "/api/files/upload/chunk", body)
+		req.Header.Set("Content-Type", w.FormDataContentType())
+		addSession(req, sess)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		require.Equal(t, http.StatusOK, rec.Code, "chunk %d: %s", n, rec.Body.String())
+	}
+	return rr.Data.UploadID
 }
 
 func doJSON(app http.Handler, sess sessionCtx, method, path, body string) *httptest.ResponseRecorder {
@@ -402,6 +450,8 @@ func TestConcurrentSessionUploadsNoRace(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ListFn:       func(string) ([]transfer.FileInfo, error) { return nil, nil },
+		// Pure, so the concurrent probes stay race-clean.
+		StatFn: func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
 		UploadFn: func(_ string, r io.Reader) error {
 			n := inFlight.Add(1)
 			for {
@@ -451,6 +501,7 @@ func TestUploadChunkStorageUnavailable(t *testing.T) {
 	dialFn := staticDial(&testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
 	})
 	store := newMemChunkStore()
 	store.writeErr = fmt.Errorf("%w: dial tcp: connection refused", staging.ErrUnavailable)

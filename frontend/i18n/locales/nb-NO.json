@@ -110,11 +110,13 @@
     "cancel": "Avbryt opplasting",
     "retry": "Prøv opplasting på nytt",
     "status": {
+      "checking": "Sjekker",
       "queued": "I kø",
       "uploading": "Laster opp",
       "done": "Fullført",
       "error": "Mislyktes",
-      "cancelled": "Avbrutt"
+      "cancelled": "Avbrutt",
+      "skipped": "Hoppet over"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Overskriv",
       "append": "Behold begge",
       "cancel": "Avbryt"
+    },
+    "uploadConflict": {
+      "title": "Filene finnes allerede",
+      "message": "{n} element(er) finnes allerede på målet. Velg hva som skal skje med hvert av dem.",
+      "applyToAll": "Bruk på alle",
+      "action": {
+        "overwrite": "Overskriv",
+        "rename": "Behold begge",
+        "skip": "Hopp over"
+      },
+      "renameHint": "Lagres som «{name}»",
+      "folderConflict": "En mappe med dette navnet finnes allerede",
+      "cancel": "Avbryt opplasting",
+      "continue": "Fortsett"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i bruk",
+    "ERR_FILE_EXISTS": "En fil med det navnet finnes allerede på serveren",
     "ERR_FILE_PERMISSION": "Tilgang nektet av serveren",
     "ERR_FILE_NOT_FOUND": "Elementet finnes ikke lenger på serveren",
     "ERR_QUOTA_EXCEEDED": "Serveren er tom for lagringsplass",

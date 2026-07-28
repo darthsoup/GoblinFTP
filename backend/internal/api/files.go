@@ -199,30 +199,41 @@ func (h *Handler) CopyFile(c echo.Context) error {
 // already exists, while SFTP's is recursive; the Stat guard normalizes both so a
 // folder upload can recreate a tree without spurious "already exists" failures.
 func ensureDirAll(client transfer.Client, dir string) error {
+	_, err := ensureDirAllCreated(client, dir)
+	return err
+}
+
+// ensureDirAllCreated is ensureDirAll reporting whether it had to create dir or
+// any of its parents. A freshly created parent cannot already contain the
+// destination, so upload handlers use this to skip their existence probe — on
+// FTP that probe is a full parent LIST, so the skip is load-bearing for folder
+// uploads, not a micro-optimization.
+func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 	dir = path.Clean(dir)
 	if dir == "/" || dir == "." || dir == "" {
-		return nil
+		return false, nil
 	}
 	if fi, err := client.Stat(dir); err == nil {
 		if fi.IsDir {
-			return nil
+			return false, nil
 		}
-		return errors.New("destination parent exists and is not a directory")
+		return false, errors.New("destination parent exists and is not a directory")
 	}
 	if parent := path.Dir(dir); parent != dir {
-		if err := ensureDirAll(client, parent); err != nil {
-			return err
+		if _, err := ensureDirAllCreated(client, parent); err != nil {
+			return false, err
 		}
 	}
 	if err := client.MakeDir(dir); err != nil {
 		// Tolerate an idempotent/raced create (SFTP MkdirAll, or another request
-		// won the race): an existing directory is success.
+		// won the race): an existing directory is success. It was not created by
+		// us, so the caller must still probe for the destination.
 		if fi, statErr := client.Stat(dir); statErr == nil && fi.IsDir {
-			return nil
+			return false, nil
 		}
-		return err
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 // copyTree copies from src to dst, recursing into directories. Files are streamed

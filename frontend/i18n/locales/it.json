@@ -110,11 +110,13 @@
     "cancel": "Annulla caricamento",
     "retry": "Riprova caricamento",
     "status": {
+      "checking": "Verifica in corso",
       "queued": "In coda",
       "uploading": "Caricamento in corso",
       "done": "Completato",
       "error": "Non riuscito",
-      "cancelled": "Annullato"
+      "cancelled": "Annullato",
+      "skipped": "Saltato"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Sovrascrivi",
       "append": "Mantieni entrambi",
       "cancel": "Annulla"
+    },
+    "uploadConflict": {
+      "title": "File già esistenti",
+      "message": "{n} elemento/i esistono già nella destinazione. Scegli cosa fare per ciascuno.",
+      "applyToAll": "Applica a tutti",
+      "action": {
+        "overwrite": "Sovrascrivi",
+        "rename": "Mantieni entrambi",
+        "skip": "Salta"
+      },
+      "renameHint": "Verrà salvato come «{name}»",
+      "folderConflict": "Esiste già una cartella con questo nome",
+      "cancel": "Annulla caricamento",
+      "continue": "Continua"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "La cartella non è vuota o è in uso",
+    "ERR_FILE_EXISTS": "Un file con questo nome esiste già sul server",
     "ERR_FILE_PERMISSION": "Autorizzazione negata dal server",
     "ERR_FILE_NOT_FOUND": "L'elemento non esiste più sul server",
     "ERR_QUOTA_EXCEEDED": "Spazio di archiviazione del server esaurito",

@@ -110,11 +110,13 @@
     "cancel": "Zrušiť nahrávanie",
     "retry": "Zopakovať nahrávanie",
     "status": {
+      "checking": "Kontrola",
       "queued": "Vo fronte",
       "uploading": "Nahráva sa",
       "done": "Dokončené",
       "error": "Zlyhalo",
-      "cancelled": "Zrušené"
+      "cancelled": "Zrušené",
+      "skipped": "Preskočené"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Prepísať",
       "append": "Ponechať obe",
       "cancel": "Zrušiť"
+    },
+    "uploadConflict": {
+      "title": "Súbory už existujú",
+      "message": "{n} položiek v cieli už existuje. Zvoľte, čo sa má s každou vykonať.",
+      "applyToAll": "Použiť na všetko",
+      "action": {
+        "overwrite": "Prepísať",
+        "rename": "Ponechať obe",
+        "skip": "Preskočiť"
+      },
+      "renameHint": "Uloží sa ako „{name}“",
+      "folderConflict": "Priečinok s týmto názvom už existuje",
+      "cancel": "Zrušiť nahrávanie",
+      "continue": "Pokračovať"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Priečinok nie je prázdny alebo sa používa",
+    "ERR_FILE_EXISTS": "Súbor s týmto názvom už na serveri existuje",
     "ERR_FILE_PERMISSION": "Prístup zamietnutý serverom",
     "ERR_FILE_NOT_FOUND": "Položka už na serveri neexistuje",
     "ERR_QUOTA_EXCEEDED": "Na serveri nie je dostatok úložného priestoru",

@@ -63,6 +63,18 @@ export interface OperationFailure {
   message: string
 }
 
+// One occupied upload destination, from POST /api/files/upload/check. Only
+// conflicting paths come back, each with a free name the server picked by
+// listing the target directory.
+export interface UploadConflict {
+  path: string
+  name: string
+  suggestedName: string
+  size: number
+  isDir: boolean
+  modified: string
+}
+
 // Result of DELETE /api/files — the request succeeds (HTTP 200) once processed;
 // per-item outcomes live here.
 export interface DeleteResult {

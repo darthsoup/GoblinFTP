@@ -110,11 +110,13 @@
     "cancel": "Upload annuleren",
     "retry": "Upload opnieuw proberen",
     "status": {
+      "checking": "Controleren",
       "queued": "In wachtrij",
       "uploading": "Bezig met uploaden",
       "done": "Voltooid",
       "error": "Mislukt",
-      "cancelled": "Geannuleerd"
+      "cancelled": "Geannuleerd",
+      "skipped": "Overgeslagen"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Overschrijven",
       "append": "Beide behouden",
       "cancel": "Annuleren"
+    },
+    "uploadConflict": {
+      "title": "Bestanden bestaan al",
+      "message": "{n} item(s) bestaan al op de bestemming. Kies wat er met elk moet gebeuren.",
+      "applyToAll": "Op alles toepassen",
+      "action": {
+        "overwrite": "Overschrijven",
+        "rename": "Beide behouden",
+        "skip": "Overslaan"
+      },
+      "renameHint": "Wordt opgeslagen als ‘{name}’",
+      "folderConflict": "Er bestaat al een map met deze naam",
+      "cancel": "Upload annuleren",
+      "continue": "Doorgaan"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "De map is niet leeg of wordt gebruikt",
+    "ERR_FILE_EXISTS": "Er bestaat al een bestand met die naam op de server",
     "ERR_FILE_PERMISSION": "Toegang geweigerd door de server",
     "ERR_FILE_NOT_FOUND": "Het item bestaat niet meer op de server",
     "ERR_QUOTA_EXCEEDED": "De server heeft geen opslagruimte meer",

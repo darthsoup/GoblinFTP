@@ -1,10 +1,21 @@
-import type { FileInfo } from '~/types/api'
+import type { FileInfo, UploadConflict } from '~/types/api'
 import { defineStore } from 'pinia'
 
-export type ModalType = 'delete' | 'newFolder' | 'newFile' | 'properties' | 'settings' | 'shortcuts' | 'pasteConflict' | null
+export type ModalType = 'delete' | 'newFolder' | 'newFile' | 'properties' | 'settings' | 'shortcuts' | 'pasteConflict' | 'uploadConflict' | null
 
 // How a paste should resolve name collisions, chosen via PasteConflictModal.
 export type PasteChoice = 'overwrite' | 'append' | 'cancel'
+
+// How a single upload resolves a name collision, chosen via UploadConflictModal.
+export type UploadConflictAction = 'overwrite' | 'rename' | 'skip'
+
+// Cancel drops the whole batch; resolve carries one action per conflicting path.
+// applyToAll is remembered by the upload store so a conflict that only surfaces
+// mid-transfer (the server changed under us) reuses the decision instead of
+// interrupting again.
+export type UploadConflictResolution
+  = | { kind: 'cancel' }
+    | { kind: 'resolve', decisions: Record<string, UploadConflictAction>, applyToAll?: UploadConflictAction }
 
 export interface ModalContext {
   file?: FileInfo
@@ -81,5 +92,43 @@ export const useModalStore = defineStore('modal', () => {
     resolve?.(choice)
   }
 
-  return { active, context, open, close, confirmOptions, confirm, resolveConfirm, pasteConflicts, pasteConflict, resolvePaste }
+  // ── Upload conflict dialog ─────────────────────────────────────────────────
+  // Kept separate from pasteConflict: uploads resolve per file (and can skip),
+  // which a single batch-wide PasteChoice cannot express.
+  const uploadConflicts = ref<UploadConflict[]>([])
+  let uploadResolver: ((result: UploadConflictResolution) => void) | null = null
+
+  function uploadConflict(entries: UploadConflict[]): Promise<UploadConflictResolution> {
+    uploadResolver?.({ kind: 'cancel' }) // supersede any pending one
+    uploadConflicts.value = entries
+    active.value = 'uploadConflict'
+    return new Promise((resolve) => {
+      uploadResolver = resolve
+    })
+  }
+
+  function resolveUploadConflict(result: UploadConflictResolution) {
+    uploadConflicts.value = []
+    if (active.value === 'uploadConflict')
+      active.value = null
+    const resolve = uploadResolver
+    uploadResolver = null
+    resolve?.(result)
+  }
+
+  return {
+    active,
+    context,
+    open,
+    close,
+    confirmOptions,
+    confirm,
+    resolveConfirm,
+    pasteConflicts,
+    pasteConflict,
+    resolvePaste,
+    uploadConflicts,
+    uploadConflict,
+    resolveUploadConflict,
+  }
 })

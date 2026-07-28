@@ -110,11 +110,13 @@
     "cancel": "Upload abbrechen",
     "retry": "Upload wiederholen",
     "status": {
+      "checking": "Wird geprüft",
       "queued": "In Warteschlange",
       "uploading": "Wird hochgeladen",
       "done": "Abgeschlossen",
       "error": "Fehlgeschlagen",
-      "cancelled": "Abgebrochen"
+      "cancelled": "Abgebrochen",
+      "skipped": "Übersprungen"
     }
   },
   "context": {
@@ -203,6 +205,20 @@
       "overwrite": "Überschreiben",
       "append": "Beide behalten",
       "cancel": "Abbrechen"
+    },
+    "uploadConflict": {
+      "title": "Dateien existieren bereits",
+      "message": "{n} Element(e) existieren bereits am Zielort. Wählen Sie für jedes das weitere Vorgehen.",
+      "applyToAll": "Auf alle anwenden",
+      "action": {
+        "overwrite": "Überschreiben",
+        "rename": "Beide behalten",
+        "skip": "Überspringen"
+      },
+      "renameHint": "Wird als „{name}“ gespeichert",
+      "folderConflict": "Ein Ordner mit diesem Namen existiert bereits",
+      "cancel": "Upload abbrechen",
+      "continue": "Fortfahren"
     }
   },
   "error": {
@@ -211,6 +227,7 @@
   },
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Der Ordner ist nicht leer oder wird verwendet",
+    "ERR_FILE_EXISTS": "Eine Datei mit diesem Namen existiert bereits auf dem Server",
     "ERR_FILE_PERMISSION": "Zugriff vom Server verweigert",
     "ERR_FILE_NOT_FOUND": "Das Element existiert nicht mehr auf dem Server",
     "ERR_QUOTA_EXCEEDED": "Auf dem Server ist kein Speicherplatz mehr verfügbar",
