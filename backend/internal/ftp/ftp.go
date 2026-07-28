@@ -129,6 +129,10 @@ func (c *Client) Rename(src, dst string) error {
 	return c.conn.Rename(src, dst)
 }
 
+// SupportsChmod is false because Chmod below can only fail. Flip both together
+// if SITE CHMOD ever lands, or the UI will offer a control that never works.
+func (c *Client) SupportsChmod() bool { return false }
+
 func (c *Client) Chmod(p string, mode uint32) error {
 	// jlaffaye/ftp does not support SITE CHMOD, and FTP chmod is not
 	// universally supported across servers anyway.

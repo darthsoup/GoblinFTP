@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Der Ordner ist nicht leer oder wird verwendet",
     "ERR_FILE_EXISTS": "Eine Datei mit diesem Namen existiert bereits auf dem Server",
     "ERR_FILE_PERMISSION": "Zugriff vom Server verweigert",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Dieser Server unterstützt das Ändern von Berechtigungen nicht",
     "ERR_FILE_NOT_FOUND": "Das Element existiert nicht mehr auf dem Server",
     "ERR_QUOTA_EXCEEDED": "Auf dem Server ist kein Speicherplatz mehr verfügbar",
     "ERR_CONNECTION_LOST": "Die Verbindung zum Server wurde getrennt",

@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Le dossier n'est pas vide ou est en cours d'utilisation",
     "ERR_FILE_EXISTS": "Un fichier portant ce nom existe déjà sur le serveur",
     "ERR_FILE_PERMISSION": "Accès refusé par le serveur",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Ce serveur ne prend pas en charge la modification des permissions",
     "ERR_FILE_NOT_FOUND": "L'élément n'existe plus sur le serveur",
     "ERR_QUOTA_EXCEEDED": "Le serveur n'a plus d'espace de stockage",
     "ERR_CONNECTION_LOST": "La connexion au serveur a été perdue",

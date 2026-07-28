@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Priečinok nie je prázdny alebo sa používa",
     "ERR_FILE_EXISTS": "Súbor s týmto názvom už na serveri existuje",
     "ERR_FILE_PERMISSION": "Prístup zamietnutý serverom",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Tento server nepodporuje zmenu oprávnení",
     "ERR_FILE_NOT_FOUND": "Položka už na serveri neexistuje",
     "ERR_QUOTA_EXCEEDED": "Na serveri nie je dostatok úložného priestoru",
     "ERR_CONNECTION_LOST": "Spojenie so serverom sa stratilo",

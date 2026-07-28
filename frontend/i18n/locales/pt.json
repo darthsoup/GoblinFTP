@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "A pasta não está vazia ou está a ser utilizada",
     "ERR_FILE_EXISTS": "Já existe um ficheiro com esse nome no servidor",
     "ERR_FILE_PERMISSION": "Acesso recusado pelo servidor",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Este servidor não suporta a alteração de permissões",
     "ERR_FILE_NOT_FOUND": "O item já não existe no servidor",
     "ERR_QUOTA_EXCEEDED": "O servidor já não tem espaço de armazenamento",
     "ERR_CONNECTION_LOST": "A ligação ao servidor foi perdida",

@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i bruk",
     "ERR_FILE_EXISTS": "En fil med det navnet finnes allerede på serveren",
     "ERR_FILE_PERMISSION": "Tilgang nektet av serveren",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Denne serveren støtter ikke endring av rettigheter",
     "ERR_FILE_NOT_FOUND": "Elementet finnes ikke lenger på serveren",
     "ERR_QUOTA_EXCEEDED": "Serveren er tom for lagringsplass",
     "ERR_CONNECTION_LOST": "Tilkoblingen til serveren ble brutt",

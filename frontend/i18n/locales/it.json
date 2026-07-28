@@ -229,6 +229,7 @@
     "ERR_DIR_NOT_EMPTY": "La cartella non è vuota o è in uso",
     "ERR_FILE_EXISTS": "Un file con questo nome esiste già sul server",
     "ERR_FILE_PERMISSION": "Autorizzazione negata dal server",
+    "ERR_PERMISSIONS_NOT_SUPPORTED": "Questo server non supporta la modifica dei permessi",
     "ERR_FILE_NOT_FOUND": "L'elemento non esiste più sul server",
     "ERR_QUOTA_EXCEEDED": "Spazio di archiviazione del server esaurito",
     "ERR_CONNECTION_LOST": "La connessione al server è stata persa",

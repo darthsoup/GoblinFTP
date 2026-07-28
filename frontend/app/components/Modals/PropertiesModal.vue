@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+import { ApiError } from '~/types/api'
 
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const authStore = useAuthStore()
 const notify = useNotify()
 const { t, locale } = useI18n()
+const { localizeError } = useErrorMessage()
 
 const file = computed(() => modalStore.context.file)
 const open = computed({
@@ -39,8 +41,13 @@ const fullPath = computed(() => {
   return `${dir}/${file.value.name}`
 })
 
+// Two independent gates: the admin kill-switch from settings.json, and what the
+// connected protocol can actually do. FTP/FTPS have no SITE CHMOD, so offering
+// the control there guarantees a 422.
 const chmodEnabled = computed(() =>
-  !authStore.systemVars?.connection.disableChmod && !!file.value && !file.value.isDir,
+  !authStore.systemVars?.connection.disableChmod
+  && !authStore.capabilities.disableChmod
+  && !!file.value && !file.value.isDir,
 )
 
 // ── Permissions: octal string is the single source of truth ──────────────────
@@ -118,7 +125,12 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
     modalStore.close()
   }
   catch (e) {
-    apiError.value = e instanceof Error ? e.message : t('error.operationFailed')
+    // An SFTP server can still answer SSH_FX_OP_UNSUPPORTED even though the
+    // protocol supports chmod, so localize the code rather than showing the
+    // raw server string.
+    apiError.value = e instanceof ApiError
+      ? localizeError(e.code, e.message)
+      : e instanceof Error ? e.message : t('error.operationFailed')
   }
   finally {
     loading.value = false

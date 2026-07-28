@@ -10,18 +10,19 @@ import (
 // MockClient is a transfer.Client where each method is a swappable function field.
 // Any unset field panics when called — intentional, to catch missed setup in tests.
 type MockClient struct {
-	WorkingDirFn func() (string, error)
-	ListFn       func(path string) ([]transfer.FileInfo, error)
-	StatFn       func(path string) (transfer.FileInfo, error)
-	MakeDirFn    func(path string) error
-	DeleteFn     func(path string) error
-	RenameFn     func(src, dst string) error
-	ChmodFn      func(path string, mode uint32) error
-	DownloadFn   func(path string) (io.ReadCloser, error)
-	UploadFn     func(path string, r io.Reader) error
-	PingFn       func() error
-	CloseFn      func() error
-	Closed       bool
+	WorkingDirFn    func() (string, error)
+	ListFn          func(path string) ([]transfer.FileInfo, error)
+	StatFn          func(path string) (transfer.FileInfo, error)
+	MakeDirFn       func(path string) error
+	DeleteFn        func(path string) error
+	RenameFn        func(src, dst string) error
+	ChmodFn         func(path string, mode uint32) error
+	SupportsChmodFn func() bool
+	DownloadFn      func(path string) (io.ReadCloser, error)
+	UploadFn        func(path string, r io.Reader) error
+	PingFn          func() error
+	CloseFn         func() error
+	Closed          bool
 }
 
 func (m *MockClient) WorkingDir() (string, error)                   { return m.WorkingDirFn() }
@@ -33,6 +34,15 @@ func (m *MockClient) Rename(src, dst string) error                  { return m.R
 func (m *MockClient) Chmod(path string, mode uint32) error          { return m.ChmodFn(path, mode) }
 func (m *MockClient) Download(path string) (io.ReadCloser, error)   { return m.DownloadFn(path) }
 func (m *MockClient) Upload(path string, r io.Reader) error         { return m.UploadFn(path, r) }
+
+// SupportsChmod defaults to true when SupportsChmodFn is unset, so tests that
+// don't care about the capability keep working.
+func (m *MockClient) SupportsChmod() bool {
+	if m.SupportsChmodFn != nil {
+		return m.SupportsChmodFn()
+	}
+	return true
+}
 
 // Ping defaults to alive (nil) when PingFn is unset, so existing tests
 // that never deal with liveness keep working.
