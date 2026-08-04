@@ -153,7 +153,18 @@
     "confirmCloseMessage": "Abandonner les modifications non enregistrées de {name} ?",
     "confirmDisconnectMessage": "Vous avez {n} fichier(s) avec des modifications non enregistrées. Se déconnecter et les abandonner ?",
     "discard": "Abandonner",
-    "keepEditing": "Continuer l'édition"
+    "keepEditing": "Continuer l'édition",
+    "conflict": {
+      "title": "Le fichier a changé sur le serveur",
+      "deletedTitle": "Le fichier n’est plus sur le serveur",
+      "message": "« {name} » a été modifié sur le serveur après son ouverture. Enregistrer maintenant remplacera ces modifications.",
+      "deletedMessage": "« {name} » n’est plus sur le serveur. Il a peut-être été supprimé ou déplacé. L’enregistrement le recréera.",
+      "baseline": "Votre version : {size} · {date}",
+      "overwrite": "Enregistrer quand même",
+      "reload": "Abandonner et recharger",
+      "banner": "Ce fichier a changé sur le serveur. L’enregistrement automatique est en pause.",
+      "bannerDeleted": "Ce fichier n’est plus sur le serveur. L’enregistrement automatique est en pause."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Le dossier n'est pas vide ou est en cours d'utilisation",
     "ERR_FILE_EXISTS": "Un fichier portant ce nom existe déjà sur le serveur",
+    "ERR_FILE_MODIFIED": "Le fichier a changé sur le serveur depuis son ouverture",
     "ERR_FILE_PERMISSION": "Accès refusé par le serveur",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Ce serveur ne prend pas en charge la modification des permissions",
     "ERR_FILE_NOT_FOUND": "L'élément n'existe plus sur le serveur",

@@ -153,7 +153,18 @@
     "confirmCloseMessage": "Niet-opgeslagen wijzigingen aan {name} verwerpen?",
     "confirmDisconnectMessage": "Je hebt {n} bestand(en) met niet-opgeslagen wijzigingen. Verbinding verbreken en verwerpen?",
     "discard": "Verwerpen",
-    "keepEditing": "Doorgaan met bewerken"
+    "keepEditing": "Doorgaan met bewerken",
+    "conflict": {
+      "title": "Bestand is gewijzigd op de server",
+      "deletedTitle": "Bestand staat niet meer op de server",
+      "message": "“{name}” is op de server gewijzigd nadat je het opende. Nu opslaan vervangt die wijzigingen.",
+      "deletedMessage": "“{name}” staat niet meer op de server. Het is mogelijk verwijderd of verplaatst. Opslaan maakt het opnieuw aan.",
+      "baseline": "Jouw versie: {size} · {date}",
+      "overwrite": "Toch opslaan",
+      "reload": "Mijne verwerpen, opnieuw laden",
+      "banner": "Dit bestand is gewijzigd op de server. Automatisch opslaan is gepauzeerd.",
+      "bannerDeleted": "Dit bestand staat niet meer op de server. Automatisch opslaan is gepauzeerd."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "De map is niet leeg of wordt gebruikt",
     "ERR_FILE_EXISTS": "Er bestaat al een bestand met die naam op de server",
+    "ERR_FILE_MODIFIED": "Het bestand is op de server gewijzigd sinds je het opende",
     "ERR_FILE_PERMISSION": "Toegang geweigerd door de server",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Deze server ondersteunt het wijzigen van rechten niet",
     "ERR_FILE_NOT_FOUND": "Het item bestaat niet meer op de server",

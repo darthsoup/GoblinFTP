@@ -153,7 +153,18 @@
     "confirmCloseMessage": "¿Descartar los cambios sin guardar en {name}?",
     "confirmDisconnectMessage": "Tienes {n} archivo(s) con cambios sin guardar. ¿Desconectar y descartarlos?",
     "discard": "Descartar",
-    "keepEditing": "Seguir editando"
+    "keepEditing": "Seguir editando",
+    "conflict": {
+      "title": "El archivo cambió en el servidor",
+      "deletedTitle": "El archivo ya no está en el servidor",
+      "message": "«{name}» cambió en el servidor después de que lo abrieras. Si guardas ahora, reemplazarás esos cambios.",
+      "deletedMessage": "«{name}» ya no está en el servidor. Puede que se haya eliminado o movido. Al guardar se creará de nuevo.",
+      "baseline": "Tu versión: {size} · {date}",
+      "overwrite": "Guardar de todos modos",
+      "reload": "Descartar la mía y recargar",
+      "banner": "Este archivo cambió en el servidor. El guardado automático está en pausa.",
+      "bannerDeleted": "Este archivo ya no está en el servidor. El guardado automático está en pausa."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "La carpeta no está vacía o está en uso",
     "ERR_FILE_EXISTS": "Ya existe un archivo con ese nombre en el servidor",
+    "ERR_FILE_MODIFIED": "El archivo cambió en el servidor desde que lo abriste",
     "ERR_FILE_PERMISSION": "El servidor denegó el permiso",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Este servidor no admite cambiar los permisos",
     "ERR_FILE_NOT_FOUND": "El elemento ya no existe en el servidor",

@@ -153,7 +153,18 @@
     "confirmCloseMessage": "Ungespeicherte Änderungen an {name} verwerfen?",
     "confirmDisconnectMessage": "{n} Datei(en) mit ungespeicherten Änderungen. Trennen und verwerfen?",
     "discard": "Verwerfen",
-    "keepEditing": "Weiter bearbeiten"
+    "keepEditing": "Weiter bearbeiten",
+    "conflict": {
+      "title": "Datei wurde auf dem Server geändert",
+      "deletedTitle": "Datei ist auf dem Server nicht mehr vorhanden",
+      "message": "„{name}“ wurde auf dem Server geändert, nachdem Sie sie geöffnet haben. Beim Speichern werden diese Änderungen ersetzt.",
+      "deletedMessage": "„{name}“ ist nicht mehr auf dem Server. Sie wurde möglicherweise gelöscht oder verschoben. Beim Speichern wird sie neu angelegt.",
+      "baseline": "Ihre Version: {size} · {date}",
+      "overwrite": "Trotzdem speichern",
+      "reload": "Verwerfen und neu laden",
+      "banner": "Diese Datei wurde auf dem Server geändert. Automatisches Speichern ist pausiert.",
+      "bannerDeleted": "Diese Datei ist auf dem Server nicht mehr vorhanden. Automatisches Speichern ist pausiert."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Der Ordner ist nicht leer oder wird verwendet",
     "ERR_FILE_EXISTS": "Eine Datei mit diesem Namen existiert bereits auf dem Server",
+    "ERR_FILE_MODIFIED": "Die Datei wurde auf dem Server geändert, seit Sie sie geöffnet haben",
     "ERR_FILE_PERMISSION": "Zugriff vom Server verweigert",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Dieser Server unterstützt das Ändern von Berechtigungen nicht",
     "ERR_FILE_NOT_FOUND": "Das Element existiert nicht mehr auf dem Server",

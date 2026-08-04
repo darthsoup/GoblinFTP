@@ -153,7 +153,18 @@
     "confirmCloseMessage": "Hylätäänkö tiedoston {name} tallentamattomat muutokset?",
     "confirmDisconnectMessage": "Sinulla on {n} tiedostoa, joissa on tallentamattomia muutoksia. Katkaistaanko yhteys ja hylätäänkö ne?",
     "discard": "Hylkää",
-    "keepEditing": "Jatka muokkausta"
+    "keepEditing": "Jatka muokkausta",
+    "conflict": {
+      "title": "Tiedosto muuttui palvelimella",
+      "deletedTitle": "Tiedostoa ei enää ole palvelimella",
+      "message": "”{name}” muuttui palvelimella sen jälkeen, kun avasit sen. Tallentaminen korvaa nuo muutokset.",
+      "deletedMessage": "”{name}” ei ole enää palvelimella. Se on voitu poistaa tai siirtää. Tallentaminen luo sen uudelleen.",
+      "baseline": "Sinun versiosi: {size} · {date}",
+      "overwrite": "Tallenna silti",
+      "reload": "Hylkää omani ja lataa uudelleen",
+      "banner": "Tämä tiedosto muuttui palvelimella. Automaattitallennus on keskeytetty.",
+      "bannerDeleted": "Tätä tiedostoa ei enää ole palvelimella. Automaattitallennus on keskeytetty."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Kansio ei ole tyhjä tai se on käytössä",
     "ERR_FILE_EXISTS": "Samanniminen tiedosto on jo palvelimella",
+    "ERR_FILE_MODIFIED": "Tiedosto on muuttunut palvelimella sen jälkeen, kun avasit sen",
     "ERR_FILE_PERMISSION": "Palvelin epäsi käyttöoikeuden",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Tämä palvelin ei tue oikeuksien muuttamista",
     "ERR_FILE_NOT_FOUND": "Kohdetta ei ole enää palvelimella",

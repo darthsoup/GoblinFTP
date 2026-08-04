@@ -153,7 +153,18 @@
     "confirmCloseMessage": "Forkaste ulagrede endringer i {name}?",
     "confirmDisconnectMessage": "Du har {n} fil(er) med ulagrede endringer. Koble fra og forkaste dem?",
     "discard": "Forkast",
-    "keepEditing": "Fortsett å redigere"
+    "keepEditing": "Fortsett å redigere",
+    "conflict": {
+      "title": "Filen ble endret på serveren",
+      "deletedTitle": "Filen finnes ikke lenger på serveren",
+      "message": "«{name}» ble endret på serveren etter at du åpnet den. Lagrer du nå, erstattes de endringene.",
+      "deletedMessage": "«{name}» finnes ikke lenger på serveren. Den kan ha blitt slettet eller flyttet. Lagring oppretter den på nytt.",
+      "baseline": "Din versjon: {size} · {date}",
+      "overwrite": "Lagre likevel",
+      "reload": "Forkast mine, last inn på nytt",
+      "banner": "Denne filen ble endret på serveren. Automatisk lagring er satt på pause.",
+      "bannerDeleted": "Denne filen finnes ikke lenger på serveren. Automatisk lagring er satt på pause."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i bruk",
     "ERR_FILE_EXISTS": "En fil med det navnet finnes allerede på serveren",
+    "ERR_FILE_MODIFIED": "Filen ble endret på serveren etter at du åpnet den",
     "ERR_FILE_PERMISSION": "Tilgang nektet av serveren",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Denne serveren støtter ikke endring av rettigheter",
     "ERR_FILE_NOT_FOUND": "Elementet finnes ikke lenger på serveren",

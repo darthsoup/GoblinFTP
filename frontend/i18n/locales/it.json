@@ -153,7 +153,18 @@
     "confirmCloseMessage": "Scartare le modifiche non salvate a {name}?",
     "confirmDisconnectMessage": "Hai {n} file con modifiche non salvate. Disconnetterti e scartarle?",
     "discard": "Scarta",
-    "keepEditing": "Continua a modificare"
+    "keepEditing": "Continua a modificare",
+    "conflict": {
+      "title": "Il file è cambiato sul server",
+      "deletedTitle": "Il file non è più sul server",
+      "message": "«{name}» è stato modificato sul server dopo che l’hai aperto. Salvando ora sostituirai quelle modifiche.",
+      "deletedMessage": "«{name}» non è più sul server. Potrebbe essere stato eliminato o spostato. Salvando verrà ricreato.",
+      "baseline": "La tua versione: {size} · {date}",
+      "overwrite": "Salva comunque",
+      "reload": "Scarta le mie e ricarica",
+      "banner": "Questo file è cambiato sul server. Il salvataggio automatico è in pausa.",
+      "bannerDeleted": "Questo file non è più sul server. Il salvataggio automatico è in pausa."
+    }
   },
   "modal": {
     "delete": {
@@ -231,6 +242,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "La cartella non è vuota o è in uso",
     "ERR_FILE_EXISTS": "Un file con questo nome esiste già sul server",
+    "ERR_FILE_MODIFIED": "Il file è cambiato sul server da quando l’hai aperto",
     "ERR_FILE_PERMISSION": "Autorizzazione negata dal server",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Questo server non supporta la modifica dei permessi",
     "ERR_FILE_NOT_FOUND": "L'elemento non esiste più sul server",
