@@ -15,8 +15,13 @@ import (
 	"github.com/darthsoup/goblinftp/internal/api"
 	"github.com/darthsoup/goblinftp/internal/config"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/transfer"
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 )
+
+// The version token editorDialOption's default StatFn produces. Write tests that
+// are not about conflict detection send this so the precondition passes.
+const defaultEditorVersion = "11:1000"
 
 func editorTestConfig() *config.Config {
 	cfg := defaultTestConfig()
@@ -34,6 +39,13 @@ func editorDialOption(mock *testutil.MockClient) api.HandlerOption {
 	}
 	if mock.ChmodFn == nil {
 		mock.ChmodFn = func(string, uint32) error { return nil }
+	}
+	if mock.StatFn == nil {
+		// Read and write both stat for the version token; tests that are not
+		// about conflict detection get a stable one.
+		mock.StatFn = func(string) (transfer.FileInfo, error) {
+			return transfer.FileInfo{Size: 11, ModTime: 1000}, nil
+		}
 	}
 	return api.WithDial(staticDial(mock))
 }
@@ -114,7 +126,7 @@ func TestWriteFile(t *testing.T) {
 	}))
 	sess := connectAndGetSession(t, app)
 
-	body := `{"path":"/remote/file.txt","content":"updated content"}`
+	body := `{"path":"/remote/file.txt","content":"updated content","expectedVersion":"` + defaultEditorVersion + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/files/write", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	addSession(req, sess)
@@ -169,7 +181,7 @@ func TestWriteFileUploadError(t *testing.T) {
 	}))
 	sess := connectAndGetSession(t, app)
 
-	body := `{"path":"/remote/file.txt","content":"x"}`
+	body := `{"path":"/remote/file.txt","content":"x","expectedVersion":"` + defaultEditorVersion + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/files/write", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	addSession(req, sess)
@@ -197,6 +209,154 @@ func TestWriteFileViewOnly(t *testing.T) {
 	app.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusForbidden, rec.Code)
+}
+
+// ── Edit-conflict detection ──────────────────────────────────────────────────
+
+// statSeq returns a StatFn yielding each info in turn, repeating the last one.
+// It models the file changing on the server between the open and the save.
+func statSeq(infos ...transfer.FileInfo) func(string) (transfer.FileInfo, error) {
+	i := 0
+	return func(string) (transfer.FileInfo, error) {
+		fi := infos[min(i, len(infos)-1)]
+		i++
+		return fi, nil
+	}
+}
+
+func writeReq(t *testing.T, app http.Handler, sess sessionCtx, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/api/files/write", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestReadFileReturnsVersion(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		StatFn:     func(string) (transfer.FileInfo, error) { return transfer.FileInfo{Size: 42, ModTime: 1712345678}, nil },
+		DownloadFn: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("body")), nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/files/read?path=/remote/file.txt", nil)
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var resp struct {
+		Data struct {
+			Version  *string `json:"version"`
+			Size     int64   `json:"size"`
+			Modified string  `json:"modified"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.NotNil(t, resp.Data.Version)
+	assert.Equal(t, "42:1712345678", *resp.Data.Version)
+	assert.Equal(t, int64(42), resp.Data.Size)
+	assert.Equal(t, "2024-04-05T19:34:38Z", resp.Data.Modified)
+}
+
+// A file the server cannot stat still opens; the client is told it has no
+// conflict detection via a null version rather than being blocked.
+func TestReadFileUnstattableReturnsNullVersion(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		StatFn:     func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("550 not found") },
+		DownloadFn: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("body")), nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/files/read?path=/remote/file.txt", nil)
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), `"version":null`)
+}
+
+func TestWriteFileRejectsStaleVersion(t *testing.T) {
+	uploaded := false
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		StatFn:   func(string) (transfer.FileInfo, error) { return transfer.FileInfo{Size: 99, ModTime: 2000}, nil },
+		UploadFn: func(string, io.Reader) error { uploaded = true; return nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	rec := writeReq(t, app, sess, `{"path":"/remote/file.txt","content":"mine","expectedVersion":"11:1000"}`)
+
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	assert.Contains(t, rec.Body.String(), string(gftperrors.ErrFileModified))
+	assert.False(t, uploaded, "a rejected save must not reach the server")
+}
+
+func TestWriteFileOverwriteBypassesPrecondition(t *testing.T) {
+	uploaded := false
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		StatFn:   func(string) (transfer.FileInfo, error) { return transfer.FileInfo{Size: 99, ModTime: 2000}, nil },
+		UploadFn: func(string, io.Reader) error { uploaded = true; return nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	rec := writeReq(t, app, sess, `{"path":"/remote/file.txt","content":"mine","overwrite":true}`)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.True(t, uploaded)
+	assert.Contains(t, rec.Body.String(), `"99:2000"`, "the response carries the new baseline")
+}
+
+// The version returned after a save must describe the file as it is now, or the
+// client's very next save conflicts with the write it just made.
+func TestWriteFileReturnsRefreshedVersion(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		StatFn: statSeq(
+			transfer.FileInfo{Size: 11, ModTime: 1000},
+			transfer.FileInfo{Size: 20, ModTime: 3000},
+		),
+		UploadFn: func(string, io.Reader) error { return nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	rec := writeReq(t, app, sess, `{"path":"/remote/file.txt","content":"longer content","expectedVersion":"11:1000"}`)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), `"20:3000"`)
+}
+
+func TestWriteFileDeletedSinceOpen(t *testing.T) {
+	uploaded := false
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		StatFn:   func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("550 no such file") },
+		UploadFn: func(string, io.Reader) error { uploaded = true; return nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	rec := writeReq(t, app, sess, `{"path":"/remote/file.txt","content":"mine","expectedVersion":"11:1000"}`)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), string(gftperrors.ErrFileNotFound))
+	assert.False(t, uploaded)
+}
+
+// Fail closed: a client that forgets the token must not silently lose the
+// protection. This also stops Mod-S on a tab whose read failed from writing an
+// empty file over a healthy one.
+func TestWriteFileRequiresPrecondition(t *testing.T) {
+	uploaded := false
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
+		UploadFn: func(string, io.Reader) error { uploaded = true; return nil },
+	}))
+	sess := connectAndGetSession(t, app)
+
+	rec := writeReq(t, app, sess, `{"path":"/remote/file.txt","content":"mine"}`)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), string(gftperrors.ErrBadRequest))
+	assert.False(t, uploaded)
 }
 
 func TestWriteFileDisallowedExtension(t *testing.T) {

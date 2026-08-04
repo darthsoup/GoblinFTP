@@ -1,7 +1,7 @@
 import type { FileInfo, UploadConflict } from '~/types/api'
 import { defineStore } from 'pinia'
 
-export type ModalType = 'delete' | 'newFolder' | 'newFile' | 'properties' | 'settings' | 'shortcuts' | 'pasteConflict' | 'uploadConflict' | null
+export type ModalType = 'delete' | 'newFolder' | 'newFile' | 'properties' | 'settings' | 'shortcuts' | 'pasteConflict' | 'uploadConflict' | 'editorConflict' | null
 
 // How a paste should resolve name collisions, chosen via PasteConflictModal.
 export type PasteChoice = 'overwrite' | 'append' | 'cancel'
@@ -16,6 +16,21 @@ export type UploadConflictAction = 'overwrite' | 'rename' | 'skip'
 export type UploadConflictResolution
   = | { kind: 'cancel' }
     | { kind: 'resolve', decisions: Record<string, UploadConflictAction>, applyToAll?: UploadConflictAction }
+
+// The editor's save collided with a newer server copy ('modified') or the file
+// is gone ('deleted'). Overwrite replaces the server copy, reload discards the
+// local buffer, cancel keeps editing with autosave paused.
+export type EditorConflictKind = 'modified' | 'deleted'
+export type EditorConflictChoice = 'overwrite' | 'reload' | 'cancel'
+
+// size/modified describe the version the user opened, which is the honest thing
+// to show: reading the server's current metadata would need another round trip.
+export interface EditorConflictInfo {
+  name: string
+  kind: EditorConflictKind
+  size?: number
+  modified?: string
+}
 
 export interface ModalContext {
   file?: FileInfo
@@ -116,6 +131,30 @@ export const useModalStore = defineStore('modal', () => {
     resolve?.(result)
   }
 
+  // ── Editor conflict dialog ─────────────────────────────────────────────────
+  // Its own dialog rather than confirm(): three outcomes, and the payload
+  // carries the baseline the user opened so the copy can show it.
+  const editorConflictInfo = ref<EditorConflictInfo | null>(null)
+  let editorResolver: ((choice: EditorConflictChoice) => void) | null = null
+
+  function editorConflict(info: EditorConflictInfo): Promise<EditorConflictChoice> {
+    editorResolver?.('cancel') // supersede any pending one
+    editorConflictInfo.value = info
+    active.value = 'editorConflict'
+    return new Promise((resolve) => {
+      editorResolver = resolve
+    })
+  }
+
+  function resolveEditorConflict(choice: EditorConflictChoice) {
+    editorConflictInfo.value = null
+    if (active.value === 'editorConflict')
+      active.value = null
+    const resolve = editorResolver
+    editorResolver = null
+    resolve?.(choice)
+  }
+
   return {
     active,
     context,
@@ -130,5 +169,8 @@ export const useModalStore = defineStore('modal', () => {
     uploadConflicts,
     uploadConflict,
     resolveUploadConflict,
+    editorConflictInfo,
+    editorConflict,
+    resolveEditorConflict,
   }
 })

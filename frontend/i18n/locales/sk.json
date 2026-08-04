@@ -152,7 +152,18 @@
     "confirmCloseMessage": "Zahodiť neuložené zmeny v {name}?",
     "confirmDisconnectMessage": "Máte {n} súbor(ov) s neuloženými zmenami. Odpojiť a zahodiť ich?",
     "discard": "Zahodiť",
-    "keepEditing": "Pokračovať v úpravách"
+    "keepEditing": "Pokračovať v úpravách",
+    "conflict": {
+      "title": "Súbor bol na serveri zmenený",
+      "deletedTitle": "Súbor už na serveri nie je",
+      "message": "„{name}“ bol na serveri zmenený po tom, čo ste ho otvorili. Uložením tieto zmeny nahradíte.",
+      "deletedMessage": "„{name}“ už na serveri nie je. Mohol byť odstránený alebo presunutý. Uložením ho vytvoríte znova.",
+      "baseline": "Vaša verzia: {size} · {date}",
+      "overwrite": "Aj tak uložiť",
+      "reload": "Zahodiť a načítať znova",
+      "banner": "Tento súbor bol na serveri zmenený. Automatické ukladanie je pozastavené.",
+      "bannerDeleted": "Tento súbor už na serveri nie je. Automatické ukladanie je pozastavené."
+    }
   },
   "modal": {
     "delete": {
@@ -230,6 +241,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Priečinok nie je prázdny alebo sa používa",
     "ERR_FILE_EXISTS": "Súbor s týmto názvom už na serveri existuje",
+    "ERR_FILE_MODIFIED": "Súbor bol na serveri zmenený odkedy ste ho otvorili",
     "ERR_FILE_PERMISSION": "Prístup zamietnutý serverom",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Tento server nepodporuje zmenu oprávnení",
     "ERR_FILE_NOT_FOUND": "Položka už na serveri neexistuje",

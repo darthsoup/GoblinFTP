@@ -104,7 +104,7 @@ Keep comments sparse. Prefer self-explanatory names and structure; comment only 
 
 1. Add the type to `ModalType` in `stores/modal.ts`.
 2. Create `components/Modals/YourModal.vue` using `<UModal :open="modalStore.active === 'yourType'" @update:open="modalStore.close()">`.
-3. Mount `<YourModal />` in `pages/index.vue`.
+3. Mount `<YourModal />` in `layouts/default.vue` (alongside the other overlays), not in `pages/index.vue` — a modal mounted on the page never renders on `/edit`.
 4. Add i18n keys to `i18n/locales/en.json` (the source of truth), then add the same keys to every other locale file so `just i18n-check` stays green (translate the values; `de.json` is the reference for tone).
 
 ## Configuration

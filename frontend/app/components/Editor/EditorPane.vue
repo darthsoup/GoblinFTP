@@ -17,11 +17,16 @@ const { t } = useI18n()
 const containerRef = ref<HTMLElement | null>(null)
 const viewOnly = computed(() => authStore.systemVars?.editor?.viewOnly ?? false)
 const showEditor = computed(() => !!editorStore.activeTab && !editorStore.activeTab.loading && !editorStore.activeTab.error)
+const conflictTab = computed(() => (editorStore.activeTab?.conflict ? editorStore.activeTab : null))
 
 // The view is component-local (recreated per mount); per-tab EditorState +
 // scroll live in editorSession so they survive leaving and returning to /edit.
 let view: EditorView | null = null
 let mountedTabId: string | null = null
+// The tab.revision the mounted state was built from. A reload bumps the tab's
+// revision, and without comparing it sync() would early-return on the unchanged
+// tab id and keep showing (and then saving) the document the user discarded.
+let mountedRevision = -1
 
 // Each grammar is dynamic-imported so only the one a file needs is fetched (and
 // the 14 grammars stay out of the editor's main chunk). Applied after mount via
@@ -113,10 +118,13 @@ function themeExtensions(): Extension {
   return [syntaxHighlighting(defaultHighlightStyle), oneDark, goblinDarkTheme]
 }
 
+// interactive: an explicit save is a request the user is waiting on, so a
+// refusal opens the dialog. Autosave only sets the tab's conflict state and
+// lets the banner offer the same choices.
 function saveActive() {
   if (viewOnly.value || !editorStore.activeId)
     return
-  editorStore.saveTab(editorStore.activeId)
+  editorStore.saveTab(editorStore.activeId, { interactive: true })
 }
 
 function buildExtensions(): Extension[] {
@@ -179,6 +187,7 @@ function sync() {
   if (mountedTabId && (!tab || tab.id !== mountedTabId)) {
     snapshotMounted()
     mountedTabId = null
+    mountedRevision = -1
   }
 
   // Nothing editable to show (no tab, still loading, or errored): keep the view
@@ -186,7 +195,7 @@ function sync() {
   if (!tab || tab.loading || tab.error)
     return
 
-  if (mountedTabId === tab.id)
+  if (mountedTabId === tab.id && mountedRevision === tab.revision)
     return
 
   const restored = editorSession.tabStates.get(tab.id)
@@ -198,6 +207,7 @@ function sync() {
   // Sync the theme to the current mode (a restored state may carry a stale one).
   view.dispatch({ effects: editorSession.themeCompartment.reconfigure(themeExtensions()) })
   mountedTabId = tab.id
+  mountedRevision = tab.revision
 
   // Fresh states start without a grammar — load it lazily and swap it in, guarded
   // so a slow import for a since-switched tab can't apply to the wrong document.
@@ -217,7 +227,12 @@ function sync() {
 }
 
 watch(
-  () => [editorStore.activeId, editorStore.activeTab?.loading, editorStore.activeTab?.error] as const,
+  () => [
+    editorStore.activeId,
+    editorStore.activeTab?.loading,
+    editorStore.activeTab?.error,
+    editorStore.activeTab?.revision,
+  ] as const,
   async () => {
     await nextTick()
     sync()
@@ -243,6 +258,36 @@ onUnmounted(() => {
 <template>
   <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
     <EditorTabBar />
+
+    <!-- Conflict banner. Deliberately outside the editor region so the user's
+         unsaved buffer stays visible, and it persists after the dialog is
+         dismissed so autosave is never silently off with no explanation. -->
+    <div
+      v-if="conflictTab"
+      class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 border-b border-default bg-warning/10"
+    >
+      <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0 text-warning" />
+      <span class="text-sm text-default">
+        {{ conflictTab.conflict === 'deleted' ? t('editor.conflict.bannerDeleted') : t('editor.conflict.banner') }}
+      </span>
+      <div class="ml-auto flex items-center gap-1.5">
+        <UButton
+          v-if="conflictTab.conflict !== 'deleted'"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          :label="t('editor.conflict.reload')"
+          @click="editorStore.reloadTab(conflictTab.id)"
+        />
+        <UButton
+          size="xs"
+          color="error"
+          variant="soft"
+          :label="t('editor.conflict.overwrite')"
+          @click="editorStore.saveTab(conflictTab.id, { force: true })"
+        />
+      </div>
+    </div>
 
     <div class="relative flex-1 min-h-0">
       <div v-show="showEditor" ref="containerRef" class="absolute inset-0 overflow-auto" />
