@@ -109,6 +109,9 @@
     "clear": "Ryd gennemførte",
     "cancel": "Annuller upload",
     "retry": "Prøv upload igen",
+    "eta": "Tilbage {time}",
+    "stalled": "Standset",
+    "finalizing": "Færdiggør",
     "status": {
       "checking": "Kontrollerer",
       "queued": "I kø",

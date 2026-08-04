@@ -109,6 +109,9 @@
     "clear": "Rensa slutförda",
     "cancel": "Avbryt uppladdning",
     "retry": "Försök ladda upp igen",
+    "eta": "Återstår {time}",
+    "stalled": "Stoppad",
+    "finalizing": "Slutför",
     "status": {
       "checking": "Kontrollerar",
       "queued": "I kö",

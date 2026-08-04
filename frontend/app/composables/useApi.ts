@@ -5,6 +5,14 @@ import { ApiError } from '~/types/api'
 // blocking reconnect dialog instead of surfacing a raw error.
 const SESSION_LOST_CODES = new Set(['ERR_SESSION_NOT_FOUND', 'ERR_UNAUTHORIZED', 'ERR_CSRF_INVALID', 'ERR_CONNECTION_LOST'])
 
+// Bytes handed to the socket, which is not the same as bytes the server has
+// received: a body smaller than the kernel send buffer reports complete almost
+// immediately. Good enough for a rate on the transfers long enough to need one.
+export interface UploadProgress {
+  loaded: number
+  total: number
+}
+
 export function useApi() {
   // Get auth store lazily (avoid circular deps at module load)
   function getCsrfToken(): string {
@@ -54,10 +62,53 @@ export function useApi() {
     }
   }
 
+  // XHR rather than $fetch: the fetch API emits no upload-progress events, so a
+  // file small enough to fit in one request would report nothing at all. It
+  // lives here, not in the upload store, so CSRF injection, the envelope
+  // unwrap, ApiError and the session-lost side effect in raise() are shared
+  // with the other methods instead of duplicated.
+  function postForm<T>(path: string, form: FormData, opts?: { onProgress?: (p: UploadProgress) => void }): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', path)
+      const csrf = getCsrfToken()
+      if (csrf)
+        xhr.setRequestHeader('X-CSRF-Token', csrf)
+      xhr.responseType = 'json'
+
+      if (opts?.onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable)
+            opts.onProgress!({ loaded: e.loaded, total: e.total })
+        }
+      }
+
+      xhr.onload = () => {
+        const envelope = xhr.response as ApiEnvelope<T> | null
+        try {
+          if (!envelope || envelope.success === false || xhr.status >= 400) {
+            const err = envelope?.errors?.[0]
+            raise(err?.code ?? 'ERR_UNKNOWN', err?.message ?? `Request failed (${xhr.status})`)
+          }
+          resolve(envelope!.data as T)
+        }
+        catch (e) {
+          // raise() throws; reject rather than letting it escape the callback,
+          // where nothing would catch it.
+          reject(e)
+        }
+      }
+      xhr.onerror = () => reject(new ApiError('ERR_NETWORK', 'Network error'))
+      xhr.onabort = () => reject(new ApiError('ERR_NETWORK', 'Request aborted'))
+      xhr.send(form)
+    })
+  }
+
   return {
     get: <T>(path: string) => call<T>('GET', path),
     post: <T>(path: string, body?: unknown) => call<T>('POST', path, body),
     patch: <T>(path: string, body?: unknown) => call<T>('PATCH', path, body),
     del: <T>(path: string, body?: unknown) => call<T>('DELETE', path, body),
+    postForm,
   }
 }

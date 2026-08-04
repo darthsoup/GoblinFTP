@@ -109,6 +109,9 @@
     "clear": "Effacer les terminés",
     "cancel": "Annuler le téléversement",
     "retry": "Réessayer l'envoi",
+    "eta": "Restant {time}",
+    "stalled": "Bloqué",
+    "finalizing": "Finalisation",
     "status": {
       "checking": "Vérification",
       "queued": "En file d'attente",

@@ -109,6 +109,9 @@
     "clear": "Rimuovi completati",
     "cancel": "Annulla caricamento",
     "retry": "Riprova caricamento",
+    "eta": "Rimanente {time}",
+    "stalled": "Bloccato",
+    "finalizing": "Finalizzazione",
     "status": {
       "checking": "Verifica in corso",
       "queued": "In coda",

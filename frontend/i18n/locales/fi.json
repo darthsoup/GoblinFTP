@@ -109,6 +109,9 @@
     "clear": "Tyhjennä valmiit",
     "cancel": "Peruuta lähetys",
     "retry": "Yritä lähetystä uudelleen",
+    "eta": "Jäljellä {time}",
+    "stalled": "Pysähtynyt",
+    "finalizing": "Viimeistellään",
     "status": {
       "checking": "Tarkistetaan",
       "queued": "Jonossa",

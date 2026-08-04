@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const uploadStore = useUploadStore()
-const { t } = useI18n()
+const settingsStore = useSettingsStore()
+const { t, locale } = useI18n()
 
 const collapsed = ref(false)
 
@@ -49,10 +50,15 @@ const overall = computed(() => {
           {{ uploadStore.items.length }}
         </UBadge>
 
-        <!-- Aggregate progress — only while collapsed and something is uploading. -->
+        <!-- Aggregate progress — only while collapsed and something is uploading.
+             Expanded, every row carries its own rate and ETA. -->
         <span v-if="collapsed && overall !== null" class="flex items-center gap-2 min-w-0 pl-1">
           <UProgress class="w-14 sm:w-28" size="sm" :model-value="overall" />
           <span class="text-xs tabular-nums text-muted shrink-0">{{ overall }}%</span>
+          <span v-if="uploadStore.overallRate" class="hidden sm:inline text-xs tabular-nums text-dimmed shrink-0 whitespace-nowrap">
+            {{ formatRate(uploadStore.overallRate, settingsStore.sizeFormat, locale) }}
+            · {{ t('upload.eta', { time: formatEta(uploadStore.overallEtaSeconds) }) }}
+          </span>
         </span>
       </div>
 

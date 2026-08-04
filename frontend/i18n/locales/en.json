@@ -109,6 +109,9 @@
     "clear": "Clear Completed",
     "cancel": "Cancel upload",
     "retry": "Retry upload",
+    "eta": "ETA {time}",
+    "stalled": "Stalled",
+    "finalizing": "Finalizing",
     "status": {
       "checking": "Checking",
       "queued": "Queued",

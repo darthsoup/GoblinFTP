@@ -109,6 +109,9 @@
     "clear": "Fjern fullførte",
     "cancel": "Avbryt opplasting",
     "retry": "Prøv opplasting på nytt",
+    "eta": "Gjenstår {time}",
+    "stalled": "Stanset",
+    "finalizing": "Fullfører",
     "status": {
       "checking": "Sjekker",
       "queued": "I kø",

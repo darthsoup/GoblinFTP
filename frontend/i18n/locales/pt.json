@@ -109,6 +109,9 @@
     "clear": "Limpar concluídas",
     "cancel": "Cancelar carregamento",
     "retry": "Repetir envio",
+    "eta": "Restante {time}",
+    "stalled": "Parado",
+    "finalizing": "A finalizar",
     "status": {
       "checking": "A verificar",
       "queued": "Em fila",
