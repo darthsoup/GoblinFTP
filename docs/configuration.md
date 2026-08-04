@@ -7,7 +7,7 @@ Configuration resolves in two layers, evaluated once at process start:
 
 Both are read once at startup by `config.Load`. There is no hot reload, so a change to either requires a restart. Invalid values in most variables abort startup with a specific error rather than being silently coerced; the exceptions are called out below.
 
-Larger subsystems have dedicated pages: [Logging](logging.md), [Metrics](metrics.md), [S3 chunk staging](s3-staging.md), [Theming](theming.md), and [SSO login links](../examples/sso/README.md). The complete annotated variable list is [`.env.example`](../.env.example).
+Larger subsystems have dedicated pages: [Logging](logging.md), [Metrics](metrics.md), [S3 chunk staging](s3-staging.md), [Theming](theming.md), [Iframe embedding](embedding.md), and [SSO login links](../examples/sso/README.md). The complete annotated variable list is [`.env.example`](../.env.example).
 
 ## Environment variables
 
@@ -73,42 +73,23 @@ These override the matching `branding` block in `settings.json`. For per-tenant 
 ### Iframe embedding
 
 Drops GoblinFTP into a hosting control panel as a pre-authenticated iframe. Combine with
-[SSO login links](#sso-login-links) so the panel establishes the session.
+[SSO login links](#sso-login-links) so the panel establishes the session. Full guide:
+[Iframe embedding](embedding.md).
 
 | Variable | Default | Description |
 |---|---|---|
 | `GFTP_FRAME_ANCESTORS` | (none, framing denied) | Space-separated origins allowed to embed GoblinFTP, e.g. `https://panel.example.com https://eu.panel.example.com`. Each entry must be `scheme://host[:port]` with no path. A leftmost-label wildcard (`https://*.example.com`) is allowed. Commas, bare hosts, `*`, and non-loopback `http://` are rejected at startup. |
 | `GFTP_EMBED_CHROMELESS` | `auto` | `auto` hides branding chrome only when the page is framed, `on` always hides it, `off` never does. Overrides `embed.chromeless` in `settings.json`. |
 
-`GFTP_FRAME_ANCESTORS` is env-only by design. Caddy serves `index.html`, which is the document
-`frame-ancestors` actually applies to, and Caddy cannot read `settings.json`. A value placed there
-would put the header on `/api/*` and leave the document without one, so framing would fail silently
-while the config looked correct.
+Two points decide whether an embed works at all. **Unconfigured means denied:** with no allowlist
+GoblinFTP sends `frame-ancestors 'none'` plus `X-Frame-Options: DENY`, a change from versions before
+0.25.0, which shipped no framing restriction. **The session cookie changes instance-wide:** setting
+an allowlist switches `gftp_session` to `SameSite=None; Secure; Partitioned` for every user, framed
+or not, so GoblinFTP must be served over HTTPS.
 
-Points to know before enabling it:
-
-1. **Unconfigured now means denied.** With no allowlist GoblinFTP sends `frame-ancestors 'none'`
-   plus `X-Frame-Options: DENY`. This is a change from earlier versions, which shipped no framing
-   restriction at all and could be embedded by anyone.
-2. **The session cookie changes instance-wide.** Setting an allowlist switches `gftp_session` to
-   `SameSite=None; Secure; Partitioned` for every user, framed or not, because a cross-site iframe
-   receives no cookie otherwise. GoblinFTP must therefore be served over HTTPS. The
-   `X-CSRF-Token` header remains the CSRF defence; it is sufficient because no CORS headers are
-   ever emitted, so a cross-origin page cannot read the token.
-3. **A partitioned session is keyed to the embedding site.** It is not shared with a top-level tab
-   on the same browser, so the user is logged in inside the panel and logged out outside it.
-4. **Safari blocks third-party cookies unconditionally.** A cross-registrable-domain embed does not
-   work there. The recommended topology is a shared parent domain (`panel.example.com` framing
-   `files.example.com`), which sidesteps the whole class of problem.
-5. **SSO tokens are single-use.** The panel must mint a fresh `/?sso=` URL on every render of the
-   iframe. A browser reload of the frame re-requests its `src` and lands on `?sso_error=used`.
-6. Consider `GFTP_DISABLE_LOGIN_FORM=true` for panel embeds. When the session ends, GoblinFTP then
-   shows a "reopen from your control panel" message instead of a credential form the panel user
-   cannot fill in.
-
-If the frame loads but never signs in, the cause is almost always the cookie. Open DevTools,
-inspect the `Set-Cookie` on the SSO response, and confirm it carries `SameSite=None; Secure;
-Partitioned`. The startup log prints the active policy whenever an allowlist is configured.
+`GFTP_FRAME_ANCESTORS` is env-only by design, because Caddy serves the framed document and cannot
+read `settings.json`. Full setup, accepted values, browser support, and troubleshooting:
+[Iframe embedding](embedding.md).
 
 ### SSO login links
 
