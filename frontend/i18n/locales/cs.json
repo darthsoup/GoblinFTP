@@ -150,7 +150,18 @@
     "confirmCloseMessage": "Zahodit neuložené změny v souboru {name}?",
     "confirmDisconnectMessage": "Máte {n} souborů s neuloženými změnami. Odpojit a zahodit je?",
     "discard": "Zahodit",
-    "keepEditing": "Pokračovat v úpravách"
+    "keepEditing": "Pokračovat v úpravách",
+    "conflict": {
+      "title": "Soubor byl na serveru změněn",
+      "deletedTitle": "Soubor na serveru již není",
+      "message": "„{name}“ byl na serveru změněn poté, co jste jej otevřeli. Uložením tyto změny nahradíte.",
+      "deletedMessage": "„{name}“ už na serveru není. Mohl být smazán nebo přesunut. Uložením jej vytvoříte znovu.",
+      "baseline": "Vaše verze: {size} · {date}",
+      "overwrite": "Přesto uložit",
+      "reload": "Zahodit a načíst znovu",
+      "banner": "Tento soubor byl na serveru změněn. Automatické ukládání je pozastaveno.",
+      "bannerDeleted": "Tento soubor na serveru již není. Automatické ukládání je pozastaveno."
+    }
   },
   "modal": {
     "delete": {
@@ -228,6 +239,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Složka není prázdná nebo se používá",
     "ERR_FILE_EXISTS": "Soubor s tímto názvem již na serveru existuje",
+    "ERR_FILE_MODIFIED": "Soubor byl na serveru změněn od chvíle, kdy jste jej otevřeli",
     "ERR_FILE_PERMISSION": "Server odepřel přístup",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Tento server nepodporuje změnu oprávnění",
     "ERR_FILE_NOT_FOUND": "Položka na serveru již neexistuje",

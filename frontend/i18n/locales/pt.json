@@ -150,7 +150,18 @@
     "confirmCloseMessage": "Descartar alterações não guardadas em {name}?",
     "confirmDisconnectMessage": "Tem {n} ficheiro(s) com alterações não guardadas. Desligar e descartá-las?",
     "discard": "Descartar",
-    "keepEditing": "Continuar a editar"
+    "keepEditing": "Continuar a editar",
+    "conflict": {
+      "title": "O ficheiro mudou no servidor",
+      "deletedTitle": "O ficheiro já não está no servidor",
+      "message": "«{name}» foi alterado no servidor depois de o ter aberto. Guardar agora substitui essas alterações.",
+      "deletedMessage": "«{name}» já não está no servidor. Pode ter sido eliminado ou movido. Ao guardar, será recriado.",
+      "baseline": "A sua versão: {size} · {date}",
+      "overwrite": "Guardar mesmo assim",
+      "reload": "Descartar a minha e recarregar",
+      "banner": "Este ficheiro mudou no servidor. A gravação automática está em pausa.",
+      "bannerDeleted": "Este ficheiro já não está no servidor. A gravação automática está em pausa."
+    }
   },
   "modal": {
     "delete": {
@@ -228,6 +239,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "A pasta não está vazia ou está a ser utilizada",
     "ERR_FILE_EXISTS": "Já existe um ficheiro com esse nome no servidor",
+    "ERR_FILE_MODIFIED": "O ficheiro mudou no servidor desde que o abriu",
     "ERR_FILE_PERMISSION": "Acesso recusado pelo servidor",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Este servidor não suporta a alteração de permissões",
     "ERR_FILE_NOT_FOUND": "O item já não existe no servidor",

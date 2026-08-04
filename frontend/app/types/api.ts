@@ -75,6 +75,21 @@ export interface UploadConflict {
   modified: string
 }
 
+// Optimistic-concurrency token from /api/files/read and /api/files/write.
+// `version` is opaque: never parse or reconstruct it, just hand it back on save.
+// null means the server could not stat the path, so there is no conflict
+// detection for this file and the editor saves unconditionally.
+export interface FileVersion {
+  version: string | null
+  size: number
+  modified: string
+}
+
+export interface ReadFileResult extends FileVersion {
+  path: string
+  content: string
+}
+
 // Result of DELETE /api/files — the request succeeds (HTTP 200) once processed;
 // per-item outcomes live here.
 export interface DeleteResult {

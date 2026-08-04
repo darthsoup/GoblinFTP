@@ -45,5 +45,6 @@ watch(() => authStore.connected, (connected) => {
     <ShortcutsModal />
     <PasteConflictModal />
     <UploadConflictModal />
+    <EditorConflictModal />
   </div>
 </template>

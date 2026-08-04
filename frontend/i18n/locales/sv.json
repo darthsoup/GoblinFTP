@@ -150,7 +150,18 @@
     "confirmCloseMessage": "Kasta osparade ändringar i {name}?",
     "confirmDisconnectMessage": "Du har {n} fil(er) med osparade ändringar. Koppla från och kasta dem?",
     "discard": "Kasta",
-    "keepEditing": "Fortsätt redigera"
+    "keepEditing": "Fortsätt redigera",
+    "conflict": {
+      "title": "Filen har ändrats på servern",
+      "deletedTitle": "Filen finns inte längre på servern",
+      "message": "”{name}” ändrades på servern efter att du öppnade den. Sparar du nu ersätts de ändringarna.",
+      "deletedMessage": "”{name}” finns inte längre på servern. Den kan ha tagits bort eller flyttats. Om du sparar återskapas den.",
+      "baseline": "Din version: {size} · {date}",
+      "overwrite": "Spara ändå",
+      "reload": "Kasta mina, läs in igen",
+      "banner": "Den här filen har ändrats på servern. Autospar är pausat.",
+      "bannerDeleted": "Den här filen finns inte längre på servern. Autospar är pausat."
+    }
   },
   "modal": {
     "delete": {
@@ -228,6 +239,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Mappen är inte tom eller används",
     "ERR_FILE_EXISTS": "En fil med det namnet finns redan på servern",
+    "ERR_FILE_MODIFIED": "Filen har ändrats på servern sedan du öppnade den",
     "ERR_FILE_PERMISSION": "Åtkomst nekad av servern",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Den här servern stöder inte ändring av behörigheter",
     "ERR_FILE_NOT_FOUND": "Objektet finns inte längre på servern",

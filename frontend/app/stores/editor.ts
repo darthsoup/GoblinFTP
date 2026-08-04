@@ -1,5 +1,8 @@
+import type { EditorConflictKind } from '~/stores/modal'
+import type { FileVersion, ReadFileResult } from '~/types/api'
 import { defineStore } from 'pinia'
-import { clearEditorSession } from '~/utils/editorSession'
+import { ApiError } from '~/types/api'
+import { clearEditorSession, dropTabState } from '~/utils/editorSession'
 
 export interface EditorTab {
   id: string
@@ -10,6 +13,20 @@ export interface EditorTab {
   loading: boolean
   saving: boolean
   error?: string
+  // Opaque server token for the copy this tab was opened from. undefined means
+  // the file was never read (nothing to precondition on); null means the server
+  // could not stat it, so saves go through unconditionally as they used to.
+  version?: string | null
+  baselineSize?: number
+  baselineModified?: string
+  // Set when the server refused a save. Pauses autosave and shows the banner.
+  conflict?: EditorConflictKind
+  // Bumped by reloadTab so EditorPane rebuilds its CodeMirror state instead of
+  // restoring the cached one, which would keep showing the stale document.
+  revision: number
+  // A conflict is re-prompted once; a second one in a row is an error rather
+  // than another dialog, so a racing server cannot loop it. Mirrors upload.ts.
+  reprompted?: boolean
 }
 
 const AUTOSAVE_DELAY_MS = 2000
@@ -47,23 +64,117 @@ export const useEditorStore = defineStore('editor', () => {
     autoSaveTimers.clear()
   }
 
-  async function saveTab(id: string) {
+  function adoptVersion(tab: EditorTab, meta: FileVersion | undefined) {
+    if (!meta)
+      return
+    tab.version = meta.version
+    tab.baselineSize = meta.size
+    tab.baselineModified = meta.modified
+  }
+
+  // force skips the server-side precondition; the user was shown the conflict
+  // and chose to replace. interactive decides whether a refusal raises the modal
+  // or only the inline banner — autosave must never interrupt mid-keystroke.
+  async function saveTab(id: string, { interactive = false, force = false } = {}) {
     const tab = tabs.value.find(t => t.id === id)
-    if (!tab || tab.saving)
+    if (!tab || tab.saving || tab.loading)
+      return
+    // No baseline means the read never completed. Saving here would write the
+    // empty buffer over a healthy file; the backend rejects it anyway.
+    if (tab.version === undefined)
       return
     clearAutoSave(id)
     tab.saving = true
     tab.error = undefined
+    const content = tab.content
     try {
       const api = useApi()
-      await api.post('/api/files/write', { path: tab.path, content: tab.content })
-      tab.savedContent = tab.content
+      // A null version means the server offers no conflict detection for this
+      // file, so there is nothing to precondition on.
+      const meta = await api.post<FileVersion>('/api/files/write', force || tab.version === null
+        ? { path: tab.path, content, overwrite: true }
+        : { path: tab.path, content, expectedVersion: tab.version })
+      tab.savedContent = content
+      tab.conflict = undefined
+      tab.reprompted = false
+      adoptVersion(tab, meta)
     }
     catch (e) {
+      const code = e instanceof ApiError ? e.code : ''
+      const kind: EditorConflictKind | null
+        = code === 'ERR_FILE_MODIFIED' ? 'modified' : code === 'ERR_FILE_NOT_FOUND' ? 'deleted' : null
+      if (kind && !tab.reprompted) {
+        tab.conflict = kind
+        tab.saving = false
+        if (interactive)
+          await resolveConflict(id)
+        return
+      }
       tab.error = e instanceof Error ? e.message : 'Failed to save'
     }
     finally {
       tab.saving = false
+    }
+  }
+
+  // Asks what to do about a refused save. Only reached from an explicit save;
+  // autosave leaves tab.conflict set and lets the banner offer the same choices.
+  async function resolveConflict(id: string) {
+    const tab = tabs.value.find(t => t.id === id)
+    if (!tab?.conflict)
+      return
+    const choice = await useModalStore().editorConflict({
+      name: tab.name,
+      kind: tab.conflict,
+      size: tab.baselineSize,
+      modified: tab.baselineModified,
+    })
+    if (choice === 'overwrite') {
+      tab.reprompted = true
+      await saveTab(id, { force: true })
+      tab.reprompted = false
+    }
+    else if (choice === 'reload') {
+      await reloadTab(id)
+    }
+    // 'cancel' keeps the buffer and leaves tab.conflict set, so the banner
+    // explains why autosave stopped.
+  }
+
+  // Replaces the buffer with the server's copy and re-pins the baseline. The
+  // revision bump is what makes EditorPane rebuild its editor state.
+  async function reloadTab(id: string) {
+    const tab = tabs.value.find(t => t.id === id)
+    if (!tab)
+      return
+    tab.loading = true
+    try {
+      const api = useApi()
+      const data = await api.get<ReadFileResult>(`/api/files/read?path=${encodeURIComponent(tab.path)}`)
+      const t = tabs.value.find(t => t.id === id)
+      if (!t)
+        return
+      t.content = data.content
+      t.savedContent = data.content
+      t.conflict = undefined
+      t.reprompted = false
+      t.error = undefined
+      // Both matter: dropping the cached CodeMirror state stops the stale
+      // document being restored, and the revision bump is what tells EditorPane
+      // to rebuild rather than early-return on the unchanged tab id.
+      dropTabState(id)
+      t.revision++
+      adoptVersion(t, data)
+    }
+    catch (e) {
+      const t = tabs.value.find(t => t.id === id)
+      if (t)
+        t.error = e instanceof Error ? e.message : 'Failed to reload file'
+    }
+    finally {
+      const t = tabs.value.find(t => t.id === id)
+      if (t)
+        t.loading = false
     }
   }
 
@@ -74,8 +185,12 @@ export const useEditorStore = defineStore('editor', () => {
     autoSaveTimers.set(id, setTimeout(() => {
       autoSaveTimers.delete(id)
       const tab = tabs.value.find(t => t.id === id)
-      if (useSettingsStore().editorAutoSave && tab && !tab.loading && !tab.saving && tab.content !== tab.savedContent)
+      // An unresolved conflict pauses autosave: retrying on every keystroke
+      // pause would hammer the server and the user has already been told.
+      if (useSettingsStore().editorAutoSave && tab && !tab.loading && !tab.saving
+        && !tab.conflict && tab.content !== tab.savedContent) {
         saveTab(id)
+      }
     }, AUTOSAVE_DELAY_MS))
   }
 
@@ -90,18 +205,19 @@ export const useEditorStore = defineStore('editor', () => {
 
     const id = crypto.randomUUID()
     const name = path.split('/').pop() ?? path
-    const tab: EditorTab = { id, path, name, content: '', savedContent: '', loading: true, saving: false }
+    const tab: EditorTab = { id, path, name, content: '', savedContent: '', loading: true, saving: false, revision: 0 }
     tabs.value = [...tabs.value, tab]
     activeId.value = id
 
     try {
       const api = useApi()
-      const data = await api.get<{ content: string, path: string }>(`/api/files/read?path=${encodeURIComponent(path)}`)
+      const data = await api.get<ReadFileResult>(`/api/files/read?path=${encodeURIComponent(path)}`)
       const t = tabs.value.find(t => t.id === id)
       if (t) {
         t.content = data.content
         t.savedContent = data.content
         t.loading = false
+        adoptVersion(t, data)
       }
     }
     catch (e) {
@@ -186,5 +302,5 @@ export const useEditorStore = defineStore('editor', () => {
   // Persist when the set of open tabs or the active tab changes (not on edits).
   watch([() => tabs.value.map(t => t.path).join('\n'), activeId], () => persist())
 
-  return { tabs, activeId, activeTab, hasOpenTabs, dirtyCount, hasDirty, openFile, saveTab, updateContent, closeTab, setActive, restore, $reset }
+  return { tabs, activeId, activeTab, hasOpenTabs, dirtyCount, hasDirty, openFile, saveTab, resolveConflict, reloadTab, updateContent, closeTab, setActive, restore, $reset }
 })

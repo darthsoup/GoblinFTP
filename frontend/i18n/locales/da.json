@@ -150,7 +150,18 @@
     "confirmCloseMessage": "Kassér ugemte ændringer i {name}?",
     "confirmDisconnectMessage": "Du har {n} fil(er) med ugemte ændringer. Afbryd og kassér dem?",
     "discard": "Kassér",
-    "keepEditing": "Fortsæt redigering"
+    "keepEditing": "Fortsæt redigering",
+    "conflict": {
+      "title": "Filen er ændret på serveren",
+      "deletedTitle": "Filen findes ikke længere på serveren",
+      "message": "“{name}” blev ændret på serveren, efter du åbnede den. Gemmer du nu, erstattes de ændringer.",
+      "deletedMessage": "“{name}” findes ikke længere på serveren. Den er måske slettet eller flyttet. Gemmer du, oprettes den igen.",
+      "baseline": "Din version: {size} · {date}",
+      "overwrite": "Gem alligevel",
+      "reload": "Kassér mine, hent igen",
+      "banner": "Denne fil er ændret på serveren. Automatisk lagring er sat på pause.",
+      "bannerDeleted": "Denne fil findes ikke længere på serveren. Automatisk lagring er sat på pause."
+    }
   },
   "modal": {
     "delete": {
@@ -228,6 +239,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "Mappen er ikke tom eller er i brug",
     "ERR_FILE_EXISTS": "En fil med det navn findes allerede på serveren",
+    "ERR_FILE_MODIFIED": "Filen er ændret på serveren, siden du åbnede den",
     "ERR_FILE_PERMISSION": "Adgang nægtet af serveren",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "Denne server understøtter ikke ændring af rettigheder",
     "ERR_FILE_NOT_FOUND": "Elementet findes ikke længere på serveren",

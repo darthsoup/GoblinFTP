@@ -150,7 +150,18 @@
     "confirmCloseMessage": "Discard unsaved changes to {name}?",
     "confirmDisconnectMessage": "You have {n} file(s) with unsaved changes. Disconnect and discard them?",
     "discard": "Discard",
-    "keepEditing": "Keep editing"
+    "keepEditing": "Keep editing",
+    "conflict": {
+      "title": "File changed on the server",
+      "deletedTitle": "File is gone from the server",
+      "message": "“{name}” was changed on the server after you opened it. Saving now replaces those changes.",
+      "deletedMessage": "“{name}” is no longer on the server. It may have been deleted or moved. Saving recreates it.",
+      "baseline": "Your version: {size} · {date}",
+      "overwrite": "Save anyway",
+      "reload": "Discard mine, reload",
+      "banner": "This file changed on the server. Auto-save is paused.",
+      "bannerDeleted": "This file is gone from the server. Auto-save is paused."
+    }
   },
   "modal": {
     "delete": {
@@ -228,6 +239,7 @@
   "errorCode": {
     "ERR_DIR_NOT_EMPTY": "The folder is not empty or is in use",
     "ERR_FILE_EXISTS": "A file with that name already exists on the server",
+    "ERR_FILE_MODIFIED": "The file changed on the server since you opened it",
     "ERR_FILE_PERMISSION": "Permission denied by the server",
     "ERR_PERMISSIONS_NOT_SUPPORTED": "This server does not support changing permissions",
     "ERR_FILE_NOT_FOUND": "The item no longer exists on the server",
