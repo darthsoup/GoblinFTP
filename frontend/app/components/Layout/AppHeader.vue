@@ -8,6 +8,7 @@ const modalStore = useModalStore()
 const route = useRoute()
 const { t } = useI18n()
 const { appName, logoUrl } = useBranding()
+const { embedded } = useEmbed()
 
 // Centre switcher between the file browser and the editor — only relevant while
 // the editor has open tabs. The Files link carries the current browse path so
@@ -56,8 +57,14 @@ async function handleDisconnect() {
       center: 'flex',
     }"
   >
+    <!-- Embedded: the hosting panel already brands the page and the frame's
+         vertical space is scarce. The header itself is only trimmed, never
+         removed — it carries the only route back from /edit.
+         The slot must still render an element when embedded: an empty #left
+         makes UHeader fall back to its own default title ("Nuxt UI"). -->
     <template #left>
-      <div class="flex items-center gap-2 select-none">
+      <span v-if="embedded" />
+      <div v-else class="flex items-center gap-2 select-none">
         <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="h-7 w-auto max-w-[200px] object-contain">
         <template v-else>
           <UIcon name="i-lucide-server" class="size-5 text-primary" />
@@ -99,17 +106,22 @@ async function handleDisconnect() {
         />
       </UTooltip>
 
-      <USeparator orientation="vertical" class="h-5 mx-1" />
+      <!-- The panel owns the session lifecycle when embedded: a user who
+           disconnects inside the frame has no credentials to reconnect with
+           and would be left staring at a dead frame. -->
+      <template v-if="!embedded">
+        <USeparator orientation="vertical" class="h-5 mx-1" />
 
-      <UButton
-        color="error"
-        variant="ghost"
-        icon="i-lucide-log-out"
-        :aria-label="t('header.disconnect')"
-        @click="handleDisconnect"
-      >
-        <span class="hidden sm:inline">{{ t('header.disconnect') }}</span>
-      </UButton>
+        <UButton
+          color="error"
+          variant="ghost"
+          icon="i-lucide-log-out"
+          :aria-label="t('header.disconnect')"
+          @click="handleDisconnect"
+        >
+          <span class="hidden sm:inline">{{ t('header.disconnect') }}</span>
+        </UButton>
+      </template>
     </template>
   </UHeader>
 </template>

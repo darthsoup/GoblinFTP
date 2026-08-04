@@ -213,10 +213,8 @@ func (h *Handler) ServeTheme(c echo.Context) error {
 // theme applies.
 func (h *Handler) resolveTenantBranding(c echo.Context) (themeCSS, logo, logoDark, favicon *string) {
 	tenant := ""
-	if cookie, err := c.Cookie(SessionCookieName); err == nil {
-		if sess, ok := h.store.Get(cookie.Value); ok {
-			tenant = sess.GetString(tenantSessionKey)
-		}
+	if sess, ok := lookupSession(c, h.store); ok {
+		tenant = sess.GetString(tenantSessionKey)
 	}
 	if tenant == "" {
 		// Custom domain → tenant, from each theme's theme.json "hosts" list.

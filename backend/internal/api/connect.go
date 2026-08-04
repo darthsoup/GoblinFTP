@@ -4,7 +4,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -147,16 +146,7 @@ func (h *Handler) Connect(c echo.Context) error {
 
 	h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "success").Inc()
 
-	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
-		Name:     SessionCookieName,
-		Value:    sess.ID,
-		Path:     "/",
-		HttpOnly: true,
-		// Secure when served over TLS (directly or behind a proxy setting
-		// X-Forwarded-Proto); plain-HTTP LAN deployments keep working.
-		Secure:   c.Scheme() == "https",
-		SameSite: http.SameSiteLaxMode,
-	})
+	c.SetCookie(sessionCookie(c, h.cfg, sess.ID, 0))
 
 	return OK(c, ConnectData{
 		Capabilities:     Capabilities{DisableChmod: disableChmod},
@@ -179,15 +169,7 @@ func (h *Handler) Disconnect(c echo.Context) error {
 		}
 	}
 	h.store.Delete(sess.ID)
-	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
-		Name:     SessionCookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   c.Scheme() == "https",
-		SameSite: http.SameSiteLaxMode,
-	})
+	c.SetCookie(sessionCookie(c, h.cfg, "", -1))
 	return OK(c, nil)
 }
 

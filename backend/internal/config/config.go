@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -68,6 +69,17 @@ type BrandingSettings struct {
 	HideAttribution  bool    `json:"hideAttribution"`
 }
 
+// EmbedSettings maps the `embed` block. The frame-ancestors allowlist is
+// deliberately NOT here: Caddy serves the framed document and cannot read
+// settings.json, so a value here would put the header on /api/* and leave the
+// document without one — framing would fail silently while the config looked
+// correct. It is env-only (GFTP_FRAME_ANCESTORS), read by both Go and Caddy.
+type EmbedSettings struct {
+	// Chromeless: "auto" hides branding chrome only when the page is framed,
+	// "on" always, "off" never.
+	Chromeless string `json:"chromeless"`
+}
+
 // Settings mirrors settings.json; used for runtime-configurable UI/editor/connection/access settings.
 type Settings struct {
 	Language   string             `json:"language"`
@@ -76,24 +88,28 @@ type Settings struct {
 	Connection ConnectionSettings `json:"connection"`
 	Access     AccessSettings     `json:"access"`
 	Branding   BrandingSettings   `json:"branding"`
+	Embed      EmbedSettings      `json:"embed"`
 }
 
 // Config holds all runtime configuration for GoblinFTP.
 type Config struct {
-	Port                  string
-	LogLevel              string
-	LogFormat             string
-	LogFile               string
-	LogFileMaxSizeMB      int
-	LogFileMaxBackups     int
-	LogFileMaxAgeDays     int
-	FrontendLogEnabled    bool
-	MetricsEnabled        bool
-	MetricsPort           string
-	SessionSecret         []byte
-	DownloadTokenSecret   []byte
-	SSOEnabled            bool
-	SSOSecret             []byte
+	Port                string
+	LogLevel            string
+	LogFormat           string
+	LogFile             string
+	LogFileMaxSizeMB    int
+	LogFileMaxBackups   int
+	LogFileMaxAgeDays   int
+	FrontendLogEnabled  bool
+	MetricsEnabled      bool
+	MetricsPort         string
+	SessionSecret       []byte
+	DownloadTokenSecret []byte
+	SSOEnabled          bool
+	SSOSecret           []byte
+	// FrameAncestors is the validated CSP frame-ancestors allowlist. Empty means
+	// framing is denied. Env-only (GFTP_FRAME_ANCESTORS) — see EmbedSettings.
+	FrameAncestors        []string
 	ChunkSize             int64
 	MaxConcurrentUploads  int
 	DataDir               string
@@ -114,6 +130,10 @@ type Config struct {
 	S3TimeoutSeconds      int
 	Settings              Settings
 }
+
+// EmbeddingEnabled reports whether an iframe allowlist is configured. It is the
+// single switch for the cross-site session-cookie policy.
+func (c *Config) EmbeddingEnabled() bool { return len(c.FrameAncestors) > 0 }
 
 func defaultSettings() Settings {
 	return Settings{
@@ -159,7 +179,84 @@ func defaultSettings() Settings {
 		Branding: BrandingSettings{
 			AppName: "GoblinFTP",
 		},
+		Embed: EmbedSettings{
+			Chromeless: "auto",
+		},
 	}
+}
+
+// parseFrameAncestors validates GFTP_FRAME_ANCESTORS into a CSP frame-ancestors
+// source list. Empty means framing is denied.
+//
+// Deliberately not a regex: the value has to accept single-label hosts
+// (docker-compose service names, k8s short DNS) as readily as public domains,
+// and a pattern tight enough to be useful ends up rejecting them.
+func parseFrameAncestors(raw string) ([]string, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+	// Caddy interpolates this verbatim into a space-separated directive, so a
+	// comma would silently produce an invalid policy.
+	if strings.Contains(raw, ",") {
+		return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: separate origins with spaces, not commas (got %q)", raw)
+	}
+
+	seen := map[string]bool{}
+	out := []string{}
+	for _, token := range strings.Fields(raw) {
+		origin := strings.ToLower(token)
+		if origin == "*" || origin == "https://*" || origin == "http://*" {
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — allowing every origin defeats the allowlist; list them explicitly", token)
+		}
+		if !strings.Contains(origin, "://") {
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — origins need a scheme, e.g. https://panel.example.com", token)
+		}
+		// A leftmost-label wildcard is legal CSP but not a legal URL host, so
+		// swap in a placeholder for parsing and restore it afterwards.
+		parsed := origin
+		wildcard := false
+		if idx := strings.Index(parsed, "://*."); idx != -1 {
+			wildcard = true
+			// Drop the "*." so the remainder is a parseable URL; len("://") is 3
+			// and len("://*.") is 5.
+			parsed = parsed[:idx+3] + parsed[idx+5:]
+		}
+		u, err := url.Parse(parsed)
+		if err != nil {
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — %w", token, err)
+		}
+		switch {
+		case u.Scheme != "http" && u.Scheme != "https":
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — scheme must be http or https", token)
+		case u.Host == "":
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — missing host", token)
+		case u.User != nil:
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — must not carry credentials", token)
+		case u.Path != "" && u.Path != "/", u.RawQuery != "", u.Fragment != "":
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — expected scheme://host[:port] with no path, query or fragment", token)
+		case u.Path == "/":
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — drop the trailing slash", token)
+		}
+		// A wildcard needs a registrable domain under it, or https://*.com would
+		// hand framing rights to an entire TLD.
+		if wildcard && strings.Count(u.Hostname(), ".") < 1 {
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — a wildcard needs at least two labels beneath it, e.g. https://*.example.com", token)
+		}
+		// Plain http cannot receive the SameSite=None; Secure session cookie the
+		// embed policy sets, so it would frame successfully and never log in.
+		if u.Scheme == "http" && !isLoopbackHost(u.Hostname()) {
+			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — an http:// embedder cannot receive the Secure session cookie; use https:// (http://localhost is allowed for development)", token)
+		}
+		if !seen[origin] {
+			seen[origin] = true
+			out = append(out, origin)
+		}
+	}
+	return out, nil
+}
+
+func isLoopbackHost(host string) bool {
+	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
 }
 
 // Load reads configuration from environment variables and an optional settings.json file.
@@ -244,6 +341,14 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	if cfg.SSOEnabled && len(cfg.SSOSecret) == 0 {
 		return nil, fmt.Errorf("GFTP_SSO_SECRET must be set when GFTP_SSO_ENABLED is true")
 	}
+
+	// Iframe embedding (env-only; docker/Caddyfile reads the same variable to put
+	// the header on the SPA document, which the Go binary never serves).
+	frameAncestors, faErr := parseFrameAncestors(os.Getenv("GFTP_FRAME_ANCESTORS"))
+	if faErr != nil {
+		return nil, faErr
+	}
+	cfg.FrameAncestors = frameAncestors
 
 	// S3 chunk staging (optional). Secrets are env-only — never in settings.json.
 	cfg.S3Enabled = os.Getenv("GFTP_S3_ENABLED") == "true"
@@ -426,6 +531,19 @@ func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
 	}
 	if conn.LockHost && (conn.PresetHost == nil || *conn.PresetHost == "") {
 		return nil, fmt.Errorf("connection.lockHost requires connection.presetHost to be set")
+	}
+
+	if v := os.Getenv("GFTP_EMBED_CHROMELESS"); v != "" {
+		cfg.Settings.Embed.Chromeless = strings.ToLower(v)
+	}
+	// A settings.json that omits the key unmarshals to "", which means "default".
+	if cfg.Settings.Embed.Chromeless == "" {
+		cfg.Settings.Embed.Chromeless = "auto"
+	}
+	switch cfg.Settings.Embed.Chromeless {
+	case "auto", "on", "off":
+	default:
+		return nil, fmt.Errorf("invalid embed.chromeless: must be auto, on or off, got %q", cfg.Settings.Embed.Chromeless)
 	}
 
 	return cfg, nil

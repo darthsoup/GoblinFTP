@@ -10,7 +10,9 @@
     "connect": "Připojit",
     "passive": "Pasivní režim",
     "errorRequired": "Povinné",
-    "errorPort": "Neplatný port"
+    "errorPort": "Neplatný port",
+    "sessionEndedTitle": "Relace ukončena",
+    "sessionEndedMessage": "Otevřete správce souborů znovu z ovládacího panelu a spusťte novou relaci."
   },
   "hostKey": {
     "title": "Ověřit klíč hostitele",

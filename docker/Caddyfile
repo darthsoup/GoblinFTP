@@ -26,6 +26,20 @@
 
 	# All other requests → Nuxt SPA with HTML5 history fallback
 	handle {
+		# frame-ancestors is only honoured on the response carrying the framed
+		# document, and that document is served here, not by the Go binary.
+		# Same env var the backend reads and validates; entrypoint.sh starts
+		# Caddy only after /healthz passes, so a malformed value kills the
+		# container before it can ever reach a served header.
+		#
+		# Scoped to this block on purpose: at site level it would add a second
+		# Content-Security-Policy to the Go-proxied responses, and browsers
+		# enforce the intersection of both — correct, but very hard to debug.
+		#
+		# Only frame-ancestors here. The generated index.html carries inline
+		# <script> blocks and an importmap, so a document-level script-src
+		# 'self' would white-screen the app.
+		header Content-Security-Policy "frame-ancestors {$GFTP_FRAME_ANCESTORS:'none'}"
 		root * /app/public
 		try_files {path} /index.html
 		file_server

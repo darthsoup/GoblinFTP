@@ -6,6 +6,7 @@ const colorMode = useColorMode()
 const { apply: applyColorMode } = useColorModeTransition()
 const { t } = useI18n()
 const { appName, hideAttribution } = useBranding()
+const { embedded } = useEmbed()
 
 const open = computed({
   get: () => modalStore.active === 'settings',
@@ -106,7 +107,7 @@ const densityItems = computed(() => [
         <UButton :label="t('settings.close')" @click="close" />
         <!-- Brand + semver is locale-invariant — no i18n key needed. -->
         <span
-          v-if="!hideAttribution"
+          v-if="!hideAttribution && !embedded"
           class="text-xs text-dimmed"
         >
           {{ appName }} {{ authStore.systemVars?.version ?? '' }}

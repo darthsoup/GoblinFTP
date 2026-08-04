@@ -10,7 +10,9 @@
     "connect": "Forbind",
     "passive": "Passiv tilstand",
     "errorRequired": "Påkrævet",
-    "errorPort": "Ugyldig port"
+    "errorPort": "Ugyldig port",
+    "sessionEndedTitle": "Sessionen er slut",
+    "sessionEndedMessage": "Åbn filhåndteringen igen fra dit kontrolpanel for at starte en ny session."
   },
   "hostKey": {
     "title": "Bekræft værtsnøgle",
