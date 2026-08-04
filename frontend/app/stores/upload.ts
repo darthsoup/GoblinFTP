@@ -1,5 +1,7 @@
+import type { UploadProgress } from '~/composables/useApi'
 import type { UploadConflictAction, UploadConflictResolution } from '~/stores/modal'
 import type { UploadConflict } from '~/types/api'
+import type { RateSample } from '~/utils/transferRate'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
 
@@ -15,6 +17,10 @@ export interface UploadItem {
   status: UploadStatus
   progress: number
   bytesUploaded: number
+  // The bytes are all sent but the server is still writing them to the remote,
+  // which we cannot observe. Distinct from a status so it does not ripple into
+  // STATUS_CLASS, the cancellable sets, the aggregate filter and 13 locales.
+  finalizing?: boolean
   error?: string
   errorCode?: string
   // The user agreed to replace an existing file, so the backend guard is waived.
@@ -56,6 +62,59 @@ export const useUploadStore = defineStore('upload', () => {
   const hasActive = computed(() => items.value.some(
     i => i.status === 'checking' || i.status === 'queued' || i.status === 'uploading',
   ))
+
+  // ── Throughput sampling ────────────────────────────────────────────────────
+  // Per-item bytes/second, or null while still measuring. Zero means stalled.
+  const rates = ref<Record<string, number | null>>({})
+  // Windows are plain (non-reactive) state: they change twice a second per item
+  // and nothing renders them directly, only the derived rate.
+  const windows = new Map<string, RateSample[]>()
+
+  // xhr.upload.onprogress fires every few milliseconds on a fast link. Writing
+  // through to the store that often thrashes reactivity across the whole queue
+  // for detail no one can see.
+  function _throttledProgress(fn: (p: UploadProgress) => void) {
+    return useThrottleFn(fn, 100, true)
+  }
+
+  function _sampleTick() {
+    const at = Date.now()
+    const active = items.value.filter(i => i.status === 'uploading')
+    for (const item of active) {
+      const next = pushSample(windows.get(item.id) ?? [], { at, bytes: item.bytesUploaded })
+      windows.set(item.id, next)
+      rates.value[item.id] = rateFromSamples(next)
+    }
+    // Drop windows for items that are no longer uploading, so a queue that runs
+    // all day does not accumulate them.
+    const live = new Set(active.map(i => i.id))
+    for (const id of windows.keys()) {
+      if (!live.has(id)) {
+        windows.delete(id)
+        delete rates.value[id]
+      }
+    }
+  }
+
+  useIntervalFn(_sampleTick, SAMPLE_INTERVAL_MS)
+
+  // Batch throughput: the sum of the per-item rates currently known. Only
+  // meaningful while something is uploading.
+  const overallRate = computed(() => {
+    const values = items.value
+      .filter(i => i.status === 'uploading' && !i.finalizing)
+      .map(i => rates.value[i.id])
+      .filter((r): r is number => typeof r === 'number')
+    if (values.length === 0)
+      return null
+    return values.reduce((a, b) => a + b, 0)
+  })
+
+  const overallEtaSeconds = computed(() => {
+    const pending = items.value.filter(i => i.status === 'uploading' || i.status === 'queued')
+    const remaining = pending.reduce((sum, i) => sum + Math.max(0, i.file.size - i.bytesUploaded), 0)
+    return etaSeconds(remaining, overallRate.value)
+  })
 
   // Refresh the listing once a burst of completions settles, instead of once per
   // file — a folder upload otherwise fires a refresh storm (one list() per file).
@@ -263,7 +322,22 @@ export const useUploadStore = defineStore('upload', () => {
       form.append('file', item.file, item.file.name)
       if (item.overwrite)
         form.append('overwrite', 'true')
-      await api.post('/api/files/upload', form)
+      try {
+        await api.postForm('/api/files/upload', form, {
+          // total is the multipart body size, a little larger than the file, so
+          // clamp: the queue row renders bytesUploaded against file.size and
+          // would otherwise read "1.1 MiB / 1.0 MiB".
+          onProgress: _throttledProgress(({ loaded, total }) => {
+            item.bytesUploaded = Math.min(item.file.size, loaded)
+            item.progress = total > 0 ? Math.round((loaded / total) * 100) : 0
+            if (loaded >= total)
+              item.finalizing = true
+          }),
+        })
+      }
+      finally {
+        item.finalizing = false
+      }
     })
   }
 
@@ -298,21 +372,38 @@ export const useUploadStore = defineStore('upload', () => {
           form.append('uploadId', uploadId)
           form.append('chunkIndex', String(i))
           form.append('chunk', chunk, item.file.name)
-          await api.post('/api/files/upload/chunk', form)
+          await api.postForm('/api/files/upload/chunk', form, {
+            onProgress: _throttledProgress(({ loaded, total }) => {
+              const sent = total > 0 ? Math.min(chunk.size, (loaded / total) * chunk.size) : 0
+              item.bytesUploaded = Math.min(item.file.size, start + sent)
+              item.progress = Math.round((item.bytesUploaded / item.file.size) * 100)
+            }),
+          })
         })
 
+        // Authoritative settle: a retried chunk replays onProgress from zero,
+        // so the running figure can dip by up to one chunk before this lands.
         item.bytesUploaded = end
         item.progress = Math.round((end / item.file.size) * 100)
       }
     }
 
-    // destination carries a rename decided after the reserve; the backend keeps
-    // it inside the reserved directory.
-    await api.post('/api/files/upload/commit', {
-      uploadId: item.uploadId,
-      overwrite: item.overwrite ?? false,
-      destination: item.destPath,
-    })
+    // Commit is where the backend actually pushes the staged bytes to the FTP/
+    // SFTP server, so the bar would otherwise read 100% for the entire real
+    // transfer.
+    item.finalizing = true
+    try {
+      // destination carries a rename decided after the reserve; the backend keeps
+      // it inside the reserved directory.
+      await api.post('/api/files/upload/commit', {
+        uploadId: item.uploadId,
+        overwrite: item.overwrite ?? false,
+        destination: item.destPath,
+      })
+    }
+    finally {
+      item.finalizing = false
+    }
     item.uploadId = undefined
   }
 
@@ -362,9 +453,15 @@ export const useUploadStore = defineStore('upload', () => {
       item.status = 'queued'
       item.progress = 0
       item.bytesUploaded = 0
+      item.finalizing = false
       item.error = undefined
       item.errorCode = undefined
       item.reprompted = false
+      // The old window describes the abandoned attempt; pushSample would also
+      // discard it on the byte rewind, but clearing here avoids showing a stale
+      // rate in the meantime.
+      windows.delete(id)
+      delete rates.value[id]
       _processQueue()
     }
   }
@@ -379,11 +476,16 @@ export const useUploadStore = defineStore('upload', () => {
     items.value = []
     _active.value = 0
     _blanketPolicy.value = null
+    windows.clear()
+    rates.value = {}
   }
 
   return {
     items,
     hasActive,
+    rates,
+    overallRate,
+    overallEtaSeconds,
     chunkSize,
     maxConcurrent,
     addFiles,

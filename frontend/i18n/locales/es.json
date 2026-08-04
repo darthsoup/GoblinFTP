@@ -109,6 +109,9 @@
     "clear": "Borrar completadas",
     "cancel": "Cancelar subida",
     "retry": "Reintentar subida",
+    "eta": "Restante {time}",
+    "stalled": "Detenido",
+    "finalizing": "Finalizando",
     "status": {
       "checking": "Comprobando",
       "queued": "En cola",

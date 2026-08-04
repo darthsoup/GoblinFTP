@@ -109,6 +109,9 @@
     "clear": "Voltooide wissen",
     "cancel": "Upload annuleren",
     "retry": "Upload opnieuw proberen",
+    "eta": "Resterend {time}",
+    "stalled": "Vastgelopen",
+    "finalizing": "Afronden",
     "status": {
       "checking": "Controleren",
       "queued": "In wachtrij",

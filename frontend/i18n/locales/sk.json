@@ -109,6 +109,9 @@
     "clear": "Vymazať dokončené",
     "cancel": "Zrušiť nahrávanie",
     "retry": "Zopakovať nahrávanie",
+    "eta": "Zostáva {time}",
+    "stalled": "Zastavené",
+    "finalizing": "Dokončovanie",
     "status": {
       "checking": "Kontrola",
       "queued": "Vo fronte",

@@ -109,6 +109,9 @@
     "clear": "Abgeschlossene entfernen",
     "cancel": "Upload abbrechen",
     "retry": "Upload wiederholen",
+    "eta": "Verbleibend {time}",
+    "stalled": "Angehalten",
+    "finalizing": "Wird abgeschlossen",
     "status": {
       "checking": "Wird geprüft",
       "queued": "In Warteschlange",

@@ -9,6 +9,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
+const uploadStore = useUploadStore()
 const { localizeError } = useErrorMessage()
 
 const STATUS_CLASS: Record<UploadStatus, string> = {
@@ -32,6 +33,25 @@ const failure = computed(() => localizeError(props.item.errorCode ?? '', props.i
 function fmt(n: number): string {
   return formatFileSize(n, settingsStore.sizeFormat, locale.value)
 }
+
+// Three states, deliberately distinct: null renders nothing (still measuring, or
+// finalizing where any figure would be a guess about the server), 0 renders
+// "Stalled", and a real rate renders alongside the ETA.
+const telemetry = computed(() => {
+  const item = props.item
+  if (item.status !== 'uploading' || item.finalizing)
+    return null
+  const rate = uploadStore.rates[item.id] ?? null
+  if (rate === null)
+    return null
+  if (rate === 0)
+    return { kind: 'stalled' as const }
+  return {
+    kind: 'rate' as const,
+    rate: formatRate(rate, settingsStore.sizeFormat, locale.value),
+    eta: formatEta(etaSeconds(item.file.size - item.bytesUploaded, rate)),
+  }
+})
 </script>
 
 <template>
@@ -49,14 +69,22 @@ function fmt(n: number): string {
       <!-- Progress bar + compact status (percent while uploading, else the label) —
            this line keeps every row informative at any width. -->
       <div class="flex items-center gap-2.5">
+        <!-- null renders an indeterminate bar: during commit the bytes really
+             are all sent but the server is still writing, so a percentage would
+             be fabricated. -->
         <UProgress
           class="min-w-0 flex-1"
           size="sm"
-          :model-value="item.progress"
+          :model-value="item.finalizing ? null : item.progress"
           :color="item.status === 'error' ? 'error' : 'primary'"
         />
+        <span v-if="telemetry" class="hidden sm:inline shrink-0 tabular-nums whitespace-nowrap text-dimmed">
+          <template v-if="telemetry.kind === 'rate'">{{ telemetry.rate }} · {{ t('upload.eta', { time: telemetry.eta }) }}</template>
+          <template v-else>{{ t('upload.stalled') }}</template>
+        </span>
         <span class="shrink-0 tabular-nums font-medium whitespace-nowrap" :class="STATUS_CLASS[item.status]">
-          <template v-if="item.status === 'uploading'">{{ item.progress }}%</template>
+          <template v-if="item.finalizing">{{ t('upload.finalizing') }}</template>
+          <template v-else-if="item.status === 'uploading'">{{ item.progress }}%</template>
           <template v-else>{{ t(`upload.status.${item.status}`) }}</template>
         </span>
       </div>

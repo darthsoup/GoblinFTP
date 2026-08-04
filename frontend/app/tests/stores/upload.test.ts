@@ -4,7 +4,7 @@ import { setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '~/types/api'
 
-const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() }
+const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), postForm: vi.fn() }
 vi.mock('~/composables/useApi', () => ({ useApi: () => mockApi }))
 
 const CHECK = '/api/files/upload/check'
@@ -15,7 +15,9 @@ function conflict(path: string, over: Partial<UploadConflict> = {}): UploadConfl
   return { path, name, suggestedName: `x (1).txt`, size: 1, isDir: false, modified: '', ...over }
 }
 
-// Routes each POST by URL so a test only has to describe the pre-flight result.
+// Routes each request by URL so a test only has to describe the pre-flight
+// result. File bodies go through postForm (XHR, for upload progress); JSON
+// bodies still go through post.
 function routePosts(conflicts: UploadConflict[] = [], onUpload?: (body: unknown) => unknown) {
   mockApi.post.mockImplementation((url: string, body: unknown) => {
     if (url === CHECK)
@@ -24,10 +26,15 @@ function routePosts(conflicts: UploadConflict[] = [], onUpload?: (body: unknown)
       return Promise.resolve(onUpload(body))
     return Promise.resolve({})
   })
+  mockApi.postForm.mockImplementation((_url: string, form: FormData) => {
+    if (onUpload)
+      return Promise.resolve(onUpload(form))
+    return Promise.resolve({})
+  })
 }
 
 function uploadCalls() {
-  return mockApi.post.mock.calls.filter(c => c[0] === UPLOAD)
+  return mockApi.postForm.mock.calls.filter(c => c[0] === UPLOAD)
 }
 
 describe('useUploadStore', () => {
@@ -168,14 +175,16 @@ describe('useUploadStore', () => {
 
   it('does not retry a conflict, and re-prompts instead', async () => {
     let uploads = 0
-    mockApi.post.mockImplementation((url: string, body: unknown) => {
+    mockApi.post.mockImplementation((url: string) => {
       if (url === CHECK) {
         // Free at pre-flight, taken by the time the bytes arrive.
         return Promise.resolve({ conflicts: uploads === 0 ? [] : [conflict('/d/a.txt', { suggestedName: 'a (1).txt' })] })
       }
+      return Promise.resolve({})
+    })
+    mockApi.postForm.mockImplementation((url: string, form: FormData) => {
       if (url === UPLOAD) {
         uploads++
-        const form = body as FormData
         if (form.get('overwrite') !== 'true')
           return Promise.reject(new ApiError('ERR_FILE_EXISTS', 'exists'))
       }
@@ -200,6 +209,7 @@ describe('useUploadStore', () => {
         return Promise.resolve({ conflicts: [] })
       return Promise.reject(new ApiError('ERR_FILE_PERMISSION', 'denied'))
     })
+    mockApi.postForm.mockRejectedValue(new ApiError('ERR_FILE_PERMISSION', 'denied'))
     const store = useUploadStore()
 
     await store.addEntries([{ file: new File(['x'], 'a.txt'), relativePath: 'a.txt' }], '/d')
@@ -221,9 +231,11 @@ describe('useUploadStore', () => {
           conflicts: paths.length > 1 ? [conflict('/d/a.txt')] : [conflict(paths[0]!)],
         })
       }
+      return Promise.resolve({})
+    })
+    mockApi.postForm.mockImplementation((url: string, form: FormData) => {
       if (url === UPLOAD) {
         uploads++
-        const form = body as FormData
         if (form.get('overwrite') !== 'true')
           return Promise.reject(new ApiError('ERR_FILE_EXISTS', 'exists'))
       }
@@ -246,5 +258,67 @@ describe('useUploadStore', () => {
     expect(spy).toHaveBeenCalledTimes(1)
     // a.txt once (consented), b.txt rejected then retried with consent.
     expect(uploads).toBe(3)
+  })
+})
+
+describe('useUploadStore progress telemetry', () => {
+  beforeEach(() => {
+    setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
+    vi.clearAllMocks()
+    mockApi.get.mockResolvedValue([])
+    routePosts()
+  })
+
+  // The multipart envelope makes `total` larger than the file, and the queue row
+  // renders bytesUploaded against file.size — unclamped it would read
+  // "1.1 MiB / 1.0 MiB".
+  it('never reports more bytes uploaded than the file holds', async () => {
+    const file = new File(['0123456789'], 'a.txt') // 10 bytes
+    mockApi.postForm.mockImplementation(async (_url: string, _form: FormData, opts?: { onProgress?: (p: { loaded: number, total: number }) => void }) => {
+      // Multipart headers push the body past the file size.
+      opts?.onProgress?.({ loaded: 140, total: 140 })
+      return {}
+    })
+    const store = useUploadStore()
+
+    await store.addEntries([{ file, relativePath: 'a.txt' }], '/d')
+    await vi.waitFor(() => expect(store.items[0]!.status).toBe('done'))
+
+    expect(store.items[0]!.bytesUploaded).toBe(10)
+    expect(store.items[0]!.progress).toBe(100)
+  })
+
+  // The bar must not claim 100% while the backend is still pushing bytes to the
+  // remote, and the flag must clear so the row does not stick on "Finalizing".
+  it('marks the item finalizing while the request is in flight and clears it after', async () => {
+    let duringRequest: boolean | undefined
+    const store = useUploadStore()
+    mockApi.postForm.mockImplementation(async (_url: string, _form: FormData, opts?: { onProgress?: (p: { loaded: number, total: number }) => void }) => {
+      opts?.onProgress?.({ loaded: 100, total: 100 })
+      duringRequest = store.items[0]?.finalizing
+      return {}
+    })
+
+    await store.addEntries([{ file: new File(['x'], 'a.txt'), relativePath: 'a.txt' }], '/d')
+    await vi.waitFor(() => expect(store.items[0]!.status).toBe('done'))
+
+    expect(duringRequest).toBe(true)
+    expect(store.items[0]!.finalizing).toBe(false)
+  })
+
+  it('clears the sampling window when an item is retried', async () => {
+    // Non-retryable, so the item fails immediately instead of burning the
+    // exponential backoff.
+    mockApi.postForm.mockRejectedValue(new ApiError('ERR_FILE_PERMISSION', 'denied'))
+    const store = useUploadStore()
+    await store.addEntries([{ file: new File(['x'], 'a.txt'), relativePath: 'a.txt' }], '/d')
+    await vi.waitFor(() => expect(store.items[0]!.status).toBe('error'))
+
+    const id = store.items[0]!.id
+    store.rates[id] = 1234
+    routePosts()
+    store.retryItem(id)
+
+    expect(store.rates[id]).toBeUndefined()
   })
 })
