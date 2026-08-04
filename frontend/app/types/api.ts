@@ -116,6 +116,9 @@ export interface SystemVars {
     viewOnly: boolean
     allowedExtensions: string[]
   }
+  embed: {
+    chromeless: 'auto' | 'on' | 'off'
+  }
   loginFormDisabled: boolean
   ssoEnabled: boolean
   frontendLogEnabled: boolean

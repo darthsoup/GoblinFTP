@@ -10,7 +10,9 @@
     "connect": "Se connecter",
     "passive": "Mode passif",
     "errorRequired": "Requis",
-    "errorPort": "Port invalide"
+    "errorPort": "Port invalide",
+    "sessionEndedTitle": "Session terminée",
+    "sessionEndedMessage": "Rouvrez le gestionnaire de fichiers depuis votre panneau de configuration pour démarrer une nouvelle session."
   },
   "hostKey": {
     "title": "Vérifier la clé d'hôte",

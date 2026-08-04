@@ -6,6 +6,7 @@ const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const route = useRoute()
 const router = useRouter()
+const { embedded } = useEmbed()
 
 onMounted(async () => {
   // Restore the directory from the URL on reload; otherwise start at the
@@ -30,5 +31,7 @@ watch(() => filesStore.currentPath, (path) => {
   <Breadcrumb />
   <FileTable />
   <UploadProgressPanel />
-  <StatusBar />
+  <!-- Branched here rather than inside StatusBar so the flex layout does not
+       reserve the row when embedded. -->
+  <StatusBar v-if="!embedded" />
 </template>

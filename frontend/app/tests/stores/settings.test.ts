@@ -10,6 +10,7 @@ function systemVars(showDotFiles: boolean): SystemVars {
     upload: { chunkSize: 1, maxConcurrentUploads: 1 },
     connection: { allowedTypes: ['ftp'], disableChmod: false, presetHost: null, presetPort: null, lockHost: false, passiveMode: true },
     editor: { disabled: false, viewOnly: false, allowedExtensions: [] },
+    embed: { chromeless: 'auto' },
     loginFormDisabled: false,
     ssoEnabled: false,
     frontendLogEnabled: false,

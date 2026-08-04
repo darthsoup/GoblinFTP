@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -97,6 +98,18 @@ func main() {
 	logger.Info("starting GoblinFTP",
 		"version", version,
 		"port", cfg.Port, "log_level", cfg.LogLevel, "log_format", cfg.LogFormat, "log_file", cfg.LogFile)
+
+	// A cross-site embed can fail in several ways that all look identical from
+	// the browser (a redirect loop back to /login with no console error), so
+	// state the policy up front — it is the first thing to check against what
+	// DevTools actually shows in Set-Cookie.
+	if cfg.EmbeddingEnabled() {
+		logger.Info("iframe embedding enabled",
+			"frame_ancestors", strings.Join(cfg.FrameAncestors, " "),
+			"session_cookie", "SameSite=None; Secure; Partitioned",
+			"chromeless", cfg.Settings.Embed.Chromeless,
+			"note", "requires HTTPS; Safari blocks third-party cookies, so a same-registrable-domain embed is recommended")
+	}
 
 	// Explicit GFTP_SENTRY_RELEASE wins; release builds default to the tag.
 	sentryRelease := os.Getenv("GFTP_SENTRY_RELEASE")

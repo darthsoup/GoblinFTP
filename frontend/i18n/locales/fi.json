@@ -10,7 +10,9 @@
     "connect": "Yhdistä",
     "passive": "Passiivinen tila",
     "errorRequired": "Pakollinen",
-    "errorPort": "Virheellinen portti"
+    "errorPort": "Virheellinen portti",
+    "sessionEndedTitle": "Istunto päättyi",
+    "sessionEndedMessage": "Avaa tiedostonhallinta uudelleen hallintapaneelista aloittaaksesi uuden istunnon."
   },
   "hostKey": {
     "title": "Vahvista isäntäavain",

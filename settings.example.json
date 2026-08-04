@@ -50,5 +50,9 @@
     "primaryColor": null,
     "primaryTextColor": null,
     "hideAttribution": false
+  },
+
+  "embed": {
+    "chromeless": "auto"
   }
 }

@@ -4,6 +4,18 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   ssr: false,
 
+  // Dev parity with docker/Caddyfile, which sets frame-ancestors on the SPA
+  // document in production. Nitro serves that document in dev (not Vite), so
+  // this has to be a route rule — vite.server.headers never reaches it. It has
+  // no effect on `nuxt generate` output, where Caddy owns the header.
+  routeRules: {
+    '/**': {
+      headers: {
+        'Content-Security-Policy': `frame-ancestors ${process.env.GFTP_FRAME_ANCESTORS || '\'none\''}`,
+      },
+    },
+  },
+
   app: {
     head: {
       viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',

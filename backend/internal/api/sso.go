@@ -90,14 +90,10 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		sess.Set(tenantSessionKey, tenant)
 	}
 
-	c.SetCookie(&http.Cookie{ //nolint:gosec // G124: Secure is set conditionally below — literal true would break plain-HTTP deployments
-		Name:     SessionCookieName,
-		Value:    sess.ID,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   c.Scheme() == "https",
-		SameSite: http.SameSiteLaxMode,
-	})
+	// The cookie that matters most for an embed: it is set on the cross-site
+	// iframe navigation itself, so it must carry the embed policy or the frame
+	// never establishes a session.
+	c.SetCookie(sessionCookie(c, h.cfg, sess.ID, 0))
 
 	// Land on the SPA login route, which finalizes the connection via
 	// /api/auth/sso-connect (ssoAutoConnect) and then routes to the workspace.
@@ -124,40 +120,37 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 
 	result := statusData{}
 
-	cookie, err := c.Cookie(SessionCookieName)
-	if err == nil {
-		if sess, ok := h.store.Get(cookie.Value); ok {
-			clientVal, hasClient := sess.Get("client")
-			result.Connected = hasClient
-			client, _ := clientVal.(transfer.Client)
-			if hasClient && client != nil && c.QueryParam("ping") == "1" {
-				// Only ping when no transfer is in flight: an active transfer is
-				// itself proof the connection is alive, and a NOOP injected mid
-				// data-stream would corrupt it. TryLock avoids blocking the
-				// session-checker behind a long upload/download.
-				if sess.TryLockTransfer() {
-					pingErr := client.Ping()
-					if pingErr != nil {
-						_ = client.Close()
-					}
-					sess.UnlockTransfer()
-					if pingErr != nil {
-						sess.Delete("client")
-						result.Connected = false
-					}
+	if sess, ok := lookupSession(c, h.store); ok {
+		clientVal, hasClient := sess.Get("client")
+		result.Connected = hasClient
+		client, _ := clientVal.(transfer.Client)
+		if hasClient && client != nil && c.QueryParam("ping") == "1" {
+			// Only ping when no transfer is in flight: an active transfer is
+			// itself proof the connection is alive, and a NOOP injected mid
+			// data-stream would corrupt it. TryLock avoids blocking the
+			// session-checker behind a long upload/download.
+			if sess.TryLockTransfer() {
+				pingErr := client.Ping()
+				if pingErr != nil {
+					_ = client.Close()
+				}
+				sess.UnlockTransfer()
+				if pingErr != nil {
+					sess.Delete("client")
+					result.Connected = false
 				}
 			}
-			_, result.SSOAutoConnect = sess.Get(ssoPendingKey)
-			result.CSRFToken = sess.GetString(auth.CSRFSessionKey)
+		}
+		_, result.SSOAutoConnect = sess.Get(ssoPendingKey)
+		result.CSRFToken = sess.GetString(auth.CSRFSessionKey)
 
-			// Connection context for SPA state restoration after a reload.
-			if result.Connected {
-				result.Host = sess.GetString("host")
-				result.InitialDirectory = sess.GetString("initialDir")
-				disableChmodVal, _ := sess.Get("disableChmod")
-				disableChmod, _ := disableChmodVal.(bool)
-				result.Capabilities = &Capabilities{DisableChmod: disableChmod}
-			}
+		// Connection context for SPA state restoration after a reload.
+		if result.Connected {
+			result.Host = sess.GetString("host")
+			result.InitialDirectory = sess.GetString("initialDir")
+			disableChmodVal, _ := sess.Get("disableChmod")
+			disableChmod, _ := disableChmodVal.(bool)
+			result.Capabilities = &Capabilities{DisableChmod: disableChmod}
 		}
 	}
 

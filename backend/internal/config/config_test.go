@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ func clearEnv(t *testing.T) {
 		"GFTP_METRICS_ENABLED", "GFTP_METRICS_PORT",
 		"GFTP_APP_NAME", "GFTP_LOGO_URL", "GFTP_FAVICON_URL", "GFTP_PRIMARY_COLOR",
 		"GFTP_PRIMARY_TEXT_COLOR", "GFTP_HIDE_ATTRIBUTION",
+		"GFTP_FRAME_ANCESTORS", "GFTP_EMBED_CHROMELESS",
 	} {
 		t.Setenv(k, "")
 	}
@@ -472,4 +474,94 @@ func TestLoadInvalidMetricsPort(t *testing.T) {
 			assert.Contains(t, err.Error(), "GFTP_METRICS_PORT")
 		})
 	}
+}
+
+// ── Iframe embedding ─────────────────────────────────────────────────────────
+
+func TestLoadFrameAncestorsDefaultsToDenied(t *testing.T) {
+	clearEnv(t)
+
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+	assert.Empty(t, cfg.FrameAncestors)
+	assert.False(t, cfg.EmbeddingEnabled())
+}
+
+func TestLoadFrameAncestorsAccepts(t *testing.T) {
+	cases := map[string][]string{
+		"single":             {"https://panel.example.com"},
+		"multiple":           {"https://panel.example.com", "https://eu.panel.example.com:8443"},
+		"wildcard subdomain": {"https://*.example.com"},
+		// Compose service names and k8s short DNS have no dot at all; a regex
+		// tight enough to look reasonable rejects these.
+		"single label host": {"https://panel:8443"},
+		"loopback http":     {"http://localhost:3000"},
+	}
+	for name, want := range cases {
+		t.Run(name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("GFTP_FRAME_ANCESTORS", strings.Join(want, " "))
+
+			cfg, err := config.Load(nil, "")
+			require.NoError(t, err)
+			assert.Equal(t, want, cfg.FrameAncestors)
+			assert.True(t, cfg.EmbeddingEnabled())
+		})
+	}
+}
+
+func TestLoadFrameAncestorsNormalizesAndDedupes(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_FRAME_ANCESTORS", "https://Panel.Example.com  https://panel.example.com")
+
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"https://panel.example.com"}, cfg.FrameAncestors)
+}
+
+func TestLoadFrameAncestorsRejects(t *testing.T) {
+	cases := map[string]string{
+		"wildcard all":       "*",
+		"wildcard scheme":    "https://*",
+		"missing scheme":     "panel.example.com",
+		"path":               "https://panel.example.com/embed",
+		"trailing slash":     "https://panel.example.com/",
+		"comma separated":    "https://a.example.com,https://b.example.com",
+		"non loopback http":  "http://panel.example.com",
+		"csp keyword":        "'self'",
+		"credentials":        "https://user:pw@panel.example.com",
+		"bare tld wildcard":  "https://*.com",
+		"unsupported scheme": "ftp://panel.example.com",
+	}
+	for name, raw := range cases {
+		t.Run(name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("GFTP_FRAME_ANCESTORS", raw)
+
+			_, err := config.Load(nil, "")
+			require.Error(t, err, "%q must be rejected at startup", raw)
+			assert.Contains(t, err.Error(), "GFTP_FRAME_ANCESTORS")
+		})
+	}
+}
+
+func TestLoadEmbedChromeless(t *testing.T) {
+	clearEnv(t)
+	cfg, err := config.Load(nil, "")
+	require.NoError(t, err)
+	assert.Equal(t, "auto", cfg.Settings.Embed.Chromeless)
+
+	for _, v := range []string{"on", "off", "auto", "ON"} {
+		clearEnv(t)
+		t.Setenv("GFTP_EMBED_CHROMELESS", v)
+		cfg, err := config.Load(nil, "")
+		require.NoError(t, err)
+		assert.Equal(t, strings.ToLower(v), cfg.Settings.Embed.Chromeless)
+	}
+
+	clearEnv(t)
+	t.Setenv("GFTP_EMBED_CHROMELESS", "yes")
+	_, err = config.Load(nil, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "embed.chromeless")
 }

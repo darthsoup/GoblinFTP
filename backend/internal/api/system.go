@@ -5,6 +5,16 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// systemEmbedVars carries only the chromeless mode. The allowlist itself is
+// deliberately withheld: the SPA has no use for it (the browser enforced
+// framing before any JS ran) and publishing it would leak the operator's panel
+// domains to any anonymous caller of this public endpoint.
+type systemEmbedVars struct {
+	// Chromeless: "auto" | "on" | "off". Presentation only — nothing on the
+	// server branches on it.
+	Chromeless string `json:"chromeless"`
+}
+
 type systemVarsData struct {
 	Language          string             `json:"language"`
 	UI                systemUIVars       `json:"ui"`
@@ -12,6 +22,7 @@ type systemVarsData struct {
 	Upload            systemUploadVars   `json:"upload"`
 	Connection        systemConnVars     `json:"connection"`
 	Editor            systemEditorVars   `json:"editor"`
+	Embed             systemEmbedVars    `json:"embed"`
 	LoginFormDisabled bool               `json:"loginFormDisabled"`
 	SSOEnabled        bool               `json:"ssoEnabled"`
 	// FrontendLogEnabled tells the SPA whether to forward browser errors
@@ -118,6 +129,7 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			ViewOnly:          h.cfg.Settings.Editor.ViewOnly,
 			AllowedExtensions: h.cfg.Settings.Editor.AllowedExtensions,
 		},
+		Embed:              systemEmbedVars{Chromeless: h.cfg.Settings.Embed.Chromeless},
 		LoginFormDisabled:  h.cfg.DisableLoginForm,
 		SSOEnabled:         h.cfg.SSOEnabled,
 		FrontendLogEnabled: h.cfg.FrontendLogEnabled,

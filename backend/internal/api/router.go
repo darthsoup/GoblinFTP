@@ -4,6 +4,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -41,7 +42,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 			return err
 		},
 	}))
-	e.Use(cspMiddleware())
+	e.Use(securityHeadersMiddleware(cfg))
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "version": h.version})
@@ -63,6 +64,11 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	e.POST("/api/log/frontend", h.FrontendLog, middleware.BodyLimit("16K"))
 
 	apiGroup := e.Group("/api")
+	// INVARIANT: no CORS middleware may be added here. Under an embed
+	// deployment the session cookie is SameSite=None, so the only thing
+	// stopping a cross-origin page from reading the CSRF token out of
+	// GET /api/auth/status is the absence of Access-Control-Allow-Origin.
+	// TestNoCORSHeadersEver guards this.
 	apiGroup.Use(csrfMiddleware(store))
 
 	// Auth
@@ -94,14 +100,38 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	apiGroup.POST("/system/settings", requireSession(store)(NotImplemented))
 }
 
-// cspMiddleware sets Content-Security-Policy on all responses.
-func cspMiddleware() echo.MiddlewareFunc {
+// securityHeadersMiddleware sets the app CSP, including the frame-ancestors
+// allowlist, on every response the Go binary produces.
+//
+// Everything goes in ONE header: a second Content-Security-Policy response
+// header is enforced as the intersection of both policies, which is correct but
+// near-impossible to debug from a browser console.
+//
+// This covers only Go's own responses. In production Caddy serves index.html —
+// the document frame-ancestors actually applies to — and emits the same
+// directive from the same env var (docker/Caddyfile). Both must agree.
+func securityHeadersMiddleware(cfg *config.Config) echo.MiddlewareFunc {
+	ancestors := "'none'"
+	if cfg.EmbeddingEnabled() {
+		ancestors = strings.Join(cfg.FrameAncestors, " ")
+	}
+	csp := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; frame-ancestors " + ancestors
+
+	// X-Frame-Options is emitted ONLY in the deny case. It cannot express an
+	// allowlist (ALLOW-FROM is gone from every shipping engine), so an engine
+	// that prefers it over frame-ancestors would silently override the
+	// allowlist. Restricting it to the deny case means it can only ever agree
+	// with frame-ancestors 'none'.
+	denyFraming := !cfg.EmbeddingEnabled()
+
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			c.Response().Header().Set(
-				"Content-Security-Policy",
-				"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
-			)
+			h := c.Response().Header()
+			h.Set("Content-Security-Policy", csp)
+			if denyFraming {
+				h.Set("X-Frame-Options", "DENY")
+			}
 			return next(c)
 		}
 	}
@@ -117,14 +147,22 @@ func csrfMiddleware(store *auth.Store) echo.MiddlewareFunc {
 				return next(c)
 			}
 			if c.Path() == "/api/auth/connect" {
+				// Unauthenticated, so there is no token to check yet. Echo's
+				// binder ignores form fields without a `form` tag, so a
+				// cross-site simple-request POST already binds nothing — but
+				// that is an implementation detail of a library, not a
+				// guarantee. Fetch metadata makes the intent explicit and is
+				// sent by every browser that supports SameSite=None.
+				if c.Request().Header.Get("Sec-Fetch-Site") == "cross-site" {
+					return Fail(c, gftperrors.New(gftperrors.ErrForbidden, "cross-site connect is not allowed"))
+				}
 				return next(c)
 			}
 
-			cookie, err := c.Cookie(SessionCookieName)
-			if err != nil {
+			if !hasSessionCookie(c) {
 				return Fail(c, gftperrors.New(gftperrors.ErrCSRFInvalid, "missing session cookie"))
 			}
-			sess, ok := store.Get(cookie.Value)
+			sess, ok := lookupSession(c, store)
 			if !ok {
 				return Fail(c, gftperrors.New(gftperrors.ErrCSRFInvalid, "invalid or expired session"))
 			}
@@ -143,11 +181,10 @@ func csrfMiddleware(store *auth.Store) echo.MiddlewareFunc {
 func requireSession(store *auth.Store) func(echo.HandlerFunc) echo.HandlerFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cookie, err := c.Cookie(SessionCookieName)
-			if err != nil {
+			if !hasSessionCookie(c) {
 				return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "not authenticated"))
 			}
-			sess, ok := store.Get(cookie.Value)
+			sess, ok := lookupSession(c, store)
 			if !ok {
 				return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "session expired or not found"))
 			}

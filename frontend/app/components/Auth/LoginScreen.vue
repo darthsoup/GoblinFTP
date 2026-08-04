@@ -8,6 +8,13 @@ const authStore = useAuthStore()
 const modalStore = useModalStore()
 const { t } = useI18n()
 const { appName, hideAttribution } = useBranding()
+const { embedded } = useEmbed()
+
+// GFTP_DISABLE_LOGIN_FORM was published in systemVars and typed on the client
+// but read by no component, so it did nothing. It matters most for an embed:
+// when a panel session ends, routing to /login otherwise renders a credential
+// form the panel user has no credentials for.
+const loginFormDisabled = computed(() => authStore.systemVars?.loginFormDisabled ?? false)
 </script>
 
 <template>
@@ -15,6 +22,15 @@ const { appName, hideAttribution } = useBranding()
     <UContainer class="flex flex-1 flex-col items-center justify-center py-10">
       <div v-if="booting" class="flex items-center justify-center">
         <UIcon name="i-lucide-loader-circle" class="size-10 animate-spin text-primary" />
+      </div>
+      <div v-else-if="loginFormDisabled" class="max-w-md text-center">
+        <UIcon name="i-lucide-plug-zap" class="size-10 text-dimmed mb-4" />
+        <h2 class="text-lg font-semibold text-highlighted mb-2">
+          {{ t('login.sessionEndedTitle') }}
+        </h2>
+        <p class="text-sm text-muted">
+          {{ t('login.sessionEndedMessage') }}
+        </p>
       </div>
       <LoginForm v-else />
     </UContainer>
@@ -29,7 +45,7 @@ const { appName, hideAttribution } = useBranding()
     }"
   >
     <template #left>
-      <span v-if="!hideAttribution" class="text-sm text-dimmed select-none">
+      <span v-if="!hideAttribution && !embedded" class="text-sm text-dimmed select-none">
         {{ appName }} {{ authStore.systemVars?.version ?? '' }}
       </span>
       <span v-else />
