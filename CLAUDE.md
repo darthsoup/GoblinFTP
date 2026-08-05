@@ -22,7 +22,7 @@ cd frontend && pnpm test:watch                    # vitest watch
 
 just lint         # eslint + nuxt typecheck + golangci-lint
 just fmt          # eslint --fix (frontend) + gofmt (backend)
-just i18n-check   # verify de.json has all keys from en.json
+just i18n-check   # verify every locale file matches en.json (keys + placeholders)
 just ftp-up       # local FTP test server (ftpuser/ftppass on :21); ftp-down stops it
 just ftps-up      # local FTPS test server (explicit TLS, self-signed; ftpuser/ftppass on :2121); ftps-down stops it
 just sftp-up      # local SFTP test server (ftpuser/ftppass on :2222, writable /upload); sftp-down stops it
@@ -42,7 +42,7 @@ backend/
   internal/
     api/                  # all HTTP handlers + routing
     auth/                 # in-memory session store (TTL) + CSRF token gen
-    config/               # env + settings.json loading
+    config/               # env config: key registry + loader + artifact generator
     errors/               # GFTPError with machine-readable codes
     ftp/                  # jlaffaye/ftp adapter   → implements transfer.Client
     logging/              # slog Init (stdout + optional lumberjack file sink) + SafeLogAttrs redaction
@@ -69,7 +69,11 @@ frontend/app/
 
 ### Code style
 
-Keep comments sparse. Prefer self-explanatory names and structure; comment only the non-obvious *why* — a tricky invariant, a workaround, a gotcha. Avoid header banners, comments that restate what the code does, and step-by-step narration.
+Keep comments to a minimum. Prefer self-explanatory names and structure. Comment only what is genuinely relevant and not visible in the code itself: a tricky invariant, a workaround, a gotcha, the reason behind a surprising choice.
+
+- **One to two lines per comment.** If an explanation needs more, either the code needs restructuring or the text belongs in `docs/`.
+- **No header banners, no restating what the code does, no step-by-step narration** of an obvious flow. Deleting a comment should lose information, otherwise it should not exist.
+- **Never use em dashes (—) or en dashes (–) as punctuation**, neither in code comments nor in documentation, README, or commit messages. Rephrase with periods, commas, colons, or parentheses.
 
 ### Backend conventions
 
@@ -91,14 +95,14 @@ Keep comments sparse. Prefer self-explanatory names and structure; comment only 
 - Icons: `i-lucide-*` (plus `i-simple-icons-*` for file types in `FileRow.vue`) — both icon sets installed locally; do not use heroicons.
 - All API calls go through `useApi()` — never `$fetch` directly, except `authStore.init()` / `authStore.connect()` which intentionally bypass CSRF.
 - **VueUse** is available via `@vueuse/nuxt` (auto-imported `use*` composables — `useMediaQuery`, `useEventListener`, `useIntervalFn`, …); prefer it over hand-rolled listeners/timers/media queries. The module is listed first in `nuxt.config` so Nuxt's `useColorMode` (from `@nuxtjs/color-mode`) wins the name collision — don't reorder it.
-- **White-label branding**: `useBranding()` exposes `appName`/`logoUrl`/`hideAttribution` (from `systemVars.branding`, with `'GoblinFTP'`/green fallbacks); the runtime accent color is injected by `plugins/auth.client.ts` via `utils/branding.ts` `applyBrandColor()` (overrides the `--color-goblin-*` scale). `branding.primaryTextColor` is applied in the same plugin as an inline `--gftp-primary-text` — the token that **only** primary solid surfaces read (via the `.bg-primary.text-inverted { color: var(--gftp-primary-text, var(--ui-text-inverted)) }` rule in `main.css`), so a light accent can pair with dark button text **without** dragging the shared `--ui-text-inverted` dark on inverted surfaces (tooltips). Both accent + button-text injection are skipped when a tenant `themeCssUrl` is present (the theme's `config.css` owns those tokens). When a logo is set, the app-name text is hidden (logo-only) in `LoginForm.vue`/`AppHeader.vue`, and the logo is height-constrained (`h-*`/`w-auto`), not a fixed square. `useBranding().logoUrl` is colorMode-aware: it returns `branding.logoDarkUrl` in dark mode when set (tenant `logo-dark.*` or `GFTP_LOGO_DARK_URL`), so a dark-ink wordmark doesn't vanish on the dark canvas. A logo doubles as the favicon when none is set. Document title/favicon are set with `useHead` in that plugin. New brand surfaces must read `useBranding()`, never hardcode "GoblinFTP".
+- **White-label branding**: `useBranding()` exposes `appName`/`logoUrl`/`hideAttribution` (from `systemVars.branding`, with `'GoblinFTP'`/green fallbacks); the runtime accent color is injected by `plugins/auth.client.ts` via `utils/branding.ts` `applyBrandColor()` (overrides the `--color-goblin-*` scale). `branding.primaryTextColor` is applied in the same plugin as an inline `--gftp-primary-text` — the token that **only** primary solid surfaces read (via the `.bg-primary.text-inverted { color: var(--gftp-primary-text, var(--ui-text-inverted)) }` rule in `main.css`), so a light accent can pair with dark button text **without** dragging the shared `--ui-text-inverted` dark on inverted surfaces (tooltips). Both accent + button-text injection are skipped when a tenant `themeCssUrl` is present (the theme's `config.css` owns those tokens). When a logo is set, the app-name text is hidden (logo-only) in `LoginForm.vue`/`AppHeader.vue`, and the logo is height-constrained (`h-*`/`w-auto`), not a fixed square. `useBranding().logoUrl` is colorMode-aware: it returns `branding.logoDarkUrl` in dark mode when set (tenant `logo-dark.*` or `GFTP_BRANDING_LOGO_DARK_URL`), so a dark-ink wordmark doesn't vanish on the dark canvas. A logo doubles as the favicon when none is set. Document title/favicon are set with `useHead` in that plugin. New brand surfaces must read `useBranding()`, never hardcode "GoblinFTP".
 - Components use `pathPrefix: false` — `Auth/LoginForm.vue` is `<LoginForm />`, not `<AuthLoginForm />`.
 - Pinia stores use **Composition API style**: `defineStore('id', () => { ... })`.
-- End-user preferences are browser-side only (the backend never reads them): `stores/settings.ts` persists to localStorage `gftp_settings` (incl. language); theme via colorMode localStorage. Preferences with an admin default in `settings.json` (dotfiles, language) follow "user override wins, otherwise admin default from systemVars" — the user value stays `null` until explicitly changed.
+- End-user preferences are browser-side only (the backend never reads them): `stores/settings.ts` persists to localStorage `gftp_settings` (incl. language); theme via colorMode localStorage. Preferences with an admin default (dotfiles via `GFTP_UI_SHOW_DOT_FILES`, language via `GFTP_LANGUAGE`) follow "user override wins, otherwise admin default from systemVars" — the user value stays `null` until explicitly changed.
 - `FileInfo` JSON fields: `name`, `size`, `isDir`, `modified` (RFC3339), `mode` (`"drwxr-xr-x"`). Backend's internal `transfer.FileInfo` uses different field names.
 - TypeScript strict mode incl. `noUncheckedIndexedAccess` — index access is `T | undefined`; use `!` after a length guard or optional chaining.
 - `UProgress` uses `:model-value`, not `:value`.
-- i18n: `en.json` is the source of truth; `just i18n-check` (`frontend/scripts/i18n-check.mjs`, gated in CI via `checks.yml`) verifies every locale file for recursive key parity + identical `{…}` placeholders. 13 locales ship: en, de, cs, da, es, fi, fr, it, nb-NO, nl, pt, sk, sv. Locale codes are enumerated in three frontend places only — `nuxt.config.ts` (`i18n.locales`), `stores/settings.ts` (`AppLanguage` + the exported `LANGUAGES`/`isAppLanguage`, reused by `plugins/auth.client.ts`), and `Layout/LanguageSelect.vue` (objects imported from `@nuxt/ui/locale`). Norwegian's code is `nb-NO` (matching `@nuxt/ui`, not `no`); Danish's picker name is overridden to its endonym "Dansk". The backend has no language allow-list — it passes `settings.json`'s `language` straight through.
+- i18n: `en.json` is the source of truth; `just i18n-check` (`frontend/scripts/i18n-check.mjs`, gated in CI via `checks.yml`) verifies every locale file for recursive key parity + identical `{…}` placeholders. 13 locales ship: en, de, cs, da, es, fi, fr, it, nb-NO, nl, pt, sk, sv. Locale codes are enumerated in three frontend places only — `nuxt.config.ts` (`i18n.locales`), `stores/settings.ts` (`AppLanguage` + the exported `LANGUAGES`/`isAppLanguage`, reused by `plugins/auth.client.ts`), and `Layout/LanguageSelect.vue` (objects imported from `@nuxt/ui/locale`). Norwegian's code is `nb-NO` (matching `@nuxt/ui`, not `no`); Danish's picker name is overridden to its endonym "Dansk". The backend has no language allow-list — it passes `GFTP_LANGUAGE` straight through.
 
 ### Adding a new modal
 
@@ -109,28 +113,16 @@ Keep comments sparse. Prefer self-explanatory names and structure; comment only 
 
 ## Configuration
 
-Backend config is layered: env vars override `settings.json` (schema in `settings.example.json`, default path `/app/data/settings.json`).
+Backend config is env-only, loaded once at startup by `backend/internal/config` — a declarative key registry (`registry.go`) drives the loader, the generated `.env.example`, and the doc tables (`just confgen` regenerates, CI gates on drift). That package is the source of truth for every key, default, and validation rule; the operator-facing reference is `docs/configuration.md`. Do not enumerate config keys here — they drift. There is no `settings.json`; a mounted one fails startup with a migration hint.
 
-| Env | Purpose |
-|-----|---------|
-| `GFTP_SESSION_SECRET` | Session cookie signing (auto-gen if unset) |
-| `GFTP_DOWNLOAD_TOKEN_SECRET` | Download HMAC token signing |
-| `GFTP_SSO_ENABLED` / `GFTP_SSO_SECRET` | SSO link validation |
-| `GFTP_SENTRY_DSN` / `NUXT_PUBLIC_SENTRY_DSN` | Sentry (optional) |
-| `GFTP_SETTINGS_PATH` | Path to `settings.json` |
-| `GFTP_DATA_DIR` | Writable data dir: SFTP `known_hosts`, local chunk staging, settings (default `/app/data` — container path; dev needs `data`, which `just dev-be` falls back to, resolved from `backend/`) |
-| `GFTP_PAGE_TITLE` | Browser tab title (overrides `ui.pageTitle`) |
-| `GFTP_APP_NAME` / `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` / `GFTP_PRIMARY_COLOR` / `GFTP_PRIMARY_TEXT_COLOR` / `GFTP_HIDE_ATTRIBUTION` | White-label branding (overrides the `branding` block); `primaryColor`/`primaryTextColor` are hex — `primaryColor` recolors the theme at runtime, `primaryTextColor` sets button/primary text (`--ui-text-inverted`) for a light accent; exposed via `systemVars.branding` → `useBranding()`/`utils/branding.ts` |
-| `GFTP_LOG_LEVEL` / `GFTP_LOG_FORMAT` | Log level (`info`) and format (`json`\|`text`) |
-| `GFTP_LOG_FILE` (+ `GFTP_LOG_FILE_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS`) | Optional rotating file sink in addition to stdout |
-| `GFTP_LOG_FRONTEND` | Browser-error forwarding endpoint (default on; `false` disables) |
-| `GFTP_METRICS_ENABLED` / `GFTP_METRICS_PORT` | Prometheus /metrics on a dedicated port (default off / `9091`) |
-| `GFTP_FRAME_ANCESTORS` | Space-separated CSP `frame-ancestors` allowlist for iframe embedding. Unset = framing denied (`'none'` + `X-Frame-Options: DENY`). **Env-only**: Caddy serves the framed `index.html` and reads the same variable, so a `settings.json` value would land the header on `/api/*` only and fail silently. Setting it flips the session cookie to `SameSite=None; Secure; Partitioned` instance-wide (see `api/cookie.go`) |
-| `GFTP_EMBED_CHROMELESS` | `auto`\|`on`\|`off` — hide branding chrome when framed (overrides `embed.chromeless`); `useEmbed()` resolves it against `window.self !== window.top` |
-| `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY` | Skip FTPS (explicit TLS) certificate verification for self-signed/internal servers (overrides `connection.ftpTLSInsecureSkipVerify`; default `false`). FTPS = the `ftps` protocol; SFTP host keys are verified against `<DataDir>/known_hosts` (trust-on-first-use) |
-| `GFTP_S3_ENABLED` + `GFTP_S3_ENDPOINT` / `GFTP_S3_BUCKET` / `GFTP_S3_ACCESS_KEY` / `GFTP_S3_SECRET_KEY` (+ optional `GFTP_S3_REGION`, `GFTP_S3_USE_PATH_STYLE`, `GFTP_S3_PREFIX`, `GFTP_S3_TIMEOUT_SECS`) | Optional S3 chunk staging — env-only, never in `settings.json` |
+Gotchas worth knowing beyond the reference:
 
-The FTP/FTPS/SFTP test containers and MinIO are on docker compose profile `testing` — only the `just ftp-up/ftps-up/sftp-up/s3-up` (and matching `-down`) recipes activate them.
+- `GFTP_DATA_DIR` (default `/app/data`, a container path): writable dir for SFTP `known_hosts`, local chunk staging, themes. `just dev-be` defaults it to `data` and resolves relative values against the **repo root**, so the dev data dir is `<repo>/data`.
+- `GFTP_FRAME_ANCESTORS` is read by Go **and** Caddy (which serves the framed `index.html`). Setting it flips the session cookie to `SameSite=None; Secure; Partitioned` instance-wide (see `api/cookie.go`).
+- `docker-compose.yml` passes `.env` into the container via `env_file`, so any `GFTP_*` var set there is live configuration under compose.
+- `NUXT_PUBLIC_SENTRY_DSN` is the one build-time variable: it is baked into the static SPA at `nuxt generate`, unlike all `GFTP_*` vars, which are read at process start.
+
+The FTP/FTPS/SFTP test containers and MinIO are on docker compose profile `testing` — only the `just ftp-up/ftps-up/sftp-up/s3-up` (and matching `-down`) recipes activate them. The MinIO test server's root credentials are `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`/`MINIO_TEST_BUCKET` (deliberately not the app-side `GFTP_S3_*` names).
 
 ## Release
 

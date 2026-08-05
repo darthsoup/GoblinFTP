@@ -37,7 +37,7 @@ Images are published to GHCR on every `v*` tag, multi-arch (`linux/amd64`, `linu
 
 - **[Installation](docs/installation.md)**: Docker, Docker Compose, and building from source.
 - **[System requirements](docs/system-requirements.md)**: runtime footprint, networking, and build toolchain.
-- **[Configuration](docs/configuration.md)**: environment variables and `settings.json`, with dedicated pages for [Logging](docs/logging.md), [Metrics](docs/metrics.md), and [S3 chunk staging](docs/s3-staging.md).
+- **[Configuration](docs/configuration.md)**: environment variables and `settings.json`, with dedicated pages for [Logging](docs/logging.md), [Metrics](docs/metrics.md), and [S3 chunk staging](docs/s3-staging.md). Upgrading from v0.23 or earlier: [migration guide](docs/migration-0.24.md).
 - **[Theming](docs/theming.md)**: white-label branding and per-tenant themes selected by SSO or subdomain.
 - **[SSO login links](examples/sso/README.md)**: one-time direct-login links, with generators in Go, Node.js, and PHP.
 - **[Iframe embedding](docs/embedding.md)**: dropping GoblinFTP into a hosting control panel as a pre-authenticated frame.

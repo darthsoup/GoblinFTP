@@ -19,7 +19,6 @@ Mount a persistent volume at `/app/data`. It holds:
 - `known_hosts` for SFTP host-key pinning, so trusted keys survive restarts.
 - Local upload staging: chunks buffered on disk before transfer, roughly one file's worth of chunks per concurrent upload, deleted after commit. Move this off local disk with [S3 chunk staging](s3-staging.md).
 - Per-tenant [theme](theming.md) assets.
-- `settings.json`, if placed there.
 
 ### Networking
 

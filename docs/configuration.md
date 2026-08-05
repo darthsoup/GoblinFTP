@@ -1,11 +1,8 @@
 # Configuration
 
-Configuration resolves in two layers, evaluated once at process start:
+GoblinFTP is configured entirely through environment variables, read once at startup by `config.Load` and driven by a single key registry in `backend/internal/config`. Names follow one rule: `GFTP_<SECTION>_<KEY>`. There is no hot reload, so a change requires a restart. Invalid values abort startup with a specific error naming the offending variable rather than being silently coerced. An empty variable counts as unset. Booleans accept the `strconv.ParseBool` forms (`true`, `false`, `1`, `0`, `t`, `f`, any casing). Lists are comma-separated.
 
-1. **Environment variables** (below) for secrets, deployment toggles, and per-environment values. They always win.
-2. **`settings.json`** for runtime UI, editor, connection, and access defaults. Where an env var and a `settings.json` field overlap (page title, branding, FTPS verification), the env var overrides.
-
-Both are read once at startup by `config.Load`. There is no hot reload, so a change to either requires a restart. Invalid values in most variables abort startup with a specific error rather than being silently coerced; the exceptions are called out below.
+Upgrading from v0.23 or earlier: several variables were renamed and the `settings.json` file was removed, see the [migration guide](migration-0.24.md).
 
 Larger subsystems have dedicated pages: [Logging](logging.md), [Metrics](metrics.md), [S3 chunk staging](s3-staging.md), [Theming](theming.md), [Iframe embedding](embedding.md), and [SSO login links](../examples/sso/README.md). The complete annotated variable list is [`.env.example`](../.env.example).
 
@@ -15,60 +12,106 @@ Notation: "(none)" means unset by default; "fails startup" means `config.Load` r
 
 ### Server
 
+<!-- confgen:begin env-table "Server" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_PORT` | `8080` | Listen port for the Go backend (Caddy proxies to it inside the container). Not range-validated; an unusable value fails at `Start`, not at config load. |
-| `GFTP_SETTINGS_PATH` | `/app/data/settings.json` | Path to `settings.json`. Read once at startup. |
-| `GFTP_PAGE_TITLE` | `GoblinFTP` | Browser tab title. When non-empty, overrides `ui.pageTitle`. |
+| `GFTP_PORT` | `8080` | Listen port of the Go backend, for from-source installs. Fixed at 8080 inside the container. |
+| `GFTP_DATA_DIR` | `/app/data` | Writable data directory: SFTP known_hosts, local chunk staging, themes. For local dev use a relative path like data (just dev-be resolves it from the repo root). |
+<!-- confgen:end -->
+
+### UI
+
+<!-- confgen:begin env-table "UI" -->
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_LANGUAGE` | `en` | Default UI language. Users can override it locally; the SPA gates the actual set. |
+| `GFTP_UI_PAGE_TITLE` | (none) | Browser tab title. Empty follows the branding app name. |
+| `GFTP_UI_SHOW_DOT_FILES` | `false` | Show dotfiles by default (users can override). |
+| `GFTP_UI_SHOW_NAVIGATION_HISTORY` | `true` | Show the recent-paths navigation history. |
+<!-- confgen:end -->
+
+### Editor
+
+<!-- confgen:begin env-table "Editor" -->
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_EDITOR_ALLOWED_EXTENSIONS` | `html,htm,xhtml,css,scss,sass,less,js,mjs,cjs,jsx,ts,tsx,vue,svelte,php,phtml,py,rb,go,rs,java,c,h,cpp,hpp,sh,bash,zsh,pl,lua,json,json5,xml,svg,yaml,yml,toml,ini,conf,cfg,env,properties,sql,csv,tsv,txt,md,markdown,rst,log,htaccess,htpasswd,gitignore,editorconfig,twig,ejs,hbs,mustache,liquid,erb,j2` | Editable file extensions, without the dot. |
+| `GFTP_EDITOR_DISABLED` | `false` | Disable the file editor entirely. |
+| `GFTP_EDITOR_VIEW_ONLY` | `false` | Open files read-only. |
+<!-- confgen:end -->
+
+### Access
+
+<!-- confgen:begin env-table "Access" -->
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES` | (none) | Client IP allowlist; empty allows all. |
+<!-- confgen:end -->
 
 ### Secrets
 
+<!-- confgen:begin env-table "Secrets" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SESSION_SECRET` | (auto-generated) | Session cookie signing key, used verbatim as bytes. When unset, a 32-byte CSPRNG key is generated and a warning is logged; every session is then invalidated on restart. |
-| `GFTP_DOWNLOAD_TOKEN_SECRET` | (auto-generated) | HMAC key for signed download tokens. Same 32-byte auto-generation and restart caveat as the session secret. |
+| `GFTP_SESSION_SECRET` | (auto-generated) | Session cookie signing key, used verbatim as bytes. |
+| `GFTP_DOWNLOAD_TOKEN_SECRET` | (auto-generated) | HMAC key for signed download tokens. |
+<!-- confgen:end -->
 
 Generate a stable value with `openssl rand -hex 32`.
 
 ### Login and sessions
 
+<!-- confgen:begin env-table "Login and sessions" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SESSION_TTL_SECS` | `7200` | Session lifetime in seconds. Must be a positive integer or startup fails. |
-| `GFTP_LOGIN_MAX_ATTEMPTS` | `5` | Failed connect attempts tolerated per `host:username` key before the cooldown rejects further attempts. Positive integer. |
-| `GFTP_LOGIN_COOLDOWN_SECS` | `300` | Sliding cooldown in seconds, keyed on `host:username`. Each failed attempt extends the window; a successful connect clears the counter. Positive integer. Throttle state is in-memory and reset on restart. |
-| `GFTP_DISABLE_LOGIN_FORM` | `false` | Hide the manual login form (SSO-only deployments). Enabled only by the exact string `true`. |
-| `GFTP_LOGIN_DISABLED_REDIRECT` | (none) | Optional URL to redirect users who hit the disabled login form. |
+| `GFTP_SESSION_TTL_SECONDS` | `7200` | Session lifetime in seconds. |
+| `GFTP_LOGIN_MAX_ATTEMPTS` | `5` | Failed connect attempts tolerated per host:username before the cooldown rejects further attempts. |
+| `GFTP_LOGIN_COOLDOWN_SECONDS` | `300` | Sliding login cooldown in seconds, keyed on host:username. |
+| `GFTP_LOGIN_FORM_DISABLED` | `false` | Hide the manual login form (SSO-only deployments). |
+<!-- confgen:end -->
+
+The login throttle state is in-memory and reset on restart; each failed attempt extends the cooldown window, a successful connect clears the counter.
 
 ### Uploads and chunking
 
+<!-- confgen:begin env-table "Uploads and chunking" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_CHUNK_SIZE` | `5242880` | Upload chunk size in bytes (5 MiB). Parsed as a base-10 int64; must be greater than 0 or startup fails. |
-| `GFTP_MAX_CONCURRENT_UPLOADS` | `1` | Maximum parallel chunk uploads per session. Positive integer. A single control connection serializes transfers under a per-session lock, so values above 1 mostly queue on that lock rather than adding throughput. |
+| `GFTP_UPLOAD_CHUNK_SIZE` | `5242880` | Upload chunk size in bytes. |
+| `GFTP_UPLOAD_MAX_CONCURRENT` | `1` | Maximum parallel chunk uploads per session. A single control connection serializes transfers, so values above 1 mostly queue. |
+<!-- confgen:end -->
 
 ### Connections and TLS
 
+<!-- confgen:begin env-table "Connections and TLS" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY` | `false` | Skip FTPS (explicit TLS) certificate verification, for self-signed or internal servers only. Enabled only by the exact string `true`. Overrides `connection.ftpTLSInsecureSkipVerify`. Applies to the `ftps` protocol; it does not affect SFTP. |
+| `GFTP_CONNECTION_ALLOWED_TYPES` | `ftp,ftps,sftp` | Protocols offered on the login form; any subset of ftp, ftps, sftp. |
+| `GFTP_CONNECTION_DISABLE_CHMOD` | `false` | Hide the chmod UI. |
+| `GFTP_CONNECTION_PRESET_HOST` | (none) | Prefill the login form host. |
+| `GFTP_CONNECTION_PRESET_PORT` | (none) | Prefill the login form port. |
+| `GFTP_CONNECTION_LOCK_HOST` | `false` | Make host and port read-only on the login form; requires a preset host. |
+| `GFTP_CONNECTION_PASSIVE_MODE` | `true` | Default for the FTP passive-mode toggle. |
+| `GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY` | `false` | Skip FTPS (explicit TLS) certificate verification, for self-signed or internal servers only. Does not affect SFTP. |
+<!-- confgen:end -->
 
 SFTP host keys are verified separately against `<GFTP_DATA_DIR>/known_hosts` on a trust-on-first-use basis: the first connection to a host pins its key, and later key changes are rejected as a mismatch.
 
 ### White-label branding
 
-Empty values leave the `settings.json` value (or built-in default) in place.
-
+<!-- confgen:begin env-table "White-label branding" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_APP_NAME` | `GoblinFTP` | App name in header, login card, title, and footer. Falls back to `GoblinFTP` if resolved empty. |
-| `GFTP_LOGO_URL` / `GFTP_FAVICON_URL` | (none) | Logo and favicon image URLs. A set logo hides the app-name text; the favicon falls back to the logo. |
-| `GFTP_LOGO_DARK_URL` | (none) | Dark-mode logo (a light wordmark), swapped in client-side under dark mode. |
-| `GFTP_PRIMARY_COLOR` | (none) | Accent color as hex matching `^#([0-9a-fA-F]{3}\|[0-9a-fA-F]{6})$` (`#RGB` or `#RRGGBB`). Recolors the theme at runtime. An invalid value fails startup. |
-| `GFTP_PRIMARY_TEXT_COLOR` | (none) | Button/primary text color, same hex constraint. Pair a light accent with dark text for legible buttons. |
-| `GFTP_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer. Enabled only by the exact string `true`. |
+| `GFTP_BRANDING_APP_NAME` | `GoblinFTP` | App name in header, login card, title, and footer. Falls back to GoblinFTP when empty. |
+| `GFTP_BRANDING_LOGO_URL` | (none) | Logo image URL. A set logo hides the app-name text. |
+| `GFTP_BRANDING_LOGO_DARK_URL` | (none) | Dark-mode logo (a light wordmark), swapped in client-side under dark mode. |
+| `GFTP_BRANDING_FAVICON_URL` | (none) | Favicon image URL; falls back to the logo. |
+| `GFTP_BRANDING_PRIMARY_COLOR` | (none) | Accent color as #RGB or #RRGGBB; recolors the theme at runtime. |
+| `GFTP_BRANDING_PRIMARY_TEXT_COLOR` | (none) | Button/primary text color as hex; pair a light accent with dark text. |
+| `GFTP_BRANDING_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer attribution. |
+<!-- confgen:end -->
 
-These override the matching `branding` block in `settings.json`. For per-tenant themes, see [Theming](theming.md).
+For per-tenant themes, see [Theming](theming.md).
 
 ### Iframe embedding
 
@@ -76,10 +119,12 @@ Drops GoblinFTP into a hosting control panel as a pre-authenticated iframe. Comb
 [SSO login links](#sso-login-links) so the panel establishes the session. Full guide:
 [Iframe embedding](embedding.md).
 
+<!-- confgen:begin env-table "Iframe embedding" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_FRAME_ANCESTORS` | (none, framing denied) | Space-separated origins allowed to embed GoblinFTP, e.g. `https://panel.example.com https://eu.panel.example.com`. Each entry must be `scheme://host[:port]` with no path. A leftmost-label wildcard (`https://*.example.com`) is allowed. Commas, bare hosts, `*`, and non-loopback `http://` are rejected at startup. |
-| `GFTP_EMBED_CHROMELESS` | `auto` | `auto` hides branding chrome only when the page is framed, `on` always hides it, `off` never does. Overrides `embed.chromeless` in `settings.json`. |
+| `GFTP_FRAME_ANCESTORS` | (none) | Space-separated origins allowed to embed GoblinFTP in an iframe. Unset denies framing. Also read by Caddy. |
+| `GFTP_EMBED_CHROMELESS` | `auto` | auto hides branding chrome only when framed, on always, off never. |
+<!-- confgen:end -->
 
 Two points decide whether an embed works at all. **Unconfigured means denied:** with no allowlist
 GoblinFTP sends `frame-ancestors 'none'` plus `X-Frame-Options: DENY`, a change from versions before
@@ -87,28 +132,32 @@ GoblinFTP sends `frame-ancestors 'none'` plus `X-Frame-Options: DENY`, a change 
 an allowlist switches `gftp_session` to `SameSite=None; Secure; Partitioned` for every user, framed
 or not, so GoblinFTP must be served over HTTPS.
 
-`GFTP_FRAME_ANCESTORS` is env-only by design, because Caddy serves the framed document and cannot
-read `settings.json`. Full setup, accepted values, browser support, and troubleshooting:
-[Iframe embedding](embedding.md).
+`GFTP_FRAME_ANCESTORS` is read by both the Go backend and Caddy, which serves the framed document.
+Full setup, accepted values, browser support, and troubleshooting: [Iframe embedding](embedding.md).
 
 ### SSO login links
 
+<!-- confgen:begin env-table "SSO login links" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SSO_ENABLED` | `false` | Enable one-time SSO login links. Enabled only by the exact string `true`. |
-| `GFTP_SSO_SECRET` | (none) | Shared secret for SSO token validation, used as HKDF input keying material. Required when SSO is enabled, or startup fails. |
+| `GFTP_SSO_ENABLED` | `false` | Enable one-time SSO login links. |
+| `GFTP_SSO_SECRET` | (none) | Shared secret for SSO token validation. Required when SSO is enabled. |
+<!-- confgen:end -->
 
 Tokens are AES-256-GCM sealed under an `HKDF-SHA256(secret, info="gftp-sso")` key, carry an `exp` timestamp, and are single-use. Replay protection is in-memory: a token becomes replayable if the backend restarts before it expires, so keep TTLs short (minutes). Generate links with `just sso-link` or the generators in [`examples/sso/`](../examples/sso/). The `-tenant <name>` flag selects a per-tenant theme (see [Theming](theming.md)).
 
 ### Error tracking (Sentry, optional)
 
+<!-- confgen:begin env-table "Error tracking (Sentry)" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SENTRY_DSN` | (none) | Backend DSN. Empty disables backend reporting. An init failure logs a warning and does not block startup. |
-| `NUXT_PUBLIC_SENTRY_DSN` | (none) | Frontend DSN, read at SPA build time (baked into the static output). |
+| `GFTP_SENTRY_DSN` | (none) | Backend DSN. Empty disables backend reporting. |
 | `GFTP_SENTRY_ENVIRONMENT` | (none) | Environment tag passed through verbatim. |
-| `GFTP_SENTRY_RELEASE` | (build version) | Release tag. Defaults to `main.version` (the release tag, or `dev` for non-release builds). |
-| `GFTP_SENTRY_SAMPLE_RATE` | `0` | Traces sample rate, parsed as a float. Unparseable values fall back to `0` (no error). |
+| `GFTP_SENTRY_RELEASE` | (none) | Release tag; defaults to the build version. |
+| `GFTP_SENTRY_SAMPLE_RATE` | `0` | Traces sample rate between 0 and 1. |
+<!-- confgen:end -->
+
+The SPA's DSN is separate: `NUXT_PUBLIC_SENTRY_DSN` is read at SPA build time and baked into the static output, unlike the `GFTP_*` variables, which are read at process start.
 
 ### Logging, metrics, and S3
 
@@ -117,50 +166,6 @@ Dedicated pages own these variable groups:
 - `GFTP_LOG_*`: [Logging](logging.md).
 - `GFTP_METRICS_*`: [Metrics](metrics.md).
 - `GFTP_S3_*`: [S3 chunk staging](s3-staging.md).
-
-## settings.json
-
-Read once at startup from `GFTP_SETTINGS_PATH`. Load semantics:
-
-- **File missing:** built-in defaults are used, no error.
-- **File present but unreadable** (permissions, and similar): startup fails.
-- **File present but invalid JSON:** startup fails.
-- **Env overrides** are applied after the file loads: `GFTP_PAGE_TITLE`, all branding variables, and `GFTP_FTP_TLS_INSECURE_SKIP_VERIFY`.
-
-Validated fields: `connection.presetPort` must be `1-65535`; `connection.lockHost` requires a non-empty `connection.presetHost`; `branding.primaryColor` / `branding.primaryTextColor` must match the hex pattern above. Any violation fails startup.
-
-```bash
-docker run -p 8080:80 \
-  -e GFTP_SESSION_SECRET="change-me" \
-  -e GFTP_DOWNLOAD_TOKEN_SECRET="change-me" \
-  -v ./settings.json:/app/data/settings.json:ro \
-  ghcr.io/darthsoup/goblinftp
-```
-
-Key options (full schema in [`settings.example.json`](../settings.example.json)):
-
-| Setting | Type | Description |
-|---|---|---|
-| `language` | string | Default UI language. Not allow-listed server-side; passed through to the SPA, which gates the actual set. Users can override it locally. |
-| `ui.pageTitle` | string | Browser tab title (`GFTP_PAGE_TITLE` overrides). |
-| `ui.showDotFiles` | bool | Show dotfiles by default (users can override). |
-| `ui.showNavigationHistory` | bool | Show the recent-paths navigation history. |
-| `ui.helpUrl` | string \| null | Optional help-link URL. |
-| `editor.disabled` | bool | Disable the file editor entirely. |
-| `editor.viewOnly` | bool | Open files read-only. |
-| `editor.openOnCreate` | bool | Open a newly created file automatically. |
-| `editor.allowedExtensions` | string[] | Editable extensions (without the dot). |
-| `connection.allowedTypes` | string[] | Any subset of `["ftp","ftps","sftp"]`. |
-| `connection.disableChmod` | bool | Hide the chmod UI. |
-| `connection.requestTimeoutSeconds` | int | Timeout for FTP/SFTP operations. |
-| `connection.presetHost` / `presetPort` | string / int | Prefill the login form (`presetPort` in `1-65535`). |
-| `connection.lockHost` | bool | Make host and port read-only (requires `presetHost`). |
-| `connection.passiveMode` | bool | Default for the FTP passive-mode toggle. |
-| `connection.ftpTLSInsecureSkipVerify` | bool | Skip FTPS cert verification (env overrides). |
-| `access.allowedClientAddresses` | string[] | IP allowlist (empty allows all). |
-| `access.deniedMessage` | string \| null | Message shown to blocked clients. |
-| `access.postLogoutUrl` | string \| null | Redirect target after logout. |
-| `branding.*` | object | App name, logos, colors, attribution (see [Theming](theming.md)). |
 
 ## See also
 
