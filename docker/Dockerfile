@@ -29,7 +29,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 # ── Stage 3: Final image ───────────────────────────────────────────────────────
 FROM caddy:2-alpine
 
-RUN mkdir -p /app/public /app/data /app/storage
+RUN mkdir -p /app/public /app/data
 
 COPY --from=frontend-builder /build/frontend/.output/public /app/public
 COPY --from=backend-builder /app/gftp /app/gftp
@@ -39,4 +39,10 @@ COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
+
+# Polls through Caddy so the check covers the full serving chain, not just the
+# Go process (the entrypoint already delays Caddy until the backend is up).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q -O /dev/null http://localhost:80/healthz || exit 1
+
 ENTRYPOINT ["/entrypoint.sh"]

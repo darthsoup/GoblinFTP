@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -68,12 +67,7 @@ func main() {
 	// (stdout-only, so this Init cannot fail).
 	logger, _, _ := logging.Init(logging.Options{Level: "info"})
 
-	settingsPath := os.Getenv("GFTP_SETTINGS_PATH")
-	if settingsPath == "" {
-		settingsPath = "/app/data/settings.json"
-	}
-
-	cfg, err := config.Load(logger, settingsPath)
+	cfg, err := config.Load(logger)
 	if err != nil {
 		logger.Error("failed to load configuration", "error", err.Error())
 		os.Exit(1)
@@ -112,16 +106,15 @@ func main() {
 	}
 
 	// Explicit GFTP_SENTRY_RELEASE wins; release builds default to the tag.
-	sentryRelease := os.Getenv("GFTP_SENTRY_RELEASE")
+	sentryRelease := cfg.SentryRelease
 	if sentryRelease == "" {
 		sentryRelease = version
 	}
-	sentryRate, _ := strconv.ParseFloat(os.Getenv("GFTP_SENTRY_SAMPLE_RATE"), 64)
 	if initErr := gftpsentry.Init(
 		cfg.SentryDSN,
-		os.Getenv("GFTP_SENTRY_ENVIRONMENT"),
+		cfg.SentryEnvironment,
 		sentryRelease,
-		sentryRate,
+		cfg.SentrySampleRate,
 	); initErr != nil {
 		logger.Warn("sentry init failed", "error", initErr.Error())
 	}

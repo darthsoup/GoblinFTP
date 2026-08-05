@@ -41,7 +41,7 @@ const fullPath = computed(() => {
   return `${dir}/${file.value.name}`
 })
 
-// Two independent gates: the admin kill-switch from settings.json, and what the
+// Two independent gates: the admin kill-switch (GFTP_CONNECTION_DISABLE_CHMOD), and what the
 // connected protocol can actually do. FTP/FTPS have no SITE CHMOD, so offering
 // the control there guarantees a 422.
 const chmodEnabled = computed(() =>

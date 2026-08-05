@@ -1,4 +1,3 @@
-mftp/
 .DS_Store
 .worktrees/
 .env
@@ -9,5 +8,7 @@ frontend/node_modules/
 frontend/.nuxt/
 frontend/dist
 backend/gftp
+# Residue from before the dev data dir moved to the repo root.
 backend/data/
-data/known_hosts
+data/*
+!data/themes/

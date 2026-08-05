@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -104,7 +105,7 @@ func TestSystemVarsSSOFields(t *testing.T) {
 	cfg := defaultTestConfig()
 	cfg.SSOEnabled = true
 	cfg.SSOSecret = []byte("testsecret32byteslong_xxxxxxxxxxx")
-	cfg.DisableLoginForm = true
+	cfg.LoginFormDisabled = true
 
 	app, _, _ := newTestApp(t, cfg)
 	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
@@ -121,4 +122,37 @@ func TestSystemVarsSSOFields(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.True(t, resp.Data.SSOEnabled)
 	assert.True(t, resp.Data.LoginFormDisabled)
+}
+
+// TestSystemVarsCoversSPAKeys asserts every SPA-flagged registry key exists in
+// the /api/system/vars response, so a new key cannot silently miss the frontend.
+func TestSystemVarsCoversSPAKeys(t *testing.T) {
+	app, _, _ := newTestApp(t, defaultTestConfig())
+	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp struct {
+		Data map[string]json.RawMessage `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+
+	for _, sk := range config.SPAKeys() {
+		name := sk.Env
+		if name == "" {
+			name = sk.JSONPath
+		}
+		node := resp.Data
+		segments := strings.Split(sk.JSONPath, ".")
+		for i, seg := range segments {
+			raw, ok := node[seg]
+			require.True(t, ok, "%s: %q missing at segment %q in /api/system/vars", name, sk.JSONPath, seg)
+			if i < len(segments)-1 {
+				next := map[string]json.RawMessage{}
+				require.NoError(t, json.Unmarshal(raw, &next), "%s: %q is not an object", name, seg)
+				node = next
+			}
+		}
+	}
 }

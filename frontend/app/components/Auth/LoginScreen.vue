@@ -10,7 +10,7 @@ const { t } = useI18n()
 const { appName, hideAttribution } = useBranding()
 const { embedded } = useEmbed()
 
-// GFTP_DISABLE_LOGIN_FORM was published in systemVars and typed on the client
+// GFTP_LOGIN_FORM_DISABLED was published in systemVars and typed on the client
 // but read by no component, so it did nothing. It matters most for an embed:
 // when a panel session ends, routing to /login otherwise renders a credential
 // form the panel user has no credentials for.

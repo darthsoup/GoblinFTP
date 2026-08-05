@@ -3,7 +3,7 @@
 // PRESENTATION ONLY. This hides UI; it never restricts what a user can do, and
 // nothing on the server branches on it. Anything that must be *forbidden*
 // inside a panel belongs in server-side config (editor.disabled,
-// connection.lockHost, GFTP_DISABLE_LOGIN_FORM). Do not turn this into a
+// connection.lockHost, GFTP_LOGIN_FORM_DISABLED). Do not turn this into a
 // security control.
 //
 // Detection is `window.self !== window.top` rather than a query param: being

@@ -5,7 +5,7 @@ import { defineStore } from 'pinia'
 // formatting are all client-side concerns. Theme is persisted by
 // @nuxtjs/color-mode (localStorage); this store covers the rest.
 //
-// Preferences with an admin-level default in settings.json (dotfiles,
+// Preferences with an admin-level default in the GFTP_UI_*/GFTP_LANGUAGE env config (dotfiles,
 // language) follow "user override wins, otherwise admin default": the user
 // value stays null until the user explicitly changes the setting.
 const STORAGE_KEY = 'gftp_settings'
@@ -32,7 +32,7 @@ const DATE_FORMATS: DateFormat[] = ['auto', 'absolute', 'relative']
 const DENSITIES: Density[] = ['comfortable', 'compact']
 export const LANGUAGES: AppLanguage[] = ['en', 'de', 'cs', 'da', 'es', 'fi', 'fr', 'it', 'nb-NO', 'nl', 'pt', 'sk', 'sv']
 
-// Narrow the admin default (settings.json) to a supported language; shared with the auth plugin.
+// Narrow the admin default (GFTP_LANGUAGE) to a supported language; shared with the auth plugin.
 export function isAppLanguage(value: string | null | undefined): value is AppLanguage {
   return value != null && (LANGUAGES as readonly string[]).includes(value)
 }

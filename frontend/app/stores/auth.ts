@@ -211,7 +211,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const allowedTypes = computed(() =>
-    systemVars.value?.connection.allowedTypes ?? ['ftp', 'sftp'],
+    systemVars.value?.connection.allowedTypes ?? ['ftp', 'ftps', 'sftp'],
   )
 
   return {

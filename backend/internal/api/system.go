@@ -130,7 +130,7 @@ func (h *Handler) SystemVars(c echo.Context) error {
 			AllowedExtensions: h.cfg.Settings.Editor.AllowedExtensions,
 		},
 		Embed:              systemEmbedVars{Chromeless: h.cfg.Settings.Embed.Chromeless},
-		LoginFormDisabled:  h.cfg.DisableLoginForm,
+		LoginFormDisabled:  h.cfg.LoginFormDisabled,
 		SSOEnabled:         h.cfg.SSOEnabled,
 		FrontendLogEnabled: h.cfg.FrontendLogEnabled,
 		Version:            h.version,

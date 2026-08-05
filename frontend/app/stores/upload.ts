@@ -55,7 +55,7 @@ export const useUploadStore = defineStore('upload', () => {
   // The backend serializes all transfers on a session's single control connection
   // (per-session transfer lock) and guards its session state with a mutex, so any
   // value here is safe. Default 1 because one FTP/SFTP connection transfers one
-  // file at a time; GFTP_MAX_CONCURRENT_UPLOADS can raise it, though uploads then
+  // file at a time; GFTP_UPLOAD_MAX_CONCURRENT can raise it, though uploads then
   // queue on the backend transfer lock rather than truly running in parallel.
   const maxConcurrent = computed(() => authStore.systemVars?.upload.maxConcurrentUploads ?? 1)
 

@@ -164,6 +164,16 @@ sso-link *ARGS:
 i18n-check:
     node frontend/scripts/i18n-check.mjs
 
+# Regenerate .env.example and the doc config tables from the registry
+[group('utils')]
+confgen:
+    cd backend && go run ./cmd/gftp-confgen -root "{{ justfile_directory() }}"
+
+# Verify the generated config artifacts are current (CI drift gate)
+[group('utils')]
+confgen-check: confgen
+    git diff --exit-code -- .env.example docs
+
 # Remove build artifacts
 [group('utils')]
 clean:

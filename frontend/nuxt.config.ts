@@ -68,7 +68,7 @@ export default defineNuxtConfig({
     defaultLocale: 'en',
     strategy: 'no_prefix',
     // Language is applied on boot: user choice (gftp_settings localStorage)
-    // > admin default (settings.json) > en. No browser detection.
+    // > admin default (GFTP_LANGUAGE) > en. No browser detection.
     detectBrowserLanguage: false,
   },
 

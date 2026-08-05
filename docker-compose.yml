@@ -12,23 +12,12 @@ services:
     image: ghcr.io/darthsoup/goblinftp
     ports:
       - "8080:80"
-    environment:
-      GFTP_PAGE_TITLE: "${GFTP_PAGE_TITLE:-GoblinFTP}"
-      GFTP_SESSION_SECRET: "${GFTP_SESSION_SECRET:-}"
-      GFTP_DOWNLOAD_TOKEN_SECRET: "${GFTP_DOWNLOAD_TOKEN_SECRET:-}"
-      GFTP_SSO_ENABLED: "${GFTP_SSO_ENABLED:-false}"
-      GFTP_SSO_SECRET: "${GFTP_SSO_SECRET:-}"
-      GFTP_SENTRY_DSN: "${GFTP_SENTRY_DSN:-}"
-      # Optional S3 chunk staging (see docs/s3-staging.md):
-      GFTP_S3_ENABLED: "${GFTP_S3_ENABLED:-false}"
-      GFTP_S3_ENDPOINT: "${GFTP_S3_ENDPOINT:-}"
-      GFTP_S3_BUCKET: "${GFTP_S3_BUCKET:-}"
-      GFTP_S3_ACCESS_KEY: "${GFTP_S3_ACCESS_KEY:-}"
-      GFTP_S3_SECRET_KEY: "${GFTP_S3_SECRET_KEY:-}"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/healthz"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      # Prometheus metrics listener. Uncomment together with
+      # GFTP_METRICS_ENABLED=true in .env; see docs/metrics.md.
+      # - "9091:9091"
+    # Every GFTP_* variable in .env reaches the container (optional form needs
+    # Compose v2.24+). The healthcheck lives in the image (port 80 via Caddy).
+    env_file:
+      - path: .env
+        required: false
     restart: unless-stopped
