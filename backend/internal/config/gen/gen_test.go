@@ -3,6 +3,7 @@ package gen
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -57,21 +58,77 @@ func TestInjectTablesReplacesBlockContent(t *testing.T) {
 	assert.Equal(t, out, again, "injection must be idempotent")
 }
 
-// TestCommittedArtifactsInSync is the local drift gate: committed artifacts
-// must match what the registry renders; fix with `just confgen`.
-func TestCommittedArtifactsInSync(t *testing.T) {
+// TestCommittedEnvExampleInSync guards the fully generated artifact: a stale
+// .env.example advertises defaults the loader no longer uses.
+func TestCommittedEnvExampleInSync(t *testing.T) {
 	committed, err := os.ReadFile(filepath.Join(repoRoot, ".env.example"))
 	require.NoError(t, err)
-	assert.Equal(t, EnvExample(), string(committed), ".env.example is stale — run `just confgen`")
+	assert.Equal(t, EnvExample(), string(committed), ".env.example is stale, run `just confgen`")
+}
 
-	for _, page := range []string{
-		"docs/configuration.md", "docs/logging.md", "docs/metrics.md",
-		"docs/s3-staging.md", "docs/embedding.md",
-	} {
+// TestCommittedDocTablesInSync checks that the doc tables list the registry's
+// variables with their current defaults. The description column is deliberately
+// not compared: wording in the docs is not a test failure.
+func TestCommittedDocTablesInSync(t *testing.T) {
+	for _, page := range DocPages {
+		t.Run(page, func(t *testing.T) {
+			raw, err := os.ReadFile(filepath.Join(repoRoot, page))
+			require.NoError(t, err)
+			injected, err := InjectTables(string(raw))
+			require.NoError(t, err)
+			assert.Equal(t, tableRows(injected), tableRows(string(raw)),
+				"documented variables or defaults are stale, run `just confgen`")
+		})
+	}
+}
+
+// TestDocPagesCoverEverySection catches a dropped table: without its marker a
+// whole section is simply never injected, which the row comparison cannot see.
+func TestDocPagesCoverEverySection(t *testing.T) {
+	documented := map[string]bool{}
+	for _, page := range DocPages {
 		raw, err := os.ReadFile(filepath.Join(repoRoot, page))
 		require.NoError(t, err)
-		injected, err := InjectTables(string(raw))
-		require.NoError(t, err, page)
-		assert.Equal(t, injected, string(raw), "%s tables are stale — run `just confgen`", page)
+		for _, m := range sectionMarkerRe.FindAllStringSubmatch(string(raw), -1) {
+			documented[m[1]] = true
+		}
 	}
+
+	for i := range config.Registry {
+		k := &config.Registry[i]
+		if k.Env == "" {
+			continue
+		}
+		assert.True(t, documented[k.Section], "section %q is undocumented (%s)", k.Section, k.Env)
+	}
+}
+
+var sectionMarkerRe = regexp.MustCompile(`<!-- confgen:begin env-table "([^"]+)" -->`)
+
+// tableRows reduces markdown table rows to variable and default. Cutting at the
+// third pipe keeps pipes inside a description from shifting the columns.
+func tableRows(doc string) []string {
+	var rows []string
+	for _, line := range strings.Split(doc, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "|") {
+			continue
+		}
+		if cut := nthIndex(line, '|', 3); cut >= 0 {
+			line = line[:cut+1]
+		}
+		rows = append(rows, line)
+	}
+	return rows
+}
+
+func nthIndex(s string, c byte, n int) int {
+	for i := range len(s) {
+		if s[i] == c {
+			if n--; n == 0 {
+				return i
+			}
+		}
+	}
+	return -1
 }

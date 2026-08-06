@@ -11,21 +11,12 @@ import (
 	"github.com/darthsoup/goblinftp/internal/config/gen"
 )
 
-// docPages lists every file carrying confgen markers.
-var docPages = []string{
-	"docs/configuration.md",
-	"docs/logging.md",
-	"docs/metrics.md",
-	"docs/s3-staging.md",
-	"docs/embedding.md",
-}
-
 func run(root string) error {
 	if err := os.WriteFile(filepath.Join(root, ".env.example"), []byte(gen.EnvExample()), 0o644); err != nil { //nolint:gosec // G306: a committed example file is meant to be world-readable
 		return err
 	}
 
-	for _, page := range docPages {
+	for _, page := range gen.DocPages {
 		path := filepath.Join(root, page)
 		raw, err := os.ReadFile(path)
 		if err != nil {
