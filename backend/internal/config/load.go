@@ -30,16 +30,15 @@ var (
 	}
 	removedEnv = map[string]string{
 		"GFTP_LOGIN_DISABLED_REDIRECT": "was removed (it was documented but never functional)",
-		"GFTP_SETTINGS_PATH":           "was removed together with settings.json support — configure via environment variables (see docs/migration-0.24.md)",
+		"GFTP_SETTINGS_PATH":           "was removed together with settings.json support: configure via environment variables (see docs/configuration.md)",
 	}
 )
 
-// RenamedEnv exposes the old-to-new env name map for the generated migration
-// guide, so the documented table provably matches the runtime detection.
+// RenamedEnv exposes the old-to-new env name map, so a generated doc table
+// provably matches the runtime detection.
 func RenamedEnv() map[string]string { return renamedEnv }
 
-// RemovedEnv exposes the removed env names with their migration hints, for the
-// generated migration guide.
+// RemovedEnv exposes the removed env names with their upgrade hints.
 func RemovedEnv() map[string]string { return removedEnv }
 
 func defaultConfig() *Config {
@@ -113,7 +112,7 @@ func Load(logger *slog.Logger) (*Config, error) {
 func checkStaleEnv() error {
 	for old, newName := range renamedEnv {
 		if os.Getenv(old) != "" {
-			return fmt.Errorf("%s was renamed to %s — update your environment (see docs/migration-0.24.md)", old, newName)
+			return fmt.Errorf("%s was renamed to %s, update your environment (see docs/configuration.md)", old, newName)
 		}
 	}
 	for old, hint := range removedEnv {
@@ -129,7 +128,7 @@ func checkStaleEnv() error {
 func checkStaleSettingsFile(dataDir string) error {
 	path := filepath.Join(dataDir, "settings.json")
 	if _, err := os.Stat(path); err == nil {
-		return fmt.Errorf("%s exists but settings.json is no longer read — move its values to environment variables and remove the file (see docs/migration-0.24.md)", path)
+		return fmt.Errorf("%s exists but settings.json is no longer read: move its values to environment variables and remove the file (see docs/configuration.md)", path)
 	}
 	return nil
 }

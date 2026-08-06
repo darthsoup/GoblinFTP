@@ -32,21 +32,6 @@ jobs:
           version: v2.12.2 # keep in sync with the local install (brew install golangci-lint)
           working-directory: backend
 
-  config-artifacts:
-    name: Config artifacts in sync
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - name: Regenerate config artifacts
-        working-directory: backend
-        run: go run ./cmd/gftp-confgen -root ..
-      - name: Fail on drift
-        run: git diff --exit-code -- .env.example docs
-
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest

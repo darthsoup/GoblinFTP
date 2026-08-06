@@ -18,7 +18,6 @@ var docPages = []string{
 	"docs/metrics.md",
 	"docs/s3-staging.md",
 	"docs/embedding.md",
-	"docs/migration-0.24.md",
 }
 
 func run(root string) error {

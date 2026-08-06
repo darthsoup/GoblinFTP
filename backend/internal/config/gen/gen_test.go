@@ -66,7 +66,7 @@ func TestCommittedArtifactsInSync(t *testing.T) {
 
 	for _, page := range []string{
 		"docs/configuration.md", "docs/logging.md", "docs/metrics.md",
-		"docs/s3-staging.md", "docs/embedding.md", "docs/migration-0.24.md",
+		"docs/s3-staging.md", "docs/embedding.md",
 	} {
 		raw, err := os.ReadFile(filepath.Join(repoRoot, page))
 		require.NoError(t, err)

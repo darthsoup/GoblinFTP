@@ -2,7 +2,7 @@
 
 GoblinFTP is configured entirely through environment variables, read once at startup by `config.Load` and driven by a single key registry in `backend/internal/config`. Names follow one rule: `GFTP_<SECTION>_<KEY>`. There is no hot reload, so a change requires a restart. Invalid values abort startup with a specific error naming the offending variable rather than being silently coerced. An empty variable counts as unset. Booleans accept the `strconv.ParseBool` forms (`true`, `false`, `1`, `0`, `t`, `f`, any casing). Lists are comma-separated.
 
-Upgrading from v0.23 or earlier: several variables were renamed and the `settings.json` file was removed, see the [migration guide](migration-0.24.md).
+Upgrading from v0.25 or earlier: several variables were renamed and the `settings.json` file was removed. Nothing is silently ignored. A stale variable aborts startup with an error naming its replacement, and a `settings.json` still present in the data directory does the same.
 
 Larger subsystems have dedicated pages: [Logging](logging.md), [Metrics](metrics.md), [S3 chunk staging](s3-staging.md), [Theming](theming.md), [Iframe embedding](embedding.md), and [SSO login links](../examples/sso/README.md). The complete annotated variable list is [`.env.example`](../.env.example).
 

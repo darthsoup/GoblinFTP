@@ -169,11 +169,6 @@ i18n-check:
 confgen:
     cd backend && go run ./cmd/gftp-confgen -root "{{ justfile_directory() }}"
 
-# Verify the generated config artifacts are current (CI drift gate)
-[group('utils')]
-confgen-check: confgen
-    git diff --exit-code -- .env.example docs
-
 # Remove build artifacts
 [group('utils')]
 clean:

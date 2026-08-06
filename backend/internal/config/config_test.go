@@ -472,5 +472,5 @@ func TestLoadRejectsStaleSettingsFile(t *testing.T) {
 	_, err := config.Load(nil)
 	require.Error(t, err, "a mounted settings.json must fail startup instead of being silently ignored")
 	assert.Contains(t, err.Error(), "settings.json")
-	assert.Contains(t, err.Error(), "migration")
+	assert.Contains(t, err.Error(), "environment variables")
 }
