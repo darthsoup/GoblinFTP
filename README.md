@@ -2,6 +2,11 @@
 
 A self-hosted, web-based FTP, FTPS, and SFTP client. Deploy as a single Docker container and manage remote files from any browser.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshot-dark.png">
+  <img alt="GoblinFTP" src="docs/assets/screenshot-light.png" width="600">
+</picture>
+
 ## Features
 
 - **FTP, FTPS & SFTP** with passive mode and SFTP host-key pinning
