@@ -2,93 +2,75 @@ package config
 
 import (
 	"crypto/rand"
-	"encoding/json"
-	"fmt"
-	"log/slog"
-	"net/url"
-	"os"
 	"regexp"
-	"strconv"
-	"strings"
 )
 
 // hexColorRe matches #RGB and #RRGGBB used by branding.primaryColor.
 var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
 
-// UISettings maps the `ui` block of settings.json.
+// UISettings holds the GFTP_UI_* values.
 type UISettings struct {
-	PageTitle             string  `json:"pageTitle"`
-	ShowDotFiles          bool    `json:"showDotFiles"`
-	ShowNavigationHistory bool    `json:"showNavigationHistory"`
-	HelpURL               *string `json:"helpUrl"`
+	PageTitle             string
+	ShowDotFiles          bool
+	ShowNavigationHistory bool
 }
 
-// EditorSettings maps the `editor` block.
+// EditorSettings holds the GFTP_EDITOR_* values.
 type EditorSettings struct {
-	OpenOnCreate      bool     `json:"openOnCreate"`
-	AllowedExtensions []string `json:"allowedExtensions"`
-	Disabled          bool     `json:"disabled"`
-	ViewOnly          bool     `json:"viewOnly"`
+	AllowedExtensions []string
+	Disabled          bool
+	ViewOnly          bool
 }
 
-// ConnectionSettings maps the `connection` block.
+// ConnectionSettings holds the GFTP_CONNECTION_* values.
 type ConnectionSettings struct {
-	AllowedTypes          []string `json:"allowedTypes"`
-	DisableChmod          bool     `json:"disableChmod"`
-	RequestTimeoutSeconds int      `json:"requestTimeoutSeconds"`
+	AllowedTypes []string
+	DisableChmod bool
 	// PresetHost/PresetPort prefill the login form; LockHost makes the
-	// host+port fields read-only (panel deployments where users only enter
-	// credentials). PassiveMode is the default for the FTP passive toggle.
-	PresetHost  *string `json:"presetHost"`
-	PresetPort  *int    `json:"presetPort"`
-	LockHost    bool    `json:"lockHost"`
-	PassiveMode bool    `json:"passiveMode"`
+	// host+port fields read-only. PassiveMode is the FTP passive default.
+	PresetHost  *string
+	PresetPort  *int
+	LockHost    bool
+	PassiveMode bool
 	// FTPTLSInsecureSkipVerify disables FTPS (explicit TLS) certificate
-	// verification — for self-signed / internal servers only. Admin-only
-	// (env GFTP_FTP_TLS_INSECURE_SKIP_VERIFY); never expose to end users.
-	FTPTLSInsecureSkipVerify bool `json:"ftpTLSInsecureSkipVerify"`
+	// verification — for self-signed / internal servers only, never end users.
+	FTPTLSInsecureSkipVerify bool
 }
 
-// AccessSettings maps the `access` block.
+// AccessSettings holds the GFTP_ACCESS_* values.
 type AccessSettings struct {
-	AllowedClientAddresses []string `json:"allowedClientAddresses"`
-	DeniedMessage          *string  `json:"deniedMessage"`
-	PostLogoutURL          *string  `json:"postLogoutUrl"`
+	AllowedClientAddresses []string
 }
 
-// BrandingSettings maps the `branding` block — runtime white-labeling exposed to
-// the SPA via /api/system/vars. All pointers are nil (= "use the built-in
-// default") unless an admin sets them.
+// BrandingSettings holds the GFTP_BRANDING_* white-labeling values, exposed to
+// the SPA via /api/system/vars. Nil pointers mean "use the built-in default".
 type BrandingSettings struct {
-	AppName          string  `json:"appName"`
-	LogoURL          *string `json:"logoUrl"`
-	LogoDarkURL      *string `json:"logoDarkUrl"` // optional dark-mode logo (swapped client-side)
-	FaviconURL       *string `json:"faviconUrl"`
-	PrimaryColor     *string `json:"primaryColor"`     // hex, e.g. "#2563eb"
-	PrimaryTextColor *string `json:"primaryTextColor"` // hex — button/primary text, for a light accent
-	HideAttribution  bool    `json:"hideAttribution"`
+	AppName          string
+	LogoURL          *string
+	LogoDarkURL      *string // optional dark-mode logo (swapped client-side)
+	FaviconURL       *string
+	PrimaryColor     *string // hex, e.g. "#2563eb"
+	PrimaryTextColor *string // hex — button/primary text, for a light accent
+	HideAttribution  bool
 }
 
-// EmbedSettings maps the `embed` block. The frame-ancestors allowlist is
-// deliberately NOT here: Caddy serves the framed document and cannot read
-// settings.json, so a value here would put the header on /api/* and leave the
-// document without one — framing would fail silently while the config looked
-// correct. It is env-only (GFTP_FRAME_ANCESTORS), read by both Go and Caddy.
+// EmbedSettings holds the embed presentation knobs. The frame-ancestors
+// allowlist lives on Config instead (GFTP_FRAME_ANCESTORS, also read by Caddy).
 type EmbedSettings struct {
 	// Chromeless: "auto" hides branding chrome only when the page is framed,
 	// "on" always, "off" never.
-	Chromeless string `json:"chromeless"`
+	Chromeless string
 }
 
-// Settings mirrors settings.json; used for runtime-configurable UI/editor/connection/access settings.
+// Settings groups the runtime-configurable UI/editor/connection/access values.
 type Settings struct {
-	Language   string             `json:"language"`
-	UI         UISettings         `json:"ui"`
-	Editor     EditorSettings     `json:"editor"`
-	Connection ConnectionSettings `json:"connection"`
-	Access     AccessSettings     `json:"access"`
-	Branding   BrandingSettings   `json:"branding"`
-	Embed      EmbedSettings      `json:"embed"`
+	Language   string
+	UI         UISettings
+	Editor     EditorSettings
+	Connection ConnectionSettings
+	Access     AccessSettings
+	Branding   BrandingSettings
+	Embed      EmbedSettings
 }
 
 // Config holds all runtime configuration for GoblinFTP.
@@ -109,26 +91,28 @@ type Config struct {
 	SSOSecret           []byte
 	// FrameAncestors is the validated CSP frame-ancestors allowlist. Empty means
 	// framing is denied. Env-only (GFTP_FRAME_ANCESTORS) — see EmbedSettings.
-	FrameAncestors        []string
-	ChunkSize             int64
-	MaxConcurrentUploads  int
-	DataDir               string
-	LoginMaxAttempts      int
-	LoginCooldownSeconds  int
-	SessionTTLSeconds     int
-	SentryDSN             string
-	LoginDisabledRedirect string
-	DisableLoginForm      bool
-	S3Enabled             bool
-	S3Endpoint            string
-	S3Bucket              string
-	S3Region              string
-	S3AccessKey           string
-	S3SecretKey           string
-	S3UsePathStyle        bool
-	S3Prefix              string
-	S3TimeoutSeconds      int
-	Settings              Settings
+	FrameAncestors       []string
+	ChunkSize            int64
+	MaxConcurrentUploads int
+	DataDir              string
+	LoginMaxAttempts     int
+	LoginCooldownSeconds int
+	SessionTTLSeconds    int
+	SentryDSN            string
+	SentryEnvironment    string
+	SentryRelease        string
+	SentrySampleRate     float64
+	LoginFormDisabled    bool
+	S3Enabled            bool
+	S3Endpoint           string
+	S3Bucket             string
+	S3Region             string
+	S3AccessKey          string
+	S3SecretKey          string
+	S3UsePathStyle       bool
+	S3Prefix             string
+	S3TimeoutSeconds     int
+	Settings             Settings
 }
 
 // EmbeddingEnabled reports whether an iframe allowlist is configured. It is the
@@ -139,12 +123,13 @@ func defaultSettings() Settings {
 	return Settings{
 		Language: "en",
 		UI: UISettings{
-			PageTitle:             "GoblinFTP",
+			// Empty means "follow branding.appName"; the SPA falls back when
+			// building the document title.
+			PageTitle:             "",
 			ShowDotFiles:          false,
 			ShowNavigationHistory: true,
 		},
 		Editor: EditorSettings{
-			OpenOnCreate: false,
 			// Text-editable defaults, aligned with the frontend editor's
 			// syntax-highlighting support (CodeMirror language packages).
 			AllowedExtensions: []string{
@@ -168,10 +153,9 @@ func defaultSettings() Settings {
 			ViewOnly: false,
 		},
 		Connection: ConnectionSettings{
-			AllowedTypes:          []string{"ftp", "ftps", "sftp"},
-			DisableChmod:          false,
-			RequestTimeoutSeconds: 30,
-			PassiveMode:           true,
+			AllowedTypes: []string{"ftp", "ftps", "sftp"},
+			DisableChmod: false,
+			PassiveMode:  true,
 		},
 		Access: AccessSettings{
 			AllowedClientAddresses: []string{},
@@ -183,377 +167,6 @@ func defaultSettings() Settings {
 			Chromeless: "auto",
 		},
 	}
-}
-
-// parseFrameAncestors validates GFTP_FRAME_ANCESTORS into a CSP frame-ancestors
-// source list. Empty means framing is denied.
-//
-// Deliberately not a regex: the value has to accept single-label hosts
-// (docker-compose service names, k8s short DNS) as readily as public domains,
-// and a pattern tight enough to be useful ends up rejecting them.
-func parseFrameAncestors(raw string) ([]string, error) {
-	if strings.TrimSpace(raw) == "" {
-		return nil, nil
-	}
-	// Caddy interpolates this verbatim into a space-separated directive, so a
-	// comma would silently produce an invalid policy.
-	if strings.Contains(raw, ",") {
-		return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: separate origins with spaces, not commas (got %q)", raw)
-	}
-
-	seen := map[string]bool{}
-	out := []string{}
-	for _, token := range strings.Fields(raw) {
-		origin := strings.ToLower(token)
-		if origin == "*" || origin == "https://*" || origin == "http://*" {
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — allowing every origin defeats the allowlist; list them explicitly", token)
-		}
-		if !strings.Contains(origin, "://") {
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — origins need a scheme, e.g. https://panel.example.com", token)
-		}
-		// A leftmost-label wildcard is legal CSP but not a legal URL host, so
-		// swap in a placeholder for parsing and restore it afterwards.
-		parsed := origin
-		wildcard := false
-		if idx := strings.Index(parsed, "://*."); idx != -1 {
-			wildcard = true
-			// Drop the "*." so the remainder is a parseable URL; len("://") is 3
-			// and len("://*.") is 5.
-			parsed = parsed[:idx+3] + parsed[idx+5:]
-		}
-		u, err := url.Parse(parsed)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — %w", token, err)
-		}
-		switch {
-		case u.Scheme != "http" && u.Scheme != "https":
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — scheme must be http or https", token)
-		case u.Host == "":
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — missing host", token)
-		case u.User != nil:
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — must not carry credentials", token)
-		case u.Path != "" && u.Path != "/", u.RawQuery != "", u.Fragment != "":
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — expected scheme://host[:port] with no path, query or fragment", token)
-		case u.Path == "/":
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — drop the trailing slash", token)
-		}
-		// A wildcard needs a registrable domain under it, or https://*.com would
-		// hand framing rights to an entire TLD.
-		if wildcard && strings.Count(u.Hostname(), ".") < 1 {
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — a wildcard needs at least two labels beneath it, e.g. https://*.example.com", token)
-		}
-		// Plain http cannot receive the SameSite=None; Secure session cookie the
-		// embed policy sets, so it would frame successfully and never log in.
-		if u.Scheme == "http" && !isLoopbackHost(u.Hostname()) {
-			return nil, fmt.Errorf("invalid GFTP_FRAME_ANCESTORS: %q — an http:// embedder cannot receive the Secure session cookie; use https:// (http://localhost is allowed for development)", token)
-		}
-		if !seen[origin] {
-			seen[origin] = true
-			out = append(out, origin)
-		}
-	}
-	return out, nil
-}
-
-func isLoopbackHost(host string) bool {
-	return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
-}
-
-// Load reads configuration from environment variables and an optional settings.json file.
-// If settingsPath is empty or the file does not exist, settings.json defaults are used.
-// Auto-generates SESSION_SECRET and DOWNLOAD_TOKEN_SECRET if not set, logging a warning.
-func Load(logger *slog.Logger, settingsPath string) (*Config, error) {
-	cfg := &Config{
-		Port:      envOr("GFTP_PORT", "8080"),
-		LogLevel:  envOr("GFTP_LOG_LEVEL", "info"),
-		ChunkSize: 5 * 1024 * 1024,
-		// The container's mounted data volume. Not a user-facing setting (kept out
-		// of docs/.env.example) — but `just dev-be` injects GFTP_DATA_DIR to point
-		// at the repo's ./data so themes/known_hosts/staging work in local dev,
-		// where /app/data doesn't exist. Tests override the field directly.
-		DataDir:               envOr("GFTP_DATA_DIR", "/app/data"),
-		LoginMaxAttempts:      5,
-		LoginCooldownSeconds:  300,
-		SessionTTLSeconds:     7200,
-		SentryDSN:             os.Getenv("GFTP_SENTRY_DSN"),
-		LoginDisabledRedirect: os.Getenv("GFTP_LOGIN_DISABLED_REDIRECT"),
-		DisableLoginForm:      os.Getenv("GFTP_DISABLE_LOGIN_FORM") == "true",
-		Settings:              defaultSettings(),
-	}
-
-	// Logging (env-only, like GFTP_LOG_LEVEL). Stdout is always written;
-	// GFTP_LOG_FILE additionally mirrors into a size-rotated file.
-	cfg.LogFormat = envOr("GFTP_LOG_FORMAT", "json")
-	if cfg.LogFormat != "json" && cfg.LogFormat != "text" {
-		return nil, fmt.Errorf("invalid GFTP_LOG_FORMAT: must be json or text, got %q", cfg.LogFormat)
-	}
-	cfg.LogFile = os.Getenv("GFTP_LOG_FILE")
-	cfg.LogFileMaxSizeMB = 10
-	if raw := os.Getenv("GFTP_LOG_FILE_MAX_SIZE_MB"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_SIZE_MB: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_SIZE_MB: must be positive, got %d", n)
-		}
-		cfg.LogFileMaxSizeMB = n
-	}
-	cfg.LogFileMaxBackups = 5
-	if raw := os.Getenv("GFTP_LOG_FILE_MAX_BACKUPS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_BACKUPS: %w", err)
-		}
-		if n < 0 {
-			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_BACKUPS: must not be negative, got %d", n)
-		}
-		cfg.LogFileMaxBackups = n
-	}
-	cfg.LogFileMaxAgeDays = 0
-	if raw := os.Getenv("GFTP_LOG_FILE_MAX_AGE_DAYS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_AGE_DAYS: %w", err)
-		}
-		if n < 0 {
-			return nil, fmt.Errorf("invalid GFTP_LOG_FILE_MAX_AGE_DAYS: must not be negative, got %d", n)
-		}
-		cfg.LogFileMaxAgeDays = n
-	}
-	// Browser-error forwarding to /api/log/frontend; only "false" disables it.
-	cfg.FrontendLogEnabled = os.Getenv("GFTP_LOG_FRONTEND") != "false"
-
-	// Prometheus metrics (optional, off by default). Served on a dedicated
-	// listener — never on the main server.
-	cfg.MetricsEnabled = os.Getenv("GFTP_METRICS_ENABLED") == "true"
-	cfg.MetricsPort = envOr("GFTP_METRICS_PORT", "9091")
-	if n, err := strconv.Atoi(cfg.MetricsPort); err != nil {
-		return nil, fmt.Errorf("invalid GFTP_METRICS_PORT: %w", err)
-	} else if n < 1 || n > 65535 {
-		return nil, fmt.Errorf("invalid GFTP_METRICS_PORT: must be between 1 and 65535, got %d", n)
-	}
-
-	cfg.SSOEnabled = os.Getenv("GFTP_SSO_ENABLED") == "true"
-	if raw := os.Getenv("GFTP_SSO_SECRET"); raw != "" {
-		cfg.SSOSecret = []byte(raw)
-	}
-	if cfg.SSOEnabled && len(cfg.SSOSecret) == 0 {
-		return nil, fmt.Errorf("GFTP_SSO_SECRET must be set when GFTP_SSO_ENABLED is true")
-	}
-
-	// Iframe embedding (env-only; docker/Caddyfile reads the same variable to put
-	// the header on the SPA document, which the Go binary never serves).
-	frameAncestors, faErr := parseFrameAncestors(os.Getenv("GFTP_FRAME_ANCESTORS"))
-	if faErr != nil {
-		return nil, faErr
-	}
-	cfg.FrameAncestors = frameAncestors
-
-	// S3 chunk staging (optional). Secrets are env-only — never in settings.json.
-	cfg.S3Enabled = os.Getenv("GFTP_S3_ENABLED") == "true"
-	cfg.S3Endpoint = os.Getenv("GFTP_S3_ENDPOINT")
-	cfg.S3Bucket = os.Getenv("GFTP_S3_BUCKET")
-	cfg.S3Region = envOr("GFTP_S3_REGION", "us-east-1")
-	cfg.S3AccessKey = os.Getenv("GFTP_S3_ACCESS_KEY")
-	cfg.S3SecretKey = os.Getenv("GFTP_S3_SECRET_KEY")
-	// Path-style addressing defaults to true (MinIO); only "false" disables it (AWS).
-	cfg.S3UsePathStyle = os.Getenv("GFTP_S3_USE_PATH_STYLE") != "false"
-	cfg.S3Prefix = envOr("GFTP_S3_PREFIX", "gftp-uploads")
-	cfg.S3TimeoutSeconds = 60
-	if raw := os.Getenv("GFTP_S3_TIMEOUT_SECS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_S3_TIMEOUT_SECS: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_S3_TIMEOUT_SECS: must be positive, got %d", n)
-		}
-		cfg.S3TimeoutSeconds = n
-	}
-	if cfg.S3Enabled {
-		switch {
-		case cfg.S3Endpoint == "":
-			return nil, fmt.Errorf("GFTP_S3_ENDPOINT must be set when GFTP_S3_ENABLED is true")
-		case !strings.HasPrefix(cfg.S3Endpoint, "http://") && !strings.HasPrefix(cfg.S3Endpoint, "https://"):
-			return nil, fmt.Errorf("GFTP_S3_ENDPOINT must include a scheme (http:// or https://), got %q", cfg.S3Endpoint)
-		case cfg.S3Bucket == "":
-			return nil, fmt.Errorf("GFTP_S3_BUCKET must be set when GFTP_S3_ENABLED is true")
-		case cfg.S3AccessKey == "":
-			return nil, fmt.Errorf("GFTP_S3_ACCESS_KEY must be set when GFTP_S3_ENABLED is true")
-		case cfg.S3SecretKey == "":
-			return nil, fmt.Errorf("GFTP_S3_SECRET_KEY must be set when GFTP_S3_ENABLED is true")
-		}
-	}
-
-	if raw := os.Getenv("GFTP_CHUNK_SIZE"); raw != "" {
-		n, err := strconv.ParseInt(raw, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_CHUNK_SIZE: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_CHUNK_SIZE: must be positive, got %d", n)
-		}
-		cfg.ChunkSize = n
-	}
-
-	// Default 1: a single FTP/SFTP control connection serves one data transfer
-	// at a time (the per-session transfer lock serializes them anyway), so
-	// concurrency >1 buys no throughput on one connection and only queues on the
-	// lock. Operators can still raise GFTP_MAX_CONCURRENT_UPLOADS.
-	cfg.MaxConcurrentUploads = 1
-	if raw := os.Getenv("GFTP_MAX_CONCURRENT_UPLOADS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_MAX_CONCURRENT_UPLOADS: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_MAX_CONCURRENT_UPLOADS: must be positive, got %d", n)
-		}
-		cfg.MaxConcurrentUploads = n
-	}
-
-	if raw := os.Getenv("GFTP_LOGIN_MAX_ATTEMPTS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_LOGIN_MAX_ATTEMPTS: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_LOGIN_MAX_ATTEMPTS: must be positive, got %d", n)
-		}
-		cfg.LoginMaxAttempts = n
-	}
-
-	if raw := os.Getenv("GFTP_LOGIN_COOLDOWN_SECS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_LOGIN_COOLDOWN_SECS: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_LOGIN_COOLDOWN_SECS: must be positive, got %d", n)
-		}
-		cfg.LoginCooldownSeconds = n
-	}
-
-	if raw := os.Getenv("GFTP_SESSION_TTL_SECS"); raw != "" {
-		n, err := strconv.Atoi(raw)
-		if err != nil {
-			return nil, fmt.Errorf("invalid GFTP_SESSION_TTL_SECS: %w", err)
-		}
-		if n <= 0 {
-			return nil, fmt.Errorf("invalid GFTP_SESSION_TTL_SECS: must be positive, got %d", n)
-		}
-		cfg.SessionTTLSeconds = n
-	}
-
-	if raw := os.Getenv("GFTP_SESSION_SECRET"); raw != "" {
-		cfg.SessionSecret = []byte(raw)
-	} else {
-		secret, err := generateSecret(32)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate session secret: %w", err)
-		}
-		cfg.SessionSecret = secret
-		if logger != nil {
-			logger.Warn("GFTP_SESSION_SECRET not set, using ephemeral random secret — sessions will be invalidated on restart")
-		}
-	}
-
-	if raw := os.Getenv("GFTP_DOWNLOAD_TOKEN_SECRET"); raw != "" {
-		cfg.DownloadTokenSecret = []byte(raw)
-	} else {
-		secret, err := generateSecret(32)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate download token secret: %w", err)
-		}
-		cfg.DownloadTokenSecret = secret
-		if logger != nil {
-			logger.Warn("GFTP_DOWNLOAD_TOKEN_SECRET not set, using ephemeral random secret — download links will be invalidated on restart")
-		}
-	}
-
-	if settingsPath != "" {
-		data, err := os.ReadFile(settingsPath)
-		if err != nil && !os.IsNotExist(err) {
-			return nil, fmt.Errorf("failed to read settings file %q: %w", settingsPath, err)
-		}
-		if err == nil {
-			if jsonErr := json.Unmarshal(data, &cfg.Settings); jsonErr != nil {
-				return nil, fmt.Errorf("failed to parse settings file %q: %w", settingsPath, jsonErr)
-			}
-		}
-	}
-
-	if title := os.Getenv("GFTP_PAGE_TITLE"); title != "" {
-		cfg.Settings.UI.PageTitle = title
-	}
-
-	// Branding env overrides (white-labeling). Empty env vars leave the
-	// settings.json value (or built-in default) in place.
-	brand := &cfg.Settings.Branding
-	if v := os.Getenv("GFTP_APP_NAME"); v != "" {
-		brand.AppName = v
-	}
-	if v := os.Getenv("GFTP_LOGO_URL"); v != "" {
-		brand.LogoURL = &v
-	}
-	if v := os.Getenv("GFTP_LOGO_DARK_URL"); v != "" {
-		brand.LogoDarkURL = &v
-	}
-	if v := os.Getenv("GFTP_FAVICON_URL"); v != "" {
-		brand.FaviconURL = &v
-	}
-	if v := os.Getenv("GFTP_PRIMARY_COLOR"); v != "" {
-		brand.PrimaryColor = &v
-	}
-	if v := os.Getenv("GFTP_PRIMARY_TEXT_COLOR"); v != "" {
-		brand.PrimaryTextColor = &v
-	}
-	if os.Getenv("GFTP_HIDE_ATTRIBUTION") == "true" {
-		brand.HideAttribution = true
-	}
-	if brand.AppName == "" {
-		brand.AppName = "GoblinFTP"
-	}
-	if brand.PrimaryColor != nil && !hexColorRe.MatchString(*brand.PrimaryColor) {
-		return nil, fmt.Errorf("invalid branding.primaryColor: must be a hex color like #2563eb, got %q", *brand.PrimaryColor)
-	}
-	if brand.PrimaryTextColor != nil && !hexColorRe.MatchString(*brand.PrimaryTextColor) {
-		return nil, fmt.Errorf("invalid branding.primaryTextColor: must be a hex color like #0b1220, got %q", *brand.PrimaryTextColor)
-	}
-
-	conn := &cfg.Settings.Connection
-	if os.Getenv("GFTP_FTP_TLS_INSECURE_SKIP_VERIFY") == "true" {
-		conn.FTPTLSInsecureSkipVerify = true
-	}
-	if conn.PresetPort != nil && (*conn.PresetPort < 1 || *conn.PresetPort > 65535) {
-		return nil, fmt.Errorf("invalid connection.presetPort: must be 1-65535, got %d", *conn.PresetPort)
-	}
-	if conn.LockHost && (conn.PresetHost == nil || *conn.PresetHost == "") {
-		return nil, fmt.Errorf("connection.lockHost requires connection.presetHost to be set")
-	}
-
-	if v := os.Getenv("GFTP_EMBED_CHROMELESS"); v != "" {
-		cfg.Settings.Embed.Chromeless = strings.ToLower(v)
-	}
-	// A settings.json that omits the key unmarshals to "", which means "default".
-	if cfg.Settings.Embed.Chromeless == "" {
-		cfg.Settings.Embed.Chromeless = "auto"
-	}
-	switch cfg.Settings.Embed.Chromeless {
-	case "auto", "on", "off":
-	default:
-		return nil, fmt.Errorf("invalid embed.chromeless: must be auto, on or off, got %q", cfg.Settings.Embed.Chromeless)
-	}
-
-	return cfg, nil
-}
-
-func envOr(key, defaultVal string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return defaultVal
 }
 
 func generateSecret(length int) ([]byte, error) {

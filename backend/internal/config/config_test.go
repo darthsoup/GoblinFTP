@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,30 +12,25 @@ import (
 	"github.com/darthsoup/goblinftp/internal/config"
 )
 
+// clearEnv unsets every GFTP_* variable, ambient ones included, relying on the
+// documented "empty means unset" semantics.
 func clearEnv(t *testing.T) {
 	t.Helper()
-	for _, k := range []string{
-		"GFTP_PORT", "GFTP_LOG_LEVEL", "GFTP_SESSION_SECRET", "GFTP_DOWNLOAD_TOKEN_SECRET",
-		"GFTP_SSO_ENABLED", "GFTP_SSO_SECRET", "GFTP_CHUNK_SIZE", "GFTP_MAX_CONCURRENT_UPLOADS",
-		"GFTP_LOGIN_MAX_ATTEMPTS", "GFTP_LOGIN_COOLDOWN_SECS", "GFTP_SESSION_TTL_SECS",
-		"GFTP_SENTRY_DSN", "GFTP_PAGE_TITLE", "GFTP_LOGIN_DISABLED_REDIRECT", "GFTP_SETTINGS_PATH",
-		"GFTP_S3_ENABLED", "GFTP_S3_ENDPOINT", "GFTP_S3_BUCKET", "GFTP_S3_REGION",
-		"GFTP_S3_ACCESS_KEY", "GFTP_S3_SECRET_KEY", "GFTP_S3_USE_PATH_STYLE",
-		"GFTP_S3_PREFIX", "GFTP_S3_TIMEOUT_SECS",
-		"GFTP_LOG_FORMAT", "GFTP_LOG_FILE", "GFTP_LOG_FILE_MAX_SIZE_MB",
-		"GFTP_LOG_FILE_MAX_BACKUPS", "GFTP_LOG_FILE_MAX_AGE_DAYS", "GFTP_LOG_FRONTEND",
-		"GFTP_METRICS_ENABLED", "GFTP_METRICS_PORT",
-		"GFTP_APP_NAME", "GFTP_LOGO_URL", "GFTP_FAVICON_URL", "GFTP_PRIMARY_COLOR",
-		"GFTP_PRIMARY_TEXT_COLOR", "GFTP_HIDE_ATTRIBUTION",
-		"GFTP_FRAME_ANCESTORS", "GFTP_EMBED_CHROMELESS",
-	} {
-		t.Setenv(k, "")
+	for _, kv := range os.Environ() {
+		if name, _, ok := strings.Cut(kv, "="); ok && strings.HasPrefix(name, "GFTP_") {
+			t.Setenv(name, "")
+		}
 	}
+	for _, k := range config.Registry {
+		t.Setenv(k.Env, "")
+	}
+	// Keep the stale-settings check from tripping over ambient /app/data.
+	t.Setenv("GFTP_DATA_DIR", t.TempDir())
 }
 
 func TestLoadDefaults(t *testing.T) {
 	clearEnv(t)
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 
 	assert.Equal(t, "8080", cfg.Port)
@@ -57,11 +53,10 @@ func TestLoadDefaults(t *testing.T) {
 	assert.False(t, cfg.MetricsEnabled)
 	assert.Equal(t, "9091", cfg.MetricsPort)
 
-	assert.Equal(t, "GoblinFTP", cfg.Settings.UI.PageTitle)
+	assert.Empty(t, cfg.Settings.UI.PageTitle, "empty page title falls back to branding.appName in the SPA")
 	assert.Equal(t, []string{"ftp", "ftps", "sftp"}, cfg.Settings.Connection.AllowedTypes)
 	assert.Equal(t, "en", cfg.Settings.Language)
 	assert.False(t, cfg.Settings.Connection.DisableChmod)
-	assert.Equal(t, 30, cfg.Settings.Connection.RequestTimeoutSeconds)
 
 	assert.Equal(t, "GoblinFTP", cfg.Settings.Branding.AppName)
 	assert.Nil(t, cfg.Settings.Branding.LogoURL)
@@ -71,14 +66,14 @@ func TestLoadDefaults(t *testing.T) {
 
 func TestLoadBrandingFromEnv(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("GFTP_APP_NAME", "Acme Transfer")
-	t.Setenv("GFTP_LOGO_URL", "https://acme.example/logo.svg")
-	t.Setenv("GFTP_FAVICON_URL", "https://acme.example/favicon.ico")
-	t.Setenv("GFTP_PRIMARY_COLOR", "#2563eb")
-	t.Setenv("GFTP_PRIMARY_TEXT_COLOR", "#0b1220")
-	t.Setenv("GFTP_HIDE_ATTRIBUTION", "true")
+	t.Setenv("GFTP_BRANDING_APP_NAME", "Acme Transfer")
+	t.Setenv("GFTP_BRANDING_LOGO_URL", "https://acme.example/logo.svg")
+	t.Setenv("GFTP_BRANDING_FAVICON_URL", "https://acme.example/favicon.ico")
+	t.Setenv("GFTP_BRANDING_PRIMARY_COLOR", "#2563eb")
+	t.Setenv("GFTP_BRANDING_PRIMARY_TEXT_COLOR", "#0b1220")
+	t.Setenv("GFTP_BRANDING_HIDE_ATTRIBUTION", "true")
 
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 
 	b := cfg.Settings.Branding
@@ -96,10 +91,10 @@ func TestLoadBrandingFromEnv(t *testing.T) {
 
 func TestLoadInvalidPrimaryColor(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("GFTP_PRIMARY_COLOR", "blue")
-	_, err := config.Load(nil, "")
+	t.Setenv("GFTP_BRANDING_PRIMARY_COLOR", "blue")
+	_, err := config.Load(nil)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "primaryColor")
+	assert.Contains(t, err.Error(), "GFTP_BRANDING_PRIMARY_COLOR")
 }
 
 func TestLoadFromEnv(t *testing.T) {
@@ -110,14 +105,15 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("GFTP_DOWNLOAD_TOKEN_SECRET", "my-token-secret")
 	t.Setenv("GFTP_SSO_ENABLED", "true")
 	t.Setenv("GFTP_SSO_SECRET", "sso-secret")
-	t.Setenv("GFTP_CHUNK_SIZE", "1048576")
-	t.Setenv("GFTP_MAX_CONCURRENT_UPLOADS", "7")
+	t.Setenv("GFTP_UPLOAD_CHUNK_SIZE", "1048576")
+	t.Setenv("GFTP_UPLOAD_MAX_CONCURRENT", "7")
 	t.Setenv("GFTP_LOGIN_MAX_ATTEMPTS", "3")
-	t.Setenv("GFTP_LOGIN_COOLDOWN_SECS", "60")
-	t.Setenv("GFTP_SESSION_TTL_SECS", "3600")
-	t.Setenv("GFTP_PAGE_TITLE", "MyFTP")
+	t.Setenv("GFTP_LOGIN_COOLDOWN_SECONDS", "60")
+	t.Setenv("GFTP_SESSION_TTL_SECONDS", "3600")
+	t.Setenv("GFTP_UI_PAGE_TITLE", "MyFTP")
+	t.Setenv("GFTP_LANGUAGE", "de")
 
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 
 	assert.Equal(t, "9090", cfg.Port)
@@ -131,131 +127,50 @@ func TestLoadFromEnv(t *testing.T) {
 	assert.Equal(t, 60, cfg.LoginCooldownSeconds)
 	assert.Equal(t, 3600, cfg.SessionTTLSeconds)
 	assert.Equal(t, "MyFTP", cfg.Settings.UI.PageTitle)
-}
-
-func TestLoadSettingsJSON(t *testing.T) {
-	clearEnv(t)
-	content := `{
-		"language":"de",
-		"ui":{"pageTitle":"Test FTP","showDotFiles":true,"showNavigationHistory":false,"helpUrl":null},
-		"editor":{"openOnCreate":false,"allowedExtensions":["txt"],"disabled":true,"viewOnly":false},
-		"connection":{"allowedTypes":["ftp"],"disableChmod":true,"requestTimeoutSeconds":60},
-		"access":{"allowedClientAddresses":["127.0.0.1"],"deniedMessage":null,"postLogoutUrl":null}
-	}`
-	f, err := os.CreateTemp(".", "settings*.json")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	_, err = f.WriteString(content)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	cfg, err := config.Load(nil, f.Name())
-	require.NoError(t, err)
-
 	assert.Equal(t, "de", cfg.Settings.Language)
-	assert.Equal(t, "Test FTP", cfg.Settings.UI.PageTitle)
-	assert.True(t, cfg.Settings.UI.ShowDotFiles)
-	assert.True(t, cfg.Settings.Editor.Disabled)
-	assert.Equal(t, []string{"ftp"}, cfg.Settings.Connection.AllowedTypes)
-	assert.True(t, cfg.Settings.Connection.DisableChmod)
-	assert.Equal(t, []string{"127.0.0.1"}, cfg.Settings.Access.AllowedClientAddresses)
 }
 
-func TestLoadPageTitleEnvOverridesSettings(t *testing.T) {
+func TestLoadSentryEnv(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("GFTP_PAGE_TITLE", "Override Title")
+	t.Setenv("GFTP_SENTRY_ENVIRONMENT", "staging")
+	t.Setenv("GFTP_SENTRY_RELEASE", "v1.2.3")
+	t.Setenv("GFTP_SENTRY_SAMPLE_RATE", "0.25")
 
-	content := `{"language":"en","ui":{"pageTitle":"From File","showDotFiles":false,"showNavigationHistory":true,"helpUrl":null},"editor":{"openOnCreate":false,"allowedExtensions":[],"disabled":false,"viewOnly":false},"connection":{"allowedTypes":["ftp","sftp"],"disableChmod":false,"requestTimeoutSeconds":30},"access":{"allowedClientAddresses":[],"deniedMessage":null,"postLogoutUrl":null}}`
-	f, err := os.CreateTemp(".", "settings*.json")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	_, err = f.WriteString(content)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
+	assert.Equal(t, "staging", cfg.SentryEnvironment)
+	assert.Equal(t, "v1.2.3", cfg.SentryRelease)
+	assert.InDelta(t, 0.25, cfg.SentrySampleRate, 0.0001)
+}
 
-	cfg, err := config.Load(nil, f.Name())
-	require.NoError(t, err)
-	assert.Equal(t, "Override Title", cfg.Settings.UI.PageTitle)
+func TestLoadInvalidSentrySampleRate(t *testing.T) {
+	for _, rate := range []string{"abc", "-0.1", "1.5"} {
+		t.Run(rate, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("GFTP_SENTRY_SAMPLE_RATE", rate)
+			_, err := config.Load(nil)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "GFTP_SENTRY_SAMPLE_RATE")
+		})
+	}
 }
 
 func TestLoadAutoGeneratesUniqueSecrets(t *testing.T) {
 	clearEnv(t)
-	cfg1, err := config.Load(nil, "")
+	cfg1, err := config.Load(nil)
 	require.NoError(t, err)
-	cfg2, err := config.Load(nil, "")
+	cfg2, err := config.Load(nil)
 	require.NoError(t, err)
 
 	assert.NotEqual(t, cfg1.SessionSecret, cfg2.SessionSecret)
 	assert.NotEqual(t, cfg1.DownloadTokenSecret, cfg2.DownloadTokenSecret)
 }
 
-func TestLoadInvalidSettingsJSON(t *testing.T) {
-	clearEnv(t)
-	f, err := os.CreateTemp(".", "settings*.json")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	_, err = f.WriteString("not json")
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	_, err = config.Load(nil, f.Name())
-	assert.Error(t, err)
-}
-
-func TestLoadInvalidChunkSize(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_CHUNK_SIZE", "notanumber")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
-
-func TestLoadRejectsNonPositiveChunkSize(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_CHUNK_SIZE", "0")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
-
-func TestLoadInvalidMaxConcurrentUploads(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_MAX_CONCURRENT_UPLOADS", "0")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
-
-func TestLoadInvalidLoginMaxAttempts(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_LOGIN_MAX_ATTEMPTS", "0")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
-
-func TestLoadInvalidLoginCooldownSeconds(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_LOGIN_COOLDOWN_SECS", "0")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
-
-func TestLoadInvalidSessionTTL(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_SESSION_TTL_SECS", "-1")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
-
 func TestLoadSSOEnabledWithoutSecretIsError(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("GFTP_SSO_ENABLED", "true")
-	_, err := config.Load(nil, "")
+	_, err := config.Load(nil)
 	assert.Error(t, err)
-}
-
-func TestLoadMissingSettingsFileIsNotAnError(t *testing.T) {
-	clearEnv(t)
-	cfg, err := config.Load(nil, "./does-not-exist/settings.json")
-	require.NoError(t, err)
-	assert.Equal(t, "GoblinFTP", cfg.Settings.UI.PageTitle)
 }
 
 func setS3Env(t *testing.T) {
@@ -269,7 +184,7 @@ func setS3Env(t *testing.T) {
 
 func TestLoadS3Defaults(t *testing.T) {
 	clearEnv(t)
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 
 	assert.False(t, cfg.S3Enabled)
@@ -285,9 +200,9 @@ func TestLoadS3FromEnv(t *testing.T) {
 	t.Setenv("GFTP_S3_REGION", "eu-central-1")
 	t.Setenv("GFTP_S3_USE_PATH_STYLE", "false")
 	t.Setenv("GFTP_S3_PREFIX", "staging")
-	t.Setenv("GFTP_S3_TIMEOUT_SECS", "120")
+	t.Setenv("GFTP_S3_TIMEOUT_SECONDS", "120")
 
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 
 	assert.True(t, cfg.S3Enabled)
@@ -309,7 +224,7 @@ func TestLoadS3EnabledMissingRequiredVarsIsError(t *testing.T) {
 			clearEnv(t)
 			setS3Env(t)
 			t.Setenv(missing, "")
-			_, err := config.Load(nil, "")
+			_, err := config.Load(nil)
 			assert.Error(t, err)
 		})
 	}
@@ -319,31 +234,18 @@ func TestLoadS3EndpointWithoutSchemeIsError(t *testing.T) {
 	clearEnv(t)
 	setS3Env(t)
 	t.Setenv("GFTP_S3_ENDPOINT", "localhost:9000")
-	_, err := config.Load(nil, "")
+	_, err := config.Load(nil)
 	assert.Error(t, err)
 }
 
-func TestLoadS3InvalidTimeoutIsError(t *testing.T) {
+func TestLoadConnectionPresetsFromEnv(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("GFTP_S3_TIMEOUT_SECS", "0")
-	_, err := config.Load(nil, "")
-	assert.Error(t, err)
-}
+	t.Setenv("GFTP_CONNECTION_PRESET_HOST", "ftp.example.com")
+	t.Setenv("GFTP_CONNECTION_PRESET_PORT", "2121")
+	t.Setenv("GFTP_CONNECTION_LOCK_HOST", "true")
+	t.Setenv("GFTP_CONNECTION_PASSIVE_MODE", "false")
 
-func TestLoadConnectionPresets(t *testing.T) {
-	clearEnv(t)
-	content := `{
-		"connection":{"allowedTypes":["ftp"],"disableChmod":false,"requestTimeoutSeconds":30,
-			"presetHost":"ftp.example.com","presetPort":2121,"lockHost":true,"passiveMode":false}
-	}`
-	f, err := os.CreateTemp(".", "settings*.json")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	_, err = f.WriteString(content)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	cfg, err := config.Load(nil, f.Name())
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 
 	require.NotNil(t, cfg.Settings.Connection.PresetHost)
@@ -356,7 +258,7 @@ func TestLoadConnectionPresets(t *testing.T) {
 
 func TestLoadConnectionPresetDefaults(t *testing.T) {
 	clearEnv(t)
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 	assert.Nil(t, cfg.Settings.Connection.PresetHost)
 	assert.Nil(t, cfg.Settings.Connection.PresetPort)
@@ -366,32 +268,10 @@ func TestLoadConnectionPresetDefaults(t *testing.T) {
 
 func TestLoadLockHostRequiresPresetHost(t *testing.T) {
 	clearEnv(t)
-	content := `{"connection":{"allowedTypes":["ftp"],"disableChmod":false,"requestTimeoutSeconds":30,"lockHost":true,"passiveMode":true}}`
-	f, err := os.CreateTemp(".", "settings*.json")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	_, err = f.WriteString(content)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	_, err = config.Load(nil, f.Name())
+	t.Setenv("GFTP_CONNECTION_LOCK_HOST", "true")
+	_, err := config.Load(nil)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "lockHost requires")
-}
-
-func TestLoadInvalidPresetPort(t *testing.T) {
-	clearEnv(t)
-	content := `{"connection":{"allowedTypes":["ftp"],"disableChmod":false,"requestTimeoutSeconds":30,"presetHost":"h","presetPort":70000,"passiveMode":true}}`
-	f, err := os.CreateTemp(".", "settings*.json")
-	require.NoError(t, err)
-	defer os.Remove(f.Name())
-	_, err = f.WriteString(content)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	_, err = config.Load(nil, f.Name())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "presetPort")
+	assert.Contains(t, err.Error(), "GFTP_CONNECTION_LOCK_HOST")
 }
 
 func TestLoadLoggingEnv(t *testing.T) {
@@ -428,11 +308,7 @@ func TestLoadLoggingEnv(t *testing.T) {
 			},
 		},
 		{name: "invalid format", env: map[string]string{"GFTP_LOG_FORMAT": "xml"}, wantErr: "GFTP_LOG_FORMAT"},
-		{name: "non-numeric size", env: map[string]string{"GFTP_LOG_FILE_MAX_SIZE_MB": "abc"}, wantErr: "GFTP_LOG_FILE_MAX_SIZE_MB"},
-		{name: "zero size", env: map[string]string{"GFTP_LOG_FILE_MAX_SIZE_MB": "0"}, wantErr: "GFTP_LOG_FILE_MAX_SIZE_MB"},
-		{name: "negative backups", env: map[string]string{"GFTP_LOG_FILE_MAX_BACKUPS": "-1"}, wantErr: "GFTP_LOG_FILE_MAX_BACKUPS"},
-		{name: "non-numeric age", env: map[string]string{"GFTP_LOG_FILE_MAX_AGE_DAYS": "abc"}, wantErr: "GFTP_LOG_FILE_MAX_AGE_DAYS"},
-		{name: "negative age", env: map[string]string{"GFTP_LOG_FILE_MAX_AGE_DAYS": "-2"}, wantErr: "GFTP_LOG_FILE_MAX_AGE_DAYS"},
+		{name: "invalid level", env: map[string]string{"GFTP_LOG_LEVEL": "verbose"}, wantErr: "GFTP_LOG_LEVEL"},
 	}
 
 	for _, tc := range cases {
@@ -441,7 +317,7 @@ func TestLoadLoggingEnv(t *testing.T) {
 			for k, v := range tc.env {
 				t.Setenv(k, v)
 			}
-			cfg, err := config.Load(nil, "")
+			cfg, err := config.Load(nil)
 			if tc.wantErr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.wantErr)
@@ -453,35 +329,12 @@ func TestLoadLoggingEnv(t *testing.T) {
 	}
 }
 
-func TestLoadMetricsEnv(t *testing.T) {
-	clearEnv(t)
-	t.Setenv("GFTP_METRICS_ENABLED", "true")
-	t.Setenv("GFTP_METRICS_PORT", "9200")
-
-	cfg, err := config.Load(nil, "")
-	require.NoError(t, err)
-	assert.True(t, cfg.MetricsEnabled)
-	assert.Equal(t, "9200", cfg.MetricsPort)
-}
-
-func TestLoadInvalidMetricsPort(t *testing.T) {
-	for _, port := range []string{"abc", "0", "-1", "70000"} {
-		t.Run(port, func(t *testing.T) {
-			clearEnv(t)
-			t.Setenv("GFTP_METRICS_PORT", port)
-			_, err := config.Load(nil, "")
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "GFTP_METRICS_PORT")
-		})
-	}
-}
-
 // ── Iframe embedding ─────────────────────────────────────────────────────────
 
 func TestLoadFrameAncestorsDefaultsToDenied(t *testing.T) {
 	clearEnv(t)
 
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 	assert.Empty(t, cfg.FrameAncestors)
 	assert.False(t, cfg.EmbeddingEnabled())
@@ -502,7 +355,7 @@ func TestLoadFrameAncestorsAccepts(t *testing.T) {
 			clearEnv(t)
 			t.Setenv("GFTP_FRAME_ANCESTORS", strings.Join(want, " "))
 
-			cfg, err := config.Load(nil, "")
+			cfg, err := config.Load(nil)
 			require.NoError(t, err)
 			assert.Equal(t, want, cfg.FrameAncestors)
 			assert.True(t, cfg.EmbeddingEnabled())
@@ -514,7 +367,7 @@ func TestLoadFrameAncestorsNormalizesAndDedupes(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("GFTP_FRAME_ANCESTORS", "https://Panel.Example.com  https://panel.example.com")
 
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"https://panel.example.com"}, cfg.FrameAncestors)
 }
@@ -538,7 +391,7 @@ func TestLoadFrameAncestorsRejects(t *testing.T) {
 			clearEnv(t)
 			t.Setenv("GFTP_FRAME_ANCESTORS", raw)
 
-			_, err := config.Load(nil, "")
+			_, err := config.Load(nil)
 			require.Error(t, err, "%q must be rejected at startup", raw)
 			assert.Contains(t, err.Error(), "GFTP_FRAME_ANCESTORS")
 		})
@@ -547,21 +400,77 @@ func TestLoadFrameAncestorsRejects(t *testing.T) {
 
 func TestLoadEmbedChromeless(t *testing.T) {
 	clearEnv(t)
-	cfg, err := config.Load(nil, "")
+	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 	assert.Equal(t, "auto", cfg.Settings.Embed.Chromeless)
 
 	for _, v := range []string{"on", "off", "auto", "ON"} {
 		clearEnv(t)
 		t.Setenv("GFTP_EMBED_CHROMELESS", v)
-		cfg, err := config.Load(nil, "")
+		cfg, err := config.Load(nil)
 		require.NoError(t, err)
 		assert.Equal(t, strings.ToLower(v), cfg.Settings.Embed.Chromeless)
 	}
 
 	clearEnv(t)
 	t.Setenv("GFTP_EMBED_CHROMELESS", "yes")
-	_, err = config.Load(nil, "")
+	_, err = config.Load(nil)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "embed.chromeless")
+	assert.Contains(t, err.Error(), "GFTP_EMBED_CHROMELESS")
+}
+
+// ── Migration guards ─────────────────────────────────────────────────────────
+
+func TestLoadBoolAcceptsParseBoolForms(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_SSO_ENABLED", "1")
+	t.Setenv("GFTP_SSO_SECRET", "s")
+	cfg, err := config.Load(nil)
+	require.NoError(t, err)
+	assert.True(t, cfg.SSOEnabled)
+}
+
+func TestLoadRejectsRenamedEnvNames(t *testing.T) {
+	cases := map[string]string{
+		"GFTP_APP_NAME":               "GFTP_BRANDING_APP_NAME",
+		"GFTP_DISABLE_LOGIN_FORM":     "GFTP_LOGIN_FORM_DISABLED",
+		"GFTP_SESSION_TTL_SECS":       "GFTP_SESSION_TTL_SECONDS",
+		"GFTP_MAX_CONCURRENT_UPLOADS": "GFTP_UPLOAD_MAX_CONCURRENT",
+	}
+	for old, newName := range cases {
+		t.Run(old, func(t *testing.T) {
+			clearEnv(t)
+			for name := range config.RenamedEnv() {
+				t.Setenv(name, "")
+			}
+			t.Setenv(old, "some-value")
+			_, err := config.Load(nil)
+			require.Error(t, err, "a stale env name must fail startup, not be silently ignored")
+			assert.Contains(t, err.Error(), newName)
+		})
+	}
+}
+
+func TestLoadRejectsRemovedEnvNames(t *testing.T) {
+	for _, name := range []string{"GFTP_LOGIN_DISABLED_REDIRECT", "GFTP_SETTINGS_PATH"} {
+		t.Run(name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv(name, "some-value")
+			_, err := config.Load(nil)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), name)
+		})
+	}
+}
+
+func TestLoadRejectsStaleSettingsFile(t *testing.T) {
+	clearEnv(t)
+	dataDir := t.TempDir()
+	t.Setenv("GFTP_DATA_DIR", dataDir)
+	require.NoError(t, os.WriteFile(filepath.Join(dataDir, "settings.json"), []byte("{}"), 0o600))
+
+	_, err := config.Load(nil)
+	require.Error(t, err, "a mounted settings.json must fail startup instead of being silently ignored")
+	assert.Contains(t, err.Error(), "settings.json")
+	assert.Contains(t, err.Error(), "environment variables")
 }

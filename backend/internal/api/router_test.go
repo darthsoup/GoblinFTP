@@ -78,9 +78,8 @@ func defaultTestConfig() *config.Config {
 		DataDir:              os.TempDir(),
 		Settings: config.Settings{
 			Connection: config.ConnectionSettings{
-				AllowedTypes:          []string{"ftp", "sftp"},
-				DisableChmod:          false,
-				RequestTimeoutSeconds: 30,
+				AllowedTypes: []string{"ftp", "sftp"},
+				DisableChmod: false,
 			},
 			Access: config.AccessSettings{
 				AllowedClientAddresses: []string{},

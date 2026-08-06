@@ -1,6 +1,6 @@
 # Installation
 
-GoblinFTP ships as a single multi-arch image: a static Go binary plus Caddy on `caddy:2-alpine`. Inside the container the entrypoint starts the backend, polls `http://localhost:8080/healthz` for up to 5 seconds (10 tries at 0.5s), then starts Caddy on port 80. If the backend exits before it is healthy, or either process later dies, the container exits non-zero. Docker is the recommended deployment; a from-source install behind your own web server is also supported.
+GoblinFTP ships as a single multi-arch image: a static Go binary plus Caddy on `caddy:2-alpine`. Inside the container the entrypoint starts the backend, polls `http://localhost:8080/healthz` for up to 5 seconds (10 tries at 0.5s), then starts Caddy on port 80. If the backend exits before it is healthy, or either process later dies, the container exits non-zero. The image healthcheck polls `/healthz` through Caddy on port 80, so it covers the full serving chain. Docker is the recommended deployment; a from-source install behind your own web server is also supported.
 
 Check the [system requirements](system-requirements.md) first.
 
@@ -33,22 +33,18 @@ docker run -d --name goblinftp \
 - `known_hosts` for SFTP host-key pinning (keep it persistent so trusted keys survive restarts).
 - Local upload staging (unless [S3 chunk staging](s3-staging.md) is enabled).
 - Per-tenant [theme](theming.md) assets under `themes/<tenant>/`.
-- `settings.json`, if placed there.
-
-To customize UI, editor, connection, or access defaults, mount a `settings.json` (start from [`settings.example.json`](../settings.example.json)):
+UI, editor, connection, and access defaults are all environment variables too. For more than a handful, use an env file (start from [`.env.example`](../.env.example)):
 
 ```bash
 docker run -d --name goblinftp \
   -p 8080:80 \
-  -e GFTP_SESSION_SECRET="$(openssl rand -hex 32)" \
-  -e GFTP_DOWNLOAD_TOKEN_SECRET="$(openssl rand -hex 32)" \
+  --env-file .env \
   -v goblinftp-data:/app/data \
-  -v ./settings.json:/app/data/settings.json:ro \
   --restart unless-stopped \
   ghcr.io/darthsoup/goblinftp
 ```
 
-Every variable and `settings.json` field is documented in [Configuration](configuration.md).
+Every variable is documented in [Configuration](configuration.md).
 
 ### Docker Compose
 
@@ -56,7 +52,7 @@ The repository splits Compose into a shared base and two overlays, following the
 
 | File | Role |
 |---|---|
-| [`docker-compose.yml`](../docker-compose.yml) | Base. Common `gftp` service (image, port, env, healthcheck, restart). |
+| [`docker-compose.yml`](../docker-compose.yml) | Base. Common `gftp` service (image, ports, `env_file`, restart). Loads a local `.env` into the container when present (optional `env_file`, needs Compose v2.24+), so every `GFTP_*` variable set there reaches GoblinFTP. |
 | [`docker-compose.override.yml`](../docker-compose.override.yml) | Development. Builds from source and adds local FTP/FTPS/SFTP/S3 test servers (`testing` profile). Auto-merged by a plain `docker compose` command. |
 | [`docker-compose.prod.yml`](../docker-compose.prod.yml) | Production. Pulls the published image (no build), requires the signing secrets, and persists `/app/data`. Loaded explicitly with `-f`. |
 
@@ -74,7 +70,7 @@ Because the override is auto-loaded only when no `-f` flags are passed, its buil
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d   # or: just docker-up-prod
 ```
 
-The prod overlay uses `${VAR:?}` interpolation for `GFTP_SESSION_SECRET` and `GFTP_DOWNLOAD_TOKEN_SECRET`, so `docker compose` fails fast if they are unset. Put them (and an optional `GFTP_VERSION` to pin the image tag) in a local `.env` file, which Compose reads automatically:
+The prod overlay uses `${VAR:?}` interpolation for `GFTP_SESSION_SECRET` and `GFTP_DOWNLOAD_TOKEN_SECRET`, so `docker compose` fails fast if they are unset. Put them (and an optional `GFTP_VERSION` to pin the image tag) in a local `.env` file: Compose reads it for interpolation, and the base file passes it into the container via `env_file`, so any other `GFTP_*` variable you set there applies too. Note that `.env` is the interface: variables exported only in your shell no longer reach the container.
 
 ```bash
 # .env (gitignored)
@@ -164,6 +160,6 @@ Terminate HTTPS at this proxy. GoblinFTP transmits credentials, so serve it over
 
 ## Next steps
 
-- [Configuration](configuration.md): environment variables and `settings.json`.
+- [Configuration](configuration.md): the environment-variable reference.
 - [Theming](theming.md): white-label branding and per-tenant themes.
 - [SSO login links](../examples/sso/README.md): one-time direct-login links.

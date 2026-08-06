@@ -1,6 +1,12 @@
 .git
 .worktrees
-mftp
+.env
+.env.*
+data
+examples
+docker-compose*.yml
+justfile
+settings.example.json
 docs
 *.md
 node_modules

@@ -15,11 +15,14 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   useHead(() => {
     const branding = authStore.systemVars?.branding
     const appName = branding?.appName || 'GoblinFTP'
+    // ui.pageTitle is empty unless an admin sets it explicitly; then it wins
+    // over the (branding) app name for the tab title only.
+    const baseTitle = authStore.systemVars?.ui.pageTitle || appName
     // Surface the connected server in the tab title (server first — tab titles
     // truncate the tail). serverHost is host:port; empty for a fresh SSO connect.
     const title = authStore.connected && authStore.serverHost
-      ? `${authStore.serverHost} — ${appName}`
-      : appName
+      ? `${authStore.serverHost} — ${baseTitle}`
+      : baseTitle
     // unhead v3 types link `rel` as a discriminated union (one literal per
     // shape), so each entry needs its own concrete `rel` rather than a shared
     // `rel: string`.

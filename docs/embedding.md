@@ -13,7 +13,7 @@ docker run -p 443:80 \
   -e GFTP_FRAME_ANCESTORS="https://panel.example.com" \
   -e GFTP_SSO_ENABLED=true \
   -e GFTP_SSO_SECRET="$(openssl rand -hex 32)" \
-  -e GFTP_DISABLE_LOGIN_FORM=true \
+  -e GFTP_LOGIN_FORM_DISABLED=true \
   -e GFTP_SESSION_SECRET="$(openssl rand -hex 32)" \
   -e GFTP_DOWNLOAD_TOKEN_SECRET="$(openssl rand -hex 32)" \
   ghcr.io/darthsoup/goblinftp
@@ -35,12 +35,16 @@ GoblinFTP must be reachable over HTTPS. The embed cookie policy sets `Secure`, a
 
 ## Variables
 
+<!-- confgen:begin env-table "Iframe embedding" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_FRAME_ANCESTORS` | (none, framing denied) | Space-separated origins allowed to embed GoblinFTP. Each entry is `scheme://host[:port]` with no path, query, fragment, or credentials. A leftmost-label wildcard (`https://*.example.com`) is allowed. Validated at startup; an invalid value aborts the process. |
-| `GFTP_EMBED_CHROMELESS` | `auto` | `auto` hides branding chrome only when the page is framed, `on` always hides it, `off` never does. Overrides `embed.chromeless` in `settings.json`. Presentation only. |
+| `GFTP_FRAME_ANCESTORS` | (none) | Space-separated origins allowed to embed GoblinFTP in an iframe. Unset denies framing. Also read by Caddy. |
+| `GFTP_EMBED_CHROMELESS` | `auto` | auto hides branding chrome only when framed, on always, off never. |
+<!-- confgen:end -->
 
-`GFTP_FRAME_ANCESTORS` is **env-only by design**. See [How framing is allowed](#how-framing-is-allowed) for why a `settings.json` field would fail silently.
+Each `GFTP_FRAME_ANCESTORS` entry is `scheme://host[:port]` with no path, query, fragment, or credentials; a leftmost-label wildcard (`https://*.example.com`) is allowed. The value is validated at startup and an invalid entry aborts the process. `GFTP_EMBED_CHROMELESS` is presentation only.
+
+See [How framing is allowed](#how-framing-is-allowed) for how the value reaches both Caddy and the Go backend.
 
 ### Accepted and rejected values
 
@@ -72,7 +76,7 @@ Entries are lowercased and deduplicated. A rejection prints the offending token 
 | `index.html` and static assets | Caddy (`docker/Caddyfile`) | `Content-Security-Policy: frame-ancestors <list>` |
 | `/api/*`, `/healthz`, SSO redirect | Go (`securityHeadersMiddleware`) | full CSP including `frame-ancestors <list>` |
 
-Both read the same environment variable, which is why it cannot live in `settings.json`: Caddy cannot read that file, so the header would land on the API responses and be missing from the document. Framing would fail while the configuration looked correct.
+Both read the same environment variable, so the allowlist is defined once and lands on the document and the API responses alike.
 
 The split is safe because `docker/entrypoint.sh` starts Caddy only after the backend answers `/healthz`. Go validates the value first, so a malformed allowlist kills the container before Caddy can serve a single header.
 
@@ -107,8 +111,8 @@ Points specific to embedding:
 
 - **Mint a fresh link on every render.** SSO tokens are single-use. A browser reload re-requests the frame's `src`, and a reused token lands on `/login?sso_error=used` with "This SSO login link has already been used".
 - **Keep the TTL short.** Minutes, not hours. Replay protection is in-memory, so a token becomes replayable if the backend restarts before the token expires.
-- **Set `GFTP_DISABLE_LOGIN_FORM=true`.** When the session expires, GoblinFTP then shows a "reopen from your control panel" message instead of a credential form a panel user cannot fill in. Without it, an expired frame renders a dead end.
-- **Session lifetime is `GFTP_SESSION_TTL_SECS` (default 2 hours).** The panel has no way to observe expiry from outside the frame, so a long-lived panel page will eventually show the ended-session state. Reloading the frame with a fresh link recovers it.
+- **Set `GFTP_LOGIN_FORM_DISABLED=true`.** When the session expires, GoblinFTP then shows a "reopen from your control panel" message instead of a credential form a panel user cannot fill in. Without it, an expired frame renders a dead end.
+- **Session lifetime is `GFTP_SESSION_TTL_SECONDS` (default 2 hours).** The panel has no way to observe expiry from outside the frame, so a long-lived panel page will eventually show the ended-session state. Reloading the frame with a fresh link recovers it.
 - **Per-tenant themes** ride along on the SSO token via `-tenant <name>`, so one instance can serve a differently branded frame per customer. See [Theming](theming.md).
 
 ## Chromeless mode

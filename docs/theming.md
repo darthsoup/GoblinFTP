@@ -3,7 +3,7 @@
 GoblinFTP supports two levels of white-labeling:
 
 1. **Global branding** — one look for the whole instance, set with environment
-   variables (`GFTP_APP_NAME`, `GFTP_LOGO_URL`, `GFTP_PRIMARY_COLOR`, …). See
+   variables (`GFTP_BRANDING_APP_NAME`, `GFTP_BRANDING_LOGO_URL`, `GFTP_BRANDING_PRIMARY_COLOR`, …). See
    [Configuration → white-label variables](configuration.md).
 2. **Per-tenant themes** — different looks for different users of the *same*
    instance, each selected at runtime by the SSO link or the host/subdomain.
@@ -111,7 +111,7 @@ source order.
 `--ui-radius`, `--ui-header-height`, `--radius-*`, `--font-sans`, `--font-mono`.
 
 > **Accent:** drive `--ui-primary` **directly** and leave the global
-> `GFTP_PRIMARY_COLOR` / `branding.primaryColor` unset. When a tenant stylesheet is
+> `GFTP_BRANDING_PRIMARY_COLOR` / `branding.primaryColor` unset. When a tenant stylesheet is
 > present, the runtime accent injector is skipped — otherwise its inline
 > `--color-goblin-*` overrides would beat your `:root` rules.
 
@@ -167,7 +167,7 @@ The full, commented version lives at
 The logo renders in the header (~28px tall) and on the login card (~44px tall),
 width-flexible with `object-contain` — a wordmark is fine. When a logo is set the
 app-name text is hidden, so the logo alone represents the brand. A tenant's
-`logo.*` takes precedence over a global `GFTP_LOGO_URL`.
+`logo.*` takes precedence over a global `GFTP_BRANDING_LOGO_URL`.
 
 **Dark mode:** drop a `logo-dark.*` next to `logo.*` and it's swapped in
 automatically whenever the UI is in dark mode — otherwise a light-mode wordmark

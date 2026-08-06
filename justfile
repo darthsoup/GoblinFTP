@@ -164,6 +164,11 @@ sso-link *ARGS:
 i18n-check:
     node frontend/scripts/i18n-check.mjs
 
+# Regenerate .env.example and the doc config tables from the registry
+[group('utils')]
+confgen:
+    cd backend && go run ./cmd/gftp-confgen -root "{{ justfile_directory() }}"
+
 # Remove build artifacts
 [group('utils')]
 clean:

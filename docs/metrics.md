@@ -2,10 +2,12 @@
 
 GoblinFTP can expose Prometheus metrics on a dedicated listener, separate from the app server: its own `http.ServeMux` on a different port, with a 10-second `ReadHeaderTimeout`. It is never registered on the main Echo instance, so Caddy does not proxy it and it stays unreachable from outside the container unless you publish the port to your monitoring network.
 
+<!-- confgen:begin env-table "Metrics" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_METRICS_ENABLED` | `false` | Enable the Prometheus `/metrics` endpoint. Enabled only by the exact string `true`. |
-| `GFTP_METRICS_PORT` | `9091` | Port for the metrics-only listener. Must parse as an integer in `1-65535` or startup fails. |
+| `GFTP_METRICS_ENABLED` | `false` | Enable the Prometheus /metrics listener. |
+| `GFTP_METRICS_PORT` | `9091` | Port for the metrics-only listener. |
+<!-- confgen:end -->
 
 | Series | Type | Labels | Meaning |
 |---|---|---|---|
@@ -24,16 +26,12 @@ Label and counting details:
 - `gftp_transfer_bytes_total` counts only bytes exchanged with the remote FTP/SFTP server. Chunk-staging reads and writes (local disk or S3) are not counted.
 - The `active` gauges are scrape-time snapshots of the in-memory session store, produced by a custom collector (`SetConnectionSnapshot`), so there is no inc/dec drift. A session that expires by TTL disappears immediately, even though the underlying FTP/SFTP connection may linger until the remote server times it out.
 
-```yaml
-# docker-compose: publish the metrics port to your monitoring network only.
-services:
-  goblinftp:
-    image: ghcr.io/darthsoup/goblinftp
-    environment:
-      GFTP_METRICS_ENABLED: "true"
-    ports:
-      - "9091:9091"   # ideally on an internal/monitoring network, not public
+To enable metrics with the repo's compose setup: set `GFTP_METRICS_ENABLED=true`
+in `.env` (it reaches the container via `env_file`) and uncomment the
+`9091:9091` port mapping in `docker-compose.yml`, ideally publishing it on an
+internal monitoring network rather than publicly. Then point Prometheus at it:
 
+```yaml
 # prometheus.yml
 scrape_configs:
   - job_name: goblinftp

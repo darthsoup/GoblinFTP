@@ -30,7 +30,7 @@ const protocolItems = computed(() =>
 const conn = computed(() => authStore.systemVars?.connection)
 const hostLocked = computed(() => conn.value?.lockHost ?? false)
 
-// Admin presets from settings.json: prefill host/port, default passive mode,
+// Admin presets (GFTP_CONNECTION_*): prefill host/port, default passive mode,
 // and make sure the protocol is one the server allows. systemVars may arrive
 // after mount, so apply reactively (without clobbering user input).
 watch(conn, (c) => {

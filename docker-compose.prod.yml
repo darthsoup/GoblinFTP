@@ -19,8 +19,6 @@ services:
       GFTP_DOWNLOAD_TOKEN_SECRET: "${GFTP_DOWNLOAD_TOKEN_SECRET:?set GFTP_DOWNLOAD_TOKEN_SECRET (openssl rand -hex 32)}"
     volumes:
       - gftp-data:/app/data
-      # Uncomment to mount custom settings:
-      # - ./settings.json:/app/data/settings.json:ro
 
 volumes:
   gftp-data:

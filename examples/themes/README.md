@@ -15,8 +15,8 @@ matching theme is loaded at runtime.
 ```
 
 `<dataDir>` is the container's fixed data volume, `/app/data`. Files are served read-only at
-`/themes/<tenant>/<file>` (Caddy in prod, the Go backend in dev), with the tenant slug
-and filename allowlisted server-side (path traversal is rejected).
+`/themes/<tenant>/<file>` by the Go backend (in the container, Caddy proxies `/themes/*` to it),
+with the tenant slug and filename allowlisted server-side (path traversal is rejected).
 
 ## 1. Install a tenant
 

@@ -24,6 +24,13 @@ shutdown() {
 trap shutdown INT TERM
 trap cleanup EXIT
 
+# The in-container backend port is fixed: Caddy's reverse_proxy targets and the
+# health polls all assume 8080. The host-facing knob is the port mapping to 80.
+if [ -n "${GFTP_PORT:-}" ] && [ "${GFTP_PORT}" != "8080" ]; then
+    echo "GFTP_PORT is fixed to 8080 inside this container (Caddy proxies it); ignoring ${GFTP_PORT}" >&2
+fi
+export GFTP_PORT=8080
+
 # Start Go backend in background
 /app/gftp &
 backend_pid=$!
