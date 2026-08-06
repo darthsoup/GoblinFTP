@@ -45,7 +45,7 @@ async function onFilesSelected(event: Event) {
   const input = event.target as HTMLInputElement
   if (!input.files || input.files.length === 0)
     return
-  // Snapshot before resetting the input — clearing it empties the live FileList,
+  // Snapshot before resetting the input - clearing it empties the live FileList,
   // and addFiles now awaits a conflict check before reading it.
   const files = Array.from(input.files)
   // Reset input so the same file can be re-selected later
@@ -223,7 +223,7 @@ const paste = usePaste()
 </template>
 
 <style scoped>
-/* Left-region swap between default and selection modes — restrained slide+fade. */
+/* Left-region swap between default and selection modes - restrained slide+fade. */
 .cmd-swap-enter-active,
 .cmd-swap-leave-active {
   transition:

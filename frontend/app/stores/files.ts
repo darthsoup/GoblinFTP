@@ -18,7 +18,7 @@ export interface PasteResult {
 }
 
 // Returns a name not present in `existing`, suffixing " (copy)" / " (copy N)"
-// before the extension — like a desktop file manager.
+// before the extension - like a desktop file manager.
 function uniqueName(name: string, existing: Set<string>): string {
   if (!existing.has(name))
     return name
@@ -45,7 +45,7 @@ export const useFilesStore = defineStore('files', () => {
   // Copy/cut clipboard (null = empty). Paste targets the current directory.
   const clipboard = ref<ClipboardState | null>(null)
 
-  // Navigation history (back/forward) — only `navigate()` pushes entries
+  // Navigation history (back/forward) - only `navigate()` pushes entries
   const history = ref<string[]>([])
   const historyIndex = ref(-1)
   const canGoBack = computed(() => historyIndex.value > 0)
@@ -185,7 +185,7 @@ export const useFilesStore = defineStore('files', () => {
     await api.patch('/api/files/copy', { from, to })
   }
 
-  // Move reuses the rename endpoint — native Rename is a cross-directory move on
+  // Move reuses the rename endpoint - native Rename is a cross-directory move on
   // both FTP and SFTP (no separate backend endpoint needed). No list refresh here.
   async function move(from: string, to: string): Promise<void> {
     const api = useApi()
@@ -228,7 +228,7 @@ export const useFilesStore = defineStore('files', () => {
       let to = `${dir}/${toName}`
       try {
         if (cb.mode === 'copy') {
-          // Never stream a file onto itself (truncates the source) — force a name.
+          // Never stream a file onto itself (truncates the source) - force a name.
           if (to === from) {
             toName = uniqueName(name, taken)
             to = `${dir}/${toName}`
@@ -237,7 +237,7 @@ export const useFilesStore = defineStore('files', () => {
         }
         else {
           if (from === to)
-            continue // moving onto itself — nothing to do
+            continue // moving onto itself - nothing to do
           if (conflict && choice === 'overwrite')
             await api.del('/api/files', { paths: [to] })
           await move(from, to)
@@ -273,7 +273,7 @@ export const useFilesStore = defineStore('files', () => {
     await list()
   }
 
-  // Create a directory WITHOUT refreshing the listing — used during folder
+  // Create a directory WITHOUT refreshing the listing - used during folder
   // uploads to materialize empty subdirectories (the upload's own debounced
   // refresh reveals them). Idempotent on the backend (mkdir -p).
   async function ensureDir(path: string): Promise<void> {

@@ -78,7 +78,7 @@ const items = computed<BreadcrumbItem[]>(() => {
         link: 'rounded-sm px-1.5 py-0.5 hover:bg-accented/60 transition-colors duration-150 cursor-pointer',
         linkLabel: 'truncate max-w-32 sm:max-w-48',
         // Inherit the segment's text colour (currentColor) so the active glyph is
-        // highlighted like its label and ancestors stay muted — no accent colour.
+        // highlighted like its label and ancestors stay muted - no accent colour.
         linkLeadingIcon: 'size-4 shrink-0',
         separatorIcon: 'size-3.5 text-dimmed',
       }"

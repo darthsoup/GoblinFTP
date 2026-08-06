@@ -140,7 +140,7 @@ func TestCreateDirectoryIdempotent(t *testing.T) {
 }
 
 // TestDeleteFilesPartialFailure: a batch where some items fail returns HTTP 200
-// success:true with per-item results — the failure carries a classified code +
+// success:true with per-item results - the failure carries a classified code +
 // friendly message, never the raw protocol string.
 func TestDeleteFilesPartialFailure(t *testing.T) {
 	mock := &testutil.MockClient{

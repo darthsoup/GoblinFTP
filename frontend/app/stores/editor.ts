@@ -43,7 +43,7 @@ export const useEditorStore = defineStore('editor', () => {
   const dirtyCount = computed(() => tabs.value.filter(t => t.content !== t.savedContent).length)
   const hasDirty = computed(() => dirtyCount.value > 0)
 
-  // Per-tab autosave debounce timers — non-reactive on purpose (one timer per
+  // Per-tab autosave debounce timers - non-reactive on purpose (one timer per
   // tab so switching tabs never cancels another tab's pending save).
   const autoSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -74,7 +74,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   // force skips the server-side precondition; the user was shown the conflict
   // and chose to replace. interactive decides whether a refusal raises the modal
-  // or only the inline banner — autosave must never interrupt mid-keystroke.
+  // or only the inline banner - autosave must never interrupt mid-keystroke.
   async function saveTab(id: string, { interactive = false, force = false } = {}) {
     const tab = tabs.value.find(t => t.id === id)
     if (!tab || tab.saving || tab.loading)
@@ -196,7 +196,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   async function openFile(path: string) {
     // The tab is pushed synchronously before the first await, so a rapid second
-    // call finds it here — no duplicate-tab race.
+    // call finds it here - no duplicate-tab race.
     const existing = tabs.value.find(t => t.path === path)
     if (existing) {
       activeId.value = existing.id

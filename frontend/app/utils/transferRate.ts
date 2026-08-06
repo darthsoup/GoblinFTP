@@ -5,7 +5,7 @@ import type { SizeFormat } from '~/stores/settings'
 // Samples are taken on a fixed clock rather than on byte events. That is the
 // load-bearing choice: it makes the estimator independent of transport
 // granularity (identical math whether bytes arrive continuously or one chunk at
-// a time), and it lets a stall report itself — a frozen byte count pushes equal
+// a time), and it lets a stall report itself - a frozen byte count pushes equal
 // values until the window shows no movement at all. Event-driven sampling
 // cannot do that, because a stalled transfer produces no events to decay.
 

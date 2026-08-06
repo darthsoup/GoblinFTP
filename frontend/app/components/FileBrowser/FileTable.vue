@@ -110,7 +110,7 @@ const visibleFiles = computed(() => {
 })
 
 const compact = computed(() => settingsStore.density === 'compact')
-// Many FTP servers return no mode — hide the Permissions column entirely when
+// Many FTP servers return no mode - hide the Permissions column entirely when
 // nothing in the listing carries one, rather than filling it with placeholders.
 const hasPermissions = computed(() => visibleFiles.value.some(f => !!f.mode))
 
@@ -154,7 +154,7 @@ function toggleSelectAll() {
     filesStore.setSelection(visibleFiles.value.map(f => f.name))
 }
 
-// Names dimmed as "pending move" — only the cut items still in their source dir.
+// Names dimmed as "pending move" - only the cut items still in their source dir.
 const cutNames = computed(() => {
   const cb = filesStore.clipboard
   if (!cb || cb.mode !== 'cut' || cb.sourcePath !== filesStore.currentPath.replace(/\/$/, ''))
@@ -197,7 +197,7 @@ function buildFileMenu(file: FileInfo): DropdownMenuItem[][] {
   const dir = filesStore.currentPath.replace(/\/$/, '')
   const path = `${dir}/${file.name}`
 
-  // Directories can't be downloaded — the group is dropped below when empty.
+  // Directories can't be downloaded - the group is dropped below when empty.
   const primary: DropdownMenuItem[] = []
   if (!file.isDir)
     primary.push({ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) })
@@ -312,7 +312,7 @@ async function onDrop(e: DragEvent) {
     <div class="relative flex flex-1 min-h-0">
       <UContextMenu :items="menuItems">
         <div class="flex-1 min-w-0 overflow-auto" @contextmenu.capture="onAreaContextMenu">
-          <!-- Loading / error / empty — shared by both views -->
+          <!-- Loading / error / empty - shared by both views -->
           <div v-if="filesStore.loading" class="py-12 text-center text-muted text-sm">
             <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
             {{ t('files.loading') }}

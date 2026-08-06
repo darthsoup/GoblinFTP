@@ -15,7 +15,7 @@
   --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
 
-  /* Goblin Green — primary brand scale */
+  /* Goblin Green - primary brand scale */
   --color-goblin-50: #ebffe2;
   --color-goblin-100: #d2fcc2;
   --color-goblin-200: #aefa9d;
@@ -51,7 +51,7 @@
   --radius-3xl: var(--ui-radius);
 }
 
-/* ── Goblin Tech-Light — neutral-gray surfaces, white cards, goblin green accent */
+/* ── Goblin Tech-Light - neutral-gray surfaces, white cards, goblin green accent */
 :root,
 .light {
   --ui-radius: 0.375rem;
@@ -99,7 +99,7 @@
     radial-gradient(80% 60% at 100% 100%, color-mix(in oklab, var(--color-goblin-700) 4%, transparent), transparent 55%);
 }
 
-/* ── Goblin Tech-Dark — neutral-gray surfaces, bright goblin green accent */
+/* ── Goblin Tech-Dark - neutral-gray surfaces, bright goblin green accent */
 .dark {
   --ui-radius: 0.375rem;
 
@@ -133,7 +133,7 @@
   --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 30%, transparent);
   --gftp-selection-fg: var(--color-goblin-50);
 
-  /* Brighter wash in the dark canvas — the charcoal-navy tiers carry more green. */
+  /* Brighter wash in the dark canvas - the charcoal-navy tiers carry more green. */
   --gftp-atmosphere:
     radial-gradient(
       120% 75% at 50% -10%,
@@ -188,7 +188,7 @@ body {
   color: var(--gftp-primary-text, var(--ui-text-inverted));
 }
 
-/* Thin custom scrollbars — transparent tracks, subtle thumbs */
+/* Thin custom scrollbars - transparent tracks, subtle thumbs */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--gftp-scrollbar-thumb) transparent;
@@ -211,7 +211,7 @@ body {
 /* Light/dark flip (useColorModeTransition, View Transitions API). The circular
    reveal clips the NEW theme in over a STATIC old snapshot, so suppress the old
    snapshot's default cross-fade while `.vt-circle` is set (the JS drives the new
-   snapshot's clip-path). Without the class — the settings selector — the browser's
+   snapshot's clip-path). Without the class - the settings selector - the browser's
    default cross-fade is kept. */
 :root.vt-circle::view-transition-old(root) {
   animation: none;

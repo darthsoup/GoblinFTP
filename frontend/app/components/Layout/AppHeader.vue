@@ -10,7 +10,7 @@ const { t } = useI18n()
 const { appName, logoUrl } = useBranding()
 const { embedded } = useEmbed()
 
-// Centre switcher between the file browser and the editor — only relevant while
+// Centre switcher between the file browser and the editor - only relevant while
 // the editor has open tabs. The Files link carries the current browse path so
 // returning from the editor reopens the same folder.
 const navItems = computed<NavigationMenuItem[]>(() => [
@@ -59,7 +59,7 @@ async function handleDisconnect() {
   >
     <!-- Embedded: the hosting panel already brands the page and the frame's
          vertical space is scarce. The header itself is only trimmed, never
-         removed — it carries the only route back from /edit.
+         removed - it carries the only route back from /edit.
          The slot must still render an element when embedded: an empty #left
          makes UHeader fall back to its own default title ("Nuxt UI"). -->
     <template #left>

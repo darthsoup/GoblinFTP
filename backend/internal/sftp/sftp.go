@@ -22,7 +22,7 @@ type Client struct {
 
 // Dial connects via SSH and opens an SFTP subsystem, verifying the server's
 // host key against knownHostsPath (trust-on-first-use). When the key is unknown
-// (or differs from the pinned one — prompt.Changed) and acceptFingerprint is
+// (or differs from the pinned one - prompt.Changed) and acceptFingerprint is
 // empty, it returns a *HostKeyPrompt (and a nil client) so the caller can ask
 // the user to confirm the key; a second Dial with acceptFingerprint set to the
 // shown fingerprint pins (or replaces) the key and proceeds.
@@ -42,7 +42,7 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 	if err != nil {
 		switch {
 		case res.prompt != nil:
-			return nil, res.prompt, nil // unknown or changed host key — needs confirmation
+			return nil, res.prompt, nil // unknown or changed host key - needs confirmation
 		case isAuthErr(err.Error()):
 			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 		default:

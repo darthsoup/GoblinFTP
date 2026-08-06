@@ -22,7 +22,7 @@
     "trust": "Considera attendibile e connetti",
     "cancel": "Annulla",
     "changedTitle": "La chiave host è cambiata",
-    "changedMessage": "Questo server ha presentato una chiave host SSH diversa da quella considerata attendibile in precedenza. Può significare che il server è stato reinstallato o migrato — oppure che la connessione viene intercettata.",
+    "changedMessage": "Questo server ha presentato una chiave host SSH diversa da quella considerata attendibile in precedenza. Può significare che il server è stato reinstallato o migrato - oppure che la connessione viene intercettata.",
     "oldFingerprint": "Attendibile in precedenza (SHA256)",
     "newFingerprint": "Nuova impronta (SHA256)",
     "changedWarning": "Continua solo se ti aspettavi questa modifica e la nuova impronta corrisponde al tuo server. Accettando, la chiave attendibile viene sostituita.",

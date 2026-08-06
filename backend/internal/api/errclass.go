@@ -9,7 +9,7 @@ import (
 
 // classify maps a raw transfer.Client error to a stable API error code and a
 // short, human-friendly message. The raw error is NEVER part of the returned
-// message — callers attach it via WithCause for server-side logs only, so raw
+// message - callers attach it via WithCause for server-side logs only, so raw
 // protocol strings (e.g. `550 "Remove directory operation failed."`) never reach
 // the client.
 //

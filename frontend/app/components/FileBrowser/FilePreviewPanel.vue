@@ -81,7 +81,7 @@ async function load() {
       // (e.g. SVG won't render from an octet-stream <img> in some browsers).
       const url = await filesStore.fetchObjectUrl(path, previewMime(props.file.name))
       if (id !== reqId) {
-        URL.revokeObjectURL(url) // a newer request superseded us — don't leak
+        URL.revokeObjectURL(url) // a newer request superseded us - don't leak
         return
       }
       mediaUrl.value = url

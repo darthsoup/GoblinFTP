@@ -95,7 +95,7 @@ func TestSystemVarsBranding(t *testing.T) {
 func TestSystemVarsNoSession(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig())
 	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
-	// No cookie set — should still work (public route)
+	// No cookie set - should still work (public route)
 	rec := httptest.NewRecorder()
 	app.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)

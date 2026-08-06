@@ -45,7 +45,7 @@ type S3Options struct {
 }
 
 // S3Store stages upload chunks in an S3-compatible bucket under
-// {prefix}/{uploadID}/{index:%04d} — the same zero-padded scheme as LocalStore.
+// {prefix}/{uploadID}/{index:%04d} - the same zero-padded scheme as LocalStore.
 type S3Store struct {
 	api     s3API
 	bucket  string
@@ -182,7 +182,7 @@ func (s *S3Store) Cleanup(ctx context.Context, uploadID string) error {
 // s3SequentialReader streams chunks in index order with at most one GetObject
 // body open at a time (constant memory). Reads are bound by the parent request
 // context, not the per-call timeout, so slow FTP/SFTP sinks don't abort
-// mid-stream — matching LocalStore, whose disk reads have no deadline either.
+// mid-stream - matching LocalStore, whose disk reads have no deadline either.
 type s3SequentialReader struct {
 	ctx         context.Context
 	store       *S3Store
@@ -235,7 +235,7 @@ func (r *s3SequentialReader) Close() error {
 }
 
 // wrapUnavailable tags connection-level failures with ErrUnavailable. Errors
-// that carry an S3 API response (NoSuchKey, AccessDenied, ...) pass through —
+// that carry an S3 API response (NoSuchKey, AccessDenied, ...) pass through -
 // the service responded, so it is not an outage.
 func wrapUnavailable(err error) error {
 	var apiErr smithy.APIError

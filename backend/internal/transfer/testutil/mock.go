@@ -8,7 +8,7 @@ import (
 )
 
 // MockClient is a transfer.Client where each method is a swappable function field.
-// Any unset field panics when called — intentional, to catch missed setup in tests.
+// Any unset field panics when called - intentional, to catch missed setup in tests.
 type MockClient struct {
 	WorkingDirFn    func() (string, error)
 	ListFn          func(path string) ([]transfer.FileInfo, error)

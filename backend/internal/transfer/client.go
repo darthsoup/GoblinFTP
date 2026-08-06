@@ -35,7 +35,7 @@ type Client interface {
 	// Returns ErrPermissionsNotSupported if the server does not support it.
 	Chmod(path string, mode uint32) error
 	// SupportsChmod reports whether this protocol implements Chmod at all. It is
-	// a static property of the adapter, never a probe — callers use it to avoid
+	// a static property of the adapter, never a probe - callers use it to avoid
 	// offering an operation that could only fail. True does not promise any
 	// particular path is chmod-able; the server may still refuse.
 	SupportsChmod() bool
@@ -60,6 +60,6 @@ var (
 	// at the insecure-skip-verify escape hatch for self-signed servers).
 	ErrTLSFailed = errors.New("tls handshake failed")
 	// ErrHostKeyMismatch marks an SFTP host key that does not match the pinned
-	// known_hosts entry — a possible man-in-the-middle.
+	// known_hosts entry - a possible man-in-the-middle.
 	ErrHostKeyMismatch = errors.New("host key mismatch")
 )

@@ -59,7 +59,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	// Per-tenant white-label theme assets (public; params allowlisted in-handler).
 	e.GET("/themes/:tenant/:file", h.ServeTheme)
 
-	// Browser-error forwarding (public, no CSRF — login-screen errors happen
+	// Browser-error forwarding (public, no CSRF - login-screen errors happen
 	// before any session exists; throttled per IP inside the handler)
 	e.POST("/api/log/frontend", h.FrontendLog, middleware.BodyLimit("16K"))
 
@@ -76,7 +76,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	apiGroup.POST("/auth/disconnect", requireSession(store)(h.Disconnect))
 	apiGroup.POST("/auth/sso-connect", requireSession(store)(h.SSOConnect))
 
-	// File operations — Phase 3
+	// File operations - Phase 3
 	apiGroup.GET("/files", requireSession(store)(h.ListFiles))
 	apiGroup.POST("/files/directory", requireSession(store)(h.CreateDirectory))
 	apiGroup.DELETE("/files", requireSession(store)(h.DeleteFiles))
@@ -104,8 +104,8 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 // header is enforced as the intersection of both policies, which is correct but
 // near-impossible to debug from a browser console.
 //
-// This covers only Go's own responses. In production Caddy serves index.html —
-// the document frame-ancestors actually applies to — and emits the same
+// This covers only Go's own responses. In production Caddy serves index.html -
+// the document frame-ancestors actually applies to - and emits the same
 // directive from the same env var (docker/Caddyfile). Both must agree.
 func securityHeadersMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 	ancestors := "'none'"
@@ -146,7 +146,7 @@ func csrfMiddleware(store *auth.Store) echo.MiddlewareFunc {
 			if c.Path() == "/api/auth/connect" {
 				// Unauthenticated, so there is no token to check yet. Echo's
 				// binder ignores form fields without a `form` tag, so a
-				// cross-site simple-request POST already binds nothing — but
+				// cross-site simple-request POST already binds nothing - but
 				// that is an implementation detail of a library, not a
 				// guarantee. Fetch metadata makes the intent explicit and is
 				// sent by every browser that supports SameSite=None.

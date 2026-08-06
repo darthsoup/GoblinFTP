@@ -35,7 +35,7 @@ export interface UploadItem {
 
 const MAX_RETRIES = 5
 
-// Retrying these is pointless — nothing about the request will change. Without
+// Retrying these is pointless - nothing about the request will change. Without
 // ERR_FILE_EXISTS here a conflict would burn ~31s of backoff before surfacing.
 const NON_RETRYABLE = new Set(['ERR_FILE_EXISTS', 'ERR_FILE_PERMISSION', 'ERR_QUOTA_EXCEEDED'])
 
@@ -117,7 +117,7 @@ export const useUploadStore = defineStore('upload', () => {
   })
 
   // Refresh the listing once a burst of completions settles, instead of once per
-  // file — a folder upload otherwise fires a refresh storm (one list() per file).
+  // file - a folder upload otherwise fires a refresh storm (one list() per file).
   const scheduleRefresh = useDebounceFn(() => filesStore.list(), 400)
 
   // Enqueue files carrying their nested relative paths (from a folder drop).
@@ -271,11 +271,11 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   // Applies the batch-wide choice if there is one, otherwise asks. Prompts are
-  // serialized because the modal store keeps a single resolver — two concurrent
+  // serialized because the modal store keeps a single resolver - two concurrent
   // conflicts would otherwise cancel each other's dialog.
   async function _resolveRaced(item: UploadItem) {
     const [conflict] = await _checkConflicts([item.destPath])
-    // Vanished again — just retry as-is.
+    // Vanished again - just retry as-is.
     if (!conflict)
       return
 

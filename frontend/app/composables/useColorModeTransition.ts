@@ -31,7 +31,7 @@ export function useColorModeTransition() {
       root.classList.add('vt-circle')
 
     // Await nextTick so @nuxtjs/color-mode's (reactive, async) class flip lands
-    // BEFORE the API snapshots the new state — otherwise the reveal would show an
+    // BEFORE the API snapshots the new state - otherwise the reveal would show an
     // identical snapshot and the real flip would happen instantly outside it.
     const transition = start.call(document, async () => {
       colorMode.preference = preference

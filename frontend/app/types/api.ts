@@ -8,7 +8,7 @@ export interface AuthStatus {
   connected: boolean
   ssoAutoConnect: boolean
   csrfToken: string
-  // Present only when connected — used to restore SPA state after a reload.
+  // Present only when connected - used to restore SPA state after a reload.
   host?: string
   initialDirectory?: string
   capabilities?: { disableChmod: boolean }
@@ -31,7 +31,7 @@ export interface HostKeyPrompt {
   host: string
   fingerprint: string
   keyType: string
-  // Set when a DIFFERENT key was pinned before (server reinstalled — or MITM);
+  // Set when a DIFFERENT key was pinned before (server reinstalled - or MITM);
   // confirming replaces the pin instead of adding a first-trust entry.
   changed?: boolean
   oldFingerprint?: string
@@ -90,7 +90,7 @@ export interface ReadFileResult extends FileVersion {
   content: string
 }
 
-// Result of DELETE /api/files — the request succeeds (HTTP 200) once processed;
+// Result of DELETE /api/files - the request succeeds (HTTP 200) once processed;
 // per-item outcomes live here.
 export interface DeleteResult {
   deleted: string[]

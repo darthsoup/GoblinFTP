@@ -18,7 +18,7 @@ func TestChmodUnsupported(t *testing.T) {
 	c := &Client{}
 
 	if c.SupportsChmod() {
-		t.Error("SupportsChmod() = true, want false — FTP has no SITE CHMOD here")
+		t.Error("SupportsChmod() = true, want false - FTP has no SITE CHMOD here")
 	}
 	if err := c.Chmod("/some/file", 0o644); !errors.Is(err, transfer.ErrPermissionsNotSupported) {
 		t.Errorf("Chmod() error = %v, want ErrPermissionsNotSupported", err)

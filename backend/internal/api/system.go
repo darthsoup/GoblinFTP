@@ -10,7 +10,7 @@ import (
 // framing before any JS ran) and publishing it would leak the operator's panel
 // domains to any anonymous caller of this public endpoint.
 type systemEmbedVars struct {
-	// Chromeless: "auto" | "on" | "off". Presentation only — nothing on the
+	// Chromeless: "auto" | "on" | "off". Presentation only - nothing on the
 	// server branches on it.
 	Chromeless string `json:"chromeless"`
 }

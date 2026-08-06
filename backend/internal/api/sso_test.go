@@ -371,7 +371,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 	assert.NotEmpty(t, connectResp.Data.CSRFToken)
 }
 
-// validSSOSFTP creates an encrypted SFTP SSO token with future expiry — the
+// validSSOSFTP creates an encrypted SFTP SSO token with future expiry - the
 // host-key flow only applies to sftp.
 func validSSOSFTP(t *testing.T, secret []byte) string {
 	t.Helper()

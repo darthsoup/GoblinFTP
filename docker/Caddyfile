@@ -34,7 +34,7 @@
 		#
 		# Scoped to this block on purpose: at site level it would add a second
 		# Content-Security-Policy to the Go-proxied responses, and browsers
-		# enforce the intersection of both — correct, but very hard to debug.
+		# enforce the intersection of both - correct, but very hard to debug.
 		#
 		# Only frame-ancestors here. The generated index.html carries inline
 		# <script> blocks and an importmap, so a document-level script-src

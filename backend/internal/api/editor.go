@@ -36,7 +36,7 @@ type writeFileRequest struct {
 	// client saw when it opened the file. nil means the client made no claim,
 	// which is rejected rather than silently written.
 	ExpectedVersion *string `json:"expectedVersion"`
-	// Overwrite skips the precondition entirely — the user was shown the
+	// Overwrite skips the precondition entirely - the user was shown the
 	// conflict and chose to replace the server's copy.
 	Overwrite bool `json:"overwrite"`
 }
@@ -115,7 +115,7 @@ func (h *Handler) ReadFile(c echo.Context) error {
 	// Stat before Download, not after. A write landing between the two would
 	// otherwise hand the client a token matching content it never saw, and the
 	// next save would destroy that write silently. This order yields a token
-	// older than the content instead, i.e. a spurious conflict — the safe way to
+	// older than the content instead, i.e. a spurious conflict - the safe way to
 	// lose the race.
 	fi, found, statErr := statForVersion(client, path)
 	if statErr != nil {

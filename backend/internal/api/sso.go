@@ -85,7 +85,7 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 	})
 	// White-label theming: carry the (validated) tenant on the session directly so
 	// it survives the pending→connected transition and reaches SystemVars. An
-	// invalid/unknown tenant is dropped silently — login still succeeds.
+	// invalid/unknown tenant is dropped silently - login still succeeds.
 	if tenant := sanitizeTenant(payload.Tenant); tenant != "" {
 		sess.Set(tenantSessionKey, tenant)
 	}
@@ -206,7 +206,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 		case errors.Is(dialErr, transfer.ErrHostKeyMismatch):
 			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "host_key_mismatch").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrHostKeyMismatch,
-				"the server's host key changed since it was trusted — possible man-in-the-middle, connection refused").WithCause(dialErr))
+				"the server's host key changed since it was trusted - possible man-in-the-middle, connection refused").WithCause(dialErr))
 		case errors.Is(dialErr, transfer.ErrTLSFailed):
 			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "tls_failed").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrTLSFailed,
@@ -228,7 +228,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	sess.Set("client", client)
 	sess.Set("initialDir", initialDir)
 	sess.Set("disableChmod", disableChmod)
-	// For access-log and metrics enrichment only — never the password.
+	// For access-log and metrics enrichment only - never the password.
 	sess.Set("username", pending.Username)
 	sess.Set("host", addr)
 	sess.Set("protocol", pending.Protocol)

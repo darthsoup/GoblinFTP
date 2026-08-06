@@ -173,7 +173,7 @@ func (h *Handler) CreateZip(c echo.Context) error {
 				return
 			}
 		}
-		// A failed zip finalization must reach the reader — otherwise a
+		// A failed zip finalization must reach the reader - otherwise a
 		// truncated archive would be uploaded and reported as success.
 		if err := zw.Close(); err != nil {
 			pw.CloseWithError(err)
@@ -189,7 +189,7 @@ func (h *Handler) CreateZip(c echo.Context) error {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	if err := <-errCh; err != nil {
-		// The zip goroutine reads sources via the client — its errors can be
+		// The zip goroutine reads sources via the client - its errors can be
 		// connection-level too.
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
@@ -197,7 +197,7 @@ func (h *Handler) CreateZip(c echo.Context) error {
 }
 
 // addToZip recursively adds a file or directory to the zip writer. counter
-// (nil to skip) receives the source bytes read — DownloadZip passes the
+// (nil to skip) receives the source bytes read - DownloadZip passes the
 // download counter; CreateZip passes nil (remote-to-remote, not a transfer
 // between browser and server).
 func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter) error {

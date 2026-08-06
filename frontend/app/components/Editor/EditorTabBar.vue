@@ -25,7 +25,7 @@ async function requestClose(tab: EditorTab) {
       return
     if (result === 'save') {
       await editorStore.saveTab(tab.id)
-      if (tab.error) // save failed — keep the tab open so the work isn't lost
+      if (tab.error) // save failed - keep the tab open so the work isn't lost
         return
     }
   }

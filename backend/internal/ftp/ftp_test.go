@@ -60,7 +60,7 @@ func TestDialFTPSIntegration(t *testing.T) {
 	user := envOr("GFTP_TEST_FTPS_USER", "ftpuser")
 	pass := envOr("GFTP_TEST_FTPS_PASS", "ftppass")
 
-	// Self-signed test-container cert — skip verification, like the app's
+	// Self-signed test-container cert - skip verification, like the app's
 	// GFTP_FTP_TLS_INSECURE_SKIP_VERIFY escape hatch.
 	tlsCfg := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
 	c, err := gftp.Dial(host, user, pass, true, tlsCfg)

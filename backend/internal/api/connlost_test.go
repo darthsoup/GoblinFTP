@@ -20,7 +20,7 @@ import (
 )
 
 // TestListConnLost: a dead FTP connection during list must not leak the raw
-// socket error — it maps to ERR_CONNECTION_LOST, the client is dropped from
+// socket error - it maps to ERR_CONNECTION_LOST, the client is dropped from
 // the session, and a follow-up status reports connected=false.
 func TestListConnLost(t *testing.T) {
 	cfg := defaultTestConfig()
@@ -54,7 +54,7 @@ func TestListConnLost(t *testing.T) {
 }
 
 // TestListOtherErrorKeepsClient: a non-connection error leaves the connection in
-// place and is classified into a friendly code+message — the raw protocol string
+// place and is classified into a friendly code+message - the raw protocol string
 // ("550 ...") must not leak into the envelope.
 func TestListOtherErrorKeepsClient(t *testing.T) {
 	cfg := defaultTestConfig()

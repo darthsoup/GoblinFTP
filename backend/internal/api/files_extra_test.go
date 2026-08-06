@@ -126,7 +126,7 @@ func (r *trackedReader) Close() error { r.onClose(); return nil }
 
 // Regression: FTP allows only one data transfer per control connection, so a copy
 // must fully close the download (RETR) before opening the upload (STOR). This
-// mock fails the upload if the download is still open — catching a reintroduction
+// mock fails the upload if the download is still open - catching a reintroduction
 // of the streaming Download→Upload that desyncs the FTP control channel.
 func TestCopyFile_ClosesDownloadBeforeUpload(t *testing.T) {
 	downloadOpen := false

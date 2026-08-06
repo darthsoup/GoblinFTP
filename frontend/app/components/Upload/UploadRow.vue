@@ -66,7 +66,7 @@ const telemetry = computed(() => {
         </span>
       </div>
 
-      <!-- Progress bar + compact status (percent while uploading, else the label) —
+      <!-- Progress bar + compact status (percent while uploading, else the label) -
            this line keeps every row informative at any width. -->
       <div class="flex items-center gap-2.5">
         <!-- null renders an indeterminate bar: during commit the bytes really
@@ -89,7 +89,7 @@ const telemetry = computed(() => {
         </span>
       </div>
 
-      <!-- Failure reason — always reachable now (was hidden below lg). -->
+      <!-- Failure reason - always reachable now (was hidden below lg). -->
       <p v-if="item.status === 'error' && failure" class="truncate text-error" :title="failure">
         {{ failure }}
       </p>

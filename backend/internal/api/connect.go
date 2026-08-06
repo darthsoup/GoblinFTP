@@ -90,7 +90,7 @@ func (h *Handler) Connect(c echo.Context) error {
 		AcceptHostKey: req.AcceptHostKey,
 	})
 	if hostKey != nil {
-		// Unknown SFTP host key — ask the user to confirm before we connect or
+		// Unknown SFTP host key - ask the user to confirm before we connect or
 		// send credentials. Not a failed attempt, so the throttle is untouched.
 		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_prompt").Inc()
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
@@ -104,7 +104,7 @@ func (h *Handler) Connect(c echo.Context) error {
 		case errors.Is(dialErr, transfer.ErrHostKeyMismatch):
 			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_mismatch").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrHostKeyMismatch,
-				"the server's host key changed since it was trusted — possible man-in-the-middle, connection refused").WithCause(dialErr))
+				"the server's host key changed since it was trusted - possible man-in-the-middle, connection refused").WithCause(dialErr))
 		case errors.Is(dialErr, transfer.ErrTLSFailed):
 			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "tls_failed").Inc()
 			return Fail(c, gftperrors.New(gftperrors.ErrTLSFailed,
@@ -139,7 +139,7 @@ func (h *Handler) Connect(c echo.Context) error {
 	sess.Set(auth.CSRFSessionKey, csrfToken)
 	sess.Set("initialDir", initialDir)
 	sess.Set("disableChmod", disableChmod)
-	// For access-log and metrics enrichment only — never the password.
+	// For access-log and metrics enrichment only - never the password.
 	sess.Set("username", req.Username)
 	sess.Set("host", addr)
 	sess.Set("protocol", req.Protocol)

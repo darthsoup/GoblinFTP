@@ -49,7 +49,7 @@ func TestSessionCookieLaxByDefault(t *testing.T) {
 
 // The plain-HTTP request is the whole point: behind an external TLS terminator
 // Caddy forwards X-Forwarded-Proto: http, so a Secure derived from c.Scheme()
-// would be false and the browser would drop a SameSite=None cookie outright —
+// would be false and the browser would drop a SameSite=None cookie outright -
 // framing would work and login would silently never happen.
 func TestSessionCookieForcesSecureWhenEmbedding(t *testing.T) {
 	cfg := defaultTestConfig()
@@ -115,7 +115,7 @@ func TestStaleDuplicateSessionCookieIsIgnored(t *testing.T) {
 	}
 }
 
-// A request carrying only unresolvable session cookies is still rejected — the
+// A request carrying only unresolvable session cookies is still rejected - the
 // multi-cookie tolerance must not become "accept anything".
 func TestOnlyStaleSessionCookiesStillRejected(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig(), staticDialOption())

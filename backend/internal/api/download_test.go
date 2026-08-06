@@ -77,7 +77,7 @@ func TestDownloadFile(t *testing.T) {
 	require.NoError(t, json.Unmarshal(tokenRec.Body.Bytes(), &tokenResp))
 	token := tokenResp.Data.Token
 
-	// Use the token to download (no session cookie needed — public route)
+	// Use the token to download (no session cookie needed - public route)
 	dlReq := httptest.NewRequest(http.MethodGet, "/api/files/download?token="+token, nil)
 	dlRec := httptest.NewRecorder()
 	app.ServeHTTP(dlRec, dlReq)

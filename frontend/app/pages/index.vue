@@ -18,7 +18,7 @@ onMounted(async () => {
   await filesStore.list(start)
 })
 
-// Keep ?path=<dir> in sync with the current directory (replace, not push — the
+// Keep ?path=<dir> in sync with the current directory (replace, not push - the
 // store owns back/forward history) so a reload reopens the same folder.
 watch(() => filesStore.currentPath, (path) => {
   if (route.query.path !== path)

@@ -43,8 +43,8 @@ func destinationTaken(client transfer.Client, p string) (taken, isDir bool, err 
 
 // probeDestination reports whether p is taken, taking and releasing the
 // per-session transfer lock itself. The deferred release matters: reserve holds
-// the lock only for this probe, and an explicit release would strand it — and
-// with it every later request on the session — if the probe panicked.
+// the lock only for this probe, and an explicit release would strand it - and
+// with it every later request on the session - if the probe panicked.
 func probeDestination(c echo.Context, p string) (taken, connected bool, err error) {
 	client, release, ok := lockedClient(c)
 	if !ok {
@@ -82,7 +82,7 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	// Echo has already parsed the multipart body by now, so this 409 is a safety
-	// net rather than a bandwidth saver — /files/upload/check is what lets the
+	// net rather than a bandwidth saver - /files/upload/check is what lets the
 	// client resolve conflicts before sending anything.
 	if !overwrite && !created {
 		taken, _, err := destinationTaken(client, remotePath)
@@ -249,7 +249,7 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
 	if err := client.Upload(destination, src); err != nil {
 		// The frontend never retries a failed commit, so the staged chunks
-		// are unreachable — clean them up instead of leaving them behind.
+		// are unreachable - clean them up instead of leaving them behind.
 		_ = h.chunks.Cleanup(ctx, meta.ID)
 		sess.DeleteUpload(req.UploadID)
 		return failClient(c, gftperrors.ErrOperationFailed, err)

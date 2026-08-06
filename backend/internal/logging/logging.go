@@ -27,7 +27,7 @@ type Options struct {
 }
 
 // Init builds the logger. The returned close func flushes the file sink and is
-// a no-op when logging to stdout only — always defer it in main. It returns an
+// a no-op when logging to stdout only - always defer it in main. It returns an
 // error only for an unwritable File path: lumberjack would otherwise swallow
 // the problem until the first write, so we probe-open and fail loudly at startup.
 func Init(o Options) (*slog.Logger, func() error, error) {

@@ -3,14 +3,14 @@ export function basename(p: string): string {
   return p.split('/').filter(Boolean).pop() ?? p
 }
 
-// Pure formatter (no i18n) so it is unit-testable: one "label — reason" line per
+// Pure formatter (no i18n) so it is unit-testable: one "label - reason" line per
 // failure, capped, with a caller-supplied "+N more" tail.
 export function formatFailureLines(
   items: { label: string, reason: string }[],
   cap: number,
   more: (n: number) => string,
 ): string {
-  const lines = items.slice(0, cap).map(i => `${i.label} — ${i.reason}`)
+  const lines = items.slice(0, cap).map(i => `${i.label} - ${i.reason}`)
   if (items.length > cap)
     lines.push(more(items.length - cap))
   return lines.join('\n')

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Example tenant logo">
-  <!-- Placeholder mark — replace with your own square/near-square logo. -->
+  <!-- Placeholder mark - replace with your own square/near-square logo. -->
   <rect width="128" height="128" rx="28" fill="#2563eb"/>
   <path d="M64 28a36 36 0 1 0 26 61V60H58v13h17a24 24 0 1 1-7-27l9-9A36 36 0 0 0 64 28z" fill="#ffffff"/>
 </svg>

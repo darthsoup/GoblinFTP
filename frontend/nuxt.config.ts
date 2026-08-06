@@ -6,7 +6,7 @@ export default defineNuxtConfig({
 
   // Dev parity with docker/Caddyfile, which sets frame-ancestors on the SPA
   // document in production. Nitro serves that document in dev (not Vite), so
-  // this has to be a route rule — vite.server.headers never reaches it. It has
+  // this has to be a route rule - vite.server.headers never reaches it. It has
   // no effect on `nuxt generate` output, where Caddy owns the header.
   routeRules: {
     '/**': {
@@ -87,7 +87,7 @@ export default defineNuxtConfig({
       tailwindcss(),
     ],
     build: {
-      // The entry settles at ~505KB (174KB gz) — the irreducible @nuxt/ui + Vue
+      // The entry settles at ~505KB (174KB gz) - the irreducible @nuxt/ui + Vue
       // core. Sentry and the CodeMirror grammars are already split into their own
       // chunks; consolidating @nuxt/ui (~767KB) via manualChunks only made it
       // worse, so we raise the warning bar rather than chase a counterproductive split.

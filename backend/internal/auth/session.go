@@ -10,7 +10,7 @@ import (
 // Session holds per-connection state for an authenticated user.
 //
 // A single *Session is shared across every concurrent HTTP handler for that
-// session, so its maps must never be touched directly — all access goes through
+// session, so its maps must never be touched directly - all access goes through
 // the accessor methods, which hold mu. (mu guards data and uploads; ExpiresAt is
 // guarded by the owning Store's mutex.) A concurrent read+write on a bare Go map
 // is an unrecoverable runtime fatal, so this is a correctness requirement, not an
@@ -20,7 +20,7 @@ import (
 // transfer.Client: a single FTP control connection cannot service two data
 // transfers at once (and jlaffaye/ftp's ServerConn is explicitly not safe for
 // concurrent use), so handlers hold it around client I/O. Never acquire mu while
-// holding transferMu in a way that nests inversely — the accessor methods always
+// holding transferMu in a way that nests inversely - the accessor methods always
 // release mu before returning, so transferMu→mu is the only ordering that occurs.
 type Session struct {
 	ID        string
@@ -188,7 +188,7 @@ func (s *Store) Count() int {
 }
 
 // Range calls fn for each live (non-expired) session while holding a read
-// lock. fn must not mutate the session or the store — read-only snapshot use
+// lock. fn must not mutate the session or the store - read-only snapshot use
 // only (e.g. the metrics collector).
 func (s *Store) Range(fn func(*Session)) {
 	now := time.Now()

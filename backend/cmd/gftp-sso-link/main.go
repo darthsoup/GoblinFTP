@@ -84,6 +84,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Token is base64url (RFC 4648 §5, no padding) — already query-safe.
+	// Token is base64url (RFC 4648 §5, no padding) - already query-safe.
 	fmt.Printf("%s/?sso=%s\n", strings.TrimRight(*baseURL, "/"), token)
 }

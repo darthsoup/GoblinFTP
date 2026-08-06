@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-// End-user UI preferences. Persisted in the browser only (localStorage) —
+// End-user UI preferences. Persisted in the browser only (localStorage) -
 // the backend never needs them: dotfile filtering, language, theme, and
 // formatting are all client-side concerns. Theme is persisted by
 // @nuxtjs/color-mode (localStorage); this store covers the rest.

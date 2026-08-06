@@ -68,7 +68,7 @@ export const useModalStore = defineStore('modal', () => {
   let confirmResolver: ((result: ConfirmResult) => void) | null = null
 
   function confirm(options: ConfirmOptions): Promise<ConfirmResult> {
-    // A pending confirm is superseded — resolve it as cancelled.
+    // A pending confirm is superseded - resolve it as cancelled.
     confirmResolver?.('cancel')
     confirmOptions.value = options
     return new Promise((resolve) => {

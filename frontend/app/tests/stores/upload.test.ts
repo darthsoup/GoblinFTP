@@ -97,7 +97,7 @@ describe('useUploadStore', () => {
   })
 
   // Decisions must be applied through items.value, not the raw objects passed to
-  // addEntries — mutating those bypasses the reactive proxy and the queue panel
+  // addEntries - mutating those bypasses the reactive proxy and the queue panel
   // keeps showing "Checking" forever.
   it('applies decisions to the reactive items, not the local copies', async () => {
     routePosts([conflict('/d/a.txt')])
@@ -254,7 +254,7 @@ describe('useUploadStore', () => {
     ], '/d')
     await vi.waitFor(() => expect(store.items.every(i => i.status === 'done')).toBe(true))
 
-    // Only the batch dialog — the raced conflict reused the decision.
+    // Only the batch dialog - the raced conflict reused the decision.
     expect(spy).toHaveBeenCalledTimes(1)
     // a.txt once (consented), b.txt rejected then retried with consent.
     expect(uploads).toBe(3)
@@ -270,7 +270,7 @@ describe('useUploadStore progress telemetry', () => {
   })
 
   // The multipart envelope makes `total` larger than the file, and the queue row
-  // renders bytesUploaded against file.size — unclamped it would read
+  // renders bytesUploaded against file.size - unclamped it would read
   // "1.1 MiB / 1.0 MiB".
   it('never reports more bytes uploaded than the file holds', async () => {
     const file = new File(['0123456789'], 'a.txt') // 10 bytes

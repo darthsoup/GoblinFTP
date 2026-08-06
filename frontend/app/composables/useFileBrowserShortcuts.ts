@@ -29,9 +29,9 @@ export function useFileBrowserShortcuts(visibleNames: () => string[]) {
       else
         filesStore.clearSelection()
     },
-    // Select all (Cmd/Ctrl+A — auto-mapped to Ctrl off-Mac)
+    // Select all (Cmd/Ctrl+A - auto-mapped to Ctrl off-Mac)
     'meta_a': () => filesStore.setSelection(visibleNames()),
-    // Clipboard (Cmd/Ctrl + C/X/V — auto-mapped to Ctrl off-Mac)
+    // Clipboard (Cmd/Ctrl + C/X/V - auto-mapped to Ctrl off-Mac)
     'meta_c': () => filesStore.copyToClipboard([...filesStore.selected]),
     'meta_x': () => filesStore.cutToClipboard([...filesStore.selected]),
     'meta_v': () => {

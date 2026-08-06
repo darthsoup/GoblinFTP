@@ -42,7 +42,7 @@ func newIntegrationStore(t *testing.T) *staging.S3Store {
 		Prefix:       "gftp-integration-test",
 		Timeout:      30 * time.Second,
 	})
-	require.NoError(t, store.Ping(t.Context()), "S3 server not reachable — did you run `just s3-up`?")
+	require.NoError(t, store.Ping(t.Context()), "S3 server not reachable - did you run `just s3-up`?")
 	return store
 }
 
@@ -52,7 +52,7 @@ func TestS3Integration_RoundTrip(t *testing.T) {
 
 	meta, err := store.NewUpload(ctx, "/remote/file.txt", 3, 4)
 	require.NoError(t, err)
-	// t.Context() is canceled before cleanups run — use a fresh context.
+	// t.Context() is canceled before cleanups run - use a fresh context.
 	t.Cleanup(func() { _ = store.Cleanup(context.Background(), meta.ID) })
 
 	require.NoError(t, store.WriteChunk(ctx, meta.ID, 0, 4, strings.NewReader("abcd")))
@@ -79,7 +79,7 @@ func TestS3Integration_MissingChunk(t *testing.T) {
 
 	meta, err := store.NewUpload(ctx, "/remote/file.txt", 2, 4)
 	require.NoError(t, err)
-	// t.Context() is canceled before cleanups run — use a fresh context.
+	// t.Context() is canceled before cleanups run - use a fresh context.
 	t.Cleanup(func() { _ = store.Cleanup(context.Background(), meta.ID) })
 
 	require.NoError(t, store.WriteChunk(ctx, meta.ID, 0, 4, strings.NewReader("abcd")))

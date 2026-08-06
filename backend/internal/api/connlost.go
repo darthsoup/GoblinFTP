@@ -33,7 +33,7 @@ func isConnLost(err error) bool {
 // failClient converts a transfer.Client error into an API failure. When the
 // error means the server connection died, the dead client is closed, removed
 // from the session, and reported as ERR_CONNECTION_LOST with a clean message
-// instead of a raw socket error — the frontend switches to its reconnect flow
+// instead of a raw socket error - the frontend switches to its reconnect flow
 // on that code.
 func failClient(c echo.Context, code gftperrors.Code, err error) error {
 	if isConnLost(err) {

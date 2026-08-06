@@ -85,8 +85,8 @@ async function loadLanguage(filename: string): Promise<Extension> {
 }
 
 // Align CodeMirror's chrome with the Goblin design tokens (layered over oneDark in
-// dark mode). The themes are mode-scoped, so the design-system custom properties —
-// which flip per mode — resolve to the right surface here.
+// dark mode). The themes are mode-scoped, so the design-system custom properties -
+// which flip per mode - resolve to the right surface here.
 const goblinDarkTheme = EditorView.theme({
   '&': { backgroundColor: 'var(--ui-bg)' },
   '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
@@ -209,7 +209,7 @@ function sync() {
   mountedTabId = tab.id
   mountedRevision = tab.revision
 
-  // Fresh states start without a grammar — load it lazily and swap it in, guarded
+  // Fresh states start without a grammar - load it lazily and swap it in, guarded
   // so a slow import for a since-switched tab can't apply to the wrong document.
   // Restored states already carry their grammar in the compartment.
   if (!restored) {

@@ -87,7 +87,7 @@ func TestHostKeyCallbackChangedKeyPrompts(t *testing.T) {
 	assert.Equal(t, ssh.FingerprintSHA256(changed), res2.prompt.Fingerprint)
 	assert.Equal(t, ssh.FingerprintSHA256(pinned), res2.prompt.OldFingerprint)
 
-	// The old pin is still honored — an accept fingerprint for the OLD key must
+	// The old pin is still honored - an accept fingerprint for the OLD key must
 	// not authorize the new one.
 	var res3 hostKeyResult
 	cb3, err := buildHostKeyCallback(testAddr, kh, ssh.FingerprintSHA256(pinned), &res3)

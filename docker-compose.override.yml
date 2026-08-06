@@ -1,4 +1,4 @@
-# Development overrides — auto-merged by plain `docker compose up` (no -f needed).
+# Development overrides - auto-merged by plain `docker compose up` (no -f needed).
 #
 # Builds the gftp image from source and defines the local FTP/FTPS/SFTP/S3 test
 # servers under the "testing" profile. The test servers are started on demand by

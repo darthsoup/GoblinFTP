@@ -33,7 +33,7 @@ type Metrics struct {
 }
 
 // New builds a Metrics instance with its own private registry (never the
-// global default — keeps tests isolated). The session gauges report zeros
+// global default - keeps tests isolated). The session gauges report zeros
 // until SetConnectionSnapshot wires in the store.
 func New() *Metrics {
 	m := &Metrics{

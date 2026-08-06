@@ -128,7 +128,7 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
 	}
-	// Initialize non-nil so the JSON always carries arrays (never null) — the SPA
+	// Initialize non-nil so the JSON always carries arrays (never null) - the SPA
 	// reads result.failed.length unconditionally, and a null there would throw.
 	result := deleteResult{Deleted: []string{}, Failed: []deleteFailed{}}
 	for _, p := range req.Paths {
@@ -205,7 +205,7 @@ func ensureDirAll(client transfer.Client, dir string) error {
 
 // ensureDirAllCreated is ensureDirAll reporting whether it had to create dir or
 // any of its parents. A freshly created parent cannot already contain the
-// destination, so upload handlers use this to skip their existence probe — on
+// destination, so upload handlers use this to skip their existence probe - on
 // FTP that probe is a full parent LIST, so the skip is load-bearing for folder
 // uploads, not a micro-optimization.
 func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {

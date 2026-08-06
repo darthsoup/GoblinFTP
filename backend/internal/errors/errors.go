@@ -41,7 +41,7 @@ const (
 )
 
 // GFTPError is a typed error with a machine-readable code and human-readable message.
-// An optional cause carries the underlying error for server-side logging only —
+// An optional cause carries the underlying error for server-side logging only -
 // it is never serialized into the API response envelope.
 type GFTPError struct {
 	code    Code

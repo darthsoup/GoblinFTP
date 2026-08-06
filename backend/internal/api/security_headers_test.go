@@ -48,7 +48,7 @@ func TestCSPEmitsAllowlistWhenConfigured(t *testing.T) {
 }
 
 // A second Content-Security-Policy header is enforced as the intersection of
-// both policies — correct, but near-impossible to debug from a console.
+// both policies - correct, but near-impossible to debug from a console.
 func TestCSPIsASingleHeaderWithBaseDirectivesIntact(t *testing.T) {
 	h := getHeaders(t, defaultTestConfig(), "/api/system/vars")
 
@@ -66,7 +66,7 @@ func TestCSPIsASingleHeaderWithBaseDirectivesIntact(t *testing.T) {
 
 // THE load-bearing invariant of the embed design. Under SameSite=None the CSRF
 // token is the only CSRF defense left, and it holds solely because a
-// cross-origin page cannot read GET /api/auth/status — which is true only while
+// cross-origin page cannot read GET /api/auth/status - which is true only while
 // no Access-Control-Allow-Origin is ever emitted. If someone adds CORS
 // middleware, this test must fail loudly.
 func TestNoCORSHeadersEver(t *testing.T) {

@@ -54,7 +54,7 @@ func newS3Store(cfg *config.Config, logger *slog.Logger) *staging.S3Store {
 		Timeout:      time.Duration(cfg.S3TimeoutSeconds) * time.Second,
 	})
 	if err := s3store.Ping(context.Background()); err != nil {
-		logger.Warn("S3 chunk staging enabled but bucket is not reachable — uploads will fail until it is",
+		logger.Warn("S3 chunk staging enabled but bucket is not reachable - uploads will fail until it is",
 			"endpoint", cfg.S3Endpoint, "bucket", cfg.S3Bucket, "error", err.Error())
 	} else {
 		logger.Info("S3 chunk staging enabled", "endpoint", cfg.S3Endpoint, "bucket", cfg.S3Bucket)
@@ -95,7 +95,7 @@ func main() {
 
 	// A cross-site embed can fail in several ways that all look identical from
 	// the browser (a redirect loop back to /login with no console error), so
-	// state the policy up front — it is the first thing to check against what
+	// state the policy up front - it is the first thing to check against what
 	// DevTools actually shows in Set-Cookie.
 	if cfg.EmbeddingEnabled() {
 		logger.Info("iframe embedding enabled",
@@ -125,7 +125,7 @@ func main() {
 		opts = append(opts, api.WithChunkStore(newS3Store(cfg, logger)))
 	}
 
-	// Optional Prometheus metrics on a dedicated listener — never on the main
+	// Optional Prometheus metrics on a dedicated listener - never on the main
 	// server (Caddy does not proxy it). newApp wires the session store into
 	// the shared instance via SetConnectionSnapshot.
 	var m *metrics.Metrics

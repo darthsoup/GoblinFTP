@@ -52,7 +52,7 @@ just ftp-down
 ```bash
 just ftps-up
 # Connect with: localhost:2121, ftpuser / ftppass, protocol "ftps"
-# The cert is self-signed — set GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY=true when testing via the app.
+# The cert is self-signed - set GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY=true when testing via the app.
 
 # FTPS integration tests:
 cd backend && GFTP_TEST_FTPS_HOST=localhost:2121 go test ./internal/ftp/...
@@ -65,7 +65,7 @@ just ftps-down
 ```bash
 just sftp-up
 # Connect with: localhost:2222, ftpuser / ftppass, protocol "sftp"
-# The user is chrooted: / is read-only — upload files under /upload.
+# The user is chrooted: / is read-only - upload files under /upload.
 
 # SFTP integration tests:
 cd backend && GFTP_TEST_SFTP_HOST=localhost:2222 go test ./internal/sftp/...
@@ -76,7 +76,7 @@ just sftp-down
 SSH host keys persist in the `sftp-ssh` volume, so the fingerprint survives
 `just sftp-down` + `just sftp-up`. If you reset that volume
 (`docker volume rm goblinftp_sftp-ssh`), the next start generates new keys and
-a previously trusted connection fails with a host-key mismatch — delete the
+a previously trusted connection fails with a host-key mismatch - delete the
 `[localhost]:2222` line from `$GFTP_DATA_DIR/known_hosts` (dev:
 `data/known_hosts` in the repo root, container: `/app/data/known_hosts`) and
 re-trust.

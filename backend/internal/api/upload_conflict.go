@@ -69,7 +69,7 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 		byDir[dir] = append(byDir[dir], clean)
 	}
 
-	// Non-nil so the JSON carries an array rather than null — the SPA reads
+	// Non-nil so the JSON carries an array rather than null - the SPA reads
 	// conflicts.length unconditionally.
 	result := uploadCheckResult{Conflicts: []uploadConflict{}}
 	for _, dir := range order {

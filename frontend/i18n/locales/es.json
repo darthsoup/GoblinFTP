@@ -22,7 +22,7 @@
     "trust": "Confiar y conectar",
     "cancel": "Cancelar",
     "changedTitle": "La clave del host ha cambiado",
-    "changedMessage": "Este servidor presentó una clave de host SSH diferente a la que era de confianza antes. Puede significar que el servidor fue reinstalado o migrado — o que la conexión está siendo interceptada.",
+    "changedMessage": "Este servidor presentó una clave de host SSH diferente a la que era de confianza antes. Puede significar que el servidor fue reinstalado o migrado - o que la conexión está siendo interceptada.",
     "oldFingerprint": "De confianza anteriormente (SHA256)",
     "newFingerprint": "Nueva huella digital (SHA256)",
     "changedWarning": "Continúa solo si esperabas este cambio y la nueva huella digital coincide con tu servidor. Al aceptar se reemplaza la clave de confianza.",

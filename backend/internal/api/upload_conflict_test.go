@@ -92,7 +92,7 @@ func TestUploadSimpleRefusesExistingFile(t *testing.T) {
 }
 
 // TestUploadSimpleOverwriteSkipsDestinationStat: explicit consent both allows the
-// write and costs no extra probe — on FTP that probe is a full parent LIST.
+// write and costs no extra probe - on FTP that probe is a full parent LIST.
 func TestUploadSimpleOverwriteSkipsDestinationStat(t *testing.T) {
 	var statted []string
 	uploaded := false
@@ -232,7 +232,7 @@ func TestUploadCommitConflictKeepsStagedChunks(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "ERR_FILE_EXISTS")
 	assert.NotContains(t, store.cleaned, uploadID, "a conflict must not discard staged chunks")
 
-	// The same upload now commits with consent — no bytes re-sent.
+	// The same upload now commits with consent - no bytes re-sent.
 	rec = doJSON(app, sess, http.MethodPost, "/api/files/upload/commit",
 		fmt.Sprintf(`{"uploadId":%q,"overwrite":true}`, uploadID))
 	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
@@ -293,7 +293,7 @@ func TestUploadAbortCleansUpChunks(t *testing.T) {
 }
 
 // TestUploadCheckGroupsListsByDirectory: the pre-flight costs one LIST per
-// distinct directory, not one per file — FTP has no stat, so the difference is
+// distinct directory, not one per file - FTP has no stat, so the difference is
 // 2 round trips instead of 500 on a large folder upload.
 func TestUploadCheckGroupsListsByDirectory(t *testing.T) {
 	var listed []string

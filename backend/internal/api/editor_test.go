@@ -155,7 +155,7 @@ func TestWriteFileTooLarge(t *testing.T) {
 }
 
 // TestReadFileDownloadError: a protocol error from the server is classified into
-// a stable code + friendly message — the raw "550 ..." string must not leak.
+// a stable code + friendly message - the raw "550 ..." string must not leak.
 func TestReadFileDownloadError(t *testing.T) {
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
 		DownloadFn: func(string) (io.ReadCloser, error) { return nil, errors.New("550 Permission denied") },

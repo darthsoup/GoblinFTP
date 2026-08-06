@@ -1,6 +1,6 @@
 // Recursively read files (and folders) from a drag-and-drop. The
 // DataTransferItemList is only valid synchronously during the drop event, so
-// webkitGetAsEntry() must be called before any await — we snapshot the entries
+// webkitGetAsEntry() must be called before any await - we snapshot the entries
 // first, then traverse them asynchronously.
 
 export interface DroppedFile {
@@ -10,7 +10,7 @@ export interface DroppedFile {
 
 export interface DropResult {
   files: DroppedFile[]
-  // Directories with no file beneath them — these need explicit creation;
+  // Directories with no file beneath them - these need explicit creation;
   // non-empty dirs are created implicitly by the upload (backend mkdir -p).
   emptyDirs: string[]
 }
@@ -54,7 +54,7 @@ async function walk(entry: FileSystemEntry, prefix: string, files: DroppedFile[]
 // their nested relative paths, plus the set of empty directories to preserve.
 // Falls back to the flat FileList when the File System Entries API is unavailable.
 export async function readDropEntries(dt: DataTransfer): Promise<DropResult> {
-  // Snapshot entries synchronously — the items list is invalid after this tick.
+  // Snapshot entries synchronously - the items list is invalid after this tick.
   const entries: FileSystemEntry[] = []
   for (const item of Array.from(dt.items)) {
     if (item.kind !== 'file')

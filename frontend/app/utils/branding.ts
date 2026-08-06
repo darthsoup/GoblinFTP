@@ -1,7 +1,7 @@
 // Runtime accent-color theming for white-labeling. An admin supplies one brand
 // hex; we derive an 11-stop scale (anchored at 500) and override the `goblin`
-// CSS variables, so the whole app — primary utilities, soft/subtle variants,
-// selection — recolors while staying mode-appropriate (--ui-primary still
+// CSS variables, so the whole app - primary utilities, soft/subtle variants,
+// selection - recolors while staying mode-appropriate (--ui-primary still
 // resolves to goblin-700 in light / goblin-400 in dark, now from the new ramp).
 
 export type RampKey = '50' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | '950'

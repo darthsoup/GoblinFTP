@@ -2,7 +2,7 @@ import { isAppLanguage } from '~/stores/settings'
 
 // Resolves session + system vars (and applies the language preference) once,
 // before the auth route middleware makes its first decision. This is what lets
-// a cold load or hard refresh of any route land correctly — without it, a
+// a cold load or hard refresh of any route land correctly - without it, a
 // restored cookie session would bounce '/' → /login → '/' because `connected`
 // defaults to false until init() runs.
 export default defineNuxtPlugin(async (nuxtApp) => {
@@ -18,10 +18,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     // ui.pageTitle is empty unless an admin sets it explicitly; then it wins
     // over the (branding) app name for the tab title only.
     const baseTitle = authStore.systemVars?.ui.pageTitle || appName
-    // Surface the connected server in the tab title (server first — tab titles
+    // Surface the connected server in the tab title (server first - tab titles
     // truncate the tail). serverHost is host:port; empty for a fresh SSO connect.
     const title = authStore.connected && authStore.serverHost
-      ? `${authStore.serverHost} — ${baseTitle}`
+      ? `${authStore.serverHost} - ${baseTitle}`
       : baseTitle
     // unhead v3 types link `rel` as a discriminated union (one literal per
     // shape), so each entry needs its own concrete `rel` rather than a shared
@@ -42,15 +42,15 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   // Accent color (white-label): override the goblin scale at runtime. No-op when
   // unset, so the default green stays. Skipped when a tenant theme stylesheet is
-  // present — it drives --ui-primary directly, and applyBrandColor's inline
+  // present - it drives --ui-primary directly, and applyBrandColor's inline
   // --color-goblin-* would otherwise beat the stylesheet's :root rules.
   const branding = authStore.systemVars?.branding
   if (!branding?.themeCssUrl) {
     applyBrandColor(branding?.primaryColor)
-    // Selectable button/primary text color — drives --gftp-primary-text, which
+    // Selectable button/primary text color - drives --gftp-primary-text, which
     // only the primary solid surfaces read (not the shared --ui-text-inverted),
     // so a light accent (e.g. yellow) pairs with dark button text without
-    // breaking tooltips. Skipped for tenant themes — their config.css owns it.
+    // breaking tooltips. Skipped for tenant themes - their config.css owns it.
     if (branding?.primaryTextColor)
       document.documentElement.style.setProperty('--gftp-primary-text', branding.primaryTextColor)
   }

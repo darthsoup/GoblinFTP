@@ -83,7 +83,7 @@ func TestAccessLogSessionEnrichment(t *testing.T) {
 	assert.Equal(t, "u", line["user"])
 	assert.Equal(t, "h:21", line["host"])
 
-	// Only an 8-char prefix of the session ID may appear — the full ID is the
+	// Only an 8-char prefix of the session ID may appear - the full ID is the
 	// bearer cookie value.
 	sessionField, ok := line["session"].(string)
 	require.True(t, ok, "session field missing")

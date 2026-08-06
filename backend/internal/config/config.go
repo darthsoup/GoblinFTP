@@ -33,7 +33,7 @@ type ConnectionSettings struct {
 	LockHost    bool
 	PassiveMode bool
 	// FTPTLSInsecureSkipVerify disables FTPS (explicit TLS) certificate
-	// verification — for self-signed / internal servers only, never end users.
+	// verification - for self-signed / internal servers only, never end users.
 	FTPTLSInsecureSkipVerify bool
 }
 
@@ -50,7 +50,7 @@ type BrandingSettings struct {
 	LogoDarkURL      *string // optional dark-mode logo (swapped client-side)
 	FaviconURL       *string
 	PrimaryColor     *string // hex, e.g. "#2563eb"
-	PrimaryTextColor *string // hex — button/primary text, for a light accent
+	PrimaryTextColor *string // hex - button/primary text, for a light accent
 	HideAttribution  bool
 }
 
@@ -90,7 +90,7 @@ type Config struct {
 	SSOEnabled          bool
 	SSOSecret           []byte
 	// FrameAncestors is the validated CSP frame-ancestors allowlist. Empty means
-	// framing is denied. Env-only (GFTP_FRAME_ANCESTORS) — see EmbedSettings.
+	// framing is denied. Env-only (GFTP_FRAME_ANCESTORS) - see EmbedSettings.
 	FrameAncestors       []string
 	ChunkSize            int64
 	MaxConcurrentUploads int

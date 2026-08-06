@@ -8,7 +8,7 @@ export interface FileIconDef {
 
 // File-type icons with brand colors (folders are Goblin Green). First match in
 // .find() wins, so keep extensions non-overlapping. Icons come only from the two
-// offline-installed sets (@iconify-json/lucide, @iconify-json/simple-icons) —
+// offline-installed sets (@iconify-json/lucide, @iconify-json/simple-icons) -
 // arbitrary Iconify collections won't render. Colors apply identically in light
 // and dark mode, so avoid near-black/white brand hexes that vanish on one theme.
 // Exported for the icon-prefix sanity test in tests/utils/files.test.ts.

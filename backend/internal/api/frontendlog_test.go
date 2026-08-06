@@ -125,7 +125,7 @@ func TestFrontendLogDisabled(t *testing.T) {
 }
 
 // TestFrontendLogOversizeBody: the 16K body limit answers 413 before the
-// handler runs (echo error shape, not the envelope — acceptable for a
+// handler runs (echo error shape, not the envelope - acceptable for a
 // defensive limit) and nothing is logged as a frontend error.
 func TestFrontendLogOversizeBody(t *testing.T) {
 	var buf bytes.Buffer

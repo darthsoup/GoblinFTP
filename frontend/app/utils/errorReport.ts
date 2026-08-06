@@ -53,7 +53,7 @@ export function buildErrorPayload(
   }
 }
 
-/** Stable identity for client-side dedupe — one report per distinct error. */
+/** Stable identity for client-side dedupe - one report per distinct error. */
 export function errorDedupeKey(p: FrontendErrorPayload): string {
   return `${p.kind}:${p.message}:${p.source ?? ''}`
 }

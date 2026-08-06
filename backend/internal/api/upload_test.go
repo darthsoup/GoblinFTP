@@ -34,7 +34,7 @@ func TestUploadSimple(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		// The parent exists, the destination does not — otherwise the overwrite
+		// The parent exists, the destination does not - otherwise the overwrite
 		// guard would (correctly) refuse this upload with 409.
 		StatFn: func(p string) (transfer.FileInfo, error) {
 			if p == "/uploads" {
@@ -345,7 +345,7 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	assert.Contains(t, commitRec.Body.String(), "ERR_OPERATION_FAILED")
 	assert.Contains(t, store.cleaned, uploadID, "staged chunks must be cleaned up after a failed commit")
 
-	// The upload is gone from the session — a second commit is a 404.
+	// The upload is gone from the session - a second commit is a 404.
 	commitBody := fmt.Sprintf(`{"uploadId":%q}`, uploadID)
 	retryReq := httptest.NewRequest(http.MethodPost, "/api/files/upload/commit", strings.NewReader(commitBody))
 	retryReq.Header.Set("Content-Type", "application/json")
@@ -442,7 +442,7 @@ func driveChunkedUpload(app http.Handler, sess sessionCtx, dest string, chunks [
 // TestConcurrentSessionUploadsNoRace fires many upload pipelines and a directory
 // read concurrently on ONE session. Before auth.Session got its mutex this raced
 // its bare maps and crashed the whole process with an unrecoverable "concurrent
-// map read and map write" fatal — which is why a browser reload never recovered.
+// map read and map write" fatal - which is why a browser reload never recovered.
 // It must now run clean under `go test -race`, and the per-session transfer lock
 // must keep transfers on the single control connection strictly serialized.
 func TestConcurrentSessionUploadsNoRace(t *testing.T) {

@@ -1,7 +1,7 @@
 import type { ApiEnvelope } from '~/types/api'
 import { ApiError } from '~/types/api'
 
-// Codes that mean the session/connection is gone — the UI switches to the
+// Codes that mean the session/connection is gone - the UI switches to the
 // blocking reconnect dialog instead of surfacing a raw error.
 const SESSION_LOST_CODES = new Set(['ERR_SESSION_NOT_FOUND', 'ERR_UNAUTHORIZED', 'ERR_CSRF_INVALID', 'ERR_CONNECTION_LOST'])
 
@@ -50,7 +50,7 @@ export function useApi() {
     catch (e) {
       if (e instanceof ApiError)
         throw e
-      // ofetch throws FetchError on non-2xx — the response body still carries
+      // ofetch throws FetchError on non-2xx - the response body still carries
       // our envelope, so surface the real code + message instead of a raw
       // "[GET] ... 500" string.
       const envelope = (e as { data?: ApiEnvelope<unknown> }).data

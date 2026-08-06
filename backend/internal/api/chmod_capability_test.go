@@ -94,7 +94,7 @@ func TestConnectDoesNotChmodWorkingDirectory(t *testing.T) {
 }
 
 // TestSSOConnectDoesNotChmodWorkingDirectory: the SSO path had the same probe,
-// so it needs its own guard — an SSO deployment connects on every page load.
+// so it needs its own guard - an SSO deployment connects on every page load.
 func TestSSOConnectDoesNotChmodWorkingDirectory(t *testing.T) {
 	spy := &chmodSpy{}
 	cfg := ssoEnabledConfig()

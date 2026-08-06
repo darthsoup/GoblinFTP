@@ -14,12 +14,12 @@ import (
 )
 
 // HostKeyPrompt describes an unverified SSH host key that the user must confirm
-// before the connection can proceed (trust-on-first-use), or — when Changed is
-// set — a key that differs from the pinned one and needs explicit re-trust.
+// before the connection can proceed (trust-on-first-use), or - when Changed is
+// set - a key that differs from the pinned one and needs explicit re-trust.
 type HostKeyPrompt struct {
 	Fingerprint    string // SHA256:…
 	KeyType        string // e.g. "ssh-ed25519"
-	Changed        bool   // a different key is pinned (server reinstalled — or MITM)
+	Changed        bool   // a different key is pinned (server reinstalled - or MITM)
 	OldFingerprint string // previously pinned key's fingerprint (set when Changed)
 }
 
@@ -30,7 +30,7 @@ var knownHostsMu sync.Mutex
 
 // errHostKeyHalt aborts the SSH handshake before authentication once the
 // callback has decided the key is unknown (captured for a prompt) or mismatched
-// — so the password is never sent to an unverified host.
+// - so the password is never sent to an unverified host.
 var errHostKeyHalt = errors.New("host key not verified")
 
 // hostKeyResult is populated as a side effect of the host-key callback so Dial
@@ -62,7 +62,7 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 		}
 		fp := ssh.FingerprintSHA256(key)
 		if len(keyErr.Want) > 0 {
-			// A different key is pinned (server reinstalled — or MITM). Replacing
+			// A different key is pinned (server reinstalled - or MITM). Replacing
 			// it needs the same explicit confirmation as first trust, against the
 			// new key's fingerprint.
 			if acceptFingerprint != "" && acceptFingerprint == fp {
@@ -123,7 +123,7 @@ func appendKnownHost(path, addr string, key ssh.PublicKey) error {
 
 // replaceKnownHost re-pins addr to key: existing plain entries for addr are
 // dropped (multi-host lines just lose the addr) and the new line is appended.
-// Hashed (|1|…) and marker (@…) lines can't be matched textually and are kept —
+// Hashed (|1|…) and marker (@…) lines can't be matched textually and are kept -
 // the app itself only ever writes plain Normalize(addr) entries.
 func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 	knownHostsMu.Lock()

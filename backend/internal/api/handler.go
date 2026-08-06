@@ -26,7 +26,7 @@ type DialRequest struct {
 }
 
 // HostKeyPrompt is returned (with a nil client and nil error) when an SFTP host
-// key must be confirmed by the user before the connection can proceed — either
+// key must be confirmed by the user before the connection can proceed - either
 // an unknown host (trust-on-first-use) or, when changed is set, a key that
 // differs from the pinned one and needs explicit re-trust.
 type HostKeyPrompt struct {
@@ -77,7 +77,7 @@ func WithMetrics(m *metrics.Metrics) HandlerOption {
 }
 
 // WithVersion sets the build version surfaced in /healthz and /api/system/vars
-// ("dev" when unset — release builds inject the tag via ldflags in main).
+// ("dev" when unset - release builds inject the tag via ldflags in main).
 func WithVersion(v string) HandlerOption {
 	return func(h *Handler) {
 		h.version = v
@@ -95,7 +95,7 @@ type Handler struct {
 	logger   *slog.Logger
 	metrics  *metrics.Metrics
 	version  string
-	// frontendLog rate-limits /api/log/frontend per client IP — deliberately
+	// frontendLog rate-limits /api/log/frontend per client IP - deliberately
 	// separate from the login throttle so report spam cannot lock out logins.
 	frontendLog *auth.Throttle
 	// themeHosts caches the custom-domain→tenant map from each theme's
@@ -128,7 +128,7 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 
 // connectionSnapshot is the scrape-time view of the session store: live
 // sessions, and those holding a transfer client grouped by protocol. The TTL
-// cleanup drops expired sessions without closing the underlying connection —
+// cleanup drops expired sessions without closing the underlying connection -
 // a session is deliberately the unit counted here.
 func (h *Handler) connectionSnapshot() metrics.Snapshot {
 	snap := metrics.Snapshot{ConnsByProtocol: map[string]int{"ftp": 0, "ftps": 0, "sftp": 0}}

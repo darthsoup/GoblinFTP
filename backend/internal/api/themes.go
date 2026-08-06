@@ -47,7 +47,7 @@ func normalizeHost(host string) string {
 // settings later. Unknown JSON fields are ignored.
 type themeManifest struct {
 	// Hosts are the exact FQDNs (case-insensitive) that select this tenant.
-	// Kept clean and out of the filesystem path — matched by string only.
+	// Kept clean and out of the filesystem path - matched by string only.
 	Hosts []string `json:"hosts"`
 }
 
@@ -149,7 +149,7 @@ func resolveTenantTheme(dataDir, tenant string) (cssURL string, logoURL, logoDar
 	if u := firstThemeAsset(dir, tenant, "logo", "png", "svg", "webp", "jpg"); u != "" {
 		logoURL = &u
 	}
-	// Optional dark-mode logo, swapped client-side by color mode — a light-mode
+	// Optional dark-mode logo, swapped client-side by color mode - a light-mode
 	// wordmark (dark ink) would otherwise vanish on the dark canvas.
 	if u := firstThemeAsset(dir, tenant, "logo-dark", "png", "svg", "webp", "jpg"); u != "" {
 		logoDarkURL = &u
@@ -183,7 +183,7 @@ var themeContentType = map[string]string{
 	".ico":  "image/x-icon",
 }
 
-// ServeTheme handles GET /themes/:tenant/:file — the per-tenant static assets.
+// ServeTheme handles GET /themes/:tenant/:file - the per-tenant static assets.
 // Public, no auth (branding is not secret). Both params are allowlisted and the
 // resolved path is asserted to stay within the themes root before serving.
 func (h *Handler) ServeTheme(c echo.Context) error {

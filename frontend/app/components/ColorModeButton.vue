@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Drop-in for <UColorModeButton>, but the flip animates via useColorModeTransition
-// (circular reveal from the cursor). ClientOnly avoids an SSR hydration mismatch —
+// (circular reveal from the cursor). ClientOnly avoids an SSR hydration mismatch -
 // the resolved mode isn't known until the client reads localStorage/system.
 const colorMode = useColorMode()
 const { t } = useI18n()

@@ -21,7 +21,7 @@ type Client struct {
 	conn *jftp.ServerConn
 }
 
-// clampSize converts a server-reported uint64 size defensively — a hostile
+// clampSize converts a server-reported uint64 size defensively - a hostile
 // server could otherwise overflow it into a negative int64.
 func clampSize(v uint64) int64 {
 	if v > math.MaxInt64 {
@@ -32,7 +32,7 @@ func clampSize(v uint64) int64 {
 
 // Dial connects and authenticates. passive controls passive/active mode. When
 // tlsConfig is non-nil the control connection is upgraded with explicit TLS
-// (AUTH TLS, RFC 4217) — i.e. FTPS.
+// (AUTH TLS, RFC 4217) - i.e. FTPS.
 func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client, error) {
 	opts := []jftp.DialOption{jftp.DialWithTimeout(10 * time.Second)}
 	if tlsConfig != nil {

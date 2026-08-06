@@ -50,7 +50,7 @@ const overall = computed(() => {
           {{ uploadStore.items.length }}
         </UBadge>
 
-        <!-- Aggregate progress — only while collapsed and something is uploading.
+        <!-- Aggregate progress - only while collapsed and something is uploading.
              Expanded, every row carries its own rate and ETA. -->
         <span v-if="collapsed && overall !== null" class="flex items-center gap-2 min-w-0 pl-1">
           <UProgress class="w-14 sm:w-28" size="sm" :model-value="overall" />

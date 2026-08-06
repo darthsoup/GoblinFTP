@@ -1,7 +1,7 @@
 // backend/internal/staging/s3_test.go
 //
 // White-box tests: S3Store logic against an in-memory fake of the s3API
-// interface — no network, no MinIO. Real-server integration tests live in
+// interface - no network, no MinIO. Real-server integration tests live in
 // s3_integration_test.go (gated by GFTP_TEST_S3_ENDPOINT).
 package staging
 
@@ -229,7 +229,7 @@ func TestS3AssembleReader_MissingChunk(t *testing.T) {
 
 	_, err = store.AssembleReader(t.Context(), meta.ID, 2)
 	assert.Error(t, err)
-	// The service responded (NotFound) — this is not an outage.
+	// The service responded (NotFound) - this is not an outage.
 	assert.False(t, errors.Is(err, ErrUnavailable))
 }
 

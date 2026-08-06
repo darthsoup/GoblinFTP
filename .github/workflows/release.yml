@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # flavor.latest defaults to auto: `latest` is added for semver tags but
-      # correctly skipped for prereleases (v1.0.0-rc1) — do not force it.
+      # correctly skipped for prereleases (v1.0.0-rc1) - do not force it.
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
@@ -79,7 +79,7 @@ jobs:
           fetch-depth: 0 # full history for git describe + the log range
 
       # Commits land directly on main, so GitHub's PR-based notes would be
-      # empty — group commit subjects by conventional prefix instead.
+      # empty - group commit subjects by conventional prefix instead.
       - name: Build commit-grouped release notes
         run: |
           set -euo pipefail

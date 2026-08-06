@@ -26,7 +26,7 @@ export const useAuthStore = defineStore('auth', () => {
   const pendingHostKey = ref<PendingHostKey | null>(null)
   let pendingReq: ConnectRequest | null = null
 
-  // Called on app mount — fetches system vars + auth status using $fetch directly
+  // Called on app mount - fetches system vars + auth status using $fetch directly
   // (no CSRF needed for these GET requests, and avoids circular dep with useApi)
   async function init() {
     try {
@@ -80,7 +80,7 @@ export const useAuthStore = defineStore('auth', () => {
     catch (e) {
       error.value = e instanceof ApiError ? e.message : 'SSO connect failed'
       // Don't leave the client poised to auto-retry a failed finalization on
-      // the next /login load — fall back to the manual form.
+      // the next /login load - fall back to the manual form.
       ssoAutoConnect.value = false
     }
     finally {
@@ -104,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       const data = res.data!
       if (data.hostKeyPrompt) {
-        // Unknown SFTP host key — pause and ask the user to confirm before we
+        // Unknown SFTP host key - pause and ask the user to confirm before we
         // mark the session connected. The modal resumes via confirmHostKey().
         pendingHostKey.value = { ...data.hostKeyPrompt, sso: false }
         pendingReq = req
@@ -125,7 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // User trusted the unknown host key — retry the same connect/SSO flow with the
+  // User trusted the unknown host key - retry the same connect/SSO flow with the
   // fingerprint so the backend pins it and proceeds.
   async function confirmHostKey() {
     const p = pendingHostKey.value
@@ -147,7 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // User declined the host key — abandon the pending connection.
+  // User declined the host key - abandon the pending connection.
   function cancelHostKey() {
     pendingHostKey.value = null
     pendingReq = null
@@ -176,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Session liveness ──────────────────────────────────────────────────────
 
-  // Flags the session as lost — the UI shows a blocking reconnect dialog.
+  // Flags the session as lost - the UI shows a blocking reconnect dialog.
   // Ignored while a user-initiated disconnect is in flight.
   function markSessionLost() {
     if (!connected.value || sessionLost.value || disconnecting)
@@ -185,7 +185,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Asks the backend to verify the FTP/SFTP connection with a real round
-  // trip (?ping=1). Network errors are ignored — a flaky poll must not kill
+  // trip (?ping=1). Network errors are ignored - a flaky poll must not kill
   // the session; only a definitive connected=false does.
   async function checkSession() {
     if (!connected.value || sessionLost.value)
