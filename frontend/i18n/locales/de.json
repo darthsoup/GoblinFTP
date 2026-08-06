@@ -10,9 +10,7 @@
     "connect": "Verbinden",
     "passive": "Passiv-Modus",
     "errorRequired": "Erforderlich",
-    "errorPort": "Ungültiger Port",
-    "sessionEndedTitle": "Sitzung beendet",
-    "sessionEndedMessage": "Öffnen Sie den Dateimanager erneut über Ihr Control-Panel, um eine neue Sitzung zu starten."
+    "errorPort": "Ungültiger Port"
   },
   "hostKey": {
     "title": "Hostschlüssel prüfen",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Seite nicht gefunden",
     "connectionFailed": "Verbindung fehlgeschlagen",
     "operationFailed": "Vorgang fehlgeschlagen"
   },

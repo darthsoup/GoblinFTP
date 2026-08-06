@@ -10,9 +10,7 @@
     "connect": "Koble til",
     "passive": "Passiv modus",
     "errorRequired": "Påkrevd",
-    "errorPort": "Ugyldig port",
-    "sessionEndedTitle": "Økten er avsluttet",
-    "sessionEndedMessage": "Åpne filbehandleren på nytt fra kontrollpanelet for å starte en ny økt."
+    "errorPort": "Ugyldig port"
   },
   "hostKey": {
     "title": "Bekreft vertsnøkkel",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Siden ble ikke funnet",
     "connectionFailed": "Tilkobling mislyktes",
     "operationFailed": "Operasjonen mislyktes"
   },

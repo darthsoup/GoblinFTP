@@ -10,9 +10,7 @@
     "connect": "Connect",
     "passive": "Passive mode",
     "errorRequired": "Required",
-    "errorPort": "Invalid port",
-    "sessionEndedTitle": "Session ended",
-    "sessionEndedMessage": "Reopen the file manager from your control panel to start a new session."
+    "errorPort": "Invalid port"
   },
   "hostKey": {
     "title": "Verify host key",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Page not found",
     "connectionFailed": "Connection failed",
     "operationFailed": "Operation failed"
   },

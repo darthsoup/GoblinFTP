@@ -10,9 +10,7 @@
     "connect": "Anslut",
     "passive": "Passivt läge",
     "errorRequired": "Obligatoriskt",
-    "errorPort": "Ogiltig port",
-    "sessionEndedTitle": "Sessionen avslutad",
-    "sessionEndedMessage": "Öppna filhanteraren igen från din kontrollpanel för att starta en ny session."
+    "errorPort": "Ogiltig port"
   },
   "hostKey": {
     "title": "Verifiera värdnyckel",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Sidan hittades inte",
     "connectionFailed": "Anslutningen misslyckades",
     "operationFailed": "Åtgärden misslyckades"
   },

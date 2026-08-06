@@ -10,9 +10,7 @@
     "connect": "Connetti",
     "passive": "Modalità passiva",
     "errorRequired": "Obbligatorio",
-    "errorPort": "Porta non valida",
-    "sessionEndedTitle": "Sessione terminata",
-    "sessionEndedMessage": "Riapri il gestore file dal tuo pannello di controllo per avviare una nuova sessione."
+    "errorPort": "Porta non valida"
   },
   "hostKey": {
     "title": "Verifica chiave host",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Pagina non trovata",
     "connectionFailed": "Connessione non riuscita",
     "operationFailed": "Operazione non riuscita"
   },

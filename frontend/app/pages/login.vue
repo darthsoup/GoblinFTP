@@ -10,6 +10,14 @@ const { t } = useI18n()
 // the form immediately (the session was already resolved by the auth plugin).
 const booting = ref(authStore.ssoAutoConnect)
 
+// With the login form disabled a signed-out visitor has no way in, so the route
+// is a dead end: present it as a missing page instead of a session explanation.
+const loginFormDisabled = computed(() => authStore.systemVars?.loginFormDisabled ?? false)
+watchEffect(() => {
+  if (!booting.value && !authStore.connected && loginFormDisabled.value)
+    showError(createError({ statusCode: 404, statusMessage: t('error.notFound') }))
+})
+
 // Maps a backend ?sso_error=<reason> redirect to a translated message.
 function ssoErrorMessage(reason: string): string {
   const key = `sso.error${reason.charAt(0).toUpperCase()}${reason.slice(1)}`

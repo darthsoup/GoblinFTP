@@ -109,10 +109,10 @@ The panel owns the credentials, so it also owns the login. See [SSO login links]
 
 Points specific to embedding:
 
-- **Mint a fresh link on every render.** SSO tokens are single-use. A browser reload re-requests the frame's `src`, and a reused token lands on `/login?sso_error=used` with "This SSO login link has already been used".
+- **Mint a fresh link on every render.** SSO tokens are single-use. A browser reload re-requests the frame's `src`, and a reused token lands on `/login?sso_error=used` with "This SSO login link has already been used" (a 404 when the login form is disabled, see below).
 - **Keep the TTL short.** Minutes, not hours. Replay protection is in-memory, so a token becomes replayable if the backend restarts before the token expires.
-- **Set `GFTP_LOGIN_FORM_DISABLED=true`.** When the session expires, GoblinFTP then shows a "reopen from your control panel" message instead of a credential form a panel user cannot fill in. Without it, an expired frame renders a dead end.
-- **Session lifetime is `GFTP_SESSION_TTL_SECONDS` (default 2 hours).** The panel has no way to observe expiry from outside the frame, so a long-lived panel page will eventually show the ended-session state. Reloading the frame with a fresh link recovers it.
+- **Set `GFTP_LOGIN_FORM_DISABLED=true`.** A signed-out visitor then gets a plain 404 instead of a credential form a panel user cannot fill in, and the preference controls (language, appearance, settings) go with it. Reopening the frame from the panel is the only way back in.
+- **Session lifetime is `GFTP_SESSION_TTL_SECONDS` (default 2 hours).** The panel has no way to observe expiry from outside the frame, so a long-lived panel page will eventually land on that 404. Reloading the frame with a fresh link recovers it.
 - **Per-tenant themes** ride along on the SSO token via `-tenant <name>`, so one instance can serve a differently branded frame per customer. See [Theming](theming.md).
 
 ## Chromeless mode

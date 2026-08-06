@@ -10,9 +10,7 @@
     "connect": "Ligar",
     "passive": "Modo passivo",
     "errorRequired": "Obrigatório",
-    "errorPort": "Porta inválida",
-    "sessionEndedTitle": "Sessão terminada",
-    "sessionEndedMessage": "Reabra o gestor de ficheiros a partir do seu painel de controlo para iniciar uma nova sessão."
+    "errorPort": "Porta inválida"
   },
   "hostKey": {
     "title": "Verificar chave do servidor",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Página não encontrada",
     "connectionFailed": "Falha na ligação",
     "operationFailed": "Falha na operação"
   },

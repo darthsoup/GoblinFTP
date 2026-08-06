@@ -10,9 +10,7 @@
     "connect": "Verbinden",
     "passive": "Passieve modus",
     "errorRequired": "Verplicht",
-    "errorPort": "Ongeldige poort",
-    "sessionEndedTitle": "Sessie beëindigd",
-    "sessionEndedMessage": "Open de bestandsbeheerder opnieuw vanuit je configuratiescherm om een nieuwe sessie te starten."
+    "errorPort": "Ongeldige poort"
   },
   "hostKey": {
     "title": "Hostsleutel verifiëren",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Pagina niet gevonden",
     "connectionFailed": "Verbinding mislukt",
     "operationFailed": "Bewerking mislukt"
   },

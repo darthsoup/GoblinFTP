@@ -10,9 +10,7 @@
     "connect": "Conectar",
     "passive": "Modo pasivo",
     "errorRequired": "Obligatorio",
-    "errorPort": "Puerto no válido",
-    "sessionEndedTitle": "Sesión finalizada",
-    "sessionEndedMessage": "Vuelve a abrir el gestor de archivos desde tu panel de control para iniciar una nueva sesión."
+    "errorPort": "Puerto no válido"
   },
   "hostKey": {
     "title": "Verificar clave del host",
@@ -238,6 +236,7 @@
     }
   },
   "error": {
+    "notFound": "Página no encontrada",
     "connectionFailed": "Error de conexión",
     "operationFailed": "Error en la operación"
   },
