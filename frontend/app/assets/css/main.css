@@ -88,15 +88,6 @@
   --gftp-scrollbar-thumb-hover: #94a3b8;
   --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 25%, transparent);
   --gftp-selection-fg: var(--color-goblin-950);
-
-  /* Faint goblin-green wash so the canvas reads as atmosphere, not a flat fill. */
-  --gftp-atmosphere:
-    radial-gradient(
-      120% 70% at 50% -10%,
-      color-mix(in oklab, var(--color-goblin-500) 5%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(80% 60% at 100% 100%, color-mix(in oklab, var(--color-goblin-700) 4%, transparent), transparent 55%);
 }
 
 /* ── Goblin Tech-Dark - neutral-gray surfaces, bright goblin green accent */
@@ -132,15 +123,6 @@
   --gftp-scrollbar-thumb-hover: #69686b;
   --gftp-selection-bg: color-mix(in oklab, var(--color-goblin-500) 30%, transparent);
   --gftp-selection-fg: var(--color-goblin-50);
-
-  /* Brighter wash in the dark canvas - the charcoal-navy tiers carry more green. */
-  --gftp-atmosphere:
-    radial-gradient(
-      120% 75% at 50% -10%,
-      color-mix(in oklab, var(--color-goblin-500) 9%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(90% 65% at 100% 100%, color-mix(in oklab, var(--color-goblin-600) 7%, transparent), transparent 55%);
 }
 
 /* Label-caps type style from the design system (11px / 700 / 0.05em) */
@@ -157,11 +139,6 @@ body {
   color: var(--ui-text);
   /* medium (500) is the default text weight, not regular (400) */
   font-weight: 500;
-}
-
-/* Decorative canvas wash (default layout); sits behind all content, never interactive. */
-.gftp-atmosphere {
-  background: var(--gftp-atmosphere);
 }
 
 /* Always-visible keyboard focus ring (mouse clicks don't trigger :focus-visible),
