@@ -1,129 +1,155 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in this repository.
 
-GoblinFTP is a self-hosted web-based FTP/SFTP client: Go + Echo v4 backend, Nuxt 4 SPA frontend, deployed as a single Docker container (Caddy + Go binary).
+GoblinFTP is a self-hosted, web-based FTP/FTPS/SFTP client. Go + Echo v4 backend, Nuxt 4 SPA frontend, shipped as a single Docker container (Caddy serves the SPA, the Go binary serves `/api`). It is stateless by design: no database, no user store, credentials live only in an in-memory session.
 
 ## Commands
 
-All commands run via [just](https://just.systems). `.env` is auto-loaded. The frontend lives in a pnpm workspace rooted at the repo root (single `pnpm-lock.yaml` + `pnpm-workspace.yaml` there): run `pnpm install` at the root; package scripts work both via `cd frontend && pnpm …` and `pnpm --filter goblinftp-frontend …`.
+Everything runs through [just](https://just.systems); `.env` is auto-loaded. The frontend is a pnpm workspace rooted at the repo root (one `pnpm-lock.yaml` + `pnpm-workspace.yaml` there): run `pnpm install` at the root. Scripts work both via `cd frontend && pnpm …` and `pnpm --filter goblinftp-frontend …`.
 
 ```bash
-just dev          # concurrently: frontend (3000) + backend (8080) hot-reload
-just dev-fe       # frontend only
-just dev-be       # backend only
+just dev          # frontend :3000 + backend :8080 with hot reload (dev-fe / dev-be for one half)
 
-just test                                         # all tests
-just test-be                                      # all Go tests
-cd backend && go test ./internal/api/...          # single Go package
-cd backend && go test -run TestConnectSuccess .   # single Go test
-just test-fe                                      # vitest (passWithNoTests)
-cd frontend && pnpm test:watch                    # vitest watch
+just test         # test-fe + test-be
+just test-be      # go test ./...
+just test-fe      # vitest run
+cd backend && go test ./internal/api/...                    # one Go package
+cd backend && go test -run TestConnectSuccess ./internal/api/...
+cd frontend && pnpm test:watch                              # vitest watch
 
 just lint         # eslint + nuxt typecheck + golangci-lint
-just fmt          # eslint --fix (frontend) + gofmt (backend)
-just i18n-check   # verify every locale file matches en.json (keys + placeholders)
-just ftp-up       # local FTP test server (ftpuser/ftppass on :21); ftp-down stops it
-just ftps-up      # local FTPS test server (explicit TLS, self-signed; ftpuser/ftppass on :2121); ftps-down stops it
-just sftp-up      # local SFTP test server (ftpuser/ftppass on :2222, writable /upload); sftp-down stops it
-just s3-up        # local MinIO for S3 chunk staging (minioadmin/minioadmin on :9000); s3-down stops it
-just sso-link     # generate a one-time SSO login link (examples/sso/ has Node + PHP generators)
-just build        # build-fe (nuxt generate) + build-be (go build → bin/gftp)
+just fmt          # eslint --fix + golangci-lint fmt
+just i18n-check   # locale key + placeholder parity against en.json
+just confgen      # regenerate .env.example and the docs config tables
+
+just ftp-up / ftps-up / sftp-up / s3-up   # local test servers, matching *-down stops them
+just sso-link     # one-time SSO login link (generators in examples/sso/)
+just build        # nuxt generate + go build → bin/gftp
 ```
 
-Running the app (e.g. for visual verification): prefer `just dev` for the full stack - but check first whether the dev servers are already up (the user often has them running: frontend :3000, backend :8080). If only one half is missing, start just that half (`just dev-fe` / `just dev-be`) to avoid port conflicts; never kill the user's processes. For a backend with special env (custom port, SSO, S3), run `cd backend && GFTP_PORT=… go run ./cmd/gftp` directly on a free port instead - include `GFTP_DATA_DIR=data` (or another writable path), otherwise SFTP connects fail trying to create `/app/data`.
+`just --list` covers the rest (docker stacks, `analyze-fe`, `clean`). Setup and integration-test walkthroughs live in `docs/development.md`.
 
-## Architecture
+Running the app for a visual check: prefer `just dev`, but first look whether the user already has :3000 / :8080 running and start only the missing half. Never kill their processes. For a backend that needs special env, run `cd backend && GFTP_DATA_DIR=data GFTP_PORT=… go run ./cmd/gftp` on a free port. Without a writable `GFTP_DATA_DIR`, SFTP connects fail trying to create `/app/data`.
+
+## Layout
 
 ```
 backend/
   cmd/gftp/main.go        # entry: config load → newApp() → e.Start()
   cmd/gftp-sso-link/      # CLI: generate one-time SSO login links (reuses internal/sso)
+  cmd/gftp-confgen/       # CLI: regenerate .env.example + doc config tables from the registry
   internal/
-    api/                  # all HTTP handlers + routing
-    auth/                 # in-memory session store (TTL) + CSRF token gen
-    config/               # env config: key registry + loader + artifact generator
+    api/                  # all HTTP handlers, middleware, routing
+    auth/                 # in-memory session store (TTL), CSRF tokens, login throttle
+    config/               # env config: key registry, loader, artifact generator (gen/)
     errors/               # GFTPError with machine-readable codes
     ftp/                  # jlaffaye/ftp adapter   → implements transfer.Client
-    logging/              # slog Init (stdout + optional lumberjack file sink) + SafeLogAttrs redaction
+    logging/              # slog Init (stdout + optional lumberjack file sink), SafeLogAttrs redaction
     metrics/              # Prometheus registry, collectors, CountingReader (opt-in /metrics listener)
     sftp/                 # pkg/sftp adapter       → implements transfer.Client
     sentry/               # custom Echo v4 Sentry middleware (sentry-go/echo is v5-only)
     sso/                  # SSO token validation + one-time-use set
-    staging/              # ChunkStore interface: local-disk (default) + optional S3 chunk staging
-    transfer/             # Client interface, chunked upload engine, download tokens
+    staging/              # ChunkStore interface: local disk (default) or S3 chunk staging
+    transfer/             # Client interface, chunked upload engine, download tokens, testutil.MockClient
 frontend/app/
-  pages/index.vue         # single page - all state via Pinia stores
-  stores/                 # auth, files, editor, upload, modal (Composition API style)
-  composables/useApi.ts   # wraps $fetch, injects CSRF header, unwraps API envelope
-  types/api.ts            # TS interfaces mirroring backend JSON
+  pages/                  # login.vue (boot + SSO landing), index.vue (workspace), edit.vue (editor)
+  middleware/auth.global.ts  # redirects on authStore.connected
+  layouts/default.vue     # app chrome plus every overlay/modal mount point
+  components/             # Auth, Editor, FileBrowser, Layout, Modals, Upload (pathPrefix: false)
+  stores/                 # auth, files, editor, upload, modal, settings (Composition API style)
+  composables/useApi.ts   # wraps $fetch, injects CSRF, unwraps the API envelope
+  utils/, types/api.ts    # pure helpers; TS interfaces mirroring backend JSON
+  tests/                  # vitest specs for stores, utils, components
 ```
 
 ### Request lifecycle
 
-1. Browser → (dev: Vite proxy `/api/*` | prod: Caddy) → Go Echo backend.
-2. All responses use the `Response` envelope: `{ success, data?, errors?: [{code, message}] }`.
-3. CSRF: backend returns a token in `data.csrfToken` on connect; frontend sends it as `X-CSRF-Token` on every mutating request via `useApi`.
-4. Session in `gftp_session` cookie (HTTP-only); `transfer.Client` lives in `session.Data["client"]`.
-5. FTP and SFTP share handler code via the `transfer.Client` interface.
+1. Browser → (dev: Vite proxy `/api/*`, prod: Caddy) → Go Echo backend.
+2. Every response uses the `Response` envelope: `{ success, data?, errors?: [{code, message}] }`.
+3. CSRF: the backend returns a token in `data.csrfToken` on connect; the frontend sends it as `X-CSRF-Token` on every mutating request via `useApi`.
+4. Session lives in the `gftp_session` cookie (HTTP-only); the `transfer.Client` sits in `session.Data["client"]`.
+5. FTP and SFTP share all handler code through the `transfer.Client` interface.
 
-### Code style
+## Code style
+
+Two rules matter more than the rest. Both apply to backend and frontend alike.
+
+### 1. Comments: few, short, and only where they earn it
 
 Keep comments to a minimum. Prefer self-explanatory names and structure. Comment only what is genuinely relevant and not visible in the code itself: a tricky invariant, a workaround, a gotcha, the reason behind a surprising choice.
 
-- **One to two lines per comment.** If an explanation needs more, either the code needs restructuring or the text belongs in `docs/`.
-- **No header banners, no restating what the code does, no step-by-step narration** of an obvious flow. Deleting a comment should lose information, otherwise it should not exist.
-- **Never use em dashes (-) or en dashes (–) as punctuation**, neither in code comments nor in documentation, README, or commit messages. Rephrase with periods, commas, colons, or parentheses.
+- **One to two lines per comment, hard cap.** If an explanation needs more, either the code needs restructuring or the text belongs in `docs/`.
+- **No header banners, no restating what the code does, no step-by-step narration** of an obvious flow.
+- Deleting a comment should lose information. Otherwise it should not exist.
+- Write the "why", never the "what". `// increment the counter` above `count++` is noise.
+- The same applies to comments in generated examples, tests, and config files.
 
-### Backend conventions
+### 2. Never use em dashes or en dashes as punctuation
 
-- **Never** write raw `c.JSON` - always `api.OK(c, data)` or `api.Fail(c, gftperrors.New(errors.ErrX, "msg"))`. `GFTPError` codes map to HTTP status via `errors.go:HTTPStatus()`.
-- **Error codes**: use constants from `internal/errors/errors.go` - never invent string literals.
-- **API tests** live in `package api_test` (black-box). Use `newTestApp(t, defaultTestConfig())` + `testutil.MockClient` to avoid real FTP/SFTP. Inject the mock with the `WithDial(...)` handler option.
-- `transfer.Client` is retrieved from session via `clientFromContext(c)` → `(Client, bool)`.
-- Upload chunk staging is abstracted behind `staging.ChunkStore` (local disk default, S3 via `GFTP_S3_ENABLED`); inject mocks with the `WithChunkStore(...)` handler option. The aws-sdk-go-v2 dependency lives only in `internal/staging`.
-- `internal/ftp` and `internal/sftp` are integration-level - real-server tests are gated by `GFTP_TEST_FTP_HOST` / `GFTP_TEST_FTPS_HOST` / `GFTP_TEST_SFTP_HOST` (start servers with `just ftp-up` / `ftps-up` / `sftp-up`). S3 integration tests in `internal/staging` are gated by `GFTP_TEST_S3_ENDPOINT` (requires `just s3-up`).
+The characters `—` (em dash, U+2014) and `–` (en dash, U+2013) must not appear as punctuation anywhere in this repo: code comments, documentation, README, i18n strings, commit messages, PR descriptions.
+
+Rephrase with a period, comma, colon, semicolon, or parentheses instead. A plain hyphen in a compound word (`right-to-left`) or a CLI flag (`--fix`) is fine; what is banned is the dash used to join clauses.
+
+## Backend conventions
+
+- **Never** write raw `c.JSON`. Always `OK(c, data)` or `Fail(c, gftperrors.New(gftperrors.ErrX, "msg"))` from `api/response.go`. Codes map to HTTP status via `GFTPError.HTTPStatus()`.
+- **Error codes** come from constants in `internal/errors/errors.go`. Never invent string literals.
+- Raw FTP/SFTP errors never reach the client: `errclass.go:classify()` maps them to a stable code plus a safe message, and the original is attached via `WithCause` for logs only.
+- `transfer.Client` is read from the session with `clientFromContext(c)` → `(Client, bool)`.
+- Chunk staging sits behind `staging.ChunkStore` (local disk default, S3 via `GFTP_S3_ENABLED`). The aws-sdk-go-v2 dependency lives only in `internal/staging`.
+- **API tests** are black-box (`package api_test`): `newTestApp(t, defaultTestConfig(), opts...)` plus `transfer/testutil.MockClient`. Handler options inject test doubles: `WithDial`, `WithChunkStore`, `WithLogger`, `WithMetrics`, `WithVersion`.
+- `internal/ftp` and `internal/sftp` are integration-level. Real-server tests are gated by `GFTP_TEST_FTP_HOST` / `GFTP_TEST_FTPS_HOST` / `GFTP_TEST_SFTP_HOST`, S3 tests in `internal/staging` by `GFTP_TEST_S3_ENDPOINT`. Start the servers with the matching `just *-up` recipe.
 - `internal/sentry` is intentionally not unit-tested.
-- **Lint**: `just lint-be` runs golangci-lint v2 (config: `backend/.golangci.yml`; install: `brew install golangci-lint`; CI pins the same version). `nolint` directives must be specific and carry an explanation (`//nolint:gosec // G101: …`) - nolintlint enforces this. `just fmt` formats the backend via `golangci-lint fmt` (gofmt + goimports with local-prefix grouping).
-- **Metrics**: `internal/metrics` owns the Prometheus registry; the `Metrics` instance lives on `Handler` (default-constructed in `newHandler`, override via `WithMetrics(...)` - main.go shares its registry with the dedicated `/metrics` listener, served only when `GFTP_METRICS_ENABLED=true`, never on the main echo). Gauges (`sessions_active`, `connections_active{protocol}`) are scrape-time snapshots of `auth.Store` via a custom collector (`SetConnectionSnapshot`) - no inc/dec drift. Counters increment at call sites: connect results in `connect.go`/`sso.go`, transfer bytes via `metrics.CountingReader` wraps in `download.go`/`archive.go`/`upload.go` (chunk staging writes are NOT counted - only bytes to/from the FTP/SFTP server), frontend reports in `frontendlog.go`. `metricsMiddleware` sits between `RequestID` and `requestLogger` and must NOT call `c.Error` (the logger owns that); it labels by `c.Path()` route template (`"unmatched"` when empty) and skips `/healthz`.
-- **Logging**: one structured access line per request via `requestLogger` middleware (`api/middleware_logging.go`). `Fail()` stashes the GFTPError in the echo context (`LoggedErrorKey`) for that line - handlers return nil after Fail, so the error can't travel via the return value. Attach root causes with `gftperrors.New(...).WithCause(err)` (logged as `cause`, never serialized into the envelope). Never log passwords/tokens/full session IDs (8-char prefix only; dynamic attrs go through `logging.SafeLogAttrs`). Tests assert log output via `newTestAppWithLog(t, cfg, &buf)` + `logLines`. Browser errors arrive at `POST /api/log/frontend` (public, CSRF-exempt, per-IP-throttled; SPA side: `plugins/error-reporter.client.ts`, gated by systemVars `frontendLogEnabled`). Streaming endpoints log the committed status - a mid-stream failure still shows 200.
+- **Lint**: golangci-lint v2, config in `backend/.golangci.yml`, version pinned in `.github/workflows/checks.yml` (keep the local `brew install golangci-lint` in sync). `nolint` directives must be specific and carry a reason (`//nolint:gosec // G101: …`); nolintlint enforces it.
+- **Logging** (details in `docs/logging.md`): one structured access line per request from `requestLogger` (`api/middleware_logging.go`). `Fail()` stashes the GFTPError in the echo context (`LoggedErrorKey`) for that line, because handlers return nil after Fail. Never log passwords, tokens, or full session IDs (8-char prefix only; dynamic attrs go through `logging.SafeLogAttrs`). Tests assert output via `newTestAppWithLog(t, cfg, &buf)` + `logLines`. Streaming endpoints log the committed status, so a mid-stream failure still shows 200.
+- **Metrics** (details in `docs/metrics.md`): `internal/metrics` owns the registry; the instance hangs off `Handler`. The `/metrics` listener is separate and only served when `GFTP_METRICS_ENABLED=true`, never on the main echo. Gauges are scrape-time snapshots of `auth.Store` via a custom collector, so there is no inc/dec drift; counters increment at call sites (`connect.go`, `sso.go`, `download.go`, `archive.go`, `upload.go`, `frontendlog.go`). Chunk staging writes are not counted, only bytes to and from the FTP/SFTP server. `metricsMiddleware` sits between `RequestID` and `requestLogger` and must not call `c.Error` (the logger owns that); it labels by the `c.Path()` route template and skips `/healthz`.
 
-### Frontend conventions
+## Frontend conventions
 
-- **Design system**: dual-theme - "Goblin Tech-Dark" (`DESIGN.md`) and "Goblin Tech-Light" (`DESIGN-Gobin-Tech-Light.md`), switched via colorMode (settings modal: Light/Dark/Automatic, default Automatic). Nuxt UI tokens are overridden in `app/assets/css/main.css`: light tokens on `:root, .light`, dark on `.dark`; primary alias is the custom `goblin` green scale (light uses goblin-700, dark goblin-400); the `neutral` scale is overridden to charcoal-navy. Style with token utilities (`bg-default/muted/elevated/accented`, `text-muted/dimmed/highlighted`, `border-default/accented`) - never `gray-*` or `dark:` variants; the tokens flip per mode, components stay mode-agnostic. Mode-specific values that tokens don't cover live in `--gftp-*` custom properties (popover, editor-bg, scrollbar, selection).
-- Fonts are self-hosted via `@fontsource-variable` (Plus Jakarta Sans = `font-sans`, JetBrains Mono = `font-mono`). `font-sans` is the default for everything - UI chrome *and* data (paths, sizes, dates, permissions, breadcrumbs, status bar). Mono is reserved for code only: the CodeMirror editor (set via explicit `'JetBrains Mono Variable'` in `EditorPane.vue`'s `.cm-scroller` theme) and the `<pre>` file-content preview in `FilePreviewPanel.vue`. Don't add `font-mono` to data/UI surfaces. `label-caps` utility (defined in main.css) for column headers / field labels.
-- Icons: `i-lucide-*` (plus `i-simple-icons-*` for file types in `FileRow.vue`) - both icon sets installed locally; do not use heroicons.
-- All API calls go through `useApi()` - never `$fetch` directly, except `authStore.init()` / `authStore.connect()` which intentionally bypass CSRF.
-- **VueUse** is available via `@vueuse/nuxt` (auto-imported `use*` composables - `useMediaQuery`, `useEventListener`, `useIntervalFn`, …); prefer it over hand-rolled listeners/timers/media queries. The module is listed first in `nuxt.config` so Nuxt's `useColorMode` (from `@nuxtjs/color-mode`) wins the name collision - don't reorder it.
-- **White-label branding**: `useBranding()` exposes `appName`/`logoUrl`/`hideAttribution` (from `systemVars.branding`, with `'GoblinFTP'`/green fallbacks); the runtime accent color is injected by `plugins/auth.client.ts` via `utils/branding.ts` `applyBrandColor()` (overrides the `--color-goblin-*` scale). `branding.primaryTextColor` is applied in the same plugin as an inline `--gftp-primary-text` - the token that **only** primary solid surfaces read (via the `.bg-primary.text-inverted { color: var(--gftp-primary-text, var(--ui-text-inverted)) }` rule in `main.css`), so a light accent can pair with dark button text **without** dragging the shared `--ui-text-inverted` dark on inverted surfaces (tooltips). Both accent + button-text injection are skipped when a tenant `themeCssUrl` is present (the theme's `config.css` owns those tokens). When a logo is set, the app-name text is hidden (logo-only) in `LoginForm.vue`/`AppHeader.vue`, and the logo is height-constrained (`h-*`/`w-auto`), not a fixed square. `useBranding().logoUrl` is colorMode-aware: it returns `branding.logoDarkUrl` in dark mode when set (tenant `logo-dark.*` or `GFTP_BRANDING_LOGO_DARK_URL`), so a dark-ink wordmark doesn't vanish on the dark canvas. A logo doubles as the favicon when none is set. Document title/favicon are set with `useHead` in that plugin. New brand surfaces must read `useBranding()`, never hardcode "GoblinFTP".
-- Components use `pathPrefix: false` - `Auth/LoginForm.vue` is `<LoginForm />`, not `<AuthLoginForm />`.
-- Pinia stores use **Composition API style**: `defineStore('id', () => { ... })`.
-- End-user preferences are browser-side only (the backend never reads them): `stores/settings.ts` persists to localStorage `gftp_settings` (incl. language); theme via colorMode localStorage. Preferences with an admin default (dotfiles via `GFTP_UI_SHOW_DOT_FILES`, language via `GFTP_LANGUAGE`) follow "user override wins, otherwise admin default from systemVars" - the user value stays `null` until explicitly changed.
-- `FileInfo` JSON fields: `name`, `size`, `isDir`, `modified` (RFC3339), `mode` (`"drwxr-xr-x"`). Backend's internal `transfer.FileInfo` uses different field names.
-- TypeScript strict mode incl. `noUncheckedIndexedAccess` - index access is `T | undefined`; use `!` after a length guard or optional chaining.
-- `UProgress` uses `:model-value`, not `:value`.
-- i18n: `en.json` is the source of truth; `just i18n-check` (`frontend/scripts/i18n-check.mjs`, gated in CI via `checks.yml`) verifies every locale file for recursive key parity + identical `{…}` placeholders. 13 locales ship: en, de, cs, da, es, fi, fr, it, nb-NO, nl, pt, sk, sv. Locale codes are enumerated in three frontend places only - `nuxt.config.ts` (`i18n.locales`), `stores/settings.ts` (`AppLanguage` + the exported `LANGUAGES`/`isAppLanguage`, reused by `plugins/auth.client.ts`), and `Layout/LanguageSelect.vue` (objects imported from `@nuxt/ui/locale`). Norwegian's code is `nb-NO` (matching `@nuxt/ui`, not `no`); Danish's picker name is overridden to its endonym "Dansk". The backend has no language allow-list - it passes `GFTP_LANGUAGE` straight through.
+- **Design system**: dual theme (dark and light) switched by colorMode, default Automatic. Nuxt UI tokens are overridden in `app/assets/css/main.css` (light on `:root, .light`, dark on `.dark`); `primary` aliases the custom `goblin` green scale, `neutral` is a charcoal navy. Style with token utilities (`bg-default/muted/elevated/accented`, `text-muted/dimmed/highlighted`, `border-default/accented`), never `gray-*` or `dark:` variants, so components stay mode-agnostic. Values tokens cannot express live in `--gftp-*` custom properties (input, popover, editor-bg, scrollbar, selection, primary-text). `label-caps` is a custom utility for column headers and field labels.
+- **Component sizing** is centralized in `app/app.config.ts`: `lg` is the default size for buttons and every input, meaning 48px tall controls with 14px text. Reach for `size="sm"` only on dense surfaces such as the file toolbar. Change the shared look there, not per component.
+- Fonts are self-hosted via `@fontsource-variable`: Plus Jakarta Sans (`font-sans`) is the default for everything, UI chrome and data alike (paths, sizes, dates, permissions, breadcrumbs, status bar). JetBrains Mono is reserved for code: the CodeMirror editor and the `<pre>` preview in `FilePreviewPanel.vue`. Do not add `font-mono` to data or UI surfaces.
+- Icons: `i-lucide-*`, plus `i-simple-icons-*` for file types in `FileRow.vue`. Both sets are installed locally. Do not use heroicons.
+- All API calls go through `useApi()`. The only intentional exceptions are `authStore.init()` / `connect()` / the status ping, which hit public, CSRF-exempt endpoints.
+- **VueUse** is available via `@vueuse/nuxt` (auto-imported `use*` composables). Prefer it over hand-rolled listeners, timers, and media queries. The module is listed first in `nuxt.config.ts` so `@nuxt/ui`'s `useColorMode` wins the name collision. Do not reorder it.
+- **White-label branding**: `useBranding()` exposes `appName` / `logoUrl` / `hideAttribution` from `systemVars.branding`. `plugins/auth.client.ts` injects the runtime accent (`utils/branding.ts` `applyBrandColor()`), the `--gftp-primary-text` button-text token, the document title, and the favicon; both color injections are skipped when a tenant `themeCssUrl` is present, since that theme's `config.css` owns those tokens. `logoUrl` is colorMode-aware and returns `logoDarkUrl` in dark mode when set. New brand surfaces must read `useBranding()` and never hardcode "GoblinFTP". Per-tenant themes are documented in `docs/theming.md`.
+- Pinia stores use **Composition API style**: `defineStore('id', () => { … })`.
+- End-user preferences are browser-side only, the backend never reads them: `stores/settings.ts` persists to localStorage `gftp_settings`, theme via colorMode. Preferences with an admin default (dotfiles, language) follow "user override wins, otherwise the systemVars default", so the user value stays `null` until explicitly changed.
+- `FileInfo` JSON fields are `name`, `size`, `isDir`, `modified` (RFC3339), `mode` (`"drwxr-xr-x"`). The backend's internal `transfer.FileInfo` uses different field names.
+- TypeScript strict mode including `noUncheckedIndexedAccess`: index access is `T | undefined`, so use `!` after a length guard or optional chaining.
+- `UProgress` takes `:model-value`, not `:value`.
+- i18n: `en.json` is the source of truth and `just i18n-check` enforces recursive key parity plus identical `{…}` placeholders (gated in CI). See `docs/i18n.md` before adding or renaming a locale.
 
 ### Adding a new modal
 
 1. Add the type to `ModalType` in `stores/modal.ts`.
-2. Create `components/Modals/YourModal.vue` using `<UModal :open="modalStore.active === 'yourType'" @update:open="modalStore.close()">`.
-3. Mount `<YourModal />` in `layouts/default.vue` (alongside the other overlays), not in `pages/index.vue` - a modal mounted on the page never renders on `/edit`.
-4. Add i18n keys to `i18n/locales/en.json` (the source of truth), then add the same keys to every other locale file so `just i18n-check` stays green (translate the values; `de.json` is the reference for tone).
+2. Create `components/Modals/YourModal.vue` with `<UModal :open="modalStore.active === 'yourType'" @update:open="modalStore.close()">`.
+3. Mount `<YourModal />` in `layouts/default.vue` alongside the other overlays, not in `pages/index.vue`. A modal mounted on the page never renders on `/edit`.
+4. Add the keys to `i18n/locales/en.json`, then to every other locale file so `just i18n-check` stays green. `de.json` is the reference for tone.
+
+### Adding a config key
+
+Define it once in `backend/internal/config/registry.go`. The loader, `.env.example`, and the docs tables are all generated from that registry. Run `just confgen` afterwards; backend tests fail on drift.
 
 ## Configuration
 
-Backend config is env-only, loaded once at startup by `backend/internal/config` - a declarative key registry (`registry.go`) drives the loader, the generated `.env.example`, and the doc tables (`just confgen` regenerates, CI gates on drift). That package is the source of truth for every key, default, and validation rule; the operator-facing reference is `docs/configuration.md`. Do not enumerate config keys here - they drift. There is no `settings.json`; a mounted one fails startup with a migration hint.
+Backend config is env-only and loaded once at startup. `backend/internal/config` is the source of truth for every key, default, and validation rule; the operator-facing reference is `docs/configuration.md`. Do not enumerate config keys here, they drift. There is no `settings.json`; a mounted one fails startup with a migration hint.
 
 Gotchas worth knowing beyond the reference:
 
-- `GFTP_DATA_DIR` (default `/app/data`, a container path): writable dir for SFTP `known_hosts`, local chunk staging, themes. `just dev-be` defaults it to `data` and resolves relative values against the **repo root**, so the dev data dir is `<repo>/data`.
-- `GFTP_FRAME_ANCESTORS` is read by Go **and** Caddy (which serves the framed `index.html`). Setting it flips the session cookie to `SameSite=None; Secure; Partitioned` instance-wide (see `api/cookie.go`).
+- `GFTP_DATA_DIR` (default `/app/data`, a container path) is the writable dir for SFTP `known_hosts`, local chunk staging, and themes. `just dev-be` defaults it to `data` and resolves relative values against the repo root, so the dev data dir is `<repo>/data`.
+- `GFTP_FRAME_ANCESTORS` is read by Go, by Caddy (which serves the framed `index.html`), and by `nuxt.config.ts` route rules for dev parity. Setting it flips the session cookie to `SameSite=None; Secure; Partitioned` instance-wide (see `api/cookie.go`).
+- `GFTP_ACCESS_TRUSTED_PROXIES` decides whether forwarded headers are trusted at all (`api/proxy.go`). Unset means the direct peer is the client, which is what throttling and logging then key on.
 - `docker-compose.yml` passes `.env` into the container via `env_file`, so any `GFTP_*` var set there is live configuration under compose.
-- `NUXT_PUBLIC_SENTRY_DSN` is the one build-time variable: it is baked into the static SPA at `nuxt generate`, unlike all `GFTP_*` vars, which are read at process start.
+- `NUXT_PUBLIC_SENTRY_DSN` is the one build-time variable, baked into the static SPA at `nuxt generate`. All `GFTP_*` vars are read at process start.
 
-The FTP/FTPS/SFTP test containers and MinIO are on docker compose profile `testing` - only the `just ftp-up/ftps-up/sftp-up/s3-up` (and matching `-down`) recipes activate them. The MinIO test server's root credentials are `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`/`MINIO_TEST_BUCKET` (deliberately not the app-side `GFTP_S3_*` names).
+The FTP/FTPS/SFTP test containers and MinIO sit on the docker compose profile `testing`, activated only by the `just ftp-up` / `ftps-up` / `sftp-up` / `s3-up` recipes. MinIO's root credentials are `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` / `MINIO_TEST_BUCKET`, deliberately not the app-side `GFTP_S3_*` names.
 
 ## Release
 
-Push a `v*` tag (`git tag v0.2.0 && git push --tags`) → `.github/workflows/release.yml` runs the shared gates (`checks.yml`, also used by ci.yml), publishes a multi-arch (amd64+arm64) image to `ghcr.io/darthsoup/goblinftp` with semver tags + `latest`, and creates a GitHub Release with commit-grouped notes (feat/fix/chore - commits land directly on main, so PR-based auto-notes alone would be empty). The tag is injected via the `VERSION` build-arg → `main.version` → startup log, `/healthz`, `/api/system/vars` (settings-modal footer), and the default `GFTP_SENTRY_RELEASE`. `latest` tracks releases, not `main`; branch builds report version `dev`. Prerelease tags (`v1.0.0-rc1`) skip `latest` and are marked prerelease.
+Push a `v*` tag (`git tag v0.2.0 && git push --tags`). `.github/workflows/release.yml` runs the shared gates in `checks.yml` (also used by `ci.yml`), publishes a multi-arch (amd64 + arm64) image to `ghcr.io/darthsoup/goblinftp` with semver tags plus `latest`, and creates a GitHub Release with commit-grouped notes (feat/fix/chore, since commits land directly on main and PR-based auto-notes would be empty). The tag flows through the `VERSION` build-arg into `main.version`, and from there into the startup log, `/healthz`, `/api/system/vars` (settings-modal footer), and the default `GFTP_SENTRY_RELEASE`. `latest` tracks releases, not `main`; branch builds report version `dev`. Prerelease tags such as `v1.0.0-rc1` skip `latest` and are marked prerelease.
+
+## Docs map
+
+`docs/configuration.md` (every env key), `development.md` (setup, integration tests), `installation.md`, `system-requirements.md`, `embedding.md` (iframe), `theming.md` (branding and tenant themes), `i18n.md`, `logging.md`, `metrics.md`, `s3-staging.md`.
