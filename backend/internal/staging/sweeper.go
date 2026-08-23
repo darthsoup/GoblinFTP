@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	gftpsentry "github.com/darthsoup/goblinftp/internal/sentry"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
@@ -62,6 +63,7 @@ func (s *Sweeper) Close() {
 }
 
 func (s *Sweeper) run() {
+	defer gftpsentry.Recover()
 	s.Sweep()
 	ticker := time.NewTicker(sweepInterval)
 	defer ticker.Stop()

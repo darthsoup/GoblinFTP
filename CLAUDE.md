@@ -152,4 +152,4 @@ Push a `v*` tag (`git tag v0.2.0 && git push --tags`). `.github/workflows/releas
 
 ## Docs map
 
-`docs/configuration.md` (every env key), `development.md` (setup, integration tests), `installation.md`, `system-requirements.md`, `embedding.md` (iframe), `theming.md` (branding and tenant themes), `i18n.md`, `logging.md`, `metrics.md`, `s3-staging.md`.
+`docs/configuration.md` (every env key), `development.md` (setup, integration tests), `installation.md`, `system-requirements.md`, `embedding.md` (iframe), `theming.md` (branding and tenant themes), `i18n.md`, `logging.md`, `metrics.md`, `sentry.md` (error tracking), `s3-staging.md`.

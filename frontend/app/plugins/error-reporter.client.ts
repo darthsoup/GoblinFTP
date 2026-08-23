@@ -8,12 +8,24 @@ export default defineNuxtPlugin((nuxtApp) => {
   const seen = new Set<string>()
   let sent = 0
 
+  // The SDK's own GlobalHandlers integration is disabled (plugins/sentry.client.ts),
+  // so this is the only path from a browser error to Sentry. The returned event ID
+  // tells the backend the error is already filed and its relay should stand down.
+  async function captureInSentry(err: unknown): Promise<string | undefined> {
+    const dsn = useRuntimeConfig().public.sentryDsn as string | undefined
+    if (!dsn)
+      return undefined
+    try {
+      const Sentry = await import('@sentry/nuxt')
+      return Sentry.captureException(err) || undefined
+    }
+    catch {
+      return undefined
+    }
+  }
+
   function report(kind: FrontendErrorKind, err: unknown, source?: string) {
     try {
-      // Lazy store access: errors can fire before app state is ready.
-      const auth = useAuthStore()
-      if (!auth.systemVars?.frontendLogEnabled)
-        return
       if (sent >= MAX_REPORTS_PER_PAGE)
         return
 
@@ -24,7 +36,22 @@ export default defineNuxtPlugin((nuxtApp) => {
       seen.add(key)
       sent++
 
-      $fetch('/api/log/frontend', { method: 'POST', body: payload, retry: 0 }).catch(() => {})
+      // Lazy store access: errors can fire before app state is ready. Sentry is
+      // independent of the backend relay, so an admin who turned GFTP_LOG_FRONTEND
+      // off but configured a browser DSN still gets their browser errors.
+      const forwardToBackend = useAuthStore().systemVars?.frontendLogEnabled ?? false
+
+      captureInSentry(err)
+        .then((sentryEventId) => {
+          if (!forwardToBackend)
+            return
+          return $fetch('/api/log/frontend', {
+            method: 'POST',
+            body: { ...payload, sentryEventId },
+            retry: 0,
+          })
+        })
+        .catch(() => {})
     }
     catch {
       // The reporter must never throw.

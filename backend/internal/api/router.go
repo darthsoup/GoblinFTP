@@ -12,6 +12,7 @@ import (
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	gftpsentry "github.com/darthsoup/goblinftp/internal/sentry"
 )
 
 const (
@@ -40,9 +41,12 @@ func chunkBodyLimit(cfg *config.Config) string {
 func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts ...HandlerOption) *Handler {
 	h := newHandler(cfg, store, thr, opts)
 
-	// Order matters: RequestID before the logger (the line carries the ID), metrics
-	// outside the logger (its c.Error commits first), the logger above Recover.
+	// Order matters: RequestID before the logger (the line carries the ID) and
+	// before Sentry (the event carries it), Sentry outside the logger (whose
+	// c.Error commits the status Sentry reads), metrics outside the logger too
+	// (its c.Error commits first), the logger above Recover.
 	e.Use(middleware.RequestID())
+	e.Use(gftpsentry.Middleware(sentryMiddlewareConfig(cfg)))
 	e.Use(metricsMiddleware(h.metrics))
 	e.Use(requestLogger(h.logger))
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -53,6 +57,9 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 				slog.String("error", err.Error()),
 				slog.String("stack", string(stack)),
 			)
+			// Recover calls c.Error and leaves the return nil, so the panic never
+			// reaches an outer defer. This hook is the only place Sentry can see it.
+			gftpsentry.CapturePanic(c, err, stack)
 			return err
 		},
 	}))

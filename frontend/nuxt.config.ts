@@ -34,11 +34,20 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
   ],
 
+  // All four are baked into the static SPA at `nuxt generate`, unlike the GFTP_*
+  // vars the backend reads at process start.
   runtimeConfig: {
     public: {
       sentryDsn: process.env.NUXT_PUBLIC_SENTRY_DSN ?? '',
+      sentryEnvironment: process.env.NUXT_PUBLIC_SENTRY_ENVIRONMENT ?? '',
+      sentryRelease: process.env.NUXT_PUBLIC_SENTRY_RELEASE ?? process.env.VERSION ?? '',
+      sentryTracesSampleRate: process.env.NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? '0',
     },
   },
+
+  // Hidden client source maps: emitted for upload to Sentry but not referenced
+  // from the bundles, so browsers never fetch them. See docs/sentry.md.
+  sourcemap: { client: 'hidden' },
 
   // Default to the system preference (settings modal: Automatic); when the
   // system preference is unknown, the brand default is dark.

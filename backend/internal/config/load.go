@@ -50,7 +50,9 @@ func defaultConfig() *Config {
 		LogFileMaxBackups:  5,
 		FrontendLogEnabled: true,
 		MetricsPort:        "9091",
-		ChunkSize:          5 * 1024 * 1024,
+		// Send every error by default; the DSN is what turns reporting on or off.
+		SentryErrorSampleRate: 1,
+		ChunkSize:             5 * 1024 * 1024,
 		// Default 1: one control connection serves one transfer at a time, so
 		// higher values mostly queue on the per-session transfer lock.
 		MaxConcurrentUploads: 1,

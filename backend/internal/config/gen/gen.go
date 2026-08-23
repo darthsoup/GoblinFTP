@@ -19,6 +19,7 @@ var DocPages = []string{
 	"docs/configuration.md",
 	"docs/logging.md",
 	"docs/metrics.md",
+	"docs/sentry.md",
 	"docs/s3-staging.md",
 	"docs/embedding.md",
 }

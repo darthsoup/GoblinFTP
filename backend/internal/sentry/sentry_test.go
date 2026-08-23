@@ -13,7 +13,7 @@ const testDSN = "https://public@o0.ingest.sentry.io/0"
 // TestRequestSecretsAreFiltered pins the one property keeping credentials out of
 // Sentry: it scrubs by KEY NAME, so ?sso= is filtered but ?ticket= would not be.
 func TestRequestSecretsAreFiltered(t *testing.T) {
-	if err := Init(testDSN, "test", "v0", 0); err != nil {
+	if err := Init(Options{DSN: testDSN, Environment: "test", Release: "v0"}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 
@@ -63,7 +63,7 @@ func TestRequestSecretsAreFiltered(t *testing.T) {
 // TestSampleRateIsNotCoerced guards the documented GFTP_SENTRY_SAMPLE_RATE default:
 // an earlier version rewrote 0 to 1.0, so "no tracing" traced every transaction.
 func TestSampleRateIsNotCoerced(t *testing.T) {
-	if err := Init(testDSN, "test", "v0", 0); err != nil {
+	if err := Init(Options{DSN: testDSN, Environment: "test", Release: "v0"}); err != nil {
 		t.Fatalf("Init: %v", err)
 	}
 	if got := sentry.CurrentHub().Client().Options().TracesSampleRate; got != 0 {
@@ -74,7 +74,7 @@ func TestSampleRateIsNotCoerced(t *testing.T) {
 // TestInitWithoutDSNIsNoOp documents that every exported function stays safe
 // when Sentry was never configured, which is the default deployment.
 func TestInitWithoutDSNIsNoOp(t *testing.T) {
-	if err := Init("", "", "", 0); err != nil {
+	if err := Init(Options{}); err != nil {
 		t.Errorf("Init with empty DSN returned %v, want nil", err)
 	}
 }

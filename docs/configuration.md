@@ -147,25 +147,13 @@ Full setup, accepted values, browser support, and troubleshooting: [Iframe embed
 
 Tokens are AES-256-GCM sealed under an `HKDF-SHA256(secret, info="gftp-sso")` key, carry an `exp` timestamp, and are single-use. Replay protection is in-memory: a token becomes replayable if the backend restarts before it expires, so keep TTLs short (minutes). Generate links with `just sso-link` or the generators in [`examples/sso/`](../examples/sso/). The `-tenant <name>` flag selects a per-tenant theme (see [Theming](theming.md)).
 
-### Error tracking (Sentry, optional)
-
-<!-- confgen:begin env-table "Error tracking (Sentry)" -->
-| Variable | Default | Description |
-|---|---|---|
-| `GFTP_SENTRY_DSN` | (none) | Backend DSN. Empty disables backend reporting. |
-| `GFTP_SENTRY_ENVIRONMENT` | (none) | Environment tag passed through verbatim. |
-| `GFTP_SENTRY_RELEASE` | (none) | Release tag; defaults to the build version. |
-| `GFTP_SENTRY_SAMPLE_RATE` | `0` | Traces sample rate between 0 and 1. |
-<!-- confgen:end -->
-
-The SPA's DSN is separate: `NUXT_PUBLIC_SENTRY_DSN` is read at SPA build time and baked into the static output, unlike the `GFTP_*` variables, which are read at process start.
-
-### Logging, metrics, and S3
+### Logging, metrics, error tracking, and S3
 
 Dedicated pages own these variable groups:
 
 - `GFTP_LOG_*`: [Logging](logging.md).
 - `GFTP_METRICS_*`: [Metrics](metrics.md).
+- `GFTP_SENTRY_*` and `NUXT_PUBLIC_SENTRY_*`: [Error tracking](sentry.md).
 - `GFTP_S3_*`: [S3 chunk staging](s3-staging.md).
 
 ## See also

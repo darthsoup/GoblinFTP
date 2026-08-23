@@ -42,7 +42,6 @@ func newApp(cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.St
 	// Echo's default RealIP() trusts the leftmost X-Forwarded-For entry from anyone.
 	// A proxy allowlist walks right to left, so throttles see the real client.
 	e.IPExtractor = api.IPExtractor(cfg)
-	e.Use(gftpsentry.Middleware())
 
 	store := auth.NewStore(time.Duration(cfg.SessionTTLSeconds) * time.Second)
 	throttle := auth.NewThrottle()
@@ -138,12 +137,14 @@ func main() {
 	if sentryRelease == "" {
 		sentryRelease = version
 	}
-	if initErr := gftpsentry.Init(
-		cfg.SentryDSN,
-		cfg.SentryEnvironment,
-		sentryRelease,
-		cfg.SentrySampleRate,
-	); initErr != nil {
+	if initErr := gftpsentry.Init(gftpsentry.Options{
+		DSN:                cfg.SentryDSN,
+		Environment:        cfg.SentryEnvironment,
+		Release:            sentryRelease,
+		TracesSampleRate:   cfg.SentrySampleRate,
+		ErrorSampleRate:    cfg.SentryErrorSampleRate,
+		SendSessionContext: cfg.SentrySendSessionContext,
+	}); initErr != nil {
 		logger.Warn("sentry init failed", "error", initErr.Error())
 	}
 	defer gftpsentry.Flush()
@@ -179,6 +180,7 @@ func main() {
 		mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{}))
 		metricsSrv = &http.Server{Addr: ":" + cfg.MetricsPort, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 		go func() {
+			defer gftpsentry.Recover()
 			logger.Info("metrics listening", "port", cfg.MetricsPort)
 			if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Error("metrics server stopped", "error", err.Error())
@@ -187,6 +189,7 @@ func main() {
 	}
 
 	go func() {
+		defer gftpsentry.Recover()
 		if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server stopped", "error", err.Error())
 			stop()

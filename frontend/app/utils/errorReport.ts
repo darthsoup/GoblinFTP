@@ -9,6 +9,9 @@ export interface FrontendErrorPayload {
   stack?: string
   source?: string
   route?: string
+  // Set when the browser's own Sentry SDK already filed this error. The backend
+  // logs it for correlation and skips its relay, so it is never filed twice.
+  sentryEventId?: string
 }
 
 // Mirror the backend's server-side limits (internal/api/frontendlog.go) so a

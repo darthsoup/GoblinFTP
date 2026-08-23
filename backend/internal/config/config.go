@@ -108,17 +108,21 @@ type Config struct {
 	SentryEnvironment    string
 	SentryRelease        string
 	SentrySampleRate     float64
-	LoginFormDisabled    bool
-	S3Enabled            bool
-	S3Endpoint           string
-	S3Bucket             string
-	S3Region             string
-	S3AccessKey          string
-	S3SecretKey          string
-	S3UsePathStyle       bool
-	S3Prefix             string
-	S3TimeoutSeconds     int
-	Settings             Settings
+	// SentryErrorSampleRate is the fraction of error events sent; 0 sends none.
+	SentryErrorSampleRate     float64
+	SentryCaptureRemoteErrors bool
+	SentrySendSessionContext  bool
+	LoginFormDisabled         bool
+	S3Enabled                 bool
+	S3Endpoint                string
+	S3Bucket                  string
+	S3Region                  string
+	S3AccessKey               string
+	S3SecretKey               string
+	S3UsePathStyle            bool
+	S3Prefix                  string
+	S3TimeoutSeconds          int
+	Settings                  Settings
 }
 
 // EmbeddingEnabled reports whether an iframe allowlist is configured. It is the

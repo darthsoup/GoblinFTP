@@ -9,7 +9,16 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json frontend/
 RUN pnpm install --frozen-lockfile
 COPY frontend/ frontend/
+# NUXT_PUBLIC_* are baked into the static SPA here, unlike GFTP_* which the
+# backend reads at process start.
+ARG NUXT_PUBLIC_SENTRY_DSN=
+ARG NUXT_PUBLIC_SENTRY_ENVIRONMENT=
+ARG NUXT_PUBLIC_SENTRY_RELEASE=
+ARG VERSION=dev
 RUN pnpm --filter goblinftp-frontend run generate
+# Client source maps are emitted hidden (nuxt.config.ts) for upload to Sentry,
+# never for shipping. Drop the upload step in before this line to keep them.
+RUN find frontend/.output/public -name '*.map' -delete
 
 # Runs on the build platform and cross-compiles for the target, so no emulation.
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS backend-builder
