@@ -50,7 +50,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const sizeFormat = ref<SizeFormat>('binary')
   const dateFormat = ref<DateFormat>('auto')
   const fileViewMode = ref<FileViewMode>(defaultFileViewMode())
-  const gridThumbnails = ref(true)
+  const gridThumbnails = ref(false)
   // Row height in the file table: comfortable (default) or compact.
   const density = ref<Density>('comfortable')
 
