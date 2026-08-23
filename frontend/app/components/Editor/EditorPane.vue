@@ -1,3 +1,56 @@
+<template>
+  <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <EditorTabBar />
+
+    <!-- Outside the editor region so the unsaved buffer stays visible, and it
+         persists after dismissal so autosave is never silently off. -->
+    <div
+      v-if="conflictTab"
+      class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 border-b border-default bg-warning/10"
+    >
+      <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0 text-warning" />
+      <span class="text-sm text-default">
+        {{ conflictTab.conflict === 'deleted' ? t('editor.conflict.bannerDeleted') : t('editor.conflict.banner') }}
+      </span>
+      <div class="ml-auto flex items-center gap-1.5">
+        <UButton
+          v-if="conflictTab.conflict !== 'deleted'"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          :label="t('editor.conflict.reload')"
+          @click="editorStore.reloadTab(conflictTab.id)"
+        />
+        <UButton
+          size="xs"
+          color="error"
+          variant="soft"
+          :label="t('editor.conflict.overwrite')"
+          @click="editorStore.saveTab(conflictTab.id, { force: true })"
+        />
+      </div>
+    </div>
+
+    <div class="relative flex-1 min-h-0">
+      <div v-show="showEditor" ref="containerRef" class="absolute inset-0 overflow-auto" />
+
+      <div v-if="editorStore.activeTab?.loading" class="absolute inset-0 flex items-center justify-center text-muted text-sm">
+        <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
+        {{ t('editor.loading') }}
+      </div>
+
+      <div v-else-if="editorStore.activeTab?.error" class="absolute inset-0 flex items-center justify-center text-error text-sm">
+        <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
+        {{ editorStore.activeTab.error }}
+      </div>
+
+      <div v-else-if="!editorStore.hasOpenTabs" class="absolute inset-0 flex items-center justify-center text-dimmed text-sm">
+        {{ t('editor.noFile') }}
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import type { Extension } from '@codemirror/state'
 import type { EditorTab } from '~/stores/editor'
@@ -247,59 +300,6 @@ onUnmounted(() => {
   mountedTabId = null
 })
 </script>
-
-<template>
-  <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
-    <EditorTabBar />
-
-    <!-- Outside the editor region so the unsaved buffer stays visible, and it
-         persists after dismissal so autosave is never silently off. -->
-    <div
-      v-if="conflictTab"
-      class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 border-b border-default bg-warning/10"
-    >
-      <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0 text-warning" />
-      <span class="text-sm text-default">
-        {{ conflictTab.conflict === 'deleted' ? t('editor.conflict.bannerDeleted') : t('editor.conflict.banner') }}
-      </span>
-      <div class="ml-auto flex items-center gap-1.5">
-        <UButton
-          v-if="conflictTab.conflict !== 'deleted'"
-          size="xs"
-          color="neutral"
-          variant="outline"
-          :label="t('editor.conflict.reload')"
-          @click="editorStore.reloadTab(conflictTab.id)"
-        />
-        <UButton
-          size="xs"
-          color="error"
-          variant="soft"
-          :label="t('editor.conflict.overwrite')"
-          @click="editorStore.saveTab(conflictTab.id, { force: true })"
-        />
-      </div>
-    </div>
-
-    <div class="relative flex-1 min-h-0">
-      <div v-show="showEditor" ref="containerRef" class="absolute inset-0 overflow-auto" />
-
-      <div v-if="editorStore.activeTab?.loading" class="absolute inset-0 flex items-center justify-center text-muted text-sm">
-        <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
-        {{ t('editor.loading') }}
-      </div>
-
-      <div v-else-if="editorStore.activeTab?.error" class="absolute inset-0 flex items-center justify-center text-error text-sm">
-        <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
-        {{ editorStore.activeTab.error }}
-      </div>
-
-      <div v-else-if="!editorStore.hasOpenTabs" class="absolute inset-0 flex items-center justify-center text-dimmed text-sm">
-        {{ t('editor.noFile') }}
-      </div>
-    </div>
-  </div>
-</template>
 
 <style>
 .cm-editor {

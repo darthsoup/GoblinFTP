@@ -1,3 +1,22 @@
+<template>
+  <div class="relative h-screen flex flex-col overflow-hidden bg-default text-default">
+    <slot />
+
+    <!-- Global overlays (each renders only when its modalStore state is active) -->
+    <DeleteModal />
+    <NewFolderModal />
+    <NewFileModal />
+    <PropertiesModal />
+    <SettingsModal />
+    <SessionExpiredModal />
+    <ConfirmModal />
+    <ShortcutsModal />
+    <PasteConflictModal />
+    <UploadConflictModal />
+    <EditorConflictModal />
+  </div>
+</template>
+
 <script setup lang="ts">
 // Shared shell for both routes (/login and /). Liveness polling lives here so
 // it spans page changes; it self-skips when disconnected.
@@ -25,22 +44,3 @@ watch(() => authStore.connected, (connected) => {
     navigateTo('/login')
 })
 </script>
-
-<template>
-  <div class="relative h-screen flex flex-col overflow-hidden bg-default text-default">
-    <slot />
-
-    <!-- Global overlays (each renders only when its modalStore state is active) -->
-    <DeleteModal />
-    <NewFolderModal />
-    <NewFileModal />
-    <PropertiesModal />
-    <SettingsModal />
-    <SessionExpiredModal />
-    <ConfirmModal />
-    <ShortcutsModal />
-    <PasteConflictModal />
-    <UploadConflictModal />
-    <EditorConflictModal />
-  </div>
-</template>

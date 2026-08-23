@@ -1,38 +1,3 @@
-<script setup lang="ts">
-import type { EditorTab } from '~/stores/editor'
-
-const editorStore = useEditorStore()
-const settingsStore = useSettingsStore()
-const modalStore = useModalStore()
-const authStore = useAuthStore()
-const { t } = useI18n()
-
-const viewOnly = computed(() => authStore.systemVars?.editor?.viewOnly ?? false)
-
-// Confirm before discarding a tab with unsaved changes (this is also the only
-// way out of the editor, so it must not silently drop work).
-async function requestClose(tab: EditorTab) {
-  if (tab.content !== tab.savedContent) {
-    const result = await modalStore.confirm({
-      title: t('editor.unsavedTitle'),
-      message: t('editor.confirmCloseMessage', { name: tab.name }),
-      saveLabel: viewOnly.value ? undefined : t('editor.save'),
-      confirmLabel: t('editor.discard'),
-      cancelLabel: t('editor.keepEditing'),
-      confirmColor: 'error',
-    })
-    if (result === 'cancel')
-      return
-    if (result === 'save') {
-      await editorStore.saveTab(tab.id)
-      if (tab.error) // save failed, keep the tab open so the work isn't lost
-        return
-    }
-  }
-  editorStore.closeTab(tab.id)
-}
-</script>
-
 <template>
   <div class="flex items-center border-b border-default bg-elevated overflow-x-auto shrink-0">
     <div
@@ -88,3 +53,38 @@ async function requestClose(tab: EditorTab) {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import type { EditorTab } from '~/stores/editor'
+
+const editorStore = useEditorStore()
+const settingsStore = useSettingsStore()
+const modalStore = useModalStore()
+const authStore = useAuthStore()
+const { t } = useI18n()
+
+const viewOnly = computed(() => authStore.systemVars?.editor?.viewOnly ?? false)
+
+// Confirm before discarding a tab with unsaved changes (this is also the only
+// way out of the editor, so it must not silently drop work).
+async function requestClose(tab: EditorTab) {
+  if (tab.content !== tab.savedContent) {
+    const result = await modalStore.confirm({
+      title: t('editor.unsavedTitle'),
+      message: t('editor.confirmCloseMessage', { name: tab.name }),
+      saveLabel: viewOnly.value ? undefined : t('editor.save'),
+      confirmLabel: t('editor.discard'),
+      cancelLabel: t('editor.keepEditing'),
+      confirmColor: 'error',
+    })
+    if (result === 'cancel')
+      return
+    if (result === 'save') {
+      await editorStore.saveTab(tab.id)
+      if (tab.error) // save failed, keep the tab open so the work isn't lost
+        return
+    }
+  }
+  editorStore.closeTab(tab.id)
+}
+</script>

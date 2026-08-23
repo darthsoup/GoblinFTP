@@ -1,3 +1,7 @@
+<template>
+  <LoginScreen :booting="booting" />
+</template>
+
 <script setup lang="ts">
 // The unauthenticated route. Session and language bootstrap live in
 // plugins/auth.client.ts; this page only handles the SSO link landing.
@@ -44,7 +48,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<template>
-  <LoginScreen :booting="booting" />
-</template>

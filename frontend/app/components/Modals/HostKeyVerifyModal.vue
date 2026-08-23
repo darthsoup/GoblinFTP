@@ -1,36 +1,3 @@
-<script setup lang="ts">
-// Trust-on-first-use prompt for an unknown (or changed) SFTP host key. Driven by
-// authStore.pendingHostKey, not the modal store, so it lives on the login screen.
-const authStore = useAuthStore()
-const { t } = useI18n()
-
-const open = computed({
-  get: () => authStore.pendingHostKey !== null,
-  set: (v: boolean) => {
-    if (!v)
-      authStore.cancelHostKey()
-  },
-})
-
-const prompt = computed(() => authStore.pendingHostKey)
-const changed = computed(() => prompt.value?.changed === true)
-const loading = ref(false)
-
-async function trust() {
-  if (loading.value)
-    return
-  loading.value = true
-  try {
-    // The (re)connect surfaces any failure via authStore.error on the form.
-    await authStore.confirmHostKey()
-  }
-  catch {}
-  finally {
-    loading.value = false
-  }
-}
-</script>
-
 <template>
   <UModal v-model:open="open" :title="t(changed ? 'hostKey.changedTitle' : 'hostKey.title')" :dismissible="false">
     <template #title>
@@ -85,3 +52,36 @@ async function trust() {
     </template>
   </UModal>
 </template>
+
+<script setup lang="ts">
+// Trust-on-first-use prompt for an unknown (or changed) SFTP host key. Driven by
+// authStore.pendingHostKey, not the modal store, so it lives on the login screen.
+const authStore = useAuthStore()
+const { t } = useI18n()
+
+const open = computed({
+  get: () => authStore.pendingHostKey !== null,
+  set: (v: boolean) => {
+    if (!v)
+      authStore.cancelHostKey()
+  },
+})
+
+const prompt = computed(() => authStore.pendingHostKey)
+const changed = computed(() => prompt.value?.changed === true)
+const loading = ref(false)
+
+async function trust() {
+  if (loading.value)
+    return
+  loading.value = true
+  try {
+    // The (re)connect surfaces any failure via authStore.error on the form.
+    await authStore.confirmHostKey()
+  }
+  catch {}
+  finally {
+    loading.value = false
+  }
+}
+</script>

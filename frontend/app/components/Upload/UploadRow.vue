@@ -1,58 +1,3 @@
-<script setup lang="ts">
-import type { UploadItem, UploadStatus } from '~/stores/upload'
-
-const props = defineProps<{ item: UploadItem }>()
-const emit = defineEmits<{
-  cancel: [id: string]
-  retry: [id: string]
-}>()
-
-const { t, locale } = useI18n()
-const settingsStore = useSettingsStore()
-const uploadStore = useUploadStore()
-const { localizeError } = useErrorMessage()
-
-const STATUS_CLASS: Record<UploadStatus, string> = {
-  checking: 'text-dimmed',
-  uploading: 'text-primary',
-  queued: 'text-dimmed',
-  done: 'text-muted',
-  error: 'text-error',
-  cancelled: 'text-dimmed',
-  skipped: 'text-dimmed',
-}
-
-const ACTIVE: UploadStatus[] = ['checking', 'queued', 'uploading']
-const RETRYABLE: UploadStatus[] = ['error', 'cancelled', 'skipped']
-
-const path = computed(() => props.item.relativePath ?? props.item.file.name)
-const isActive = computed(() => ACTIVE.includes(props.item.status))
-const isRetryable = computed(() => RETRYABLE.includes(props.item.status))
-const failure = computed(() => localizeError(props.item.errorCode ?? '', props.item.error ?? ''))
-
-function fmt(n: number): string {
-  return formatFileSize(n, settingsStore.sizeFormat, locale.value)
-}
-
-// Three distinct states: null renders nothing (still measuring, or finalizing
-// where any figure would be a guess), 0 renders "Stalled", a rate renders an ETA.
-const telemetry = computed(() => {
-  const item = props.item
-  if (item.status !== 'uploading' || item.finalizing)
-    return null
-  const rate = uploadStore.rates[item.id] ?? null
-  if (rate === null)
-    return null
-  if (rate === 0)
-    return { kind: 'stalled' as const }
-  return {
-    kind: 'rate' as const,
-    rate: formatRate(rate, settingsStore.sizeFormat, locale.value),
-    eta: formatEta(etaSeconds(item.file.size - item.bytesUploaded, rate)),
-  }
-})
-</script>
-
 <template>
   <li class="group flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 border-b border-muted last:border-b-0 even:bg-elevated/40 text-xs">
     <div class="min-w-0 flex-1 flex flex-col gap-1.5">
@@ -117,3 +62,58 @@ const telemetry = computed(() => {
     </div>
   </li>
 </template>
+
+<script setup lang="ts">
+import type { UploadItem, UploadStatus } from '~/stores/upload'
+
+const props = defineProps<{ item: UploadItem }>()
+const emit = defineEmits<{
+  cancel: [id: string]
+  retry: [id: string]
+}>()
+
+const { t, locale } = useI18n()
+const settingsStore = useSettingsStore()
+const uploadStore = useUploadStore()
+const { localizeError } = useErrorMessage()
+
+const STATUS_CLASS: Record<UploadStatus, string> = {
+  checking: 'text-dimmed',
+  uploading: 'text-primary',
+  queued: 'text-dimmed',
+  done: 'text-muted',
+  error: 'text-error',
+  cancelled: 'text-dimmed',
+  skipped: 'text-dimmed',
+}
+
+const ACTIVE: UploadStatus[] = ['checking', 'queued', 'uploading']
+const RETRYABLE: UploadStatus[] = ['error', 'cancelled', 'skipped']
+
+const path = computed(() => props.item.relativePath ?? props.item.file.name)
+const isActive = computed(() => ACTIVE.includes(props.item.status))
+const isRetryable = computed(() => RETRYABLE.includes(props.item.status))
+const failure = computed(() => localizeError(props.item.errorCode ?? '', props.item.error ?? ''))
+
+function fmt(n: number): string {
+  return formatFileSize(n, settingsStore.sizeFormat, locale.value)
+}
+
+// Three distinct states: null renders nothing (still measuring, or finalizing
+// where any figure would be a guess), 0 renders "Stalled", a rate renders an ETA.
+const telemetry = computed(() => {
+  const item = props.item
+  if (item.status !== 'uploading' || item.finalizing)
+    return null
+  const rate = uploadStore.rates[item.id] ?? null
+  if (rate === null)
+    return null
+  if (rate === 0)
+    return { kind: 'stalled' as const }
+  return {
+    kind: 'rate' as const,
+    rate: formatRate(rate, settingsStore.sizeFormat, locale.value),
+    eta: formatEta(etaSeconds(item.file.size - item.bytesUploaded, rate)),
+  }
+})
+</script>

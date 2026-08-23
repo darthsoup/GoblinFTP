@@ -1,16 +1,3 @@
-<script setup lang="ts">
-// Footer for the views without the app header: login screen and error page.
-const authStore = useAuthStore()
-const modalStore = useModalStore()
-const { t } = useI18n()
-const { appName, hideAttribution } = useBranding()
-const { embedded } = useEmbed()
-
-// Signed out with GFTP_LOGIN_FORM_DISABLED there is no way back into the app,
-// so the preference controls stay out of reach until a session exists.
-const showControls = computed(() => authStore.connected || !authStore.systemVars?.loginFormDisabled)
-</script>
-
 <template>
   <UFooter
     :ui="{
@@ -45,3 +32,16 @@ const showControls = computed(() => authStore.connected || !authStore.systemVars
     </template>
   </UFooter>
 </template>
+
+<script setup lang="ts">
+// Footer for the views without the app header: login screen and error page.
+const authStore = useAuthStore()
+const modalStore = useModalStore()
+const { t } = useI18n()
+const { appName, hideAttribution } = useBranding()
+const { embedded } = useEmbed()
+
+// Signed out with GFTP_LOGIN_FORM_DISABLED there is no way back into the app,
+// so the preference controls stay out of reach until a session exists.
+const showControls = computed(() => authStore.connected || !authStore.systemVars?.loginFormDisabled)
+</script>

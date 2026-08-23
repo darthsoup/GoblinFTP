@@ -1,3 +1,13 @@
+<template>
+  <AppHeader />
+  <Breadcrumb />
+  <FileTable />
+  <UploadProgressPanel />
+  <!-- Branched here rather than inside StatusBar so the flex layout does not
+       reserve the row when embedded. -->
+  <StatusBar v-if="!embedded" />
+</template>
+
 <script setup lang="ts">
 // The authenticated workspace. The auth middleware guarantees we only land here
 // while connected; the layout's watcher routes back to /login on a drop.
@@ -24,13 +34,3 @@ watch(() => filesStore.currentPath, (path) => {
     router.replace({ query: { ...route.query, path } })
 })
 </script>
-
-<template>
-  <AppHeader />
-  <Breadcrumb />
-  <FileTable />
-  <UploadProgressPanel />
-  <!-- Branched here rather than inside StatusBar so the flex layout does not
-       reserve the row when embedded. -->
-  <StatusBar v-if="!embedded" />
-</template>

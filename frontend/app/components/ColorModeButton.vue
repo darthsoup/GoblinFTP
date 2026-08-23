@@ -1,13 +1,3 @@
-<script setup lang="ts">
-// Drop-in for <UColorModeButton> with an animated flip. ClientOnly avoids a
-// hydration mismatch: the resolved mode is known only once the client reads it.
-const colorMode = useColorMode()
-const { t } = useI18n()
-const { toggle } = useColorModeTransition()
-
-const isDark = computed(() => colorMode.value === 'dark')
-</script>
-
 <template>
   <ClientOnly>
     <UButton
@@ -22,3 +12,13 @@ const isDark = computed(() => colorMode.value === 'dark')
     </template>
   </ClientOnly>
 </template>
+
+<script setup lang="ts">
+// Drop-in for <UColorModeButton> with an animated flip. ClientOnly avoids a
+// hydration mismatch: the resolved mode is known only once the client reads it.
+const colorMode = useColorMode()
+const { t } = useI18n()
+const { toggle } = useColorModeTransition()
+
+const isDark = computed(() => colorMode.value === 'dark')
+</script>

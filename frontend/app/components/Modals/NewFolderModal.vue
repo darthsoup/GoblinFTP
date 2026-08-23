@@ -1,3 +1,37 @@
+<template>
+  <UModal v-model:open="open" :title="t('modal.newFolder.title')">
+    <template #title>
+      <UIcon name="i-lucide-folder-plus" class="size-5 text-primary" />
+      {{ t('modal.newFolder.title') }}
+    </template>
+
+    <template #body>
+      <UForm
+        id="new-folder-form"
+        :state="state"
+        :validate="validate"
+        class="space-y-4"
+        @submit="onSubmit"
+      >
+        <UFormField name="name" :label="t('modal.newFolder.label')">
+          <UInput
+            v-model="state.name"
+            :placeholder="t('modal.newFolder.placeholder')"
+            class="w-full"
+            autofocus
+          />
+        </UFormField>
+        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
+      </UForm>
+    </template>
+
+    <template #footer="{ close }">
+      <UButton color="neutral" variant="subtle" :label="t('modal.newFolder.cancel')" @click="close" />
+      <UButton type="submit" form="new-folder-form" :loading="loading" :label="t('modal.newFolder.confirm')" />
+    </template>
+  </UModal>
+</template>
+
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 
@@ -50,37 +84,3 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
   }
 }
 </script>
-
-<template>
-  <UModal v-model:open="open" :title="t('modal.newFolder.title')">
-    <template #title>
-      <UIcon name="i-lucide-folder-plus" class="size-5 text-primary" />
-      {{ t('modal.newFolder.title') }}
-    </template>
-
-    <template #body>
-      <UForm
-        id="new-folder-form"
-        :state="state"
-        :validate="validate"
-        class="space-y-4"
-        @submit="onSubmit"
-      >
-        <UFormField name="name" :label="t('modal.newFolder.label')">
-          <UInput
-            v-model="state.name"
-            :placeholder="t('modal.newFolder.placeholder')"
-            class="w-full"
-            autofocus
-          />
-        </UFormField>
-        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
-      </UForm>
-    </template>
-
-    <template #footer="{ close }">
-      <UButton color="neutral" variant="subtle" :label="t('modal.newFolder.cancel')" @click="close" />
-      <UButton type="submit" form="new-folder-form" :loading="loading" :label="t('modal.newFolder.confirm')" />
-    </template>
-  </UModal>
-</template>

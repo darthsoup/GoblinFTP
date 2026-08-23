@@ -1,51 +1,3 @@
-<script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
-
-const authStore = useAuthStore()
-const filesStore = useFilesStore()
-const editorStore = useEditorStore()
-const modalStore = useModalStore()
-const route = useRoute()
-const { t } = useI18n()
-const { appName, logoUrl } = useBranding()
-const { embedded } = useEmbed()
-
-// Centre switcher, shown only while the editor has open tabs. The Files link
-// carries the current browse path so returning reopens the same folder.
-const navItems = computed<NavigationMenuItem[]>(() => [
-  {
-    label: t('header.files'),
-    icon: 'i-lucide-folder',
-    to: { path: '/', query: { path: filesStore.currentPath } },
-    active: route.path === '/',
-  },
-  {
-    label: t('header.editor'),
-    icon: 'i-lucide-file-pen',
-    to: '/edit',
-    active: route.path === '/edit',
-    badge: editorStore.tabs.length,
-  },
-])
-
-async function handleDisconnect() {
-  if (editorStore.hasDirty) {
-    const result = await modalStore.confirm({
-      title: t('editor.unsavedTitle'),
-      message: t('editor.confirmDisconnectMessage', { n: editorStore.dirtyCount }),
-      confirmLabel: t('header.disconnect'),
-      cancelLabel: t('editor.keepEditing'),
-      confirmColor: 'error',
-    })
-    if (result !== 'confirm')
-      return
-  }
-  await authStore.disconnect()
-  filesStore.$reset()
-  editorStore.$reset()
-}
-</script>
-
 <template>
   <UHeader
     :title="appName"
@@ -120,3 +72,51 @@ async function handleDisconnect() {
     </template>
   </UHeader>
 </template>
+
+<script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+
+const authStore = useAuthStore()
+const filesStore = useFilesStore()
+const editorStore = useEditorStore()
+const modalStore = useModalStore()
+const route = useRoute()
+const { t } = useI18n()
+const { appName, logoUrl } = useBranding()
+const { embedded } = useEmbed()
+
+// Centre switcher, shown only while the editor has open tabs. The Files link
+// carries the current browse path so returning reopens the same folder.
+const navItems = computed<NavigationMenuItem[]>(() => [
+  {
+    label: t('header.files'),
+    icon: 'i-lucide-folder',
+    to: { path: '/', query: { path: filesStore.currentPath } },
+    active: route.path === '/',
+  },
+  {
+    label: t('header.editor'),
+    icon: 'i-lucide-file-pen',
+    to: '/edit',
+    active: route.path === '/edit',
+    badge: editorStore.tabs.length,
+  },
+])
+
+async function handleDisconnect() {
+  if (editorStore.hasDirty) {
+    const result = await modalStore.confirm({
+      title: t('editor.unsavedTitle'),
+      message: t('editor.confirmDisconnectMessage', { n: editorStore.dirtyCount }),
+      confirmLabel: t('header.disconnect'),
+      cancelLabel: t('editor.keepEditing'),
+      confirmColor: 'error',
+    })
+    if (result !== 'confirm')
+      return
+  }
+  await authStore.disconnect()
+  filesStore.$reset()
+  editorStore.$reset()
+}
+</script>

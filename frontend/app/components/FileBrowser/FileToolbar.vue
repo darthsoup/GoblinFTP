@@ -1,79 +1,3 @@
-<script setup lang="ts">
-import { ApiError } from '~/types/api'
-
-const filter = defineModel<string>('filter', { default: '' })
-
-const filesStore = useFilesStore()
-const uploadStore = useUploadStore()
-const modalStore = useModalStore()
-const settingsStore = useSettingsStore()
-const notify = useNotify()
-const { t } = useI18n()
-
-const selectedCount = computed(() => filesStore.selected.size)
-
-function clearFilter() {
-  filter.value = ''
-}
-
-function toggleView() {
-  settingsStore.fileViewMode = settingsStore.fileViewMode === 'table' ? 'cards' : 'table'
-}
-
-const fileInputRef = ref<HTMLInputElement | null>(null)
-
-function openNewFolder() {
-  modalStore.open('newFolder')
-}
-
-function openNewFile() {
-  modalStore.open('newFile')
-}
-
-function deleteSelected() {
-  const dir = filesStore.currentPath.replace(/\/$/, '')
-  const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
-  modalStore.open('delete', { files: paths })
-}
-
-function triggerUpload() {
-  fileInputRef.value?.click()
-}
-
-async function onFilesSelected(event: Event) {
-  const input = event.target as HTMLInputElement
-  if (!input.files || input.files.length === 0)
-    return
-  // Snapshot before resetting the input: clearing it empties the live FileList,
-  // and addFiles awaits a conflict check before reading it.
-  const files = Array.from(input.files)
-  // Reset input so the same file can be re-selected later
-  input.value = ''
-  await uploadStore.addFiles(files, filesStore.currentPath)
-}
-
-async function downloadZip() {
-  const dir = filesStore.currentPath.replace(/\/$/, '')
-  const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
-  try {
-    await filesStore.downloadZip(paths)
-  }
-  catch (e) {
-    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
-  }
-}
-
-function copySelected() {
-  filesStore.copyToClipboard([...filesStore.selected])
-}
-
-function cutSelected() {
-  filesStore.cutToClipboard([...filesStore.selected])
-}
-
-const paste = usePaste()
-</script>
-
 <template>
   <div class="flex flex-wrap items-center gap-2 px-4 min-h-10 py-1.5 bg-elevated border-t border-muted border-b border-default shrink-0">
     <input
@@ -217,6 +141,82 @@ const paste = usePaste()
     </UInput>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ApiError } from '~/types/api'
+
+const filter = defineModel<string>('filter', { default: '' })
+
+const filesStore = useFilesStore()
+const uploadStore = useUploadStore()
+const modalStore = useModalStore()
+const settingsStore = useSettingsStore()
+const notify = useNotify()
+const { t } = useI18n()
+
+const selectedCount = computed(() => filesStore.selected.size)
+
+function clearFilter() {
+  filter.value = ''
+}
+
+function toggleView() {
+  settingsStore.fileViewMode = settingsStore.fileViewMode === 'table' ? 'cards' : 'table'
+}
+
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+function openNewFolder() {
+  modalStore.open('newFolder')
+}
+
+function openNewFile() {
+  modalStore.open('newFile')
+}
+
+function deleteSelected() {
+  const dir = filesStore.currentPath.replace(/\/$/, '')
+  const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
+  modalStore.open('delete', { files: paths })
+}
+
+function triggerUpload() {
+  fileInputRef.value?.click()
+}
+
+async function onFilesSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (!input.files || input.files.length === 0)
+    return
+  // Snapshot before resetting the input: clearing it empties the live FileList,
+  // and addFiles awaits a conflict check before reading it.
+  const files = Array.from(input.files)
+  // Reset input so the same file can be re-selected later
+  input.value = ''
+  await uploadStore.addFiles(files, filesStore.currentPath)
+}
+
+async function downloadZip() {
+  const dir = filesStore.currentPath.replace(/\/$/, '')
+  const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
+  try {
+    await filesStore.downloadZip(paths)
+  }
+  catch (e) {
+    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+  }
+}
+
+function copySelected() {
+  filesStore.copyToClipboard([...filesStore.selected])
+}
+
+function cutSelected() {
+  filesStore.cutToClipboard([...filesStore.selected])
+}
+
+const paste = usePaste()
+</script>
 
 <style scoped>
 /* Left-region swap between default and selection modes: restrained slide+fade. */

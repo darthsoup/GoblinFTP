@@ -1,3 +1,97 @@
+<template>
+  <div
+    role="listitem"
+    :tabindex="index === 0 ? 0 : -1"
+    :aria-selected="selected"
+    :aria-label="file.isDir ? t('files.folderNamed', { name: file.name }) : t('files.fileNamed', { name: file.name })"
+    data-file-card
+    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    :class="[
+      compact ? 'p-1.5' : 'p-2',
+      selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
+      isCut ? 'opacity-50' : '',
+    ]"
+    :style="{ '--card-i': index }"
+    :data-file-name="file.name"
+    @click="handleClick"
+    @keydown="onKeydown"
+  >
+    <div
+      ref="thumbEl"
+      class="relative aspect-square rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
+      :class="compact ? 'mb-1.5' : 'mb-2'"
+    >
+      <img
+        v-if="showThumb"
+        :src="thumbUrl!"
+        :alt="file.name"
+        class="w-full h-full object-cover"
+        @error="failed = true"
+      >
+      <UIcon
+        v-else
+        :name="iconDef.icon"
+        class="transition-transform duration-150 group-hover:scale-105"
+        :class="[
+          compact ? 'size-9' : 'size-12',
+          iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed'),
+        ]"
+        :style="iconDef.color ? { color: iconDef.color } : undefined"
+      />
+
+      <UCheckbox
+        :model-value="selected"
+        size="md"
+        class="absolute top-1 left-1 transition-opacity"
+        :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        :aria-label="t('files.selectItem', { name: file.name })"
+        tabindex="-1"
+        @click.stop
+        @update:model-value="emit('select', file.name)"
+      />
+
+      <UButton
+        v-if="!file.isDir"
+        size="xs"
+        color="neutral"
+        variant="solid"
+        icon="i-lucide-download"
+        class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        :aria-label="t('context.download')"
+        @click.stop="handleDownload"
+      />
+    </div>
+
+    <input
+      v-if="editing"
+      ref="inputRef"
+      v-model="draft"
+      class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-sm text-default outline-none focus:ring-1 focus:ring-primary"
+      :aria-label="t('files.renameItem', { name: file.name })"
+      @click.stop
+      @keydown.enter.prevent="commit"
+      @keydown.escape.prevent="cancel"
+      @blur="commit"
+    >
+    <div
+      v-else
+      class="text-center truncate"
+      :class="[
+        compact ? 'text-xs' : 'text-sm',
+        file.isDir ? 'font-semibold text-highlighted' : 'text-default',
+      ]"
+      :title="file.name"
+      @dblclick.stop="onNameDblClick"
+    >
+      {{ file.name }}
+    </div>
+
+    <div class="text-xs text-muted text-center truncate">
+      {{ meta }}
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import type { FileInfo } from '~/types/api'
 
@@ -134,100 +228,6 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 </script>
-
-<template>
-  <div
-    role="listitem"
-    :tabindex="index === 0 ? 0 : -1"
-    :aria-selected="selected"
-    :aria-label="file.isDir ? t('files.folderNamed', { name: file.name }) : t('files.fileNamed', { name: file.name })"
-    data-file-card
-    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    :class="[
-      compact ? 'p-1.5' : 'p-2',
-      selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
-      isCut ? 'opacity-50' : '',
-    ]"
-    :style="{ '--card-i': index }"
-    :data-file-name="file.name"
-    @click="handleClick"
-    @keydown="onKeydown"
-  >
-    <div
-      ref="thumbEl"
-      class="relative aspect-square rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
-      :class="compact ? 'mb-1.5' : 'mb-2'"
-    >
-      <img
-        v-if="showThumb"
-        :src="thumbUrl!"
-        :alt="file.name"
-        class="w-full h-full object-cover"
-        @error="failed = true"
-      >
-      <UIcon
-        v-else
-        :name="iconDef.icon"
-        class="transition-transform duration-150 group-hover:scale-105"
-        :class="[
-          compact ? 'size-9' : 'size-12',
-          iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed'),
-        ]"
-        :style="iconDef.color ? { color: iconDef.color } : undefined"
-      />
-
-      <UCheckbox
-        :model-value="selected"
-        size="md"
-        class="absolute top-1 left-1 transition-opacity"
-        :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        :aria-label="t('files.selectItem', { name: file.name })"
-        tabindex="-1"
-        @click.stop
-        @update:model-value="emit('select', file.name)"
-      />
-
-      <UButton
-        v-if="!file.isDir"
-        size="xs"
-        color="neutral"
-        variant="solid"
-        icon="i-lucide-download"
-        class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        :aria-label="t('context.download')"
-        @click.stop="handleDownload"
-      />
-    </div>
-
-    <input
-      v-if="editing"
-      ref="inputRef"
-      v-model="draft"
-      class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-sm text-default outline-none focus:ring-1 focus:ring-primary"
-      :aria-label="t('files.renameItem', { name: file.name })"
-      @click.stop
-      @keydown.enter.prevent="commit"
-      @keydown.escape.prevent="cancel"
-      @blur="commit"
-    >
-    <div
-      v-else
-      class="text-center truncate"
-      :class="[
-        compact ? 'text-xs' : 'text-sm',
-        file.isDir ? 'font-semibold text-highlighted' : 'text-default',
-      ]"
-      :title="file.name"
-      @dblclick.stop="onNameDblClick"
-    >
-      {{ file.name }}
-    </div>
-
-    <div class="text-xs text-muted text-center truncate">
-      {{ meta }}
-    </div>
-  </div>
-</template>
 
 <style scoped>
 /* Staggered reveal on directory load; delay capped so large grids settle fast. */

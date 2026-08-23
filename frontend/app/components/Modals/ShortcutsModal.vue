@@ -1,3 +1,34 @@
+<template>
+  <UModal v-model:open="open" :title="t('shortcuts.title')">
+    <template #title>
+      <UIcon name="i-lucide-keyboard" class="size-5 text-muted" />
+      {{ t('shortcuts.title') }}
+    </template>
+
+    <template #body>
+      <div class="space-y-5">
+        <div v-for="group in groups" :key="group.title">
+          <h3 class="label-caps text-muted border-b border-default pb-1 mb-2">
+            {{ group.title }}
+          </h3>
+          <ul class="space-y-1.5">
+            <li
+              v-for="item in group.items"
+              :key="item.label"
+              class="flex items-center justify-between gap-4"
+            >
+              <span class="text-sm text-default">{{ item.label }}</span>
+              <span class="flex items-center gap-1">
+                <UKbd v-for="k in item.keys" :key="k" :value="k" size="md" />
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </template>
+  </UModal>
+</template>
+
 <script setup lang="ts">
 const modalStore = useModalStore()
 const { t } = useI18n()
@@ -40,34 +71,3 @@ const groups = computed(() => [
   },
 ])
 </script>
-
-<template>
-  <UModal v-model:open="open" :title="t('shortcuts.title')">
-    <template #title>
-      <UIcon name="i-lucide-keyboard" class="size-5 text-muted" />
-      {{ t('shortcuts.title') }}
-    </template>
-
-    <template #body>
-      <div class="space-y-5">
-        <div v-for="group in groups" :key="group.title">
-          <h3 class="label-caps text-muted border-b border-default pb-1 mb-2">
-            {{ group.title }}
-          </h3>
-          <ul class="space-y-1.5">
-            <li
-              v-for="item in group.items"
-              :key="item.label"
-              class="flex items-center justify-between gap-4"
-            >
-              <span class="text-sm text-default">{{ item.label }}</span>
-              <span class="flex items-center gap-1">
-                <UKbd v-for="k in item.keys" :key="k" :value="k" size="md" />
-              </span>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </template>
-  </UModal>
-</template>

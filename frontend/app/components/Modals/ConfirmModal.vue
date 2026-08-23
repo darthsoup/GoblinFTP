@@ -1,10 +1,3 @@
-<script setup lang="ts">
-// Generic confirm dialog driven by modalStore.confirm() (a promise). Labels and
-// copy come from the caller, so this component stays i18n-agnostic.
-const modalStore = useModalStore()
-const opts = computed(() => modalStore.confirmOptions)
-</script>
-
 <template>
   <UModal
     :open="!!opts"
@@ -26,3 +19,10 @@ const opts = computed(() => modalStore.confirmOptions)
     </template>
   </UModal>
 </template>
+
+<script setup lang="ts">
+// Generic confirm dialog driven by modalStore.confirm() (a promise). Labels and
+// copy come from the caller, so this component stays i18n-agnostic.
+const modalStore = useModalStore()
+const opts = computed(() => modalStore.confirmOptions)
+</script>

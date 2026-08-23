@@ -1,3 +1,18 @@
+<template>
+  <AppHeader />
+
+  <div class="flex items-center gap-2 px-4 py-2 bg-elevated border-b border-default shrink-0">
+    <UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-arrow-left" @click="backToFiles">
+      {{ t('editor.backToFiles') }}
+    </UButton>
+    <USeparator orientation="vertical" class="h-4" />
+    <span class="text-xs text-muted truncate">{{ filePath }}</span>
+  </div>
+
+  <EditorPane />
+  <StatusBar />
+</template>
+
 <script setup lang="ts">
 // The editor route; the file browser is not mounted, so no folder navigation.
 // The open file lives in ?path=<file>; tabs persist in the editor store.
@@ -50,18 +65,3 @@ onMounted(async () => {
     navigateTo('/')
 })
 </script>
-
-<template>
-  <AppHeader />
-
-  <div class="flex items-center gap-2 px-4 py-2 bg-elevated border-b border-default shrink-0">
-    <UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-arrow-left" @click="backToFiles">
-      {{ t('editor.backToFiles') }}
-    </UButton>
-    <USeparator orientation="vertical" class="h-4" />
-    <span class="text-xs text-muted truncate">{{ filePath }}</span>
-  </div>
-
-  <EditorPane />
-  <StatusBar />
-</template>

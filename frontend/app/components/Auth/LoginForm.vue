@@ -1,80 +1,3 @@
-<script setup lang="ts">
-import type { FormError, FormSubmitEvent } from '@nuxt/ui'
-import { ApiError } from '~/types/api'
-
-const authStore = useAuthStore()
-const { t } = useI18n()
-const { appName, logoUrl } = useBranding()
-
-const form = reactive({
-  protocol: 'ftp',
-  host: '',
-  port: 21,
-  username: '',
-  password: '',
-  passive: true,
-})
-
-const error = ref<string | null>(null)
-const loading = ref(false)
-
-// authStore.error survives the connect lifecycle (and carries SSO failures from
-// before this form mounts); the local ref captures the manual-connect failure.
-const displayError = computed(() => error.value ?? authStore.error)
-
-const protocolItems = computed(() =>
-  authStore.allowedTypes.map(type => ({ label: type.toUpperCase(), value: type })),
-)
-
-const conn = computed(() => authStore.systemVars?.connection)
-const hostLocked = computed(() => conn.value?.lockHost ?? false)
-
-// Admin presets (GFTP_CONNECTION_*) prefill host/port/passive and force an
-// allowed protocol. systemVars may arrive after mount, so apply reactively.
-watch(conn, (c) => {
-  if (!c)
-    return
-  if (!authStore.allowedTypes.includes(form.protocol))
-    form.protocol = authStore.allowedTypes[0] ?? 'ftp'
-  if (c.presetHost && !form.host)
-    form.host = c.presetHost
-  if (c.presetPort)
-    form.port = c.presetPort
-  form.passive = c.passiveMode
-}, { immediate: true })
-
-watch(() => form.protocol, (proto) => {
-  form.port = conn.value?.presetPort ?? (proto === 'sftp' ? 22 : 21)
-})
-
-function validate(state: Partial<typeof form>): FormError[] {
-  const errors: FormError[] = []
-  if (!state.host?.trim())
-    errors.push({ name: 'host', message: t('login.errorRequired') })
-  if (!state.port || state.port < 1 || state.port > 65535)
-    errors.push({ name: 'port', message: t('login.errorPort') })
-  if (!state.username?.trim())
-    errors.push({ name: 'username', message: t('login.errorRequired') })
-  return errors
-}
-
-async function onSubmit(_event: FormSubmitEvent<typeof form>) {
-  loading.value = true
-  error.value = null
-  try {
-    // On success `connected` flips; the layout's connected-watcher routes to
-    // the workspace, which loads the directory listing.
-    await authStore.connect({ ...form })
-  }
-  catch (e) {
-    error.value = e instanceof ApiError ? e.message : t('error.connectionFailed')
-  }
-  finally {
-    loading.value = false
-  }
-}
-</script>
-
 <template>
   <div class="flex flex-1 items-center justify-center p-4">
     <div class="w-full max-w-md bg-elevated border border-default rounded-lg p-8 shadow-xl">
@@ -167,3 +90,80 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+import { ApiError } from '~/types/api'
+
+const authStore = useAuthStore()
+const { t } = useI18n()
+const { appName, logoUrl } = useBranding()
+
+const form = reactive({
+  protocol: 'ftp',
+  host: '',
+  port: 21,
+  username: '',
+  password: '',
+  passive: true,
+})
+
+const error = ref<string | null>(null)
+const loading = ref(false)
+
+// authStore.error survives the connect lifecycle (and carries SSO failures from
+// before this form mounts); the local ref captures the manual-connect failure.
+const displayError = computed(() => error.value ?? authStore.error)
+
+const protocolItems = computed(() =>
+  authStore.allowedTypes.map(type => ({ label: type.toUpperCase(), value: type })),
+)
+
+const conn = computed(() => authStore.systemVars?.connection)
+const hostLocked = computed(() => conn.value?.lockHost ?? false)
+
+// Admin presets (GFTP_CONNECTION_*) prefill host/port/passive and force an
+// allowed protocol. systemVars may arrive after mount, so apply reactively.
+watch(conn, (c) => {
+  if (!c)
+    return
+  if (!authStore.allowedTypes.includes(form.protocol))
+    form.protocol = authStore.allowedTypes[0] ?? 'ftp'
+  if (c.presetHost && !form.host)
+    form.host = c.presetHost
+  if (c.presetPort)
+    form.port = c.presetPort
+  form.passive = c.passiveMode
+}, { immediate: true })
+
+watch(() => form.protocol, (proto) => {
+  form.port = conn.value?.presetPort ?? (proto === 'sftp' ? 22 : 21)
+})
+
+function validate(state: Partial<typeof form>): FormError[] {
+  const errors: FormError[] = []
+  if (!state.host?.trim())
+    errors.push({ name: 'host', message: t('login.errorRequired') })
+  if (!state.port || state.port < 1 || state.port > 65535)
+    errors.push({ name: 'port', message: t('login.errorPort') })
+  if (!state.username?.trim())
+    errors.push({ name: 'username', message: t('login.errorRequired') })
+  return errors
+}
+
+async function onSubmit(_event: FormSubmitEvent<typeof form>) {
+  loading.value = true
+  error.value = null
+  try {
+    // On success `connected` flips; the layout's connected-watcher routes to
+    // the workspace, which loads the directory listing.
+    await authStore.connect({ ...form })
+  }
+  catch (e) {
+    error.value = e instanceof ApiError ? e.message : t('error.connectionFailed')
+  }
+  finally {
+    loading.value = false
+  }
+}
+</script>

@@ -1,9 +1,3 @@
-<script setup lang="ts">
-// pages/login.vue owns `booting` and the SSO landing; this unauthenticated view
-// is purely presentational.
-defineProps<{ booting: boolean }>()
-</script>
-
 <template>
   <UMain class="flex-1 min-h-0 flex flex-col">
     <UContainer class="flex flex-1 flex-col items-center justify-center py-10">
@@ -18,3 +12,9 @@ defineProps<{ booting: boolean }>()
 
   <HostKeyVerifyModal />
 </template>
+
+<script setup lang="ts">
+// pages/login.vue owns `booting` and the SSO landing; this unauthenticated view
+// is purely presentational.
+defineProps<{ booting: boolean }>()
+</script>

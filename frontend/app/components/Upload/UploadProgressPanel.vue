@@ -1,26 +1,3 @@
-<script setup lang="ts">
-const uploadStore = useUploadStore()
-const settingsStore = useSettingsStore()
-const { t, locale } = useI18n()
-
-const collapsed = ref(false)
-
-function toggle() {
-  collapsed.value = !collapsed.value
-}
-
-// Overall progress across still-active items, so a collapsed queue still reports
-// movement (null when nothing is in flight → the header indicator is hidden).
-const overall = computed(() => {
-  const active = uploadStore.items.filter(i => i.status === 'uploading' || i.status === 'queued')
-  if (active.length === 0)
-    return null
-  const total = active.reduce((sum, i) => sum + i.file.size, 0)
-  const done = active.reduce((sum, i) => sum + i.bytesUploaded, 0)
-  return total > 0 ? Math.round((done / total) * 100) : 0
-})
-</script>
-
 <template>
   <section
     v-if="uploadStore.items.length > 0"
@@ -96,3 +73,26 @@ const overall = computed(() => {
     </ul>
   </section>
 </template>
+
+<script setup lang="ts">
+const uploadStore = useUploadStore()
+const settingsStore = useSettingsStore()
+const { t, locale } = useI18n()
+
+const collapsed = ref(false)
+
+function toggle() {
+  collapsed.value = !collapsed.value
+}
+
+// Overall progress across still-active items, so a collapsed queue still reports
+// movement (null when nothing is in flight → the header indicator is hidden).
+const overall = computed(() => {
+  const active = uploadStore.items.filter(i => i.status === 'uploading' || i.status === 'queued')
+  if (active.length === 0)
+    return null
+  const total = active.reduce((sum, i) => sum + i.file.size, 0)
+  const done = active.reduce((sum, i) => sum + i.bytesUploaded, 0)
+  return total > 0 ? Math.round((done / total) * 100) : 0
+})
+</script>

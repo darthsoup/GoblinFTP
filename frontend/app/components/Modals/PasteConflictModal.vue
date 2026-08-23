@@ -1,12 +1,3 @@
-<script setup lang="ts">
-// Asks how to resolve paste name collisions. Driven by modalStore.pasteConflict()
-// (a promise the files store awaits); backdrop/Esc resolves as 'cancel'.
-const modalStore = useModalStore()
-const { t } = useI18n()
-
-const conflicts = computed(() => modalStore.pasteConflicts)
-</script>
-
 <template>
   <UModal
     :open="modalStore.active === 'pasteConflict'"
@@ -37,3 +28,12 @@ const conflicts = computed(() => modalStore.pasteConflicts)
     </template>
   </UModal>
 </template>
+
+<script setup lang="ts">
+// Asks how to resolve paste name collisions. Driven by modalStore.pasteConflict()
+// (a promise the files store awaits); backdrop/Esc resolves as 'cancel'.
+const modalStore = useModalStore()
+const { t } = useI18n()
+
+const conflicts = computed(() => modalStore.pasteConflicts)
+</script>

@@ -1,3 +1,26 @@
+<template>
+  <UModal v-model:open="open" :title="t('modal.delete.title')">
+    <template #title>
+      <UIcon name="i-lucide-triangle-alert" class="size-5 text-error" />
+      {{ t('modal.delete.title') }}
+    </template>
+
+    <template #body>
+      <div class="space-y-4">
+        <p class="text-muted">
+          {{ message }}
+        </p>
+        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
+      </div>
+    </template>
+
+    <template #footer="{ close }">
+      <UButton color="neutral" variant="subtle" :label="t('modal.delete.cancel')" @click="close" />
+      <UButton color="error" :loading="loading" :label="t('modal.delete.confirm')" @click="confirm" />
+    </template>
+  </UModal>
+</template>
+
 <script setup lang="ts">
 import { ApiError } from '~/types/api'
 
@@ -68,26 +91,3 @@ async function confirm() {
   }
 }
 </script>
-
-<template>
-  <UModal v-model:open="open" :title="t('modal.delete.title')">
-    <template #title>
-      <UIcon name="i-lucide-triangle-alert" class="size-5 text-error" />
-      {{ t('modal.delete.title') }}
-    </template>
-
-    <template #body>
-      <div class="space-y-4">
-        <p class="text-muted">
-          {{ message }}
-        </p>
-        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
-      </div>
-    </template>
-
-    <template #footer="{ close }">
-      <UButton color="neutral" variant="subtle" :label="t('modal.delete.cancel')" @click="close" />
-      <UButton color="error" :loading="loading" :label="t('modal.delete.confirm')" @click="confirm" />
-    </template>
-  </UModal>
-</template>

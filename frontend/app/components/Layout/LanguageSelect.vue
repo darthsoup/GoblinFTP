@@ -1,3 +1,12 @@
+<template>
+  <ULocaleSelect
+    v-model="current"
+    :locales="locales"
+    :search-input="false"
+    :aria-label="t('settings.language')"
+  />
+</template>
+
 <script setup lang="ts">
 import type { AppLanguage } from '~/stores/settings'
 import { cs, da, de, en, es, fi, fr, it, nb_no, nl, pt, sk, sv } from '@nuxt/ui/locale'
@@ -32,12 +41,3 @@ const current = computed<string>({
   },
 })
 </script>
-
-<template>
-  <ULocaleSelect
-    v-model="current"
-    :locales="locales"
-    :search-input="false"
-    :aria-label="t('settings.language')"
-  />
-</template>

@@ -1,3 +1,119 @@
+<template>
+  <UModal v-model:open="open" :title="t('modal.properties.title')">
+    <template #title>
+      <UIcon name="i-lucide-info" class="size-5 text-muted" />
+      {{ t('modal.properties.title') }}
+    </template>
+
+    <template #body>
+      <UForm
+        v-if="file"
+        id="properties-form"
+        :state="state"
+        :validate="validate"
+        class="space-y-6"
+        @submit="onSubmit"
+      >
+        <div class="flex gap-4 items-start">
+          <div class="size-12 rounded bg-default border border-accented flex items-center justify-center shrink-0">
+            <UIcon
+              v-if="iconDef"
+              :name="iconDef.icon"
+              class="size-7"
+              :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+              :style="iconDef.color ? { color: iconDef.color } : undefined"
+            />
+          </div>
+          <UFormField name="name" class="flex-1 min-w-0">
+            <UInput v-model="state.name" class="w-full" />
+            <template #help>
+              <span class="block text-xs text-dimmed truncate" :title="fullPath">{{ fullPath }}</span>
+            </template>
+          </UFormField>
+        </div>
+
+        <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
+          <div>
+            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.size') }}</span>
+            <span class="text-sm text-default">{{ formatSize(file.size) }}</span>
+          </div>
+          <div>
+            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.type') }}</span>
+            <span class="text-sm text-default">{{ file.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') }}</span>
+          </div>
+          <div>
+            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.modified') }}</span>
+            <span class="text-sm text-default">{{ formatDate(file.modified) }}</span>
+          </div>
+          <div>
+            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.permissions') }}</span>
+            <span class="text-sm text-default">{{ file.mode || '--' }}</span>
+          </div>
+        </div>
+
+        <div v-if="chmodEnabled">
+          <h3 class="label-caps text-muted border-b border-default pb-1 mb-3">
+            {{ t('modal.properties.chmodTitle') }}
+          </h3>
+          <div class="rounded border border-default overflow-hidden">
+            <div class="grid grid-cols-4 bg-elevated/60 border-b border-default p-2 label-caps text-muted text-center">
+              <div class="text-left pl-2">
+                {{ t('modal.properties.permGroup') }}
+              </div>
+              <div>{{ t('modal.properties.read') }}</div>
+              <div>{{ t('modal.properties.write') }}</div>
+              <div>{{ t('modal.properties.execute') }}</div>
+            </div>
+            <div
+              v-for="group in PERM_GROUPS"
+              :key="group.key"
+              class="grid grid-cols-4 p-2 border-b border-default/50 last:border-b-0 items-center text-center text-sm"
+            >
+              <div class="text-left text-default pl-2">
+                {{ t(`modal.properties.${group.key}`) }}
+              </div>
+              <div v-for="perm in PERM_BITS" :key="perm.key" class="flex justify-center">
+                <UCheckbox
+                  :model-value="permChecked(group.index, perm.bit)"
+                  size="sm"
+                  :aria-label="`${t(`modal.properties.${group.key}`)}: ${t(`modal.properties.${perm.key}`)}`"
+                  @update:model-value="togglePerm(group.index, perm.bit)"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 mt-3 justify-end">
+            <label for="properties-octal" class="label-caps text-muted mt-2">{{ t('modal.properties.numeric') }}</label>
+            <UFormField name="octal" :ui="{ error: 'text-right' }">
+              <UInput
+                id="properties-octal"
+                v-model="state.octal"
+                size="sm"
+                maxlength="4"
+                class="w-20"
+                :ui="{ base: 'text-center' }"
+              />
+            </UFormField>
+          </div>
+        </div>
+
+        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
+      </UForm>
+    </template>
+
+    <template #footer="{ close }">
+      <UButton color="neutral" variant="subtle" :label="t('modal.properties.cancel')" @click="close" />
+      <UButton
+        type="submit"
+        form="properties-form"
+        :disabled="!canApply"
+        :loading="loading"
+        :label="t('modal.properties.apply')"
+      />
+    </template>
+  </UModal>
+</template>
+
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 import { ApiError } from '~/types/api'
@@ -160,119 +276,3 @@ function formatDate(iso: string): string {
   }
 }
 </script>
-
-<template>
-  <UModal v-model:open="open" :title="t('modal.properties.title')">
-    <template #title>
-      <UIcon name="i-lucide-info" class="size-5 text-muted" />
-      {{ t('modal.properties.title') }}
-    </template>
-
-    <template #body>
-      <UForm
-        v-if="file"
-        id="properties-form"
-        :state="state"
-        :validate="validate"
-        class="space-y-6"
-        @submit="onSubmit"
-      >
-        <div class="flex gap-4 items-start">
-          <div class="size-12 rounded bg-default border border-accented flex items-center justify-center shrink-0">
-            <UIcon
-              v-if="iconDef"
-              :name="iconDef.icon"
-              class="size-7"
-              :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
-              :style="iconDef.color ? { color: iconDef.color } : undefined"
-            />
-          </div>
-          <UFormField name="name" class="flex-1 min-w-0">
-            <UInput v-model="state.name" class="w-full" />
-            <template #help>
-              <span class="block text-xs text-dimmed truncate" :title="fullPath">{{ fullPath }}</span>
-            </template>
-          </UFormField>
-        </div>
-
-        <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
-          <div>
-            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.size') }}</span>
-            <span class="text-sm text-default">{{ formatSize(file.size) }}</span>
-          </div>
-          <div>
-            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.type') }}</span>
-            <span class="text-sm text-default">{{ file.isDir ? t('modal.properties.typeDir') : t('modal.properties.typeFile') }}</span>
-          </div>
-          <div>
-            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.modified') }}</span>
-            <span class="text-sm text-default">{{ formatDate(file.modified) }}</span>
-          </div>
-          <div>
-            <span class="block label-caps text-muted mb-1">{{ t('modal.properties.permissions') }}</span>
-            <span class="text-sm text-default">{{ file.mode || '--' }}</span>
-          </div>
-        </div>
-
-        <div v-if="chmodEnabled">
-          <h3 class="label-caps text-muted border-b border-default pb-1 mb-3">
-            {{ t('modal.properties.chmodTitle') }}
-          </h3>
-          <div class="rounded border border-default overflow-hidden">
-            <div class="grid grid-cols-4 bg-elevated/60 border-b border-default p-2 label-caps text-muted text-center">
-              <div class="text-left pl-2">
-                {{ t('modal.properties.permGroup') }}
-              </div>
-              <div>{{ t('modal.properties.read') }}</div>
-              <div>{{ t('modal.properties.write') }}</div>
-              <div>{{ t('modal.properties.execute') }}</div>
-            </div>
-            <div
-              v-for="group in PERM_GROUPS"
-              :key="group.key"
-              class="grid grid-cols-4 p-2 border-b border-default/50 last:border-b-0 items-center text-center text-sm"
-            >
-              <div class="text-left text-default pl-2">
-                {{ t(`modal.properties.${group.key}`) }}
-              </div>
-              <div v-for="perm in PERM_BITS" :key="perm.key" class="flex justify-center">
-                <UCheckbox
-                  :model-value="permChecked(group.index, perm.bit)"
-                  size="sm"
-                  :aria-label="`${t(`modal.properties.${group.key}`)}: ${t(`modal.properties.${perm.key}`)}`"
-                  @update:model-value="togglePerm(group.index, perm.bit)"
-                />
-              </div>
-            </div>
-          </div>
-          <div class="flex items-start gap-3 mt-3 justify-end">
-            <label for="properties-octal" class="label-caps text-muted mt-2">{{ t('modal.properties.numeric') }}</label>
-            <UFormField name="octal" :ui="{ error: 'text-right' }">
-              <UInput
-                id="properties-octal"
-                v-model="state.octal"
-                size="sm"
-                maxlength="4"
-                class="w-20"
-                :ui="{ base: 'text-center' }"
-              />
-            </UFormField>
-          </div>
-        </div>
-
-        <UAlert v-if="apiError" color="error" variant="soft" :description="apiError" />
-      </UForm>
-    </template>
-
-    <template #footer="{ close }">
-      <UButton color="neutral" variant="subtle" :label="t('modal.properties.cancel')" @click="close" />
-      <UButton
-        type="submit"
-        form="properties-form"
-        :disabled="!canApply"
-        :loading="loading"
-        :label="t('modal.properties.apply')"
-      />
-    </template>
-  </UModal>
-</template>

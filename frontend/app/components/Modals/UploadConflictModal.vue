@@ -1,65 +1,3 @@
-<script setup lang="ts">
-import type { UploadConflictAction } from '~/stores/modal'
-
-// Asks how each occupied upload destination is resolved. Driven by
-// modalStore.uploadConflict(); backdrop/Esc cancels and drops the whole batch.
-const modalStore = useModalStore()
-const settingsStore = useSettingsStore()
-const { t, locale } = useI18n()
-
-// A large folder drop can conflict on thousands of files; rendering them all
-// would stall the dialog, and "apply to all" still covers the hidden ones.
-const MAX_ROWS = 200
-
-const conflicts = computed(() => modalStore.uploadConflicts)
-const visible = computed(() => conflicts.value.slice(0, MAX_ROWS))
-const hiddenCount = computed(() => Math.max(0, conflicts.value.length - MAX_ROWS))
-
-// 'rename' by default: it neither destroys the remote file nor silently drops
-// the local one, so an inattentive Continue cannot lose data.
-const decisions = ref<Record<string, UploadConflictAction>>({})
-watch(conflicts, (entries) => {
-  decisions.value = Object.fromEntries(entries.map(e => [e.path, 'rename' as UploadConflictAction]))
-}, { immediate: true })
-
-const appliedToAll = ref<UploadConflictAction | undefined>()
-
-const actions = [
-  { value: 'overwrite' as const, label: 'modal.uploadConflict.action.overwrite' },
-  { value: 'rename' as const, label: 'modal.uploadConflict.action.rename' },
-  { value: 'skip' as const, label: 'modal.uploadConflict.action.skip' },
-]
-
-function applyToAll(action: UploadConflictAction) {
-  appliedToAll.value = action
-  for (const entry of conflicts.value) {
-    // A directory can never be replaced by an uploaded file.
-    decisions.value[entry.path] = entry.isDir && action === 'overwrite' ? 'rename' : action
-  }
-}
-
-function setDecision(path: string, action: UploadConflictAction) {
-  decisions.value[path] = action
-  appliedToAll.value = undefined
-}
-
-function confirm() {
-  modalStore.resolveUploadConflict({
-    kind: 'resolve',
-    decisions: { ...decisions.value },
-    applyToAll: appliedToAll.value,
-  })
-}
-
-function formatSize(bytes: number): string {
-  return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
-}
-
-function formatDate(iso: string): string {
-  return formatFileDate(iso, settingsStore.dateFormat, locale.value)
-}
-</script>
-
 <template>
   <UModal
     :open="modalStore.active === 'uploadConflict'"
@@ -142,3 +80,65 @@ function formatDate(iso: string): string {
     </template>
   </UModal>
 </template>
+
+<script setup lang="ts">
+import type { UploadConflictAction } from '~/stores/modal'
+
+// Asks how each occupied upload destination is resolved. Driven by
+// modalStore.uploadConflict(); backdrop/Esc cancels and drops the whole batch.
+const modalStore = useModalStore()
+const settingsStore = useSettingsStore()
+const { t, locale } = useI18n()
+
+// A large folder drop can conflict on thousands of files; rendering them all
+// would stall the dialog, and "apply to all" still covers the hidden ones.
+const MAX_ROWS = 200
+
+const conflicts = computed(() => modalStore.uploadConflicts)
+const visible = computed(() => conflicts.value.slice(0, MAX_ROWS))
+const hiddenCount = computed(() => Math.max(0, conflicts.value.length - MAX_ROWS))
+
+// 'rename' by default: it neither destroys the remote file nor silently drops
+// the local one, so an inattentive Continue cannot lose data.
+const decisions = ref<Record<string, UploadConflictAction>>({})
+watch(conflicts, (entries) => {
+  decisions.value = Object.fromEntries(entries.map(e => [e.path, 'rename' as UploadConflictAction]))
+}, { immediate: true })
+
+const appliedToAll = ref<UploadConflictAction | undefined>()
+
+const actions = [
+  { value: 'overwrite' as const, label: 'modal.uploadConflict.action.overwrite' },
+  { value: 'rename' as const, label: 'modal.uploadConflict.action.rename' },
+  { value: 'skip' as const, label: 'modal.uploadConflict.action.skip' },
+]
+
+function applyToAll(action: UploadConflictAction) {
+  appliedToAll.value = action
+  for (const entry of conflicts.value) {
+    // A directory can never be replaced by an uploaded file.
+    decisions.value[entry.path] = entry.isDir && action === 'overwrite' ? 'rename' : action
+  }
+}
+
+function setDecision(path: string, action: UploadConflictAction) {
+  decisions.value[path] = action
+  appliedToAll.value = undefined
+}
+
+function confirm() {
+  modalStore.resolveUploadConflict({
+    kind: 'resolve',
+    decisions: { ...decisions.value },
+    applyToAll: appliedToAll.value,
+  })
+}
+
+function formatSize(bytes: number): string {
+  return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
+}
+
+function formatDate(iso: string): string {
+  return formatFileDate(iso, settingsStore.dateFormat, locale.value)
+}
+</script>

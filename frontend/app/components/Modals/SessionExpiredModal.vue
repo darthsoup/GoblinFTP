@@ -1,21 +1,3 @@
-<script setup lang="ts">
-const authStore = useAuthStore()
-const filesStore = useFilesStore()
-const editorStore = useEditorStore()
-const uploadStore = useUploadStore()
-const { t } = useI18n()
-
-// Blocking: not dismissible, no close button, so the only way out is reconnect.
-const open = computed(() => authStore.sessionLost)
-
-function reconnect() {
-  uploadStore.cancelAll()
-  filesStore.$reset()
-  editorStore.$reset()
-  authStore.acknowledgeSessionLost()
-}
-</script>
-
 <template>
   <UModal :open="open" :dismissible="false" :close="false" :title="t('session.lostTitle')">
     <template #title>
@@ -34,3 +16,21 @@ function reconnect() {
     </template>
   </UModal>
 </template>
+
+<script setup lang="ts">
+const authStore = useAuthStore()
+const filesStore = useFilesStore()
+const editorStore = useEditorStore()
+const uploadStore = useUploadStore()
+const { t } = useI18n()
+
+// Blocking: not dismissible, no close button, so the only way out is reconnect.
+const open = computed(() => authStore.sessionLost)
+
+function reconnect() {
+  uploadStore.cancelAll()
+  filesStore.$reset()
+  editorStore.$reset()
+  authStore.acknowledgeSessionLost()
+}
+</script>

@@ -1,3 +1,84 @@
+<template>
+  <tr
+    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+    :class="[
+      compact ? 'h-9' : 'h-12',
+      selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
+      isCut ? 'opacity-50' : '',
+    ]"
+    :style="{ '--row-i': index }"
+    :data-file-name="file.name"
+    :tabindex="index === 0 ? 0 : -1"
+    :aria-selected="selected"
+    :aria-label="rowLabel"
+    @click="handleClick"
+    @keydown="onKeydown"
+  >
+    <td class="w-10 px-4">
+      <UCheckbox
+        :model-value="selected"
+        size="md"
+        class="justify-center transition-opacity"
+        :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        :aria-label="t('files.selectItem', { name: file.name })"
+        tabindex="-1"
+        @click.stop
+        @update:model-value="emit('select', file.name)"
+      />
+    </td>
+    <td class="px-4 truncate max-w-0">
+      <input
+        v-if="editing"
+        ref="inputRef"
+        v-model="draft"
+        class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
+        :aria-label="t('files.renameItem', { name: file.name })"
+        @click.stop
+        @keydown.enter.prevent="commit"
+        @keydown.escape.prevent="cancel"
+        @blur="commit"
+      >
+      <div v-else class="flex items-center gap-2.5 min-w-0">
+        <UIcon
+          :name="iconDef.icon"
+          class="size-5 shrink-0"
+          :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
+          :style="iconDef.color ? { color: iconDef.color } : undefined"
+        />
+        <span
+          class="truncate"
+          :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+          @dblclick.stop="onNameDblClick"
+        >{{ file.name }}</span>
+      </div>
+    </td>
+    <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
+      <span v-if="file.isDir" class="text-dimmed/50">-</span>
+      <span v-else>{{ formatSize(file.size) }}</span>
+    </td>
+    <td class="w-40 px-4 text-right text-muted whitespace-nowrap hidden md:table-cell">
+      {{ formatDate(file.modified) }}
+    </td>
+    <td v-if="showPermissions" class="w-28 px-4 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
+      <span v-if="file.mode">{{ file.mode }}</span>
+      <span v-else class="text-dimmed/50">-</span>
+    </td>
+    <td class="w-14 px-2 text-center">
+      <UDropdownMenu :items="menuItems" :content="{ align: 'end' }">
+        <UButton
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-ellipsis-vertical"
+          :aria-label="t('context.actions')"
+          class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+          @click.stop
+        />
+      </UDropdownMenu>
+    </td>
+  </tr>
+</template>
+
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
@@ -108,87 +189,6 @@ function handleClick() {
   }
 }
 </script>
-
-<template>
-  <tr
-    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-    :class="[
-      compact ? 'h-9' : 'h-12',
-      selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
-      isCut ? 'opacity-50' : '',
-    ]"
-    :style="{ '--row-i': index }"
-    :data-file-name="file.name"
-    :tabindex="index === 0 ? 0 : -1"
-    :aria-selected="selected"
-    :aria-label="rowLabel"
-    @click="handleClick"
-    @keydown="onKeydown"
-  >
-    <td class="w-10 px-4">
-      <UCheckbox
-        :model-value="selected"
-        size="md"
-        class="justify-center transition-opacity"
-        :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        :aria-label="t('files.selectItem', { name: file.name })"
-        tabindex="-1"
-        @click.stop
-        @update:model-value="emit('select', file.name)"
-      />
-    </td>
-    <td class="px-4 truncate max-w-0">
-      <input
-        v-if="editing"
-        ref="inputRef"
-        v-model="draft"
-        class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
-        :aria-label="t('files.renameItem', { name: file.name })"
-        @click.stop
-        @keydown.enter.prevent="commit"
-        @keydown.escape.prevent="cancel"
-        @blur="commit"
-      >
-      <div v-else class="flex items-center gap-2.5 min-w-0">
-        <UIcon
-          :name="iconDef.icon"
-          class="size-5 shrink-0"
-          :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
-          :style="iconDef.color ? { color: iconDef.color } : undefined"
-        />
-        <span
-          class="truncate"
-          :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
-          @dblclick.stop="onNameDblClick"
-        >{{ file.name }}</span>
-      </div>
-    </td>
-    <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
-      <span v-if="file.isDir" class="text-dimmed/50">-</span>
-      <span v-else>{{ formatSize(file.size) }}</span>
-    </td>
-    <td class="w-40 px-4 text-right text-muted whitespace-nowrap hidden md:table-cell">
-      {{ formatDate(file.modified) }}
-    </td>
-    <td v-if="showPermissions" class="w-28 px-4 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
-      <span v-if="file.mode">{{ file.mode }}</span>
-      <span v-else class="text-dimmed/50">-</span>
-    </td>
-    <td class="w-14 px-2 text-center">
-      <UDropdownMenu :items="menuItems" :content="{ align: 'end' }">
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-ellipsis-vertical"
-          :aria-label="t('context.actions')"
-          class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
-          @click.stop
-        />
-      </UDropdownMenu>
-    </td>
-  </tr>
-</template>
 
 <style scoped>
 /* Staggered reveal on directory load; delay capped so large listings settle fast. */

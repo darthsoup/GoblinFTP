@@ -1,24 +1,3 @@
-<script setup lang="ts">
-// Raised when a save was refused because the file changed or vanished. Driven by
-// modalStore.editorConflict(); backdrop/Esc resolves as the safe 'cancel'.
-const modalStore = useModalStore()
-const settingsStore = useSettingsStore()
-const { t, locale } = useI18n()
-
-const info = computed(() => modalStore.editorConflictInfo)
-const deleted = computed(() => info.value?.kind === 'deleted')
-
-const baseline = computed(() => {
-  const i = info.value
-  if (!i || i.size === undefined || !i.modified)
-    return null
-  return t('editor.conflict.baseline', {
-    size: formatFileSize(i.size, settingsStore.sizeFormat, locale.value),
-    date: formatFileDate(i.modified, settingsStore.dateFormat, locale.value),
-  })
-})
-</script>
-
 <template>
   <UModal
     :open="modalStore.active === 'editorConflict'"
@@ -63,3 +42,24 @@ const baseline = computed(() => {
     </template>
   </UModal>
 </template>
+
+<script setup lang="ts">
+// Raised when a save was refused because the file changed or vanished. Driven by
+// modalStore.editorConflict(); backdrop/Esc resolves as the safe 'cancel'.
+const modalStore = useModalStore()
+const settingsStore = useSettingsStore()
+const { t, locale } = useI18n()
+
+const info = computed(() => modalStore.editorConflictInfo)
+const deleted = computed(() => info.value?.kind === 'deleted')
+
+const baseline = computed(() => {
+  const i = info.value
+  if (!i || i.size === undefined || !i.modified)
+    return null
+  return t('editor.conflict.baseline', {
+    size: formatFileSize(i.size, settingsStore.sizeFormat, locale.value),
+    date: formatFileDate(i.modified, settingsStore.dateFormat, locale.value),
+  })
+})
+</script>

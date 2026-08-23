@@ -1,13 +1,3 @@
-<script setup lang="ts">
-const authStore = useAuthStore()
-const uploadStore = useUploadStore()
-const { t } = useI18n()
-
-const activeCount = computed(() =>
-  uploadStore.items.filter(i => i.status === 'queued' || i.status === 'uploading').length,
-)
-</script>
-
 <template>
   <footer class="flex items-center justify-between px-4 h-8 bg-elevated border-t border-default text-xs shrink-0 select-none">
     <div class="flex items-center gap-3 min-w-0" aria-live="polite">
@@ -37,3 +27,13 @@ const activeCount = computed(() =>
     </div>
   </footer>
 </template>
+
+<script setup lang="ts">
+const authStore = useAuthStore()
+const uploadStore = useUploadStore()
+const { t } = useI18n()
+
+const activeCount = computed(() =>
+  uploadStore.items.filter(i => i.status === 'queued' || i.status === 'uploading').length,
+)
+</script>

@@ -1,130 +1,3 @@
-<script setup lang="ts">
-import type { FileInfo } from '~/types/api'
-import { ApiError } from '~/types/api'
-
-const props = defineProps<{
-  file: FileInfo
-  dir: string
-}>()
-
-const emit = defineEmits<{
-  close: []
-}>()
-
-const filesStore = useFilesStore()
-const authStore = useAuthStore()
-const settingsStore = useSettingsStore()
-const modalStore = useModalStore()
-const notify = useNotify()
-const { t, locale } = useI18n()
-
-// Fallback text extensions when systemVars hasn't loaded yet (the read endpoint
-// still gates on the server's allowed list, so this is just for classification).
-const FALLBACK_TEXT_EXTS = ['txt', 'md', 'markdown', 'log', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'conf', 'cfg', 'env', 'csv', 'sql', 'sh', 'js', 'ts', 'css', 'html', 'htm', 'py', 'go', 'rb', 'php']
-
-const fullPath = computed(() => `${props.dir.replace(/\/$/, '')}/${props.file.name}`)
-const iconDef = computed(() => getFileIcon(props.file))
-const textExts = computed(() => authStore.systemVars?.editor.allowedExtensions ?? FALLBACK_TEXT_EXTS)
-const kind = computed(() => getPreviewKind(props.file, textExts.value))
-
-const ext = computed(() => props.file.name.split('.').pop()?.toLowerCase() ?? '')
-const editEnabled = computed(() => {
-  const ed = authStore.systemVars?.editor
-  if (!ed || ed.disabled || props.file.isDir)
-    return false
-  return ed.allowedExtensions.some(a => a.toLowerCase() === ext.value)
-})
-
-type Status = 'loading' | 'ready' | 'tooLarge' | 'none' | 'error'
-const status = ref<Status>('loading')
-const mediaUrl = ref<string | null>(null)
-const textContent = ref<string | null>(null)
-let urlIsBlob = false
-let reqId = 0
-
-function revoke() {
-  if (urlIsBlob && mediaUrl.value)
-    URL.revokeObjectURL(mediaUrl.value)
-  urlIsBlob = false
-}
-
-async function load() {
-  const id = ++reqId
-  revoke()
-  mediaUrl.value = null
-  textContent.value = null
-  status.value = 'loading'
-
-  const k = kind.value
-  if (k === 'none') {
-    status.value = 'none'
-    return
-  }
-  // Binary kinds are size-capped (text relies on the read endpoint's 1 MB cap).
-  if (k !== 'text' && props.file.size > PREVIEW_MAX_BYTES) {
-    status.value = 'tooLarge'
-    return
-  }
-
-  const path = fullPath.value
-  try {
-    if (k === 'text') {
-      const data = await useApi().get<{ content: string }>(`/api/files/read?path=${encodeURIComponent(path)}`)
-      if (id !== reqId)
-        return
-      textContent.value = data.content
-    }
-    else {
-      // The download endpoint serves octet-stream, so media needs a typed blob to
-      // render reliably (e.g. SVG in an <img> fails in some browsers otherwise).
-      const url = await filesStore.fetchObjectUrl(path, previewMime(props.file.name))
-      if (id !== reqId) {
-        URL.revokeObjectURL(url) // a newer request superseded us, don't leak
-        return
-      }
-      mediaUrl.value = url
-      urlIsBlob = true
-    }
-    status.value = 'ready'
-  }
-  catch (e) {
-    if (id !== reqId)
-      return
-    status.value = e instanceof ApiError && e.code === 'ERR_FILE_TOO_LARGE' ? 'tooLarge' : 'error'
-  }
-}
-
-// Key the reload on the path, not the file object, so a list refresh that
-// replaces the object without changing the target doesn't refetch.
-watch(fullPath, load, { immediate: true })
-onBeforeUnmount(revoke)
-
-async function download() {
-  try {
-    await filesStore.downloadFile(fullPath.value)
-  }
-  catch (e) {
-    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
-  }
-}
-
-function edit() {
-  navigateTo({ path: '/edit', query: { path: fullPath.value } })
-}
-
-function openProperties() {
-  modalStore.open('properties', { file: props.file })
-}
-
-function fmtSize(bytes: number): string {
-  return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
-}
-
-function fmtDate(iso: string): string {
-  return formatFileDate(iso, settingsStore.dateFormat, locale.value)
-}
-</script>
-
 <template>
   <aside class="flex flex-col overflow-hidden border-l border-default bg-elevated">
     <div class="flex items-center gap-2 px-3 h-11 border-b border-default shrink-0">
@@ -256,3 +129,130 @@ function fmtDate(iso: string): string {
     </div>
   </aside>
 </template>
+
+<script setup lang="ts">
+import type { FileInfo } from '~/types/api'
+import { ApiError } from '~/types/api'
+
+const props = defineProps<{
+  file: FileInfo
+  dir: string
+}>()
+
+const emit = defineEmits<{
+  close: []
+}>()
+
+const filesStore = useFilesStore()
+const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
+const modalStore = useModalStore()
+const notify = useNotify()
+const { t, locale } = useI18n()
+
+// Fallback text extensions when systemVars hasn't loaded yet (the read endpoint
+// still gates on the server's allowed list, so this is just for classification).
+const FALLBACK_TEXT_EXTS = ['txt', 'md', 'markdown', 'log', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'conf', 'cfg', 'env', 'csv', 'sql', 'sh', 'js', 'ts', 'css', 'html', 'htm', 'py', 'go', 'rb', 'php']
+
+const fullPath = computed(() => `${props.dir.replace(/\/$/, '')}/${props.file.name}`)
+const iconDef = computed(() => getFileIcon(props.file))
+const textExts = computed(() => authStore.systemVars?.editor.allowedExtensions ?? FALLBACK_TEXT_EXTS)
+const kind = computed(() => getPreviewKind(props.file, textExts.value))
+
+const ext = computed(() => props.file.name.split('.').pop()?.toLowerCase() ?? '')
+const editEnabled = computed(() => {
+  const ed = authStore.systemVars?.editor
+  if (!ed || ed.disabled || props.file.isDir)
+    return false
+  return ed.allowedExtensions.some(a => a.toLowerCase() === ext.value)
+})
+
+type Status = 'loading' | 'ready' | 'tooLarge' | 'none' | 'error'
+const status = ref<Status>('loading')
+const mediaUrl = ref<string | null>(null)
+const textContent = ref<string | null>(null)
+let urlIsBlob = false
+let reqId = 0
+
+function revoke() {
+  if (urlIsBlob && mediaUrl.value)
+    URL.revokeObjectURL(mediaUrl.value)
+  urlIsBlob = false
+}
+
+async function load() {
+  const id = ++reqId
+  revoke()
+  mediaUrl.value = null
+  textContent.value = null
+  status.value = 'loading'
+
+  const k = kind.value
+  if (k === 'none') {
+    status.value = 'none'
+    return
+  }
+  // Binary kinds are size-capped (text relies on the read endpoint's 1 MB cap).
+  if (k !== 'text' && props.file.size > PREVIEW_MAX_BYTES) {
+    status.value = 'tooLarge'
+    return
+  }
+
+  const path = fullPath.value
+  try {
+    if (k === 'text') {
+      const data = await useApi().get<{ content: string }>(`/api/files/read?path=${encodeURIComponent(path)}`)
+      if (id !== reqId)
+        return
+      textContent.value = data.content
+    }
+    else {
+      // The download endpoint serves octet-stream, so media needs a typed blob to
+      // render reliably (e.g. SVG in an <img> fails in some browsers otherwise).
+      const url = await filesStore.fetchObjectUrl(path, previewMime(props.file.name))
+      if (id !== reqId) {
+        URL.revokeObjectURL(url) // a newer request superseded us, don't leak
+        return
+      }
+      mediaUrl.value = url
+      urlIsBlob = true
+    }
+    status.value = 'ready'
+  }
+  catch (e) {
+    if (id !== reqId)
+      return
+    status.value = e instanceof ApiError && e.code === 'ERR_FILE_TOO_LARGE' ? 'tooLarge' : 'error'
+  }
+}
+
+// Key the reload on the path, not the file object, so a list refresh that
+// replaces the object without changing the target doesn't refetch.
+watch(fullPath, load, { immediate: true })
+onBeforeUnmount(revoke)
+
+async function download() {
+  try {
+    await filesStore.downloadFile(fullPath.value)
+  }
+  catch (e) {
+    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+  }
+}
+
+function edit() {
+  navigateTo({ path: '/edit', query: { path: fullPath.value } })
+}
+
+function openProperties() {
+  modalStore.open('properties', { file: props.file })
+}
+
+function fmtSize(bytes: number): string {
+  return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
+}
+
+function fmtDate(iso: string): string {
+  return formatFileDate(iso, settingsStore.dateFormat, locale.value)
+}
+</script>
