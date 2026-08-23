@@ -47,8 +47,8 @@ func TestCSPEmitsAllowlistWhenConfigured(t *testing.T) {
 		"X-Frame-Options must be absent when an allowlist is configured")
 }
 
-// A second Content-Security-Policy header is enforced as the intersection of
-// both policies - correct, but near-impossible to debug from a console.
+// A second Content-Security-Policy header is enforced as the intersection of both
+// policies, which is correct but near-impossible to debug from a console.
 func TestCSPIsASingleHeaderWithBaseDirectivesIntact(t *testing.T) {
 	h := getHeaders(t, defaultTestConfig(), "/api/system/vars")
 
@@ -64,11 +64,8 @@ func TestCSPIsASingleHeaderWithBaseDirectivesIntact(t *testing.T) {
 	}
 }
 
-// THE load-bearing invariant of the embed design. Under SameSite=None the CSRF
-// token is the only CSRF defense left, and it holds solely because a
-// cross-origin page cannot read GET /api/auth/status - which is true only while
-// no Access-Control-Allow-Origin is ever emitted. If someone adds CORS
-// middleware, this test must fail loudly.
+// Under SameSite=None the CSRF token is the only defense left, and it holds only
+// because no Access-Control-Allow-Origin is ever emitted. Adding CORS breaks it.
 func TestNoCORSHeadersEver(t *testing.T) {
 	cfg := defaultTestConfig()
 	cfg.FrameAncestors = []string{"https://panel.example.com"}
@@ -86,9 +83,8 @@ func TestNoCORSHeadersEver(t *testing.T) {
 	}
 }
 
-// Defense in depth for the CSRF-exempt connect endpoint. Not closing a live
-// hole (echo's binder ignores untagged form fields, so a cross-site simple
-// request binds nothing), but the guard should not depend on that detail.
+// Defense in depth for the CSRF-exempt connect endpoint: echo's binder already
+// ignores untagged form fields, but the guard must not depend on that detail.
 func TestConnectRejectsCrossSiteFetch(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig(), staticDialOption())
 

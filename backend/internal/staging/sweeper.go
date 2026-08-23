@@ -1,4 +1,3 @@
-// backend/internal/staging/sweeper.go
 package staging
 
 import (
@@ -13,11 +12,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// staleAfter is how long an untouched upload directory must sit before the
-// sweeper reclaims it. Creating each chunk adds a directory entry, which bumps
-// the directory's mtime, so an upload in progress can never look stale. Hours
-// rather than minutes because a client may legitimately pause between the
-// reserve and the commit (a conflict prompt waits on the user).
+// staleAfter: creating a chunk bumps the directory mtime, so an upload in
+// progress never looks stale. Hours, since a conflict prompt can pause a client.
 const staleAfter = 24 * time.Hour
 
 // sweepInterval is deliberately coarse: this reclaims disk, it is not on any
@@ -27,21 +23,13 @@ const sweepInterval = time.Hour
 // chunkNameRe matches the %04d chunk files transfer.WriteChunk writes.
 var chunkNameRe = regexp.MustCompile(`^\d{4,}$`)
 
-// Sweeper reclaims local staging directories that no longer belong to any
-// upload. Handlers clean up on commit and abort, but an abandoned reservation
-// (closed tab, dropped connection, or a restart, which loses the in-memory
-// session store entirely) leaves its chunks behind forever.
-//
-// S3 staging is not swept: reaping a remote bucket on a timer is the bucket's
-// job. See docs/s3-staging.md for the lifecycle rule.
+// Sweeper reclaims local staging directories left by abandoned reservations
+// (a restart loses the in-memory sessions). S3 is not swept: see docs/s3-staging.md.
 type Sweeper struct {
 	root   string
 	logger *slog.Logger
-	// inUse reports whether an upload is still referenced by a live session.
-	// The mtime guard alone is not sufficient: the session TTL has no upper
-	// bound, and WriteChunk uses os.Create, which truncates an existing chunk
-	// name without adding a directory entry, so a client retrying indices it
-	// already wrote does not refresh the directory's mtime.
+	// inUse reports whether a live session still references the upload. The mtime
+	// guard alone misses retries: os.Create truncates without touching the mtime.
 	inUse func(uploadID string) bool
 
 	mu      sync.Mutex
@@ -49,9 +37,8 @@ type Sweeper struct {
 	stopped bool
 }
 
-// NewSweeper starts a sweeper over dataDir. inUse may be nil, in which case
-// only the age and shape guards apply. It runs one pass immediately, which is
-// the pass that matters after a restart.
+// NewSweeper starts a sweeper over dataDir; a nil inUse leaves only the age and
+// shape guards. One pass runs immediately, the pass that matters after a restart.
 func NewSweeper(dataDir string, logger *slog.Logger, inUse func(string) bool) *Sweeper {
 	s := newSweeper(dataDir, logger, inUse)
 	go s.run()
@@ -113,9 +100,8 @@ func (s *Sweeper) Sweep() {
 	}
 }
 
-// isReclaimable holds three independent guards, all of which must pass. The
-// data dir also holds known_hosts and themes/, so a single wrong guess here
-// would delete an operator's data.
+// isReclaimable holds independent guards, all of which must pass: the data dir
+// also holds known_hosts and themes/, so a wrong guess deletes operator data.
 func (s *Sweeper) isReclaimable(entry os.DirEntry, cutoff time.Time) bool {
 	if !entry.IsDir() {
 		return false

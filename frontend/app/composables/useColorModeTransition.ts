@@ -1,8 +1,5 @@
-// Animate the light/dark flip with the View Transitions API: a circular reveal
-// from the toggle (or a plain cross-fade when there's no pointer origin, e.g. the
-// settings selector). @nuxtjs/color-mode otherwise swaps the `.dark`/`.light`
-// class in a hard cut. Falls back to an instant switch where View Transitions are
-// unsupported (Firefox) or the user prefers reduced motion.
+// Animates the light/dark flip with the View Transitions API (@nuxtjs/color-mode
+// otherwise hard-cuts the class): circular reveal from the pointer, else a fade.
 interface ViewTransition {
   ready: Promise<void>
   finished: Promise<void>
@@ -30,9 +27,8 @@ export function useColorModeTransition() {
     if (origin)
       root.classList.add('vt-circle')
 
-    // Await nextTick so @nuxtjs/color-mode's (reactive, async) class flip lands
-    // BEFORE the API snapshots the new state - otherwise the reveal would show an
-    // identical snapshot and the real flip would happen instantly outside it.
+    // Await nextTick so color-mode's async class flip lands BEFORE the API
+    // snapshots the new state, otherwise the reveal shows an identical snapshot.
     const transition = start.call(document, async () => {
       colorMode.preference = preference
       await nextTick()
@@ -54,8 +50,8 @@ export function useColorModeTransition() {
       .catch(() => {})
   }
 
-  // Toggle light<->dark. A real pointer click (detail > 0) reveals from the cursor;
-  // keyboard activation cross-fades (no meaningful origin).
+  // A real pointer click (detail > 0) reveals from the cursor; keyboard
+  // activation has no meaningful origin, so it cross-fades.
   function toggle(event?: MouseEvent) {
     const next = colorMode.value === 'dark' ? 'light' : 'dark'
     const origin = event && event.detail > 0 ? { x: event.clientX, y: event.clientY } : undefined

@@ -1,4 +1,3 @@
-// backend/internal/api/session_close.go
 package api
 
 import (
@@ -9,11 +8,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// closeSessionClient closes the transfer client a session holds, if any.
-//
-// The caller must already hold the session's transfer lock: both callers reach
-// here from a point where the connection must not be in use. Disconnect takes
-// it explicitly; the store's eviction sweep takes it before invoking the hook.
+// closeSessionClient closes the transfer client a session holds, if any. The
+// caller must already hold the session's transfer lock.
 func closeSessionClient(sess *auth.Session) {
 	clientVal, ok := sess.Get("client")
 	if !ok {
@@ -25,9 +21,8 @@ func closeSessionClient(sess *auth.Session) {
 	sess.Delete("client")
 }
 
-// evictSession is the store's eviction hook: it releases everything a session
-// owns. Registered in newHandler so an expired session frees its connection and
-// its staged upload chunks, not just its map entry.
+// evictSession is the store's eviction hook: an expired session frees its
+// connection and its staged upload chunks, not just its map entry.
 func (h *Handler) evictSession(sess *auth.Session) {
 	closeSessionClient(sess)
 

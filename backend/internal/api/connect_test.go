@@ -1,4 +1,3 @@
-// backend/internal/api/connect_test.go
 package api_test
 
 import (
@@ -48,7 +47,7 @@ func validPayload() connectPayload {
 
 func TestConnectDisallowedType(t *testing.T) {
 	cfg := defaultTestConfig()
-	cfg.Settings.Connection.AllowedTypes = []string{"ftp"} // sftp not allowed
+	cfg.Settings.Connection.AllowedTypes = []string{"ftp"}
 	e, store, _ := newTestApp(t, cfg)
 	defer store.Close()
 
@@ -106,12 +105,12 @@ func TestConnectInvalidPort(t *testing.T) {
 
 func TestConnectIPNotAllowlisted(t *testing.T) {
 	cfg := defaultTestConfig()
-	cfg.Settings.Access.AllowedClientAddresses = []string{"10.0.0.1"} // only 10.0.0.1 allowed
+	cfg.Settings.Access.AllowedClientAddresses = []string{"10.0.0.1"}
 	e, store, _ := newTestApp(t, cfg)
 	defer store.Close()
 
 	req := newConnectRequest(t, validPayload())
-	req.RemoteAddr = "192.168.1.100:12345" // not in allowlist
+	req.RemoteAddr = "192.168.1.100:12345"
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
@@ -167,8 +166,8 @@ func TestConnectSuccess(t *testing.T) {
 	assert.Equal(t, "/home/user", resp.Data.InitialDirectory)
 }
 
-// TestConnectHostKeyPrompt: an unknown SFTP host key returns a 200 with the
-// fingerprint to confirm, and creates no session/cookie until the user accepts.
+// An unknown SFTP host key returns a 200 with the fingerprint to confirm, and
+// creates no session or cookie until the user accepts.
 func TestConnectHostKeyPrompt(t *testing.T) {
 	dialFn := func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
 		return nil, &api.HostKeyPrompt{Fingerprint: "SHA256:abc123", KeyType: "ssh-ed25519"}, nil
@@ -200,8 +199,8 @@ func TestConnectHostKeyPrompt(t *testing.T) {
 	assert.Equal(t, 0, store.Count(), "no session created for a host-key prompt")
 }
 
-// TestConnectHostKeyChangedPrompt: a changed SFTP host key surfaces both
-// fingerprints so the UI can show the re-trust warning.
+// A changed SFTP host key surfaces both fingerprints so the UI can show the
+// re-trust warning.
 func TestConnectHostKeyChangedPrompt(t *testing.T) {
 	dialFn := func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
 		return nil, &api.HostKeyPrompt{
@@ -238,8 +237,8 @@ func TestConnectHostKeyChangedPrompt(t *testing.T) {
 	assert.Equal(t, 0, store.Count(), "no session created for a host-key prompt")
 }
 
-// TestConnectHostKeyMismatch: a changed host key is refused with
-// ERR_HOST_KEY_MISMATCH and the raw cause is not leaked into the envelope.
+// A changed host key is refused with ERR_HOST_KEY_MISMATCH and the raw cause is
+// not leaked into the envelope.
 func TestConnectHostKeyMismatch(t *testing.T) {
 	dialFn := func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {
 		return nil, nil, fmt.Errorf("%w: raw-detail-xyz", transfer.ErrHostKeyMismatch)
@@ -281,11 +280,9 @@ func TestDisconnect(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 
-	// Session must be deleted
 	_, ok := store.Get(sess.ID)
 	assert.False(t, ok, "session should be deleted after disconnect")
 
-	// Cookie must be cleared (MaxAge = -1)
 	var found bool
 	for _, cookie := range rec.Result().Cookies() {
 		if cookie.Name == api.SessionCookieName {

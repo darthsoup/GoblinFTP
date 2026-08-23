@@ -1,4 +1,3 @@
-// backend/internal/api/sso.go
 package api
 
 import (
@@ -25,10 +24,8 @@ func tokenHash(raw string) string {
 	return fmt.Sprintf("%x", sum)
 }
 
-// ssoReject logs an SSO login rejection and redirects the browser back to the
-// SPA with an ?sso_error=<reason> marker (no sso= param, so Caddy serves the
-// SPA rather than re-proxying to this handler). The redirect bypasses Fail's
-// access-log stash, so the reason is logged explicitly here for ops visibility.
+// ssoReject redirects to the SPA with ?sso_error=<reason> (no sso= param, so
+// Caddy serves the SPA). The redirect bypasses Fail's access-log stash, hence the log.
 func (h *Handler) ssoReject(c echo.Context, reason string, cause error) error {
 	attrs := []slog.Attr{slog.String("reason", reason)}
 	if cause != nil {
@@ -38,10 +35,8 @@ func (h *Handler) ssoReject(c echo.Context, reason string, cause error) error {
 	return c.Redirect(http.StatusFound, "/login?sso_error="+reason)
 }
 
-// SSOLogin handles GET /?sso=<token>.
-// If no sso param: returns 200 placeholder (SPA serving will be added later).
-// On any token rejection: redirect to /login?sso_error=<reason> so the SPA can
-// show a message. On success: create session, redirect to /login.
+// SSOLogin handles GET /?sso=<token>. Any token rejection redirects to
+// /login?sso_error=<reason> so the SPA can show a message.
 func (h *Handler) SSOLogin(c echo.Context) error {
 	raw := c.QueryParam("sso")
 	if raw == "" {
@@ -60,9 +55,8 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		return h.ssoReject(c, "invalid", err)
 	}
 
-	// The protocol allowlist is policy of the GoblinFTP operator, who is not
-	// necessarily whoever minted the token (white-label deployments), so it is
-	// enforced here rather than trusted from the payload.
+	// The allowlist is the operator's policy, not necessarily the token minter's
+	// (white-label), so it is enforced here rather than trusted from the payload.
 	if !isAllowedType(payload.Type, h.cfg.Settings.Connection.AllowedTypes) {
 		return h.ssoReject(c, "invalid", fmt.Errorf("connection type %q is not allowed", payload.Type))
 	}
@@ -96,16 +90,14 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		// every SSO FTP login dialed in active mode, failing behind NAT.
 		Passive: h.cfg.Settings.Connection.PassiveMode,
 	})
-	// White-label theming: carry the (validated) tenant on the session directly so
-	// it survives the pending→connected transition and reaches SystemVars. An
-	// invalid/unknown tenant is dropped silently - login still succeeds.
+	// Carry the validated tenant on the session so it survives the pending to
+	// connected transition. An unknown tenant is dropped silently, login still works.
 	if tenant := sanitizeTenant(payload.Tenant); tenant != "" {
 		sess.Set(tenantSessionKey, tenant)
 	}
 
-	// The cookie that matters most for an embed: it is set on the cross-site
-	// iframe navigation itself, so it must carry the embed policy or the frame
-	// never establishes a session.
+	// Set on the cross-site iframe navigation itself, so it must carry the embed
+	// policy or the frame never establishes a session.
 	c.SetCookie(sessionCookie(c, h.cfg, sess.ID, 0))
 
 	// Land on the SPA login route, which finalizes the connection via
@@ -113,14 +105,8 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 	return c.Redirect(http.StatusFound, "/login")
 }
 
-// AuthStatus handles GET /api/auth/status.
-// Public endpoint: no requireSession middleware. Manually reads session cookie.
-// Returns {connected, ssoAutoConnect, csrfToken} and, when connected, the
-// session's connection context (host, initialDirectory, capabilities) so the
-// SPA can restore its state after a page reload.
-// With ?ping=1 the FTP/SFTP connection is verified with a lightweight round
-// trip; a dead connection is closed, removed from the session, and reported
-// as connected=false.
+// AuthStatus handles GET /api/auth/status. Public: it reads the session cookie
+// itself. With ?ping=1 a dead connection is closed and reported as connected=false.
 func (h *Handler) AuthStatus(c echo.Context) error {
 	type statusData struct {
 		Connected        bool          `json:"connected"`
@@ -138,10 +124,8 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 		result.Connected = hasClient
 		client, _ := clientVal.(transfer.Client)
 		if hasClient && client != nil && c.QueryParam("ping") == "1" {
-			// Only ping when no transfer is in flight: an active transfer is
-			// itself proof the connection is alive, and a NOOP injected mid
-			// data-stream would corrupt it. TryLock avoids blocking the
-			// session-checker behind a long upload/download.
+			// Only ping when idle: a NOOP injected mid data-stream would corrupt it,
+			// and TryLock avoids blocking the checker behind a long transfer.
 			if sess.TryLockTransfer() {
 				pingErr := client.Ping()
 				if pingErr != nil {
@@ -170,9 +154,8 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 	return OK(c, result)
 }
 
-// SSOConnect handles POST /api/auth/sso-connect.
-// Requires valid session (enforced by requireSession middleware).
-// Reads the pending SSO ConnectRequest from session, dials, and returns ConnectData.
+// SSOConnect handles POST /api/auth/sso-connect: reads the pending SSO
+// ConnectRequest from the session, dials, and returns ConnectData.
 func (h *Handler) SSOConnect(c echo.Context) error {
 	sess, ok := c.Get("session").(*auth.Session)
 	if !ok {
@@ -246,7 +229,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	sess.Set("client", client)
 	sess.Set("initialDir", initialDir)
 	sess.Set("disableChmod", disableChmod)
-	// For access-log and metrics enrichment only - never the password.
+	// For access-log and metrics enrichment only, never the password.
 	sess.Set("username", pending.Username)
 	sess.Set("host", addr)
 	sess.Set("protocol", pending.Protocol)

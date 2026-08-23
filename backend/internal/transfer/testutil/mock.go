@@ -1,4 +1,3 @@
-// backend/internal/transfer/testutil/mock.go
 package testutil
 
 import (
@@ -9,7 +8,7 @@ import (
 )
 
 // MockClient is a transfer.Client where each method is a swappable function field.
-// Any unset field panics when called - intentional, to catch missed setup in tests.
+// An unset field panics when called, intentionally, to catch missed test setup.
 type MockClient struct {
 	WorkingDirFn    func() (string, error)
 	ListFn          func(path string) ([]transfer.FileInfo, error)
@@ -24,9 +23,8 @@ type MockClient struct {
 	PingFn          func() error
 	CloseFn         func() error
 
-	// closed is written by whichever goroutine closes the client, which since
-	// session eviction is no longer always the test's own. Read it with
-	// IsClosed.
+	// closed may be written by an eviction goroutine, not just the test's own.
+	// Read it through IsClosed.
 	mu     sync.Mutex
 	closed bool
 }
@@ -76,5 +74,4 @@ func (m *MockClient) IsClosed() bool {
 	return m.closed
 }
 
-// Verify MockClient implements transfer.Client at compile time.
 var _ transfer.Client = (*MockClient)(nil)

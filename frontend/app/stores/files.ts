@@ -18,7 +18,7 @@ export interface PasteResult {
 }
 
 // Returns a name not present in `existing`, suffixing " (copy)" / " (copy N)"
-// before the extension - like a desktop file manager.
+// before the extension, like a desktop file manager.
 function uniqueName(name: string, existing: Set<string>): string {
   if (!existing.has(name))
     return name
@@ -40,22 +40,18 @@ export const useFilesStore = defineStore('files', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const selected = ref<Set<string>>(new Set())
-  // Name of the file currently being renamed in place (null = none)
   const editingName = ref<string | null>(null)
-  // Copy/cut clipboard (null = empty). Paste targets the current directory.
+  // Paste targets the current directory, not the clipboard's source.
   const clipboard = ref<ClipboardState | null>(null)
 
-  // Navigation history (back/forward) - only `navigate()` pushes entries
+  // Navigation history: only `navigate()` pushes entries.
   const history = ref<string[]>([])
   const historyIndex = ref(-1)
   const canGoBack = computed(() => historyIndex.value > 0)
   const canGoForward = computed(() => historyIndex.value >= 0 && historyIndex.value < history.value.length - 1)
 
-  // Sequence guard, same shape as FilePreviewPanel's. Rapid navigation (open a
-  // folder, immediately breadcrumb back) has two listings in flight; without
-  // this the slower one wins and the view shows a directory the user already
-  // left, with currentPath and selection to match. Same reason `loading` is
-  // only cleared by the newest request.
+  // Sequence guard: with two listings in flight, the slower one would win and
+  // show a directory the user already left. `loading` follows the same rule.
   let _listSeq = 0
 
   async function list(path?: string) {
@@ -72,7 +68,6 @@ export const useFilesStore = defineStore('files', () => {
       files.value = result
       currentPath.value = target
       selected.value = new Set()
-      // Seed history with the first successfully listed directory
       if (history.value.length === 0) {
         history.value = [target]
         historyIndex.value = 0
@@ -136,9 +131,8 @@ export const useFilesStore = defineStore('files', () => {
     window.open(await downloadUrl(filePath), '_blank')
   }
 
-  // Fetch a file as a typed object URL for inline preview. The download endpoint
-  // serves application/octet-stream, so we re-wrap the bytes with the real MIME
-  // type. The caller owns the returned URL and must URL.revokeObjectURL() it.
+  // The download endpoint serves application/octet-stream, so re-wrap the bytes
+  // with the real MIME type. Caller owns the URL and must revokeObjectURL() it.
   async function fetchObjectUrl(path: string, mime: string): Promise<string> {
     const url = await downloadUrl(path)
     const resp = await $fetch.raw(url, { responseType: 'blob' })
@@ -176,7 +170,6 @@ export const useFilesStore = defineStore('files', () => {
     await list()
   }
 
-  // ── Clipboard (copy / cut → paste) ──────────────────────────────────────────
   function copyToClipboard(names: string[]) {
     if (names.length === 0)
       return
@@ -198,17 +191,15 @@ export const useFilesStore = defineStore('files', () => {
     await api.patch('/api/files/copy', { from, to })
   }
 
-  // Move reuses the rename endpoint - native Rename is a cross-directory move on
-  // both FTP and SFTP (no separate backend endpoint needed). No list refresh here.
+  // Move reuses the rename endpoint: native Rename is a cross-directory move on
+  // both FTP and SFTP. No list refresh here.
   async function move(from: string, to: string): Promise<void> {
     const api = useApi()
     await api.patch('/api/files/rename', { from, to })
   }
 
-  // Paste the clipboard into the current directory. On name collisions it asks
-  // the user (overwrite / append / cancel) via the modal store, then applies the
-  // choice to the whole batch. Copy keeps the clipboard (repeat paste); cut clears
-  // it. Returns a summary so the caller can toast.
+  // On a name collision the user picks overwrite/append/cancel once for the
+  // whole batch. Copy keeps the clipboard (repeat paste); cut clears it.
   async function paste(): Promise<PasteResult> {
     const cb = clipboard.value
     if (!cb)
@@ -241,7 +232,7 @@ export const useFilesStore = defineStore('files', () => {
       let to = `${dir}/${toName}`
       try {
         if (cb.mode === 'copy') {
-          // Never stream a file onto itself (truncates the source) - force a name.
+          // Never stream a file onto itself: it truncates the source.
           if (to === from) {
             toName = uniqueName(name, taken)
             to = `${dir}/${toName}`
@@ -250,7 +241,7 @@ export const useFilesStore = defineStore('files', () => {
         }
         else {
           if (from === to)
-            continue // moving onto itself - nothing to do
+            continue // moving onto itself, nothing to do
           if (conflict && choice === 'overwrite')
             await api.del('/api/files', { paths: [to] })
           await move(from, to)
@@ -286,9 +277,8 @@ export const useFilesStore = defineStore('files', () => {
     await list()
   }
 
-  // Create a directory WITHOUT refreshing the listing - used during folder
-  // uploads to materialize empty subdirectories (the upload's own debounced
-  // refresh reveals them). Idempotent on the backend (mkdir -p).
+  // No listing refresh: folder uploads materialize empty subdirs here and their
+  // own debounced refresh reveals them. Idempotent on the backend (mkdir -p).
   async function ensureDir(path: string): Promise<void> {
     const api = useApi()
     await api.post('/api/files/directory', { path })

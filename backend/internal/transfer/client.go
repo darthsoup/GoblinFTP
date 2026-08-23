@@ -1,4 +1,3 @@
-// backend/internal/transfer/client.go
 package transfer
 
 import (
@@ -34,10 +33,8 @@ type Client interface {
 	// Chmod sets permissions on the given path.
 	// Returns ErrPermissionsNotSupported if the server does not support it.
 	Chmod(path string, mode uint32) error
-	// SupportsChmod reports whether this protocol implements Chmod at all. It is
-	// a static property of the adapter, never a probe - callers use it to avoid
-	// offering an operation that could only fail. True does not promise any
-	// particular path is chmod-able; the server may still refuse.
+	// SupportsChmod reports whether this protocol implements Chmod at all: a
+	// static property of the adapter, never a probe. A server may still refuse.
 	SupportsChmod() bool
 	// Download opens a reader for the given file. Caller must close it.
 	Download(path string) (io.ReadCloser, error)
@@ -55,11 +52,10 @@ var (
 	ErrAuthFailed              = errors.New("auth failed")
 	ErrConnectionFailed        = errors.New("connection failed")
 	ErrPermissionsNotSupported = errors.New("permissions not supported")
-	// ErrTLSFailed marks an FTPS TLS handshake / certificate verification
-	// failure (distinct from a generic connection failure so the API can hint
-	// at the insecure-skip-verify escape hatch for self-signed servers).
+	// ErrTLSFailed marks an FTPS handshake or certificate failure, kept distinct
+	// from a connection failure so the API can hint at insecure-skip-verify.
 	ErrTLSFailed = errors.New("tls handshake failed")
 	// ErrHostKeyMismatch marks an SFTP host key that does not match the pinned
-	// known_hosts entry - a possible man-in-the-middle.
+	// known_hosts entry (a possible man-in-the-middle).
 	ErrHostKeyMismatch = errors.New("host key mismatch")
 )

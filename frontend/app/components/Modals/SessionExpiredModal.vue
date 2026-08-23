@@ -5,7 +5,7 @@ const editorStore = useEditorStore()
 const uploadStore = useUploadStore()
 const { t } = useI18n()
 
-// Blocking: not dismissible, no close button - the only way out is reconnect.
+// Blocking: not dismissible, no close button, so the only way out is reconnect.
 const open = computed(() => authStore.sessionLost)
 
 function reconnect() {

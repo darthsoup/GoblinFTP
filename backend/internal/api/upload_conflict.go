@@ -1,4 +1,3 @@
-// backend/internal/api/upload_conflict.go
 package api
 
 import (
@@ -13,9 +12,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// maxUploadCheckPaths bounds how long a single pre-flight can hold the session's
-// transfer lock. Beyond it the client is expected to upload without a pre-flight
-// and let the per-request guard raise conflicts instead.
+// maxUploadCheckPaths bounds how long one pre-flight holds the session's transfer
+// lock. Beyond it the client uploads unchecked and the per-request guard decides.
 const maxUploadCheckPaths = 10000
 
 type uploadConflict struct {
@@ -31,12 +29,8 @@ type uploadCheckResult struct {
 	Conflicts []uploadConflict `json:"conflicts"`
 }
 
-// UploadCheck reports which of the requested destinations already exist, so the
-// client can resolve conflicts before transferring anything.
-//
-// It lists each distinct parent directory once rather than stat-ing every path:
-// FTP has no stat, so transfer.Client.Stat is a parent LIST plus a scan, and a
-// 500-file upload into 20 directories would otherwise cost 500 round trips.
+// UploadCheck reports which destinations already exist, so conflicts are resolved
+// before any transfer. It lists each parent once: on FTP a Stat is a whole LIST.
 func (h *Handler) UploadCheck(c echo.Context) error {
 	client, release, ok := lockedClient(c)
 	if !ok {
@@ -69,7 +63,7 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 		byDir[dir] = append(byDir[dir], clean)
 	}
 
-	// Non-nil so the JSON carries an array rather than null - the SPA reads
+	// Non-nil so the JSON carries an array rather than null: the SPA reads
 	// conflicts.length unconditionally.
 	result := uploadCheckResult{Conflicts: []uploadConflict{}}
 	for _, dir := range order {
@@ -78,10 +72,8 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 			if isConnLost(err) {
 				return failClient(c, gftperrors.ErrListFailed, err)
 			}
-			// The directory does not exist yet (the upload's own ensureDirAll
-			// will create it), so nothing in it can conflict. A permission
-			// failure is indistinguishable here and reports "free"; the
-			// per-request guard is what actually prevents a clobber.
+			// The directory does not exist yet (ensureDirAll will create it), so
+			// nothing conflicts. A permission failure looks the same and reports "free".
 			continue
 		}
 		existing := make(map[string]transfer.FileInfo, len(entries))
@@ -116,10 +108,8 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 	return OK(c, result)
 }
 
-// uniqueName returns name if it is free, otherwise inserts " (1)", " (2)", … before
-// the extension until it is. Deliberately not the paste flow's "(copy)" scheme
-// (frontend/app/stores/files.ts): an upload is a duplicate arrival, which is how
-// browsers, Finder and Explorer name it, not a copy operation.
+// uniqueName returns name if free, else inserts " (1)", " (2)", … before the
+// extension. Not the paste flow's "(copy)": an upload is a duplicate arrival.
 func uniqueName(name string, taken map[string]struct{}) string {
 	if _, clash := taken[name]; !clash {
 		return name

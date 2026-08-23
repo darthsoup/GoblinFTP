@@ -1,4 +1,3 @@
-// Last path segment, for compact failure labels.
 export function basename(p: string): string {
   return p.split('/').filter(Boolean).pop() ?? p
 }
@@ -16,10 +15,8 @@ export function formatFailureLines(
   return lines.join('\n')
 }
 
-// Localizes backend error codes and formats per-item failure lists for toasts.
-// `localizeError` maps a stable code (e.g. ERR_DIR_NOT_EMPTY) to an `errorCode.*`
-// i18n string, falling back to the server-provided friendly message for codes the
-// SPA hasn't localized yet.
+// Maps a stable backend code (e.g. ERR_DIR_NOT_EMPTY) to an `errorCode.*` i18n
+// string, falling back to the server message for codes the SPA has not localized.
 export function useErrorMessage() {
   const { t, te } = useI18n()
 

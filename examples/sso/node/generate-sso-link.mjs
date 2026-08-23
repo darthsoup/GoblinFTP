@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 // Generate a one-time GoblinFTP SSO login link. Node >= 18, stdlib only.
 //
-// Token format (must match backend/internal/sso/token.go):
-//   key   = HKDF-SHA256(secret, salt = empty, info = "gftp-sso", length = 32)
-//   token = base64url( iv(12) || gcmTag(16) || AES-256-GCM(key, iv, JSON payload) )
+// Token format (must match backend/internal/sso/token.go): key = HKDF-SHA256(secret,
+// salt empty, info "gftp-sso", 32); token = base64url(iv(12) || tag(16) || AES-256-GCM).
 //
-// Usage:
-//   GFTP_SSO_SECRET=change-me node generate-sso-link.mjs \
-//     --host ftp.example.com --username alice --password s3cret \
-//     --base-url https://files.example.com
+// Usage: GFTP_SSO_SECRET=change-me node generate-sso-link.mjs --host ftp.example.com
+//   --username alice --password s3cret --base-url https://files.example.com
 
 import { createCipheriv, hkdfSync, randomBytes } from 'node:crypto'
 import { parseArgs } from 'node:util'

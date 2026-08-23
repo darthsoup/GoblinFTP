@@ -1,4 +1,3 @@
-// backend/internal/api/status_ping_test.go
 package api_test
 
 import (

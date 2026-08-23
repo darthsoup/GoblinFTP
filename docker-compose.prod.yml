@@ -1,20 +1,12 @@
-# Production overlay. Always used together with the base file:
-#
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-#   (or: just docker-up-prod)
-#
-# Pulls the published image instead of building, requires the signing secrets,
-# and persists /app/data on a named volume. Put GFTP_SESSION_SECRET,
-# GFTP_DOWNLOAD_TOKEN_SECRET, and (optionally) GFTP_VERSION in .env or your
-# orchestrator's secret store. Serve behind a TLS-terminating reverse proxy.
+# Production overlay, never used alone (`just docker-up-prod` wraps the -f pair).
+# Secrets come from .env or your secret store. Serve behind a TLS-terminating proxy.
 services:
   gftp:
     image: "ghcr.io/darthsoup/goblinftp:${GFTP_VERSION:-latest}"
     pull_policy: always
     environment:
-      # Required in production. Without them the server generates ephemeral keys
-      # on each start, invalidating sessions and download links on restart. The
-      # `:?` form makes `docker compose` fail fast when they are unset.
+      # Without these the server generates ephemeral keys on each start, invalidating
+      # sessions and download links; the `:?` form fails fast when they are unset.
       GFTP_SESSION_SECRET: "${GFTP_SESSION_SECRET:?set GFTP_SESSION_SECRET (openssl rand -hex 32)}"
       GFTP_DOWNLOAD_TOKEN_SECRET: "${GFTP_DOWNLOAD_TOKEN_SECRET:?set GFTP_DOWNLOAD_TOKEN_SECRET (openssl rand -hex 32)}"
     volumes:

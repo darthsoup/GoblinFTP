@@ -9,17 +9,14 @@ export type PasteChoice = 'overwrite' | 'append' | 'cancel'
 // How a single upload resolves a name collision, chosen via UploadConflictModal.
 export type UploadConflictAction = 'overwrite' | 'rename' | 'skip'
 
-// Cancel drops the whole batch; resolve carries one action per conflicting path.
-// applyToAll is remembered by the upload store so a conflict that only surfaces
-// mid-transfer (the server changed under us) reuses the decision instead of
-// interrupting again.
+// Cancel drops the whole batch; resolve carries one action per path. applyToAll
+// is reused for conflicts surfacing mid-transfer, instead of prompting again.
 export type UploadConflictResolution
   = | { kind: 'cancel' }
     | { kind: 'resolve', decisions: Record<string, UploadConflictAction>, applyToAll?: UploadConflictAction }
 
-// The editor's save collided with a newer server copy ('modified') or the file
-// is gone ('deleted'). Overwrite replaces the server copy, reload discards the
-// local buffer, cancel keeps editing with autosave paused.
+// 'modified': the save collided with a newer server copy. 'deleted': the file is
+// gone. Overwrite replaces, reload discards the buffer, cancel pauses autosave.
 export type EditorConflictKind = 'modified' | 'deleted'
 export type EditorConflictChoice = 'overwrite' | 'reload' | 'cancel'
 
@@ -63,12 +60,11 @@ export const useModalStore = defineStore('modal', () => {
     context.value = {}
   }
 
-  // ── Confirm dialog ─────────────────────────────────────────────────────────
   const confirmOptions = ref<ConfirmOptions | null>(null)
   let confirmResolver: ((result: ConfirmResult) => void) | null = null
 
   function confirm(options: ConfirmOptions): Promise<ConfirmResult> {
-    // A pending confirm is superseded - resolve it as cancelled.
+    // A pending confirm is superseded: resolve it as cancelled.
     confirmResolver?.('cancel')
     confirmOptions.value = options
     return new Promise((resolve) => {
@@ -83,7 +79,6 @@ export const useModalStore = defineStore('modal', () => {
     resolve?.(result)
   }
 
-  // ── Paste conflict dialog ──────────────────────────────────────────────────
   // Mirrors confirm(): the files store `await`s a PasteChoice while
   // PasteConflictModal renders the conflicting names + the three buttons.
   const pasteConflicts = ref<string[]>([])
@@ -107,7 +102,6 @@ export const useModalStore = defineStore('modal', () => {
     resolve?.(choice)
   }
 
-  // ── Upload conflict dialog ─────────────────────────────────────────────────
   // Kept separate from pasteConflict: uploads resolve per file (and can skip),
   // which a single batch-wide PasteChoice cannot express.
   const uploadConflicts = ref<UploadConflict[]>([])
@@ -131,7 +125,6 @@ export const useModalStore = defineStore('modal', () => {
     resolve?.(result)
   }
 
-  // ── Editor conflict dialog ─────────────────────────────────────────────────
   // Its own dialog rather than confirm(): three outcomes, and the payload
   // carries the baseline the user opened so the copy can show it.
   const editorConflictInfo = ref<EditorConflictInfo | null>(null)

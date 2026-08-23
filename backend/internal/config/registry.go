@@ -238,9 +238,8 @@ func enum(env string, target func(*Config) *string, allowed []string, opts ...ke
 	return k
 }
 
-// validIPOrCIDR accepts a bare address or a CIDR range. A security allowlist
-// with a typo in it silently matches nothing, so entries are parsed at startup
-// rather than compared as strings at request time.
+// validIPOrCIDR accepts a bare address or a CIDR range. A typo in a security
+// allowlist silently matches nothing, so entries are parsed at startup.
 func validIPOrCIDR(v string) error {
 	if strings.Contains(v, "/") {
 		if _, _, err := net.ParseCIDR(v); err != nil {

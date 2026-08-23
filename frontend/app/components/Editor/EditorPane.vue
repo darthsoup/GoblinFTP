@@ -23,14 +23,12 @@ const conflictTab = computed(() => (editorStore.activeTab?.conflict ? editorStor
 // scroll live in editorSession so they survive leaving and returning to /edit.
 let view: EditorView | null = null
 let mountedTabId: string | null = null
-// The tab.revision the mounted state was built from. A reload bumps the tab's
-// revision, and without comparing it sync() would early-return on the unchanged
-// tab id and keep showing (and then saving) the document the user discarded.
+// The tab.revision the mounted state was built from. A reload bumps it; without
+// that check sync() would keep showing the document the user discarded.
 let mountedRevision = -1
 
-// Each grammar is dynamic-imported so only the one a file needs is fetched (and
-// the 14 grammars stay out of the editor's main chunk). Applied after mount via
-// editorSession.languageCompartment.
+// Each grammar is dynamic-imported so the 14 of them stay out of the editor's
+// main chunk. Applied after mount via editorSession.languageCompartment.
 async function loadLanguage(filename: string): Promise<Extension> {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
   switch (ext) {
@@ -84,9 +82,8 @@ async function loadLanguage(filename: string): Promise<Extension> {
   }
 }
 
-// Align CodeMirror's chrome with the Goblin design tokens (layered over oneDark in
-// dark mode). The themes are mode-scoped, so the design-system custom properties -
-// which flip per mode - resolve to the right surface here.
+// Align CodeMirror's chrome with the Goblin design tokens (layered over oneDark
+// in dark mode). The themes are mode-scoped, so the tokens resolve per mode.
 const goblinDarkTheme = EditorView.theme({
   '&': { backgroundColor: 'var(--ui-bg)' },
   '.cm-scroller': { fontFamily: `'JetBrains Mono Variable', ui-monospace, monospace` },
@@ -118,9 +115,8 @@ function themeExtensions(): Extension {
   return [syntaxHighlighting(defaultHighlightStyle), oneDark, goblinDarkTheme]
 }
 
-// interactive: an explicit save is a request the user is waiting on, so a
-// refusal opens the dialog. Autosave only sets the tab's conflict state and
-// lets the banner offer the same choices.
+// interactive: an explicit save is one the user waits on, so a refusal opens the
+// dialog. Autosave only sets the conflict state and lets the banner offer it.
 function saveActive() {
   if (viewOnly.value || !editorStore.activeId)
     return
@@ -175,7 +171,6 @@ function sync() {
   if (!containerRef.value)
     return
 
-  // Drop cached state for tabs that have been closed.
   for (const id of editorSession.tabStates.keys()) {
     if (!editorStore.tabs.some(tab => tab.id === id)) {
       editorSession.tabStates.delete(id)
@@ -209,9 +204,8 @@ function sync() {
   mountedTabId = tab.id
   mountedRevision = tab.revision
 
-  // Fresh states start without a grammar - load it lazily and swap it in, guarded
-  // so a slow import for a since-switched tab can't apply to the wrong document.
-  // Restored states already carry their grammar in the compartment.
+  // Fresh states start without a grammar (restored ones carry theirs). The guard
+  // stops a slow import for a since-switched tab applying to the wrong document.
   if (!restored) {
     void loadLanguage(tab.name).then((lang) => {
       if (view && mountedTabId === tab.id)
@@ -245,9 +239,8 @@ watch(() => colorMode.value, () => {
 })
 
 onUnmounted(() => {
-  // Persist the mounted tab's state before tearing down the view, so a route
-  // round-trip back to /edit restores undo/cursor/scroll. The maps live in
-  // editorSession (cleared only on editor $reset).
+  // Persist state before tearing down the view so a round-trip back to /edit
+  // restores undo/cursor/scroll. The maps clear only on editor $reset.
   snapshotMounted()
   view?.destroy()
   view = null
@@ -259,9 +252,8 @@ onUnmounted(() => {
   <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
     <EditorTabBar />
 
-    <!-- Conflict banner. Deliberately outside the editor region so the user's
-         unsaved buffer stays visible, and it persists after the dialog is
-         dismissed so autosave is never silently off with no explanation. -->
+    <!-- Outside the editor region so the unsaved buffer stays visible, and it
+         persists after dismissal so autosave is never silently off. -->
     <div
       v-if="conflictTab"
       class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 border-b border-default bg-warning/10"

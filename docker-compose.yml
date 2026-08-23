@@ -1,12 +1,5 @@
-# Base compose config, shared by development and production.
-#
-#   Dev:  docker compose up --build
-#         (docker-compose.override.yml is auto-merged; builds from source and
-#          provides the FTP/FTPS/SFTP/S3 test servers)
-#   Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-#         (pulls the published image, requires secrets, persists /app/data)
-#
-# The `just docker-up` / `docker-up-prod` recipes wrap these commands.
+# Base compose config shared by dev and prod. A bare `docker compose up --build` merges
+# docker-compose.override.yml; prod adds -f docker-compose.prod.yml (see `just docker-up*`).
 services:
   gftp:
     image: ghcr.io/darthsoup/goblinftp

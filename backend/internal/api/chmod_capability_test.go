@@ -1,4 +1,3 @@
-// backend/internal/api/chmod_capability_test.go
 package api_test
 
 import (
@@ -69,10 +68,8 @@ func capabilityFrom(t *testing.T, rec *httptest.ResponseRecorder) bool {
 	return resp.Data.Capabilities.DisableChmod
 }
 
-// TestConnectDoesNotChmodWorkingDirectory is the regression guard for a probe
-// that used to chmod the session's working directory to 0755 on every connect.
-// On a chrooted server that write failed harmlessly, but wherever the login user
-// owned their login directory it silently widened a private 0700 home.
+// Regression: a probe used to chmod the session's working directory to 0755 on
+// connect, silently widening a private 0700 home the login user owned.
 func TestConnectDoesNotChmodWorkingDirectory(t *testing.T) {
 	for _, protocol := range []string{"ftp", "ftps", "sftp"} {
 		t.Run(protocol, func(t *testing.T) {
@@ -93,8 +90,8 @@ func TestConnectDoesNotChmodWorkingDirectory(t *testing.T) {
 	}
 }
 
-// TestSSOConnectDoesNotChmodWorkingDirectory: the SSO path had the same probe,
-// so it needs its own guard - an SSO deployment connects on every page load.
+// The SSO path carried the same probe and connects on every page load, so it
+// needs its own guard.
 func TestSSOConnectDoesNotChmodWorkingDirectory(t *testing.T) {
 	spy := &chmodSpy{}
 	cfg := ssoEnabledConfig()
@@ -114,9 +111,8 @@ func TestSSOConnectDoesNotChmodWorkingDirectory(t *testing.T) {
 	assert.Empty(t, spy.seen(), "SSO connect must not modify permissions on the server")
 }
 
-// TestConnectReportsChmodCapabilityPerProtocol: the advertised capability must
-// match what the adapter can actually do, or the UI offers an action that can
-// only fail.
+// The advertised capability must match what the adapter can actually do, or the
+// UI offers an action that can only fail.
 func TestConnectReportsChmodCapabilityPerProtocol(t *testing.T) {
 	tests := []struct {
 		protocol     string
@@ -142,8 +138,7 @@ func TestConnectReportsChmodCapabilityPerProtocol(t *testing.T) {
 	}
 }
 
-// TestChmodCapabilitySurvivesStatusRestore: a page reload must see the same
-// capability, since the UI gates the chmod control on it.
+// A page reload must see the same capability: the UI gates the chmod control on it.
 func TestChmodCapabilitySurvivesStatusRestore(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn:    func() (string, error) { return "/home/user", nil },

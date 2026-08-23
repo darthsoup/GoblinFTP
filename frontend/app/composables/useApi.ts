@@ -1,20 +1,19 @@
 import type { ApiEnvelope } from '~/types/api'
 import { ApiError } from '~/types/api'
 
-// Codes that mean the session/connection is gone - the UI switches to the
+// Codes that mean the session/connection is gone. The UI switches to the
 // blocking reconnect dialog instead of surfacing a raw error.
 const SESSION_LOST_CODES = new Set(['ERR_SESSION_NOT_FOUND', 'ERR_UNAUTHORIZED', 'ERR_CSRF_INVALID', 'ERR_CONNECTION_LOST'])
 
-// Bytes handed to the socket, which is not the same as bytes the server has
-// received: a body smaller than the kernel send buffer reports complete almost
-// immediately. Good enough for a rate on the transfers long enough to need one.
+// Bytes handed to the socket, not bytes the server received: a body smaller
+// than the kernel send buffer reports complete almost immediately.
 export interface UploadProgress {
   loaded: number
   total: number
 }
 
 export function useApi() {
-  // Get auth store lazily (avoid circular deps at module load)
+  // Resolved per call to avoid a circular dep at module load.
   function getCsrfToken(): string {
     const authStore = useAuthStore()
     return authStore.csrfToken
@@ -50,9 +49,8 @@ export function useApi() {
     catch (e) {
       if (e instanceof ApiError)
         throw e
-      // ofetch throws FetchError on non-2xx - the response body still carries
-      // our envelope, so surface the real code + message instead of a raw
-      // "[GET] ... 500" string.
+      // ofetch throws FetchError on non-2xx, but the body still carries our
+      // envelope: surface the real code and message, not "[GET] ... 500".
       const envelope = (e as { data?: ApiEnvelope<unknown> }).data
       const err = envelope?.errors?.[0]
       if (err)
@@ -62,11 +60,8 @@ export function useApi() {
     }
   }
 
-  // XHR rather than $fetch: the fetch API emits no upload-progress events, so a
-  // file small enough to fit in one request would report nothing at all. It
-  // lives here, not in the upload store, so CSRF injection, the envelope
-  // unwrap, ApiError and the session-lost side effect in raise() are shared
-  // with the other methods instead of duplicated.
+  // XHR rather than $fetch: the fetch API emits no upload-progress events. It
+  // lives here so CSRF, the envelope unwrap, ApiError and raise() stay shared.
   function postForm<T>(path: string, form: FormData, opts?: { onProgress?: (p: UploadProgress) => void, signal?: AbortSignal }): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const xhr = new XMLHttpRequest()

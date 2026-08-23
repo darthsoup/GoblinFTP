@@ -34,7 +34,7 @@ func TestUploadSimple(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		// The parent exists, the destination does not - otherwise the overwrite
+		// The parent exists, the destination does not. Otherwise the overwrite
 		// guard would (correctly) refuse this upload with 409.
 		StatFn: func(p string) (transfer.FileInfo, error) {
 			if p == "/uploads" {
@@ -71,8 +71,8 @@ func TestUploadSimple(t *testing.T) {
 	assert.Equal(t, "file contents here", uploadedContent)
 }
 
-// TestUploadSimpleCreatesParentDirs: a simple upload into a missing directory
-// tree creates the parents (mkdir -p) before storing the file.
+// A simple upload into a missing directory tree creates the parents (mkdir -p)
+// before storing the file.
 func TestUploadSimpleCreatesParentDirs(t *testing.T) {
 	var made []string
 	var uploadedPath string
@@ -107,8 +107,8 @@ func TestUploadSimpleCreatesParentDirs(t *testing.T) {
 	assert.Equal(t, "/a/b/c.txt", uploadedPath)
 }
 
-// TestUploadCommitCreatesParentDirs: a chunked upload's commit also creates the
-// destination's missing parent tree before assembling the file.
+// A chunked upload's commit also creates the destination's missing parent tree
+// before assembling the file.
 func TestUploadCommitCreatesParentDirs(t *testing.T) {
 	var made []string
 	var uploadedPath string
@@ -147,7 +147,6 @@ func TestUploadChunked(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
-	// Reserve
 	reserveBody := `{"path":"/big.bin","totalChunks":2,"totalSize":10,"chunkSize":5}`
 	reserveReq := httptest.NewRequest(http.MethodPost, "/api/files/upload/reserve", strings.NewReader(reserveBody))
 	reserveReq.Header.Set("Content-Type", "application/json")
@@ -165,7 +164,6 @@ func TestUploadChunked(t *testing.T) {
 	uploadID := reserveResp.Data.UploadID
 	require.NotEmpty(t, uploadID)
 
-	// Send chunks
 	sendChunk := func(n int, data string) {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -184,7 +182,6 @@ func TestUploadChunked(t *testing.T) {
 	sendChunk(0, "hello")
 	sendChunk(1, "world")
 
-	// Commit
 	commitBody := fmt.Sprintf(`{"uploadId":%q}`, uploadID)
 	commitReq := httptest.NewRequest(http.MethodPost, "/api/files/upload/commit", strings.NewReader(commitBody))
 	commitReq.Header.Set("Content-Type", "application/json")
@@ -345,7 +342,7 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	assert.Contains(t, commitRec.Body.String(), "ERR_OPERATION_FAILED")
 	assert.Contains(t, store.cleaned, uploadID, "staged chunks must be cleaned up after a failed commit")
 
-	// The upload is gone from the session - a second commit is a 404.
+	// The upload is gone from the session, so a second commit is a 404.
 	commitBody := fmt.Sprintf(`{"uploadId":%q}`, uploadID)
 	retryReq := httptest.NewRequest(http.MethodPost, "/api/files/upload/commit", strings.NewReader(commitBody))
 	retryReq.Header.Set("Content-Type", "application/json")
@@ -439,12 +436,8 @@ func driveChunkedUpload(app http.Handler, sess sessionCtx, dest string, chunks [
 	return nil
 }
 
-// TestConcurrentSessionUploadsNoRace fires many upload pipelines and a directory
-// read concurrently on ONE session. Before auth.Session got its mutex this raced
-// its bare maps and crashed the whole process with an unrecoverable "concurrent
-// map read and map write" fatal - which is why a browser reload never recovered.
-// It must now run clean under `go test -race`, and the per-session transfer lock
-// must keep transfers on the single control connection strictly serialized.
+// Concurrent pipelines on ONE session used to race auth.Session's bare maps into
+// an unrecoverable fatal. Must stay clean under -race, and stay serialized.
 func TestConcurrentSessionUploadsNoRace(t *testing.T) {
 	var inFlight, maxInFlight atomic.Int32
 	mock := &testutil.MockClient{

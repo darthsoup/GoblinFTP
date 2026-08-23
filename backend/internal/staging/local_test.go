@@ -1,4 +1,3 @@
-// backend/internal/staging/local_test.go
 package staging_test
 
 import (
@@ -66,7 +65,6 @@ func TestLocalAssembleReader_MissingChunk(t *testing.T) {
 	meta, err := store.NewUpload(t.Context(), "/f.txt", 2, 5)
 	require.NoError(t, err)
 
-	// Write only chunk 0, not chunk 1.
 	require.NoError(t, store.WriteChunk(t.Context(), meta.ID, 0, 5, strings.NewReader("hello")))
 
 	_, err = store.AssembleReader(t.Context(), meta.ID, 2)

@@ -1,15 +1,5 @@
-// Command gftp-sso-link generates one-time SSO login links for GoblinFTP.
-//
-// It reuses internal/sso, so tokens are always compatible with the server.
-// The shared secret must match the GFTP_SSO_SECRET the server runs with.
-// See examples/sso/README.md for the token format and standalone
-// implementations in other languages.
-//
-// Usage:
-//
-//	GFTP_SSO_SECRET=change-me go run ./cmd/gftp-sso-link \
-//	  -host ftp.example.com -username alice -password s3cret \
-//	  -base-url https://files.example.com
+// Command gftp-sso-link generates one-time SSO login links, reusing internal/sso so
+// tokens stay server-compatible. Token format: examples/sso/README.md.
 package main
 
 import (
@@ -84,6 +74,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Token is base64url (RFC 4648 §5, no padding) - already query-safe.
+	// Token is base64url (RFC 4648 §5, no padding), so it is already query-safe.
 	fmt.Printf("%s/?sso=%s\n", strings.TrimRight(*baseURL, "/"), token)
 }

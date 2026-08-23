@@ -1,6 +1,5 @@
 // Keeps the two routes in sync with the in-memory connection state. /login owns
-// app boot + SSO, so this gate only redirects based on `authStore.connected`:
-// disconnected users are pushed to /login; connected users never sit on it.
+// app boot and SSO, so this gate only redirects on `authStore.connected`.
 export default defineNuxtRouteMiddleware((to) => {
   if (import.meta.server)
     return

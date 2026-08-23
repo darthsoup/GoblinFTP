@@ -61,10 +61,8 @@ function formatDate(iso: string): string {
   return formatFileDate(iso, settingsStore.dateFormat, locale.value)
 }
 
-// Rows are a roving tabindex: exactly one is in the tab order and the arrow
-// keys move focus between them, so the list is reachable without a mouse.
-// Previously a row was a bare <tr @click>, leaving the whole file manager
-// keyboard-inoperable (WCAG 2.1.1).
+// Roving tabindex: one row is in the tab order, arrows move focus between them.
+// A bare <tr @click> left the whole file manager keyboard-inoperable (WCAG 2.1.1).
 function onKeydown(e: KeyboardEvent) {
   switch (e.key) {
     case 'Enter':
@@ -166,7 +164,7 @@ function handleClick() {
       </div>
     </td>
     <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
-      <span v-if="file.isDir" class="text-dimmed/50">–</span>
+      <span v-if="file.isDir" class="text-dimmed/50">-</span>
       <span v-else>{{ formatSize(file.size) }}</span>
     </td>
     <td class="w-40 px-4 text-right text-muted whitespace-nowrap hidden md:table-cell">
@@ -174,7 +172,7 @@ function handleClick() {
     </td>
     <td v-if="showPermissions" class="w-28 px-4 text-center text-dimmed text-xs hidden sm:table-cell whitespace-nowrap">
       <span v-if="file.mode">{{ file.mode }}</span>
-      <span v-else class="text-dimmed/50">–</span>
+      <span v-else class="text-dimmed/50">-</span>
     </td>
     <td class="w-14 px-2 text-center">
       <UDropdownMenu :items="menuItems" :content="{ align: 'end' }">

@@ -6,12 +6,8 @@ export interface FileIconDef {
   primary: boolean
 }
 
-// File-type icons with brand colors (folders are Goblin Green). First match in
-// .find() wins, so keep extensions non-overlapping. Icons come only from the two
-// offline-installed sets (@iconify-json/lucide, @iconify-json/simple-icons) -
-// arbitrary Iconify collections won't render. Colors apply identically in light
-// and dark mode, so avoid near-black/white brand hexes that vanish on one theme.
-// Exported for the icon-prefix sanity test in tests/utils/files.test.ts.
+// First .find() match wins, so keep extensions non-overlapping. Only the two offline
+// sets render (lucide, simple-icons); avoid hexes that vanish on light or dark.
 export const FILE_ICONS: Array<{ exts: string[], icon: string, color?: string }> = [
   // Web / markup
   { exts: ['html', 'htm'], icon: 'i-simple-icons-html5', color: '#e34f26' },
@@ -80,10 +76,8 @@ export function getFileIcon(file: Pick<FileInfo, 'name' | 'isDir'>): FileIconDef
   return { icon: match?.icon ?? 'i-lucide-file', color: match?.color, primary: false }
 }
 
-// ── Preview ───────────────────────────────────────────────────────────────────
-// Largest file we'll pull over FTP into the browser for an inline preview. Above
-// this the panel shows "too large" + a download button instead. Text uses the
-// read endpoint's own 1 MB server cap.
+// Largest file we'll pull over FTP for an inline preview; above this the panel offers
+// a download instead. Text uses the read endpoint's own 1 MB server cap.
 export const PREVIEW_MAX_BYTES = 5 * 1024 * 1024
 
 export type PreviewKind = 'image' | 'video' | 'audio' | 'pdf' | 'text' | 'none'

@@ -1,6 +1,5 @@
 # Shapes GitHub's auto-generated release-notes section (PR-label based).
-# The primary notes are commit-grouped by release.yml; this config kicks in
-# once changes start landing via labeled pull requests.
+# The primary notes are commit-grouped by release.yml; this kicks in once PRs are labeled.
 changelog:
   exclude:
     authors:

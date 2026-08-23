@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The unauthenticated view: centered login form (or a boot spinner while an SSO
-// auto-connect resolves) plus a footer with pre-connect controls. pages/login.vue
-// owns `booting` and the SSO landing; this is purely presentational.
+// pages/login.vue owns `booting` and the SSO landing; this unauthenticated view
+// is purely presentational.
 defineProps<{ booting: boolean }>()
 </script>
 

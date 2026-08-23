@@ -13,9 +13,8 @@ export interface EditorTab {
   loading: boolean
   saving: boolean
   error?: string
-  // Opaque server token for the copy this tab was opened from. undefined means
-  // the file was never read (nothing to precondition on); null means the server
-  // could not stat it, so saves go through unconditionally as they used to.
+  // Opaque server token for the copy this tab was opened from. undefined: never
+  // read. null: the server could not stat it, so saves go through unconditionally.
   version?: string | null
   baselineSize?: number
   baselineModified?: string
@@ -43,8 +42,8 @@ export const useEditorStore = defineStore('editor', () => {
   const dirtyCount = computed(() => tabs.value.filter(t => t.content !== t.savedContent).length)
   const hasDirty = computed(() => dirtyCount.value > 0)
 
-  // Per-tab autosave debounce timers - non-reactive on purpose (one timer per
-  // tab so switching tabs never cancels another tab's pending save).
+  // Non-reactive on purpose: one timer per tab, so switching tabs never cancels
+  // another tab's pending save.
   const autoSaveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   // Suppresses persistence while restore() is repopulating tabs.
@@ -72,9 +71,8 @@ export const useEditorStore = defineStore('editor', () => {
     tab.baselineModified = meta.modified
   }
 
-  // force skips the server-side precondition; the user was shown the conflict
-  // and chose to replace. interactive decides whether a refusal raises the modal
-  // or only the inline banner - autosave must never interrupt mid-keystroke.
+  // force skips the server-side precondition (the user chose to replace).
+  // interactive raises the modal; autosave must never interrupt mid-keystroke.
   async function saveTab(id: string, { interactive = false, force = false } = {}) {
     const tab = tabs.value.find(t => t.id === id)
     if (!tab || tab.saving || tab.loading)
@@ -159,9 +157,8 @@ export const useEditorStore = defineStore('editor', () => {
       t.conflict = undefined
       t.reprompted = false
       t.error = undefined
-      // Both matter: dropping the cached CodeMirror state stops the stale
-      // document being restored, and the revision bump is what tells EditorPane
-      // to rebuild rather than early-return on the unchanged tab id.
+      // Both matter: dropping the cached state stops the stale document being
+      // restored, and the bump tells EditorPane to rebuild despite the same id.
       dropTabState(id)
       t.revision++
       adoptVersion(t, data)
@@ -196,7 +193,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   async function openFile(path: string) {
     // The tab is pushed synchronously before the first await, so a rapid second
-    // call finds it here - no duplicate-tab race.
+    // call finds it here and there is no duplicate-tab race.
     const existing = tabs.value.find(t => t.path === path)
     if (existing) {
       activeId.value = existing.id
@@ -258,7 +255,6 @@ export const useEditorStore = defineStore('editor', () => {
     activeId.value = null
   }
 
-  // ── Reload persistence (paths only) ────────────────────────────────────────
   function persist() {
     if (restoring)
       return
@@ -271,9 +267,8 @@ export const useEditorStore = defineStore('editor', () => {
     catch {}
   }
 
-  // Reopen the previously-open tabs after a reload. Caller must ensure the
-  // session is connected (paths are re-fetched). Tabs that fail to reload (e.g.
-  // the file was removed) are dropped.
+  // Caller must ensure the session is connected: paths are re-fetched. Tabs
+  // that fail to reload (e.g. the file was removed) are dropped.
   async function restore() {
     if (tabs.value.length)
       return

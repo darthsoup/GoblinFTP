@@ -1,4 +1,3 @@
-// backend/internal/api/hostlock_test.go
 package api_test
 
 import (
@@ -29,11 +28,8 @@ func lockedHostConfig(t *testing.T, withPort bool) *config.Config {
 	return cfg
 }
 
-// TestConnectHostLockEnforcedServerSide is the regression test for a policy
-// bypass: GFTP_CONNECTION_LOCK_HOST only ever disabled the SPA's host input, so
-// a direct POST could dial anywhere. That defeated the operator's lock and gave
-// an unauthenticated caller a way to probe the internal network, since the
-// error codes distinguish "refused" from "auth failed".
+// GFTP_CONNECTION_LOCK_HOST used to only disable the SPA's host input, so a direct
+// POST could dial anywhere and probe the internal network via the error codes.
 func TestConnectHostLockEnforcedServerSide(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -72,8 +68,7 @@ func TestConnectHostLockEnforcedServerSide(t *testing.T) {
 	}
 }
 
-// TestConnectHostLockOffAllowsAnyHost guards against the check firing when the
-// operator never asked for a lock - the default deployment.
+// The check must not fire when no lock was configured, which is the default.
 func TestConnectHostLockOffAllowsAnyHost(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },

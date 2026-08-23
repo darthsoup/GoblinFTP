@@ -76,7 +76,7 @@ describe('useFilesStore', () => {
     expect(res).toEqual({ mode: 'copy', ok: 1, failed: 0, failures: [] })
     expect(mockApi.patch).toHaveBeenCalledWith('/api/files/copy', { from: '/src/a.txt', to: '/dst/a.txt' })
     expect(mockApi.get).toHaveBeenCalled() // list() refresh
-    expect(store.clipboard).not.toBeNull() // copy keeps the clipboard
+    expect(store.clipboard).not.toBeNull()
   })
 
   it('paste of a cut moves via rename and clears the clipboard', async () => {
@@ -91,7 +91,7 @@ describe('useFilesStore', () => {
 
     expect(res).toEqual({ mode: 'cut', ok: 1, failed: 0, failures: [] })
     expect(mockApi.patch).toHaveBeenCalledWith('/api/files/rename', { from: '/src/a.txt', to: '/dst/a.txt' })
-    expect(store.clipboard).toBeNull() // cut clears the clipboard
+    expect(store.clipboard).toBeNull()
   })
 
   it('deleteFiles returns the batch result (deleted + classified failures)', async () => {

@@ -1,4 +1,3 @@
-// backend/internal/api/connect.go
 package api
 
 import (
@@ -29,7 +28,6 @@ type ConnectRequest struct {
 }
 
 // ConnectData is the successful response payload for POST /api/auth/connect.
-// Populated in Phase 3 once the FTP/SFTP connection is established.
 type ConnectData struct {
 	Capabilities     Capabilities `json:"capabilities"`
 	InitialDirectory string       `json:"initialDirectory"`
@@ -49,21 +47,17 @@ type Capabilities struct {
 const loginIPAttemptMultiplier = 4
 
 // Connect handles POST /api/auth/connect.
-// Phase 2: validates input, checks IP allowlist, checks throttle. Returns 501.
-// Phase 3: adds actual FTP/SFTP connection and session creation.
 func (h *Handler) Connect(c echo.Context) error {
 	var req ConnectRequest
 	if err := c.Bind(&req); err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid request body"))
 	}
 
-	// Validate connection type
 	if !isAllowedType(req.Protocol, h.cfg.Settings.Connection.AllowedTypes) {
 		return Fail(c, gftperrors.New(gftperrors.ErrInvalidType,
 			fmt.Sprintf("connection type %q is not allowed", req.Protocol)))
 	}
 
-	// Validate required fields
 	if req.Host == "" || req.Username == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "host and username are required"))
 	}
@@ -71,23 +65,18 @@ func (h *Handler) Connect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "port must be between 1 and 65535"))
 	}
 
-	// Enforce the host lock server-side. LockHost only ever disabled the SPA's
-	// host field, so a direct POST could still dial anywhere - both a bypass of
-	// the operator's policy and an unauthenticated way to probe the internal
-	// network, since the error codes distinguish refused from auth-failed.
+	// Enforce the host lock server-side: LockHost only disabled the SPA's host
+	// field, so a direct POST could dial anywhere and probe the internal network.
 	if gftperr := h.checkHostLock(req.Host, req.Port); gftperr != nil {
 		return Fail(c, gftperr)
 	}
 
-	// Check IP allowlist
 	if gftperr := h.checkIPAllowlist(c); gftperr != nil {
 		return Fail(c, gftperr)
 	}
 
-	// Two throttle dimensions. host+username alone is trivially evaded by
-	// varying the username, which is exactly the shape of a password spray, so
-	// the client IP is counted too and gets a wider budget (a shared NAT egress
-	// is one address for many legitimate users).
+	// Two throttle dimensions: host+username alone is evaded by varying the
+	// username (a password spray), so the client IP is counted too, on a wider budget.
 	throttleKey := req.Host + ":" + req.Username
 	ipKey := "ip:" + c.RealIP()
 	ipMaxAttempts := h.cfg.LoginMaxAttempts * loginIPAttemptMultiplier
@@ -109,8 +98,8 @@ func (h *Handler) Connect(c echo.Context) error {
 		AcceptHostKey: req.AcceptHostKey,
 	})
 	if hostKey != nil {
-		// Unknown SFTP host key - ask the user to confirm before we connect or
-		// send credentials. Not a failed attempt, so the throttle is untouched.
+		// Unknown SFTP host key: confirm before sending credentials. Not a failed
+		// attempt, so the throttle is untouched.
 		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_prompt").Inc()
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
 	}
@@ -161,7 +150,7 @@ func (h *Handler) Connect(c echo.Context) error {
 	sess.Set(auth.CSRFSessionKey, csrfToken)
 	sess.Set("initialDir", initialDir)
 	sess.Set("disableChmod", disableChmod)
-	// For access-log and metrics enrichment only - never the password.
+	// For access-log and metrics enrichment only, never the password.
 	sess.Set("username", req.Username)
 	sess.Set("host", addr)
 	sess.Set("protocol", req.Protocol)
@@ -203,11 +192,8 @@ func isAllowedType(t string, allowed []string) bool {
 	return false
 }
 
-// checkHostLock rejects a target that differs from the configured preset when
-// GFTP_CONNECTION_LOCK_HOST is set. Config guarantees PresetHost is non-empty
-// whenever LockHost is true, so an unset preset here means the lock is off.
-// PresetPort is only enforced when it is also configured: locking the host
-// without pinning a port is a valid setup.
+// checkHostLock rejects a target differing from the GFTP_CONNECTION_LOCK_HOST
+// preset. An unset PresetHost means the lock is off; PresetPort binds only if set.
 func (h *Handler) checkHostLock(host string, port int) *gftperrors.GFTPError {
 	conn := h.cfg.Settings.Connection
 	if !conn.LockHost || conn.PresetHost == nil || *conn.PresetHost == "" {
@@ -227,10 +213,8 @@ func (h *Handler) checkIPAllowlist(c echo.Context) *gftperrors.GFTPError {
 	if len(allowed) == 0 {
 		return nil
 	}
-	// c.RealIP() is governed by the IPExtractor installed in newApp: the direct
-	// peer unless GFTP_ACCESS_TRUSTED_PROXIES names the proxy in front. Behind
-	// an untrusted-but-present proxy every client looks like the proxy, which
-	// is why that key exists.
+	// c.RealIP() follows the IPExtractor from newApp: the direct peer unless
+	// GFTP_ACCESS_TRUSTED_PROXIES names the proxy, else every client is the proxy.
 	clientIP := net.ParseIP(c.RealIP())
 	if clientIP == nil {
 		return gftperrors.New(gftperrors.ErrForbidden, "client IP address is not in the allowlist")

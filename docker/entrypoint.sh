@@ -31,17 +31,14 @@ if [ -n "${GFTP_PORT:-}" ] && [ "${GFTP_PORT}" != "8080" ]; then
 fi
 export GFTP_PORT=8080
 
-# Caddy's trusted_proxies takes space-separated ranges; GFTP_ACCESS_TRUSTED_PROXIES
-# is comma-separated like every other GFTP_* list. Translate rather than making
-# this one key differ from the rest.
+# Caddy's trusted_proxies takes space-separated ranges, while GFTP_ACCESS_TRUSTED_PROXIES
+# is comma-separated like every other GFTP_* list. Translate instead of diverging.
 GFTP_CADDY_TRUSTED_PROXIES="$(printf '%s' "${GFTP_ACCESS_TRUSTED_PROXIES:-}" | tr ',' ' ')"
 export GFTP_CADDY_TRUSTED_PROXIES
 
-# Start Go backend in background
 /app/gftp &
 backend_pid=$!
 
-# Wait for backend to be ready (up to 5 seconds)
 healthy=false
 for i in $(seq 1 10); do
     if wget -q -O /dev/null http://localhost:8080/healthz 2>/dev/null; then
@@ -60,7 +57,6 @@ if [ "$healthy" != "true" ]; then
     exit 1
 fi
 
-# Start Caddy once the backend is healthy
 caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &
 caddy_pid=$!
 

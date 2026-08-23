@@ -42,9 +42,7 @@ export default defineAppConfig({
 
     formField: {
       slots: {
-        // 14px / semibold
         label: 'text-sm font-semibold',
-        // messages: 12px / medium; 4px gap to the control
         error: 'mt-1 text-xs font-medium text-error',
         help: 'mt-1 text-xs font-medium text-muted',
         description: 'text-xs font-medium text-muted',
@@ -60,7 +58,7 @@ export default defineAppConfig({
 
     modal: {
       slots: {
-        // elevated bg, no divider lines (whitespace-separated), generous padding
+        // no divider lines: sections are separated by whitespace instead
         content: 'bg-elevated divide-y-0',
         header: 'px-6 sm:px-8 pt-6 sm:pt-8 pb-0 min-h-0',
         body: 'px-6 sm:px-8 py-5 sm:py-6',

@@ -1,4 +1,3 @@
-// backend/internal/api/dial.go
 package api
 
 import (

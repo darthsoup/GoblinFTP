@@ -1,4 +1,3 @@
-// backend/internal/api/router.go
 package api
 
 import (
@@ -19,15 +18,11 @@ const (
 	// SessionCookieName is the cookie name used to identify sessions.
 	SessionCookieName = "gftp_session"
 
-	// jsonBodyLimit bounds ordinary JSON bodies. Without it c.Bind reads an
-	// arbitrarily large body into memory, and /api/auth/connect is reachable
-	// unauthenticated. Applied per route rather than on the group: a group
-	// limit is a hard ceiling that route middleware cannot raise, and three
-	// endpoints legitimately carry far more.
+	// jsonBodyLimit bounds ordinary JSON bodies (c.Bind would read any size, and
+	// connect is unauthenticated). Per route: a group limit no route could raise.
 	jsonBodyLimit = "1M"
-	// editorBodyLimit sits above the handler's own 1 MB check (editor.go) so
-	// an oversized edit still gets the enveloped ERR_FILE_TOO_LARGE rather than
-	// a bare 413; this is only the backstop for abusive bodies.
+	// editorBodyLimit sits above the handler's own 1 MB check (editor.go) so an
+	// oversized edit gets the enveloped ERR_FILE_TOO_LARGE, not a bare 413.
 	editorBodyLimit = "4M"
 	// archiveBodyLimit matches maxZipSize, the extract handler's own cap.
 	archiveBodyLimit = "512M"
@@ -45,17 +40,14 @@ func chunkBodyLimit(cfg *config.Config) string {
 func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts ...HandlerOption) *Handler {
 	h := newHandler(cfg, store, thr, opts)
 
-	// Order matters: RequestID before the access logger (the line carries the
-	// ID); metrics outside the logger (whose c.Error commits echo-level
-	// errors before metrics reads the status); the logger above Recover
-	// (a recovered panic still logs as a 500).
+	// Order matters: RequestID before the logger (the line carries the ID), metrics
+	// outside the logger (its c.Error commits first), the logger above Recover.
 	e.Use(middleware.RequestID())
 	e.Use(metricsMiddleware(h.metrics))
 	e.Use(requestLogger(h.logger))
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-		// Route the panic + stack into the structured logger instead of
-		// echo's plain-text [PANIC RECOVER] print; returning err lets the
-		// default error handler commit the 500 as usual.
+		// Route the panic and stack into the structured logger instead of echo's
+		// plain-text print; returning err lets the default handler commit the 500.
 		LogErrorFunc: func(c echo.Context, err error, stack []byte) error {
 			h.logger.LogAttrs(c.Request().Context(), slog.LevelError, "panic recovered",
 				slog.String("error", err.Error()),
@@ -81,24 +73,19 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	// Per-tenant white-label theme assets (public; params allowlisted in-handler).
 	e.GET("/themes/:tenant/:file", h.ServeTheme)
 
-	// Browser-error forwarding (public, no CSRF - login-screen errors happen
-	// before any session exists; throttled per IP inside the handler)
+	// Browser-error forwarding (public, no CSRF: login-screen errors happen before
+	// any session exists; throttled per IP inside the handler)
 	e.POST("/api/log/frontend", h.FrontendLog, middleware.BodyLimit("16K"))
 
 	apiGroup := e.Group("/api")
-	// INVARIANT: no CORS middleware may be added here. Under an embed
-	// deployment the session cookie is SameSite=None, so the only thing
-	// stopping a cross-origin page from reading the CSRF token out of
-	// GET /api/auth/status is the absence of Access-Control-Allow-Origin.
-	// TestNoCORSHeadersEver guards this.
+	// INVARIANT: no CORS middleware here (TestNoCORSHeadersEver guards it). Under
+	// embed the cookie is SameSite=None, so only a missing ACAO hides the CSRF token.
 	apiGroup.Use(csrfMiddleware(store))
 
-	// Auth
 	apiGroup.POST("/auth/connect", h.Connect, middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.POST("/auth/disconnect", requireSession(store)(h.Disconnect), middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.POST("/auth/sso-connect", requireSession(store)(h.SSOConnect), middleware.BodyLimit(jsonBodyLimit))
 
-	// File operations - Phase 3
 	apiGroup.GET("/files", requireSession(store)(h.ListFiles))
 	apiGroup.POST("/files/directory", requireSession(store)(h.CreateDirectory), middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.DELETE("/files", requireSession(store)(h.DeleteFiles), middleware.BodyLimit(jsonBodyLimit))
@@ -125,42 +112,31 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	return h
 }
 
-// securityHeadersMiddleware sets the app CSP, including the frame-ancestors
-// allowlist, on every response the Go binary produces.
-//
-// Everything goes in ONE header: a second Content-Security-Policy response
-// header is enforced as the intersection of both policies, which is correct but
-// near-impossible to debug from a browser console.
-//
-// This covers only Go's own responses. In production Caddy serves index.html -
-// the document frame-ancestors actually applies to - and emits the same
-// directive from the same env var (docker/Caddyfile). Both must agree.
+// securityHeadersMiddleware sets the app CSP (frame-ancestors included) on Go's
+// own responses. Caddy emits the same directive for index.html; both must agree.
 func securityHeadersMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 	ancestors := "'none'"
 	if cfg.EmbeddingEnabled() {
 		ancestors = strings.Join(cfg.FrameAncestors, " ")
 	}
+	// One header only: a second Content-Security-Policy is enforced as the
+	// intersection of both, correct but near-impossible to debug in a browser.
 	csp := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
 		"img-src 'self' data:; frame-ancestors " + ancestors
 
-	// X-Frame-Options is emitted ONLY in the deny case. It cannot express an
-	// allowlist (ALLOW-FROM is gone from every shipping engine), so an engine
-	// that prefers it over frame-ancestors would silently override the
-	// allowlist. Restricting it to the deny case means it can only ever agree
-	// with frame-ancestors 'none'.
+	// X-Frame-Options ONLY in the deny case: it cannot express an allowlist, so an
+	// engine preferring it over frame-ancestors would silently override one.
 	denyFraming := !cfg.EmbeddingEnabled()
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			h := c.Response().Header()
 			h.Set("Content-Security-Policy", csp)
-			// The app serves back file content the user does not control the
-			// type of, plus operator-supplied theme SVGs from this origin, so
-			// content-type sniffing must be off.
+			// The app serves user file content and operator theme SVGs from this
+			// origin, so content-type sniffing must be off.
 			h.Set("X-Content-Type-Options", "nosniff")
-			// no-referrer rather than the usual strict-origin: the SSO token
-			// (which decrypts to an FTP password) and download tokens ride in
-			// query strings, and Referer would carry them off-site.
+			// no-referrer rather than strict-origin: SSO tokens (which decrypt to an
+			// FTP password) and download tokens ride in query strings.
 			h.Set("Referrer-Policy", "no-referrer")
 			h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 			if denyFraming {
@@ -181,12 +157,8 @@ func csrfMiddleware(store *auth.Store) echo.MiddlewareFunc {
 				return next(c)
 			}
 			if c.Path() == "/api/auth/connect" {
-				// Unauthenticated, so there is no token to check yet. Echo's
-				// binder ignores form fields without a `form` tag, so a
-				// cross-site simple-request POST already binds nothing - but
-				// that is an implementation detail of a library, not a
-				// guarantee. Fetch metadata makes the intent explicit and is
-				// sent by every browser that supports SameSite=None.
+				// Unauthenticated, so there is no token to check yet. Fetch metadata
+				// states the intent explicitly and every SameSite=None browser sends it.
 				if c.Request().Header.Get("Sec-Fetch-Site") == "cross-site" {
 					return Fail(c, gftperrors.New(gftperrors.ErrForbidden, "cross-site connect is not allowed"))
 				}

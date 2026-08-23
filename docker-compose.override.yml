@@ -1,11 +1,5 @@
-# Development overrides - auto-merged by plain `docker compose up` (no -f needed).
-#
-# Builds the gftp image from source and defines the local FTP/FTPS/SFTP/S3 test
-# servers under the "testing" profile. The test servers are started on demand by
-# `just ftp-up` / `ftps-up` / `sftp-up` / `s3-up`, not by a bare `up`.
-#
-# This file is NOT loaded when you pass explicit -f flags (e.g. the prod overlay),
-# so its build step and test servers never leak into production.
+# Development overrides, auto-merged by a bare `docker compose up` (no -f needed).
+# Explicit -f flags skip it, so the build step and "testing" servers never reach prod.
 services:
   gftp:
     build:
@@ -43,7 +37,6 @@ services:
     profiles:
       - testing
 
-  # Local SFTP test server (jmcombs/sftp)
   sftp:
     image: jmcombs/sftp:latest
     command: "${SFTP_USER:-ftpuser}:${SFTP_PASS:-ftppass}:1001:100:upload"

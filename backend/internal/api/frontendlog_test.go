@@ -1,4 +1,3 @@
-// backend/internal/api/frontendlog_test.go
 package api_test
 
 import (
@@ -37,8 +36,8 @@ func frontendErrorLines(t *testing.T, buf *bytes.Buffer) []map[string]any {
 	return out
 }
 
-// TestFrontendLogHappyPath: a valid report needs no session and no CSRF token
-// and lands as one WARN line with all fields.
+// A valid report needs no session and no CSRF token, and lands as one WARN line
+// with all fields.
 func TestFrontendLogHappyPath(t *testing.T) {
 	var buf bytes.Buffer
 	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf)
@@ -98,8 +97,8 @@ func TestFrontendLogRejectsUnknownKind(t *testing.T) {
 	assert.Empty(t, frontendErrorLines(t, &buf))
 }
 
-// TestFrontendLogRateLimit: only 60 reports per IP per minute are accepted;
-// the rest still answer 200 but produce no log line.
+// Only 60 reports per IP per minute are accepted; the rest still answer 200 but
+// produce no log line.
 func TestFrontendLogRateLimit(t *testing.T) {
 	var buf bytes.Buffer
 	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf)
@@ -124,9 +123,8 @@ func TestFrontendLogDisabled(t *testing.T) {
 	assert.Empty(t, frontendErrorLines(t, &buf))
 }
 
-// TestFrontendLogOversizeBody: the 16K body limit answers 413 before the
-// handler runs (echo error shape, not the envelope - acceptable for a
-// defensive limit) and nothing is logged as a frontend error.
+// The 16K body limit answers 413 before the handler runs, so the response has
+// echo's error shape rather than the envelope.
 func TestFrontendLogOversizeBody(t *testing.T) {
 	var buf bytes.Buffer
 	e, store, _ := newTestAppWithLog(t, defaultTestConfig(), &buf)
@@ -139,7 +137,6 @@ func TestFrontendLogOversizeBody(t *testing.T) {
 	assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
 	assert.Empty(t, frontendErrorLines(t, &buf))
 
-	// The access line still records the 413.
 	lines := requestLines(t, &buf)
 	require.Len(t, lines, 1)
 	assert.Equal(t, float64(http.StatusRequestEntityTooLarge), lines[0]["status"])

@@ -1,4 +1,3 @@
-// backend/internal/ftp/chmod_test.go
 package ftp
 
 import (
@@ -8,12 +7,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// The capability and the operation must agree: jlaffaye/ftp exposes no raw
-// command, so there is no SITE CHMOD and Chmod can only fail. Advertising
-// otherwise puts a control in the UI that always errors.
-//
-// Neither method touches the connection, so this needs no live server and is
-// not gated by GFTP_TEST_FTP_HOST like the integration tests.
+// jlaffaye/ftp exposes no raw command, so SITE CHMOD is impossible and Chmod can
+// only fail. Neither method connects, hence no GFTP_TEST_FTP_HOST gate.
 func TestChmodUnsupported(t *testing.T) {
 	c := &Client{}
 

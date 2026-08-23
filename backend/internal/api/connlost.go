@@ -1,4 +1,3 @@
-// backend/internal/api/connlost.go
 package api
 
 import (
@@ -30,17 +29,13 @@ func isConnLost(err error) bool {
 		strings.Contains(msg, "connection lost")
 }
 
-// failClient converts a transfer.Client error into an API failure. When the
-// error means the server connection died, the dead client is closed, removed
-// from the session, and reported as ERR_CONNECTION_LOST with a clean message
-// instead of a raw socket error - the frontend switches to its reconnect flow
-// on that code.
+// failClient turns a transfer.Client error into an API failure. A lost connection
+// closes and clears the client, returning ERR_CONNECTION_LOST, the SPA's reconnect cue.
 func failClient(c echo.Context, code gftperrors.Code, err error) error {
 	if isConnLost(err) {
 		if sess, ok := c.Get("session").(*auth.Session); ok {
-			// failClient runs inside a handler that already holds the transfer
-			// lock, so this Close is serialized with the in-flight transfer; we
-			// must not re-acquire it here (it is non-reentrant).
+			// The caller already holds the transfer lock (non-reentrant), so this
+			// Close is serialized with the in-flight transfer and must not retake it.
 			if clientVal, ok := sess.Get("client"); ok {
 				if client, ok := clientVal.(transfer.Client); ok {
 					_ = client.Close()
@@ -50,11 +45,8 @@ func failClient(c echo.Context, code gftperrors.Code, err error) error {
 		}
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionLost, "connection to the server was lost").WithCause(err))
 	}
-	// Translate the raw protocol error into a stable code + friendly message so
-	// strings like `550 "..."` never reach the client. The classifier's specific
-	// code wins; for an unrecognized error keep the caller's category code (e.g.
-	// ErrListFailed) but still use the friendly generic message. The raw cause is
-	// attached for logs only, never serialized.
+	// Map the raw protocol error to a stable code plus friendly message so strings
+	// like `550 "..."` never reach the client. Unrecognized ones keep the caller's code.
 	classified, msg := classify(err)
 	if classified == gftperrors.ErrOperationFailed && code != "" {
 		classified = code

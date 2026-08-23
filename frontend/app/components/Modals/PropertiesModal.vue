@@ -41,16 +41,15 @@ const fullPath = computed(() => {
   return `${dir}/${file.value.name}`
 })
 
-// Two independent gates: the admin kill-switch (GFTP_CONNECTION_DISABLE_CHMOD), and what the
-// connected protocol can actually do. FTP/FTPS have no SITE CHMOD, so offering
-// the control there guarantees a 422.
+// Two gates: the admin kill-switch (GFTP_CONNECTION_DISABLE_CHMOD) and the
+// protocol. FTP/FTPS have no SITE CHMOD, so offering it there guarantees a 422.
 const chmodEnabled = computed(() =>
   !authStore.systemVars?.connection.disableChmod
   && !authStore.capabilities.disableChmod
   && !!file.value && !file.value.isDir,
 )
 
-// ── Permissions: octal string is the single source of truth ──────────────────
+// The octal string is the single source of truth for the permission checkboxes.
 const octalValid = computed(() => /^[0-7]{3,4}$/.test(state.octal.trim()))
 
 function octalDigits(): [number, number, number] | null {
@@ -85,7 +84,6 @@ const PERM_BITS = [
   { key: 'execute', bit: 1 },
 ] as const
 
-// ── Validation + apply (rename and/or chmod) ──────────────────────────────────
 const nameChanged = computed(() =>
   !!file.value && state.name.trim() !== '' && state.name.trim() !== file.value.name,
 )
@@ -125,9 +123,8 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
     modalStore.close()
   }
   catch (e) {
-    // An SFTP server can still answer SSH_FX_OP_UNSUPPORTED even though the
-    // protocol supports chmod, so localize the code rather than showing the
-    // raw server string.
+    // An SFTP server can answer SSH_FX_OP_UNSUPPORTED even though the protocol
+    // supports chmod, so localize the code instead of the raw server string.
     apiError.value = e instanceof ApiError
       ? localizeError(e.code, e.message)
       : e instanceof Error ? e.message : t('error.operationFailed')
@@ -137,7 +134,6 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
   }
 }
 
-// ── Display helpers ───────────────────────────────────────────────────────────
 function formatSize(bytes: number): string {
   if (file.value?.isDir)
     return '--'
@@ -181,7 +177,6 @@ function formatDate(iso: string): string {
         class="space-y-6"
         @submit="onSubmit"
       >
-        <!-- File identity -->
         <div class="flex gap-4 items-start">
           <div class="size-12 rounded bg-default border border-accented flex items-center justify-center shrink-0">
             <UIcon
@@ -200,7 +195,6 @@ function formatDate(iso: string): string {
           </UFormField>
         </div>
 
-        <!-- Meta grid -->
         <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.size') }}</span>
@@ -220,7 +214,6 @@ function formatDate(iso: string): string {
           </div>
         </div>
 
-        <!-- Permissions (CHMOD) -->
         <div v-if="chmodEnabled">
           <h3 class="label-caps text-muted border-b border-default pb-1 mb-3">
             {{ t('modal.properties.chmodTitle') }}

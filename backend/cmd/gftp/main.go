@@ -1,4 +1,3 @@
-// backend/cmd/gftp/main.go
 package main
 
 import (
@@ -25,31 +24,23 @@ import (
 )
 
 // version is the build version, injected by release builds via
-// `-ldflags "-X main.version=<tag>"` (see docker/Dockerfile). It is surfaced
-// in the startup log, /healthz, /api/system/vars, and as the default Sentry
-// release.
+// `-ldflags "-X main.version=<tag>"` (see docker/Dockerfile).
 var version = "dev"
 
-// shutdownGrace bounds the drain: a transfer wedged on an unresponsive remote
-// server must not keep the container alive past the orchestrator's own kill
-// timeout (Docker sends SIGKILL 10s after SIGTERM by default, so this is
-// already generous and mostly matters for `docker stop -t`).
+// shutdownGrace bounds the drain: a transfer wedged on an unresponsive remote must
+// not outlive the orchestrator's kill timeout (Docker SIGKILLs 10s after SIGTERM).
 const shutdownGrace = 20 * time.Second
 
 func newApp(cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle, *api.Handler) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true // the port is logged structured in main; keep stdout pure JSON
-	// No WriteTimeout on purpose: it is an absolute deadline on the whole
-	// response, so it would abort long legitimate downloads and archive
-	// streams. Stalled writers are handled per write in download.go instead.
+	// No WriteTimeout on purpose: an absolute deadline on the whole response would
+	// abort long downloads and archive streams. Stalled writers: see download.go.
 	e.Server.ReadHeaderTimeout = 10 * time.Second
 	e.Server.IdleTimeout = 120 * time.Second
-	// Echo's default RealIP() trusts the leftmost X-Forwarded-For entry from
-	// anyone. With a proxy allowlist configured it walks the chain right to
-	// left instead, skipping trusted hops - so the client allowlist and the
-	// per-IP throttles see the real client rather than the proxy. Without one,
-	// the direct peer is the client and forwarded headers are ignored.
+	// Echo's default RealIP() trusts the leftmost X-Forwarded-For entry from anyone.
+	// A proxy allowlist walks right to left, so throttles see the real client.
 	e.IPExtractor = api.IPExtractor(cfg)
 	e.Use(gftpsentry.Middleware())
 
@@ -60,9 +51,8 @@ func newApp(cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.St
 	return e, store, throttle, h
 }
 
-// liveUploadIDs reports whether an upload is still referenced by a session, so
-// the sweeper never reclaims chunks a user could still commit. Lock order is
-// store then session, matching connectionSnapshot.
+// liveUploadIDs reports whether an upload is still referenced by a session, so the
+// sweeper never reclaims committable chunks. Lock order: store then session.
 func liveUploadIDs(store *auth.Store) func(string) bool {
 	return func(uploadID string) bool {
 		found := false
@@ -114,7 +104,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Re-init logger with the configured level/format and optional file sink.
 	full, closeLog, logErr := logging.Init(logging.Options{
 		Level:          cfg.LogLevel,
 		Format:         cfg.LogFormat,
@@ -134,10 +123,8 @@ func main() {
 		"version", version,
 		"port", cfg.Port, "log_level", cfg.LogLevel, "log_format", cfg.LogFormat, "log_file", cfg.LogFile)
 
-	// A cross-site embed can fail in several ways that all look identical from
-	// the browser (a redirect loop back to /login with no console error), so
-	// state the policy up front - it is the first thing to check against what
-	// DevTools actually shows in Set-Cookie.
+	// A cross-site embed fails in several ways that look identical from the browser
+	// (redirect loop, no console error), so state the policy to check Set-Cookie against.
 	if cfg.EmbeddingEnabled() {
 		logger.Info("iframe embedding enabled",
 			"frame_ancestors", strings.Join(cfg.FrameAncestors, " "),
@@ -166,9 +153,8 @@ func main() {
 		opts = append(opts, api.WithChunkStore(newS3Store(cfg, logger)))
 	}
 
-	// Optional Prometheus metrics on a dedicated listener - never on the main
-	// server (Caddy does not proxy it). newApp wires the session store into
-	// the shared instance via SetConnectionSnapshot.
+	// Optional Prometheus metrics on a dedicated listener, never on the main server
+	// (Caddy does not proxy it). newApp wires the store in via SetConnectionSnapshot.
 	var m *metrics.Metrics
 	if cfg.MetricsEnabled {
 		m = metrics.New()
@@ -177,9 +163,8 @@ func main() {
 
 	e, store, throttle, handler := newApp(cfg, opts...)
 
-	// Local staging only. A restart loses the in-memory session store, so every
-	// upload reserved before it is orphaned on disk with nothing left to
-	// reference it.
+	// Local staging only. A restart loses the in-memory session store, so uploads
+	// reserved before it are orphaned on disk with nothing left to reference them.
 	var sweeper *staging.Sweeper
 	if !cfg.S3Enabled {
 		sweeper = staging.NewSweeper(cfg.DataDir, logger, liveUploadIDs(store))

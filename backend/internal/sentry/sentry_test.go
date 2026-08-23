@@ -10,13 +10,8 @@ import (
 
 const testDSN = "https://public@o0.ingest.sentry.io/0"
 
-// TestRequestSecretsAreFiltered pins the one property that keeps credentials
-// out of Sentry. The middleware attaches the whole *http.Request to the scope,
-// so every secret GoblinFTP carries in a URL, cookie or header would ship to a
-// third party unless sentry-go scrubs it. It scrubs by KEY NAME against a
-// built-in denylist, never by value, so this passing depends entirely on what
-// we name things: ?sso= and ?token= are filtered, ?ticket= would not be.
-// Renaming any of these keys must fail here rather than in production.
+// TestRequestSecretsAreFiltered pins the one property keeping credentials out of
+// Sentry: it scrubs by KEY NAME, so ?sso= is filtered but ?ticket= would not be.
 func TestRequestSecretsAreFiltered(t *testing.T) {
 	if err := Init(testDSN, "test", "v0", 0); err != nil {
 		t.Fatalf("Init: %v", err)
@@ -58,16 +53,15 @@ func TestRequestSecretsAreFiltered(t *testing.T) {
 		}
 	}
 
-	// Guards against the test passing because nothing is collected at all -
-	// a non-sensitive param must still survive, or this asserts nothing.
+	// Guards against the test passing because nothing is collected at all: a
+	// non-sensitive param must still survive, or this asserts nothing.
 	if !strings.Contains(serialized, "path=") {
 		t.Errorf("non-sensitive query param was dropped, test would pass vacuously: %s", serialized)
 	}
 }
 
-// TestSampleRateIsNotCoerced guards the documented default. GFTP_SENTRY_SAMPLE_RATE
-// documents a default of 0; an earlier version rewrote 0 to 1.0, so the
-// documented "no tracing" default actually traced every transaction.
+// TestSampleRateIsNotCoerced guards the documented GFTP_SENTRY_SAMPLE_RATE default:
+// an earlier version rewrote 0 to 1.0, so "no tracing" traced every transaction.
 func TestSampleRateIsNotCoerced(t *testing.T) {
 	if err := Init(testDSN, "test", "v0", 0); err != nil {
 		t.Fatalf("Init: %v", err)

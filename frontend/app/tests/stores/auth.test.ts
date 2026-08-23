@@ -4,10 +4,8 @@ import { createTestingPinia } from '@pinia/testing'
 import { setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// ssoConnect goes through useApi (CSRF-aware, returns unwrapped data); connect
-// hits $fetch directly (public endpoint, full envelope) - so we mock both.
-// $fetch is auto-imported (Nuxt 4.5+), so it's mocked via mockNuxtImport
-// instead of by stubbing a global.
+// ssoConnect goes through useApi (CSRF-aware, unwrapped); connect hits $fetch directly
+// (public, full envelope). $fetch is auto-imported, so mockNuxtImport, not a global stub.
 const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() }
 vi.mock('~/composables/useApi', () => ({ useApi: () => mockApi }))
 

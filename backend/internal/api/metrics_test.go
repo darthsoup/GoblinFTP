@@ -1,4 +1,3 @@
-// backend/internal/api/metrics_test.go
 package api_test
 
 import (
@@ -45,17 +44,14 @@ func TestMetricsHTTPRequestCounter(t *testing.T) {
 	e, store, _ := newTestApp(t, defaultTestConfig(), api.WithMetrics(m))
 	defer store.Close()
 
-	// Unauthenticated request on a real route → labeled with its template + 401.
 	req := httptest.NewRequest(http.MethodGet, "/api/files", nil)
 	e.ServeHTTP(httptest.NewRecorder(), req)
 	assert.Equal(t, float64(1), testutil.ToFloat64(m.HTTPRequests.WithLabelValues("GET", "/api/files", "401")))
 
-	// Duration histogram observed for the same route.
 	count, err := testutil.GatherAndCount(m.Registry, "gftp_http_request_duration_seconds")
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, count, 1)
 
-	// Unrouted request → bounded label, never the raw URL.
 	rawURL := "/totally/bogus/user-supplied-junk-12345"
 	req = httptest.NewRequest(http.MethodGet, rawURL, nil)
 	e.ServeHTTP(httptest.NewRecorder(), req)
@@ -72,7 +68,6 @@ func TestMetricsHTTPRequestCounter(t *testing.T) {
 		}
 	}
 
-	// /healthz is excluded entirely.
 	req = httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	e.ServeHTTP(httptest.NewRecorder(), req)
 	assert.Equal(t, float64(0), testutil.ToFloat64(m.HTTPRequests.WithLabelValues("GET", "/healthz", "200")))
@@ -129,7 +124,6 @@ func TestMetricsDownloadBytes(t *testing.T) {
 	defer store.Close()
 	sess := connectAndGetSession(t, e)
 
-	// Issue a token, then download through the public endpoint.
 	req := httptest.NewRequest(http.MethodPost, "/api/files/download-token", strings.NewReader(`{"path":"/file.bin"}`))
 	req.Header.Set("Content-Type", "application/json")
 	addSession(req, sess)
@@ -232,8 +226,7 @@ gftp_connections_active{protocol="sftp"} 0
 `), "gftp_sessions_active", "gftp_connections_active"))
 }
 
-// TestMetricsEndpointSmoke serves the registry exactly like main.go's
-// dedicated listener does and checks the classic series are exposed.
+// Serves the registry exactly like main.go's dedicated listener does.
 func TestMetricsEndpointSmoke(t *testing.T) {
 	m := metrics.New()
 	e, store, _ := newTestApp(t, defaultTestConfig(), api.WithMetrics(m))

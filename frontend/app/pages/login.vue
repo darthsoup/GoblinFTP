@@ -1,8 +1,6 @@
 <script setup lang="ts">
-// The unauthenticated route. Session + language bootstrapping happens globally
-// in plugins/auth.client.ts; this page only handles the SSO link landing
-// (auto-connect + error surfacing). Routing to the workspace on a successful
-// connect is owned by the layout's connected-watcher.
+// The unauthenticated route. Session and language bootstrap live in
+// plugins/auth.client.ts; this page only handles the SSO link landing.
 const authStore = useAuthStore()
 const { t } = useI18n()
 

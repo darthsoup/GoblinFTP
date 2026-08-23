@@ -7,28 +7,12 @@ import (
 	"time"
 )
 
-// Session holds per-connection state for an authenticated user.
-//
-// A single *Session is shared across every concurrent HTTP handler for that
-// session, so its maps must never be touched directly - all access goes through
-// the accessor methods, which hold mu. (mu guards data and uploads; ExpiresAt is
-// guarded by the owning Store's mutex.) A concurrent read+write on a bare Go map
-// is an unrecoverable runtime fatal, so this is a correctness requirement, not an
-// optimisation.
-//
-// transferMu is a SEPARATE lock that serializes use of the one underlying
-// transfer.Client: a single FTP control connection cannot service two data
-// transfers at once (and jlaffaye/ftp's ServerConn is explicitly not safe for
-// concurrent use), so handlers hold it around client I/O. Never acquire mu while
-// holding transferMu in a way that nests inversely - the accessor methods always
-// release mu before returning, so transferMu→mu is the only ordering that occurs.
+// Session holds per-connection state. Reach its maps only through the accessor
+// methods: a concurrent read+write on a bare Go map is an unrecoverable fatal.
 type Session struct {
 	ID string
-	// DownloadKey is a second, independent random identifier used only in
-	// signed download URLs. Download links travel where the HttpOnly session
-	// cookie deliberately does not (browser history, Referer, proxy logs,
-	// "copy link"), so embedding the session ID there made any leaked link a
-	// full session takeover. This value is useless as a cookie.
+	// A separate identifier for signed download URLs: those links leak into
+	// history, Referer and proxy logs, where a session ID would be a takeover.
 	DownloadKey string
 	ExpiresAt   time.Time
 
@@ -36,6 +20,8 @@ type Session struct {
 	data    map[string]any
 	uploads map[string]any
 
+	// Serializes the one transfer.Client: a single control connection cannot
+	// service two transfers at once. Lock order is transferMu before mu.
 	transferMu sync.Mutex
 }
 
@@ -68,9 +54,8 @@ func (s *Session) Delete(key string) {
 	delete(s.data, key)
 }
 
-// PutUpload registers in-progress chunked-upload metadata under id. The uploads
-// map is kept separate from data so reserve/commit handlers can mutate it under
-// the same lock without a check-then-act race on the shared inner map.
+// PutUpload registers in-progress chunked-upload metadata under id. Uploads live
+// apart from data so reserve/commit avoid a check-then-act race on a shared map.
 func (s *Session) PutUpload(id string, meta any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -108,18 +93,14 @@ func (s *Session) DeleteUpload(id string) {
 }
 
 // LockTransfer acquires the per-session transfer lock. Handlers hold it around
-// every operation on the transfer.Client so concurrent requests never interleave
-// two data transfers on the one control connection. Pair with UnlockTransfer
-// (typically via defer).
+// every transfer.Client call so two requests never interleave on one connection.
 func (s *Session) LockTransfer() { s.transferMu.Lock() }
 
 // UnlockTransfer releases the transfer lock.
 func (s *Session) UnlockTransfer() { s.transferMu.Unlock() }
 
-// TryLockTransfer reports whether the transfer lock was acquired without
-// blocking. The liveness ping uses it: a transfer already in flight is itself
-// proof the connection is alive, so the ping is skipped rather than queued behind
-// (and corrupting) the in-flight transfer.
+// TryLockTransfer reports whether the transfer lock was acquired without blocking.
+// The liveness ping skips rather than queue behind (and corrupt) a live transfer.
 func (s *Session) TryLockTransfer() bool { return s.transferMu.TryLock() }
 
 // Store is a thread-safe in-memory session store with TTL-based expiry.
@@ -133,9 +114,8 @@ type Store struct {
 	done          chan struct{}
 	stopped       bool
 
-	// onEvict runs for each session dropped by expiry or shutdown, always
-	// outside mu. It exists so the store can release a session's resources
-	// (its FTP/SFTP connection) without this package knowing what they are.
+	// onEvict runs outside mu for each session dropped by expiry or shutdown, so
+	// the store can close its FTP/SFTP connection without knowing what it is.
 	onEvict func(*Session)
 }
 
@@ -240,9 +220,8 @@ func (s *Store) Count() int {
 	return n
 }
 
-// Range calls fn for each live (non-expired) session while holding a read
-// lock. fn must not mutate the session or the store - read-only snapshot use
-// only (e.g. the metrics collector).
+// Range calls fn for each live session while holding a read lock. fn must not
+// mutate the session or the store: read-only snapshot use only.
 func (s *Store) Range(fn func(*Session)) {
 	now := time.Now()
 	s.mu.RLock()
@@ -254,12 +233,8 @@ func (s *Store) Range(fn func(*Session)) {
 	}
 }
 
-// SetOnEvict registers the eviction hook. Guarded by mu: the cleanup goroutine
-// is already running by the time wiring calls this, so an unguarded write here
-// races with the sweep that reads it.
-//
-// The hook must not call back into the Store (Touch, Delete, Get, Evict*): it
-// runs on a path that re-acquires mu, so a re-entrant call self-deadlocks.
+// SetOnEvict registers the eviction hook under mu, since the cleanup sweep is
+// already reading it. The hook must not call back into the Store: it deadlocks.
 func (s *Store) SetOnEvict(fn func(*Session)) {
 	s.mu.Lock()
 	s.onEvict = fn
@@ -278,23 +253,16 @@ func (s *Store) Close() {
 	close(s.done)
 }
 
-// EvictExpired drops every expired session and runs onEvict for each.
-//
-// A session mid-transfer is skipped rather than torn down: transferMu is held
-// for the length of a transfer, and closing the connection under it would sever
-// a running download. It cannot come back to life (Touch refuses an expired
-// session and Get reports it missing), so the next sweep collects it.
+// EvictExpired drops every expired session and runs onEvict for each. One
+// mid-transfer is skipped, not severed; it cannot revive, so a later sweep gets it.
 func (s *Store) EvictExpired() { s.evict(false) }
 
 // evictAllBudget bounds the whole shutdown sweep. A transfer wedged on an
 // unresponsive remote server must not keep the process alive.
 const evictAllBudget = 5 * time.Second
 
-// EvictAll drops every session regardless of expiry. Used at shutdown, after
-// the HTTP server has drained, to close connections that would otherwise be
-// severed without a QUIT. It returns within evictAllBudget even if a transfer
-// never finishes, closing that session's client anyway: the process is exiting
-// either way, and a clean close beats waiting for SIGKILL.
+// EvictAll drops every session at shutdown so connections close with a QUIT. It
+// returns within evictAllBudget even if a transfer never finishes.
 func (s *Store) EvictAll() { s.evict(true) }
 
 func (s *Store) evict(all bool) {
@@ -324,10 +292,8 @@ func (s *Store) evict(all bool) {
 				// rather than truncating a download.
 				continue
 			}
-			// Shutdown. Wait a little for the transfer to finish, but never
-			// indefinitely: /api/files/download holds this lock for a whole
-			// stream and Shutdown does not kill its goroutine, so blocking
-			// here would hang the process until SIGKILL.
+			// Wait for the transfer, but never indefinitely: a download holds
+			// this lock for its whole stream and would hang us until SIGKILL.
 			locked = waitForTransfer(sess, deadline)
 		}
 		if onEvict != nil {
@@ -344,9 +310,8 @@ func (s *Store) evict(all bool) {
 	}
 }
 
-// waitForTransfer polls for the session's transfer lock until deadline,
-// reporting whether it was acquired. Polling rather than blocking because
-// sync.Mutex has no timed acquire.
+// waitForTransfer polls for the session's transfer lock until deadline. Polling
+// rather than blocking because sync.Mutex has no timed acquire.
 func waitForTransfer(sess *Session, deadline time.Time) bool {
 	for time.Now().Before(deadline) {
 		if sess.TryLockTransfer() {

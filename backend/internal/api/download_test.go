@@ -1,4 +1,3 @@
-// backend/internal/api/download_test.go
 package api_test
 
 import (
@@ -61,7 +60,6 @@ func TestDownloadFile(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
-	// Get a download token
 	tokenBody := `{"path":"/file.txt"}`
 	tokenReq := httptest.NewRequest(http.MethodPost, "/api/files/download-token", strings.NewReader(tokenBody))
 	tokenReq.Header.Set("Content-Type", "application/json")
@@ -78,7 +76,7 @@ func TestDownloadFile(t *testing.T) {
 	require.NoError(t, json.Unmarshal(tokenRec.Body.Bytes(), &tokenResp))
 	token := tokenResp.Data.Token
 
-	// Use the token to download (no session cookie needed - public route)
+	// The download route is public, so no session cookie is sent.
 	dlReq := httptest.NewRequest(http.MethodGet, "/api/files/download?token="+token, nil)
 	dlRec := httptest.NewRecorder()
 	app.ServeHTTP(dlRec, dlReq)
@@ -114,7 +112,6 @@ func TestDownloadZip(t *testing.T) {
 	assert.Equal(t, "application/zip", rec.Header().Get("Content-Type"))
 	assert.Contains(t, rec.Header().Get("Content-Disposition"), "archive.zip")
 
-	// The response should be a valid ZIP containing "file.txt"
 	body2 := rec.Body.Bytes()
 	zr, err := zip.NewReader(bytes.NewReader(body2), int64(len(body2)))
 	require.NoError(t, err)
@@ -170,12 +167,8 @@ func TestDownloadZipRejectsOversizedArchive(t *testing.T) {
 	assert.False(t, calledDownload)
 }
 
-// TestDownloadTokenDoesNotCarrySessionID is the regression test for a privilege
-// escalation. The token is signed, not encrypted, so anything inside it is
-// readable by whoever holds the URL - and download URLs travel where the
-// HttpOnly session cookie deliberately does not (history, Referer, proxy logs,
-// "copy link"). Embedding the session ID turned any leaked download link into a
-// full session takeover: decode, extract, resend as gftp_session.
+// The token is signed, not encrypted, and download URLs travel where the HttpOnly
+// cookie does not, so a session ID inside one is a session takeover.
 func TestDownloadTokenDoesNotCarrySessionID(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
@@ -214,7 +207,6 @@ func TestDownloadTokenDoesNotCarrySessionID(t *testing.T) {
 	assert.NotContains(t, string(decoded), sessionID,
 		"the session ID must never appear in a download token")
 
-	// And the value that IS in the token must be useless as a session cookie.
 	subject := strings.SplitN(string(decoded), ":", 2)[0]
 	require.NotEmpty(t, subject)
 	replay := httptest.NewRequest(http.MethodGet, "/api/files?path=/", nil)

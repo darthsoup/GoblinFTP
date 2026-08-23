@@ -6,10 +6,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// connCollector emits the session/connection gauges from ONE store snapshot
-// per scrape, so both series are consistent from the same instant. Both
-// protocol series are always emitted (0 when absent) so they never vanish
-// from the scrape between connections.
+// connCollector emits the session and connection gauges from ONE store snapshot per
+// scrape. Both protocol series always emit (0 when absent) so neither ever vanishes.
 type connCollector struct {
 	mu sync.RWMutex
 	fn func() Snapshot

@@ -4,10 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   ssr: false,
 
-  // Dev parity with docker/Caddyfile, which sets frame-ancestors on the SPA
-  // document in production. Nitro serves that document in dev (not Vite), so
-  // this has to be a route rule - vite.server.headers never reaches it. It has
-  // no effect on `nuxt generate` output, where Caddy owns the header.
+  // Dev parity with docker/Caddyfile, which owns this header in production. Nitro
+  // serves the dev document, so it must be a route rule: vite.server.headers misses it.
   routeRules: {
     '/**': {
       headers: {
@@ -87,16 +85,13 @@ export default defineNuxtConfig({
       tailwindcss(),
     ],
     build: {
-      // The entry settles at ~505KB (174KB gz) - the irreducible @nuxt/ui + Vue
-      // core. Sentry and the CodeMirror grammars are already split into their own
-      // chunks; consolidating @nuxt/ui (~767KB) via manualChunks only made it
-      // worse, so we raise the warning bar rather than chase a counterproductive split.
+      // The ~505KB entry (174KB gz) is the irreducible @nuxt/ui + Vue core; Sentry and
+      // CodeMirror already split out, and manualChunks on @nuxt/ui only made it worse.
       chunkSizeWarningLimit: 600,
     },
     server: {
       proxy: {
         '/api': {
-          // override with GFTP_DEV_PROXY to point at a backend on another port
           target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,
         },
@@ -105,11 +100,8 @@ export default defineNuxtConfig({
           target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,
         },
-        // SSO entry point: forward only `GET /?sso=<token>` to the backend so
-        // the one-time-link flow (decrypt → set session cookie → redirect to
-        // /?) works in dev and stays same-origin on :3000. Every other request
-        // to `/` (the SPA, assets, HMR) is bypassed back to the Vite dev server.
-        // In prod, Caddy does this routing instead (docker/Caddyfile @sso).
+        // Forward only `GET /?sso=<token>` so the one-time-link flow stays same-origin
+        // on :3000; every other `/` request goes back to Vite. Prod: docker/Caddyfile @sso.
         '/': {
           target: process.env.GFTP_DEV_PROXY ?? 'http://localhost:8080',
           changeOrigin: true,

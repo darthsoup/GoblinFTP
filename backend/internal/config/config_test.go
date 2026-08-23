@@ -329,8 +329,6 @@ func TestLoadLoggingEnv(t *testing.T) {
 	}
 }
 
-// ── Iframe embedding ─────────────────────────────────────────────────────────
-
 func TestLoadFrameAncestorsDefaultsToDenied(t *testing.T) {
 	clearEnv(t)
 
@@ -418,8 +416,6 @@ func TestLoadEmbedChromeless(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "GFTP_EMBED_CHROMELESS")
 }
-
-// ── Migration guards ─────────────────────────────────────────────────────────
 
 func TestLoadBoolAcceptsParseBoolForms(t *testing.T) {
 	clearEnv(t)

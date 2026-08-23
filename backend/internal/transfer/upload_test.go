@@ -1,4 +1,3 @@
-// backend/internal/transfer/upload_test.go
 package transfer_test
 
 import (

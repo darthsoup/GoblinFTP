@@ -1,4 +1,3 @@
-// backend/internal/api/proxy_test.go
 package api_test
 
 import (
@@ -21,10 +20,8 @@ func allowlistConfig(t *testing.T, allowed, trustedProxies []string) *config.Con
 	return cfg
 }
 
-// TestClientAllowlistIgnoresSpoofedXFF is the important one: echo's default
-// RealIP() takes the leftmost X-Forwarded-For value from anyone, which would
-// make the client allowlist a header away from useless. With no trusted proxy
-// configured the forwarded header must be ignored entirely.
+// Echo's default RealIP() trusts any X-Forwarded-For, which would put the client
+// allowlist one header away from useless when no trusted proxy is configured.
 func TestClientAllowlistIgnoresSpoofedXFF(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -60,8 +57,8 @@ func TestClientAllowlistIgnoresSpoofedXFF(t *testing.T) {
 			wantAllowed: false,
 		},
 		{
-			// Behind a declared proxy the forwarded client is the real one -
-			// without this every client collapses to the proxy's address.
+			// Behind a declared proxy the forwarded client is the real one.
+			// Otherwise every client collapses to the proxy's address.
 			name:           "trusted proxy forwards the real client",
 			allowed:        []string{"203.0.113.9"},
 			trustedProxies: []string{"198.51.100.0/24"},

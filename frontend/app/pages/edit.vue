@@ -1,8 +1,6 @@
 <script setup lang="ts">
-// The editor route. The file browser (and its breadcrumb) is NOT mounted here,
-// so there is no folder navigation under the editor. The open file lives in
-// ?path=<file> (deep-linkable + reload-restorable); tabs persist in the editor
-// store, so you can return via the header's "Editor" button.
+// The editor route; the file browser is not mounted, so no folder navigation.
+// The open file lives in ?path=<file>; tabs persist in the editor store.
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
 const route = useRoute()
@@ -36,8 +34,7 @@ watch(() => editorStore.activeTab?.path, (p) => {
 })
 
 // No tabs left → return to the file browser. Guarded by `connected` so a
-// disconnect (which empties the editor and routes to /login via the layout
-// watcher) doesn't also fire a competing navigation to /.
+// disconnect, which already routes to /login, doesn't fire a competing nav.
 watch(() => editorStore.hasOpenTabs, (open) => {
   if (!open && authStore.connected)
     navigateTo('/')

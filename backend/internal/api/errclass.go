@@ -1,4 +1,3 @@
-// backend/internal/api/errclass.go
 package api
 
 import (
@@ -7,16 +6,8 @@ import (
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
 )
 
-// classify maps a raw transfer.Client error to a stable API error code and a
-// short, human-friendly message. The raw error is NEVER part of the returned
-// message - callers attach it via WithCause for server-side logs only, so raw
-// protocol strings (e.g. `550 "Remove directory operation failed."`) never reach
-// the client.
-//
-// Matching is case-insensitive substring on err.Error(), which covers both FTP
-// (`550 ...`) and SFTP (`sftp: "..." (SSH_FX_...)`) phrasing. Server wording
-// varies, so rules run most-specific first and ErrOperationFailed is the
-// catch-all. Patterns are exercised by errclass_test.go.
+// classify maps a raw transfer.Client error to a stable API code and a friendly
+// message. The raw text NEVER enters it: callers pass it to WithCause for logs.
 func classify(err error) (gftperrors.Code, string) {
 	if err == nil {
 		return gftperrors.ErrOperationFailed, "The operation could not be completed."
@@ -25,6 +16,8 @@ func classify(err error) (gftperrors.Code, string) {
 		return gftperrors.ErrConnectionLost, "The connection to the server was lost."
 	}
 	msg := strings.ToLower(err.Error())
+	// Case-insensitive substring, since server wording varies: most-specific
+	// rules first, ErrOperationFailed the catch-all (see errclass_test.go).
 	switch {
 	case strings.Contains(msg, "not empty") || strings.Contains(msg, "remove directory operation failed"):
 		return gftperrors.ErrDirNotEmpty, "The folder is not empty or is in use."

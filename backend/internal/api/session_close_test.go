@@ -1,4 +1,3 @@
-// backend/internal/api/session_close_test.go
 package api_test
 
 import (
@@ -22,11 +21,8 @@ func shortTTLConfig() *config.Config {
 	return cfg
 }
 
-// TestExpiredSessionClosesClient is the regression test for the main long-run
-// leak: the TTL sweep dropped expired sessions with a bare map delete, so an
-// abandoned browser tab left its FTP/SFTP control connection open until the
-// remote server timed it out. The explicit disconnect path closed it; the
-// expiry path did not.
+// The TTL sweep used to drop expired sessions with a bare map delete, leaking the
+// control connection until the remote server timed it out.
 func TestExpiredSessionClosesClient(t *testing.T) {
 	mock := &testutil.MockClient{WorkingDirFn: func() (string, error) { return "/", nil }}
 	app, store, _ := newTestApp(t, shortTTLConfig(), api.WithDial(staticDial(mock)))
@@ -39,8 +35,8 @@ func TestExpiredSessionClosesClient(t *testing.T) {
 	assert.True(t, mock.IsClosed(), "an expired session must close its transfer client")
 }
 
-// TestEvictAllClosesEveryClient covers the shutdown hook: at exit every live
-// connection is closed rather than severed by process death.
+// The shutdown hook must close every live connection rather than let process
+// death sever it.
 func TestEvictAllClosesEveryClient(t *testing.T) {
 	mock := &testutil.MockClient{WorkingDirFn: func() (string, error) { return "/", nil }}
 	app, store, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
@@ -52,9 +48,8 @@ func TestEvictAllClosesEveryClient(t *testing.T) {
 	assert.Equal(t, 0, store.Count())
 }
 
-// TestInFlightTransferIsNotEvicted is the safety property: the sweep must never
-// close a connection out from under a running transfer. The session is left in
-// place for a later sweep instead.
+// The sweep must never close a connection out from under a running transfer; the
+// session is left in place for a later sweep instead.
 func TestInFlightTransferIsNotEvicted(t *testing.T) {
 	mock := &testutil.MockClient{WorkingDirFn: func() (string, error) { return "/", nil }}
 	app, store, _ := newTestApp(t, shortTTLConfig(), api.WithDial(staticDial(mock)))
@@ -74,19 +69,15 @@ func TestInFlightTransferIsNotEvicted(t *testing.T) {
 	assert.True(t, mock.IsClosed(), "once the transfer finishes, the next sweep collects it")
 }
 
-// TestStoreCloseIsIdempotent - Close used to panic on a second call, unlike its
-// sibling sso.UsedSet.Stop.
+// Close used to panic on a second call, unlike its sibling sso.UsedSet.Stop.
 func TestStoreCloseIsIdempotent(t *testing.T) {
 	_, store, _ := newTestApp(t, defaultTestConfig())
 	store.Close()
 	store.Close()
 }
 
-// TestEvictAllIsBoundedByAStuckTransfer is the regression test for a shutdown
-// hang. /api/files/download is public, outside requireSession, and holds the
-// transfer lock for the whole stream; e.Shutdown returns after its grace period
-// but does not kill that goroutine. A blocking LockTransfer here meant the
-// process never finished shutting down and died only on SIGKILL.
+// A download holds the transfer lock for the whole stream and e.Shutdown does not
+// kill it, so a blocking LockTransfer here would hang shutdown until SIGKILL.
 func TestEvictAllIsBoundedByAStuckTransfer(t *testing.T) {
 	mock := &testutil.MockClient{WorkingDirFn: func() (string, error) { return "/", nil }}
 	app, store, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))

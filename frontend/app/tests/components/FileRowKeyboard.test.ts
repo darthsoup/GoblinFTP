@@ -27,8 +27,7 @@ async function mountRow(over: Partial<FileInfo> = {}, index = 0) {
 }
 
 // The file list was a bare <tr @click> with no tabindex, role or keydown, so a
-// keyboard-only user could not open a folder, preview a file, or select
-// anything - a WCAG 2.1.1 failure for the app's primary surface.
+// keyboard-only user could open, preview or select nothing: a WCAG 2.1.1 failure.
 describe('fileRow keyboard operability', () => {
   beforeEach(() => {
     setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
@@ -83,7 +82,7 @@ describe('fileRow keyboard operability', () => {
   it('names the row and its checkbox for screen readers', async () => {
     const w = await mountRow()
     const tr = w.find('tr')
-    // Previously the checkbox announced "report.pdf, checkbox" - the file name,
+    // Previously the checkbox announced "report.pdf, checkbox": the file name,
     // not what activating it does.
     expect(tr.attributes('aria-label')).toContain('report.pdf')
     expect(tr.attributes('aria-selected')).toBe('false')

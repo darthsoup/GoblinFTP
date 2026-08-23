@@ -1,13 +1,7 @@
 import type { SizeFormat } from '~/stores/settings'
 
-// Moving-average throughput and ETA for in-flight transfers.
-//
-// Samples are taken on a fixed clock rather than on byte events. That is the
-// load-bearing choice: it makes the estimator independent of transport
-// granularity (identical math whether bytes arrive continuously or one chunk at
-// a time), and it lets a stall report itself - a frozen byte count pushes equal
-// values until the window shows no movement at all. Event-driven sampling
-// cannot do that, because a stalled transfer produces no events to decay.
+// Sampling on a fixed clock rather than on byte events makes the estimator independent
+// of transport granularity, and lets a stall report itself (event-driven cannot).
 
 export const SAMPLE_INTERVAL_MS = 500
 export const RATE_WINDOW_MS = 3000
@@ -69,8 +63,7 @@ export function formatEta(seconds: number | null): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-// Delegates to formatFileSize so the user's binary/decimal/bytes preference is
-// honoured and no fourth unit ladder enters the codebase. "/s" stays
+// Delegates to formatFileSize so the user's size preference is honoured. "/s" stays
 // untranslated for the same reason formatFileSize hardcodes KiB/MB.
 export function formatRate(bytesPerSecond: number, format: SizeFormat, locale = 'en'): string {
   return `${formatFileSize(Math.max(0, Math.round(bytesPerSecond)), format, locale)}/s`

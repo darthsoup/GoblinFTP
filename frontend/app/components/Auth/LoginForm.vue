@@ -18,9 +18,8 @@ const form = reactive({
 const error = ref<string | null>(null)
 const loading = ref(false)
 
-// authStore.error survives across the connect lifecycle (and carries SSO
-// failures surfaced before this form mounts); the local ref captures the
-// manual-connect failure in onSubmit.
+// authStore.error survives the connect lifecycle (and carries SSO failures from
+// before this form mounts); the local ref captures the manual-connect failure.
 const displayError = computed(() => error.value ?? authStore.error)
 
 const protocolItems = computed(() =>
@@ -30,9 +29,8 @@ const protocolItems = computed(() =>
 const conn = computed(() => authStore.systemVars?.connection)
 const hostLocked = computed(() => conn.value?.lockHost ?? false)
 
-// Admin presets (GFTP_CONNECTION_*): prefill host/port, default passive mode,
-// and make sure the protocol is one the server allows. systemVars may arrive
-// after mount, so apply reactively (without clobbering user input).
+// Admin presets (GFTP_CONNECTION_*) prefill host/port/passive and force an
+// allowed protocol. systemVars may arrive after mount, so apply reactively.
 watch(conn, (c) => {
   if (!c)
     return

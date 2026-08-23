@@ -1,13 +1,10 @@
 import { defineStore } from 'pinia'
 
-// End-user UI preferences. Persisted in the browser only (localStorage) -
-// the backend never needs them: dotfile filtering, language, theme, and
-// formatting are all client-side concerns. Theme is persisted by
-// @nuxtjs/color-mode (localStorage); this store covers the rest.
-//
-// Preferences with an admin-level default in the GFTP_UI_*/GFTP_LANGUAGE env config (dotfiles,
-// language) follow "user override wins, otherwise admin default": the user
-// value stays null until the user explicitly changes the setting.
+// End-user preferences, persisted in the browser only; the backend never reads
+// them. Theme itself lives in @nuxtjs/color-mode, so this store covers the rest.
+
+// Preferences with an admin default (GFTP_UI_*, GFTP_LANGUAGE) follow "user
+// override wins": the user value stays null until explicitly changed.
 const STORAGE_KEY = 'gftp_settings'
 
 export type SizeFormat = 'binary' | 'decimal' | 'bytes'
@@ -53,7 +50,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const sizeFormat = ref<SizeFormat>('binary')
   const dateFormat = ref<DateFormat>('auto')
   const fileViewMode = ref<FileViewMode>(defaultFileViewMode())
-  // Show image thumbnails in the card grid (end-user preference).
   const gridThumbnails = ref(true)
   // Row height in the file table: comfortable (default) or compact.
   const density = ref<Density>('comfortable')

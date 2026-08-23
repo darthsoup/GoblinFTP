@@ -69,7 +69,7 @@ func TestDecryptExpiredToken(t *testing.T) {
 		Port:     22,
 		Username: "testuser",
 		Password: "testpass",
-		Exp:      time.Now().Add(-1 * time.Hour).Unix(), // expired 1 hour ago
+		Exp:      time.Now().Add(-1 * time.Hour).Unix(),
 	}
 
 	token, err := Encrypt(payload, secret)
@@ -122,10 +122,9 @@ func TestDecryptTamperedToken(t *testing.T) {
 		t.Fatalf("Encrypt failed: %v", err)
 	}
 
-	// Tamper with the token by flipping a byte
 	tokenBytes := []byte(token)
 	if len(tokenBytes) > 10 {
-		tokenBytes[10] ^= 1 // flip one bit
+		tokenBytes[10] ^= 1
 	}
 	tamperedToken := string(tokenBytes)
 
@@ -163,20 +162,16 @@ func TestUsedSetMarkAndIsUsed(t *testing.T) {
 	tokenHash := "test-token-hash-123"
 	expiry := time.Now().Add(1 * time.Hour)
 
-	// Initially should not be used
 	if us.IsUsed(tokenHash) {
 		t.Error("Token should not be marked as used initially")
 	}
 
-	// Mark the token
 	us.Mark(tokenHash, expiry)
 
-	// Now it should be used
 	if !us.IsUsed(tokenHash) {
 		t.Error("Token should be marked as used after Mark")
 	}
 
-	// Check another token that wasn't marked
 	if us.IsUsed("different-token") {
 		t.Error("Different token should not be marked as used")
 	}
@@ -187,22 +182,17 @@ func TestUsedSetExpiredEntryNotUsed(t *testing.T) {
 	defer us.Stop()
 
 	tokenHash := "expired-token-hash"
-	expiry := time.Now().Add(-1 * time.Second) // already expired
+	expiry := time.Now().Add(-1 * time.Second)
 
-	// Mark with expired time
 	us.Mark(tokenHash, expiry)
 
-	// Should return false for expired token
 	if us.IsUsed(tokenHash) {
 		t.Error("Expired token should not be considered used")
 	}
 }
 
 // TestMarkIfUnusedIsAtomic covers the one-time-use guarantee under concurrency.
-// The handler used to call IsUsed then Mark as two separate lock acquisitions,
-// so two simultaneous requests carrying the same single-use token both observed
-// "unused" and both minted a session - a leaked link was replayable inside that
-// window.
+// IsUsed then Mark as separate locks let two racers both mint a session (replay).
 func TestMarkIfUnusedIsAtomic(t *testing.T) {
 	us := NewUsedSet()
 	defer us.Stop()
@@ -232,8 +222,8 @@ func TestMarkIfUnusedIsAtomic(t *testing.T) {
 	}
 }
 
-// TestMarkIfUnusedAllowsReuseAfterExpiry - an expired entry must not keep a
-// hash blocked forever, otherwise the used-set would only ever grow.
+// TestMarkIfUnusedAllowsReuseAfterExpiry: an expired entry must not keep a hash
+// blocked forever, otherwise the used-set would only ever grow.
 func TestMarkIfUnusedAllowsReuseAfterExpiry(t *testing.T) {
 	us := NewUsedSet()
 	defer us.Stop()

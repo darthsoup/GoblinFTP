@@ -16,7 +16,7 @@ const open = computed({
   },
 })
 
-// Changes apply immediately - no save/cancel dance. Language lives in
+// Changes apply immediately, no save/cancel dance. Language lives in
 // <LanguageSelect>; the rest is remembered in the settings store.
 const theme = computed({
   get: () => colorMode.preference,
@@ -105,7 +105,7 @@ const densityItems = computed(() => [
     <template #footer="{ close }">
       <div class="flex w-full items-center justify-between">
         <UButton :label="t('settings.close')" @click="close" />
-        <!-- Brand + semver is locale-invariant - no i18n key needed. -->
+        <!-- Brand + semver is locale-invariant, so no i18n key is needed. -->
         <span
           v-if="!hideAttribution && !embedded"
           class="text-xs text-dimmed"

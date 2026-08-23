@@ -2,14 +2,11 @@
 // Generate a one-time GoblinFTP SSO login link. PHP >= 7.1.2, no extensions
 // beyond OpenSSL (bundled in virtually every PHP build).
 //
-// Token format (must match backend/internal/sso/token.go):
-//   key   = HKDF-SHA256(secret, salt = empty, info = "gftp-sso", length = 32)
-//   token = base64url( iv(12) || gcmTag(16) || AES-256-GCM(key, iv, JSON payload) )
+// Token format (must match backend/internal/sso/token.go): key = HKDF-SHA256(secret,
+// salt empty, info "gftp-sso", 32); token = base64url(iv(12) || tag(16) || AES-256-GCM).
 //
-// CLI usage:
-//   GFTP_SSO_SECRET=change-me php generate_sso_link.php \
-//     --host=ftp.example.com --username=alice --password=s3cret \
-//     --base-url=https://files.example.com
+// CLI usage: GFTP_SSO_SECRET=change-me php generate_sso_link.php --host=ftp.example.com
+//   --username=alice --password=s3cret --base-url=https://files.example.com
 //
 // Or call gftp_sso_link() from your own application code.
 
@@ -57,7 +54,6 @@ function gftp_sso_link(string $secret, string $baseUrl, array $conn): string
     return rtrim($baseUrl, '/') . '/?sso=' . $token;
 }
 
-// ── CLI entry point ───────────────────────────────────────────────────────────
 if (PHP_SAPI === 'cli' && realpath($argv[0] ?? '') === __FILE__) {
     $opts = getopt('', [
         'protocol::', 'host:', 'port::', 'username:', 'password::',

@@ -1,4 +1,3 @@
-// backend/internal/api/response.go
 package api
 
 import (
@@ -27,10 +26,8 @@ func OK(c echo.Context, data any) error {
 	return c.JSON(http.StatusOK, Response{Success: true, Data: data})
 }
 
-// LoggedErrorKey is the echo context key under which Fail stashes the first
-// GFTPError so the request-logger middleware can enrich the access line with
-// error_code/error/cause. Handlers return nil after Fail (the envelope is
-// already written), so the error cannot travel via the return value.
+// LoggedErrorKey is where Fail stashes the first GFTPError for the request
+// logger. Handlers return nil after Fail, so it cannot ride the return value.
 const LoggedErrorKey = "gftp_logged_error"
 
 // Fail writes an error response. The HTTP status code comes from the first error's HTTPStatus().

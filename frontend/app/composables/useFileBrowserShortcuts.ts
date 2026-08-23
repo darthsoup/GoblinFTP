@@ -1,8 +1,8 @@
-// File-browser keyboard shortcuts. Registered from FileTable (browser page only;
-// auto-removed on unmount → inactive on /edit and /login). Shortcuts without
-// `usingInput` are disabled by defineShortcuts while a field is focused, so they
-// never fire mid-rename or while typing in a modal. `visibleNames` is the
-// filtered/sorted set the table shows, so select-all matches what the user sees.
+// Registered from FileTable, so unmounting removes them on /edit and /login.
+// defineShortcuts keeps non-`usingInput` bindings inert while a field is focused.
+
+// `visibleNames` is the filtered/sorted set the table shows, so select-all
+// matches what the user sees.
 export function useFileBrowserShortcuts(visibleNames: () => string[]) {
   const filesStore = useFilesStore()
   const modalStore = useModalStore()
@@ -16,7 +16,6 @@ export function useFileBrowserShortcuts(visibleNames: () => string[]) {
   }
 
   defineShortcuts({
-    // Action keys
     'f2': () => {
       if (filesStore.selected.size === 1)
         filesStore.startRename([...filesStore.selected][0]!)
@@ -29,16 +28,13 @@ export function useFileBrowserShortcuts(visibleNames: () => string[]) {
       else
         filesStore.clearSelection()
     },
-    // Select all (Cmd/Ctrl+A - auto-mapped to Ctrl off-Mac)
     'meta_a': () => filesStore.setSelection(visibleNames()),
-    // Clipboard (Cmd/Ctrl + C/X/V - auto-mapped to Ctrl off-Mac)
     'meta_c': () => filesStore.copyToClipboard([...filesStore.selected]),
     'meta_x': () => filesStore.cutToClipboard([...filesStore.selected]),
     'meta_v': () => {
       if (filesStore.clipboard)
         paste()
     },
-    // Navigation
     'alt_arrowup': () => filesStore.navigateUp(),
     'alt_arrowleft': () => {
       if (filesStore.canGoBack)
@@ -48,7 +44,6 @@ export function useFileBrowserShortcuts(visibleNames: () => string[]) {
       if (filesStore.canGoForward)
         filesStore.goForward()
     },
-    // Help overlay
     '?': () => modalStore.open('shortcuts'),
   })
 }

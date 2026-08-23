@@ -10,7 +10,7 @@ function fileEntry(name: string): FileSystemEntry {
   } as unknown as FileSystemEntry
 }
 
-// A directory whose reader yields `batches` in order, then an empty batch - this
+// A directory whose reader yields `batches` in order, then an empty batch, which
 // exercises the readEntries() paging loop.
 function dirEntry(name: string, batches: FileSystemEntry[][]): FileSystemEntry {
   let i = 0

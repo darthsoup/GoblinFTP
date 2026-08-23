@@ -8,7 +8,7 @@ export interface AuthStatus {
   connected: boolean
   ssoAutoConnect: boolean
   csrfToken: string
-  // Present only when connected - used to restore SPA state after a reload.
+  // Present only when connected; used to restore SPA state after a reload.
   host?: string
   initialDirectory?: string
   capabilities?: { disableChmod: boolean }
@@ -31,7 +31,7 @@ export interface HostKeyPrompt {
   host: string
   fingerprint: string
   keyType: string
-  // Set when a DIFFERENT key was pinned before (server reinstalled - or MITM);
+  // Set when a DIFFERENT key was pinned before (server reinstalled, or MITM);
   // confirming replaces the pin instead of adding a first-trust entry.
   changed?: boolean
   oldFingerprint?: string
@@ -54,18 +54,16 @@ export interface FileInfo {
   mode: string // e.g., "drwxr-xr-x"
 }
 
-// A single per-item failure in a batch/multi-item operation. `code` is a stable
-// classifier code (localizable via errorCode.*); `message` is the server's
-// friendly fallback.
+// A single per-item failure in a batch operation. `code` is a stable classifier
+// (localizable via errorCode.*); `message` is the server's friendly fallback.
 export interface OperationFailure {
   path: string
   code: string
   message: string
 }
 
-// One occupied upload destination, from POST /api/files/upload/check. Only
-// conflicting paths come back, each with a free name the server picked by
-// listing the target directory.
+// One occupied upload destination, from POST /api/files/upload/check. Only conflicting
+// paths come back, each with a free name the server picked from the target directory.
 export interface UploadConflict {
   path: string
   name: string
@@ -75,10 +73,8 @@ export interface UploadConflict {
   modified: string
 }
 
-// Optimistic-concurrency token from /api/files/read and /api/files/write.
-// `version` is opaque: never parse or reconstruct it, just hand it back on save.
-// null means the server could not stat the path, so there is no conflict
-// detection for this file and the editor saves unconditionally.
+// Optimistic-concurrency token from /api/files read and write. `version` is opaque:
+// hand it back unparsed. null means no conflict detection, so the editor saves blind.
 export interface FileVersion {
   version: string | null
   size: number
@@ -90,7 +86,7 @@ export interface ReadFileResult extends FileVersion {
   content: string
 }
 
-// Result of DELETE /api/files - the request succeeds (HTTP 200) once processed;
+// Result of DELETE /api/files. The request succeeds (HTTP 200) once processed;
 // per-item outcomes live here.
 export interface DeleteResult {
   deleted: string[]

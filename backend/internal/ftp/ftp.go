@@ -21,7 +21,7 @@ type Client struct {
 	conn *jftp.ServerConn
 }
 
-// clampSize converts a server-reported uint64 size defensively - a hostile
+// clampSize converts a server-reported uint64 size defensively: a hostile
 // server could otherwise overflow it into a negative int64.
 func clampSize(v uint64) int64 {
 	if v > math.MaxInt64 {
@@ -30,9 +30,8 @@ func clampSize(v uint64) int64 {
 	return int64(v)
 }
 
-// Dial connects and authenticates. passive controls passive/active mode. When
-// tlsConfig is non-nil the control connection is upgraded with explicit TLS
-// (AUTH TLS, RFC 4217) - i.e. FTPS.
+// Dial connects and authenticates. passive controls passive/active mode; a
+// non-nil tlsConfig upgrades the control connection to explicit TLS (FTPS, RFC 4217).
 func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client, error) {
 	opts := []jftp.DialOption{jftp.DialWithTimeout(10 * time.Second)}
 	if tlsConfig != nil {
@@ -52,9 +51,8 @@ func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client
 	return &Client{conn: conn}, nil
 }
 
-// isTLSError reports whether err is a TLS / certificate-verification failure, so
-// the caller can surface ERR_TLS_FAILED (and hint at the insecure-skip-verify
-// escape hatch for self-signed servers) instead of a generic connection error.
+// isTLSError reports whether err is a TLS or certificate-verification failure, so
+// the caller can surface ERR_TLS_FAILED instead of a generic connection error.
 func isTLSError(err error) bool {
 	var certErr *tls.CertificateVerificationError
 	var unknownAuth x509.UnknownAuthorityError
@@ -117,11 +115,8 @@ func (c *Client) MakeDir(p string) error {
 	return c.conn.MakeDir(p)
 }
 
-// Delete removes a file, falling back to a recursive directory removal only
-// when the target actually is a directory. Retrying every DELE failure as
-// RemoveDirRecur and returning that error instead discarded the real one, so a
-// permission denial on a file surfaced as ERR_DIR_NOT_EMPTY and a dropped
-// socket never reached isConnLost.
+// Delete removes a file, recursing only for real directories: retrying every DELE
+// failure as RemoveDirRecur masked denials as ERR_DIR_NOT_EMPTY and hid conn loss.
 func (c *Client) Delete(p string) error {
 	fi, statErr := c.Stat(p)
 	if statErr == nil && fi.IsDir {
@@ -130,8 +125,7 @@ func (c *Client) Delete(p string) error {
 	err := c.conn.Delete(p)
 	if err != nil && statErr != nil {
 		// Stat could not classify the target (some servers refuse LIST on a
-		// directory), so the old fallback is still worth one attempt. The
-		// original DELE error wins if it also fails.
+		// directory), so the old fallback gets one attempt; the DELE error still wins.
 		if rmErr := c.conn.RemoveDirRecur(p); rmErr == nil {
 			return nil
 		}
@@ -169,5 +163,4 @@ func (c *Client) Close() error {
 	return c.conn.Quit()
 }
 
-// Ensure *Client implements transfer.Client at compile time.
 var _ transfer.Client = (*Client)(nil)

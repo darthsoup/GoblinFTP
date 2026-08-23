@@ -1,16 +1,13 @@
-// backend/internal/api/system.go
 package api
 
 import (
 	"github.com/labstack/echo/v4"
 )
 
-// systemEmbedVars carries only the chromeless mode. The allowlist itself is
-// deliberately withheld: the SPA has no use for it (the browser enforced
-// framing before any JS ran) and publishing it would leak the operator's panel
-// domains to any anonymous caller of this public endpoint.
+// systemEmbedVars carries only the chromeless mode. The allowlist is withheld:
+// publishing it would leak the operator's panel domains to anonymous callers.
 type systemEmbedVars struct {
-	// Chromeless: "auto" | "on" | "off". Presentation only - nothing on the
+	// Chromeless: "auto" | "on" | "off". Presentation only, nothing on the
 	// server branches on it.
 	Chromeless string `json:"chromeless"`
 }

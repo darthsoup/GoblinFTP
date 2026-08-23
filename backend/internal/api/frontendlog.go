@@ -1,4 +1,3 @@
-// backend/internal/api/frontendlog.go
 package api
 
 import (
@@ -24,14 +23,8 @@ const (
 	frontendLogFieldMax     = 500
 )
 
-// FrontendLog accepts browser-side error reports and writes them to the
-// central log. It always answers with a success envelope: the reporting client
-// is deliberately dumb (fire-and-forget), so throttled, malformed, or disabled
-// reports are dropped silently instead of surfacing an error.
-//
-// The route is registered without CSRF (errors on the login screen happen
-// before any session exists) and with a body limit; abuse is bounded by a
-// per-IP throttle that is separate from the login throttle.
+// FrontendLog accepts browser-side error reports. It always answers with a
+// success envelope: the reporter is fire-and-forget, so drops stay silent.
 func (h *Handler) FrontendLog(c echo.Context) error {
 	if !h.cfg.FrontendLogEnabled {
 		return OK(c, nil)

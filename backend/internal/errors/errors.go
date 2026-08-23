@@ -40,9 +40,8 @@ const (
 	ErrTLSFailed               Code = "ERR_TLS_FAILED"
 )
 
-// GFTPError is a typed error with a machine-readable code and human-readable message.
-// An optional cause carries the underlying error for server-side logging only -
-// it is never serialized into the API response envelope.
+// GFTPError is a typed error with a machine-readable code and human message. Its
+// optional cause is for server-side logging only, never serialized into responses.
 type GFTPError struct {
 	code    Code
 	message string

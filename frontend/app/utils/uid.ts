@@ -1,10 +1,6 @@
 /**
- * Random id generator that works outside secure contexts.
- *
- * crypto.randomUUID is only defined on HTTPS and localhost, so a self-hosted
- * deployment reached over plain HTTP on a LAN address threw
- * "crypto.randomUUID is not a function" on the first upload and on opening the
- * first editor tab. crypto.getRandomValues has no such restriction.
+ * crypto.randomUUID is only defined on HTTPS and localhost, so a self-hosted deployment
+ * on plain HTTP threw on the first upload. crypto.getRandomValues has no such limit.
  */
 export function uid(): string {
   if (typeof crypto.randomUUID === 'function')

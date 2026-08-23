@@ -1,4 +1,3 @@
-// backend/internal/api/middleware_logging.go
 package api
 
 import (
@@ -12,23 +11,16 @@ import (
 	"github.com/darthsoup/goblinftp/internal/logging"
 )
 
-// requestLogger emits exactly one structured log line per request. Handlers
-// write failures through Fail (which commits the envelope and returns nil), so
-// the committed response status is authoritative and the GFTPError is read
-// back from the context (LoggedErrorKey) rather than the return value.
-//
-// It must be registered above middleware.Recover so recovered panics still
-// produce a logged 500 line, and below middleware.RequestID so the ID exists.
+// requestLogger emits exactly one structured line per request. Handlers commit
+// failures via Fail and return nil, so the GFTPError comes from LoggedErrorKey.
 func requestLogger(logger *slog.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			start := time.Now()
 			err := next(c)
 			if err != nil {
-				// Echo-level errors (404, 405, BodyLimit 413, …) bypass Fail;
-				// commit them now so the line carries the real status. The
-				// global error handler is idempotent on committed responses,
-				// so returning err up the chain stays safe.
+				// Echo-level errors (404, 405, BodyLimit 413) bypass Fail; commit
+				// them here for the real status. The error handler is idempotent.
 				c.Error(err)
 			}
 

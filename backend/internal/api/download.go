@@ -1,4 +1,3 @@
-// backend/internal/api/download.go
 package api
 
 import (
@@ -44,9 +43,8 @@ func (h *Handler) IssueDownloadToken(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
 	expiry := time.Now().Add(15 * time.Minute)
-	// sess.DownloadKey, never sess.ID: the token is only base64, so whatever
-	// goes in here is readable by anyone who sees the URL. A session ID there
-	// could be replayed as a gftp_session cookie for full account access.
+	// sess.DownloadKey, never sess.ID: the token is only base64, so a session ID
+	// here could be replayed as a gftp_session cookie for full account access.
 	tok := transfer.IssueToken(h.cfg.DownloadTokenSecret, sess.DownloadKey, req.Path, expiry)
 	return OK(c, map[string]string{"token": tok})
 }
@@ -91,11 +89,8 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "application/octet-stream")
 	c.Response().WriteHeader(http.StatusOK)
 
-	// This endpoint needs no cookie and holds the session's transfer lock for
-	// the whole stream, so a client reading at a trickle would otherwise block
-	// every other request on the victim's session indefinitely. The deadline is
-	// per write, not for the transfer as a whole, so a slow-but-progressing
-	// download still completes while a stalled one is cut loose.
+	// The transfer lock is held for the whole stream, so a client reading at a
+	// trickle would block the session. The deadline is per write, not per transfer.
 	_, copyErr := io.Copy(&deadlineWriter{c: c, w: c.Response()}, src)
 	return copyErr
 }
@@ -118,9 +113,7 @@ func (d *deadlineWriter) Write(p []byte) (int, error) {
 }
 
 // DownloadZip assembles multiple remote paths into a ZIP and sends it to the browser.
-// The archive is built in memory before writing to avoid sending 200 OK and then
-// being unable to report errors partway through the stream.
-// Reuses addToZip from archive.go (same package).
+// Built fully before any header, so a failure mid-archive is still reportable.
 func (h *Handler) DownloadZip(c echo.Context) error {
 	client, release, ok := lockedClient(c)
 	if !ok {
@@ -147,11 +140,8 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	sess, _ := c.Get("session").(*auth.Session)
 	counter := h.metrics.TransferBytes.WithLabelValues("download", protocolFromSession(sess))
 
-	// Spooled to disk, not a bytes.Buffer: the buffer held the whole archive
-	// (up to maxZipSize, and Buffer growth doubles) per concurrent request,
-	// which a handful of users could turn into an OOM. Building it fully before
-	// any header is written is deliberate and preserved: a failure mid-archive
-	// must still be reportable as an error rather than a truncated 200.
+	// Spooled to disk, not a bytes.Buffer: one buffer per concurrent request held
+	// the whole archive (up to maxZipSize), which a few users turned into an OOM.
 	tmp, err := os.CreateTemp(h.cfg.DataDir, "gftp-zip-*")
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))

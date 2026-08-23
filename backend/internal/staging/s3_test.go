@@ -1,8 +1,5 @@
-// backend/internal/staging/s3_test.go
-//
-// White-box tests: S3Store logic against an in-memory fake of the s3API
-// interface - no network, no MinIO. Real-server integration tests live in
-// s3_integration_test.go (gated by GFTP_TEST_S3_ENDPOINT).
+// White-box tests: S3Store logic against an in-memory fake of the s3API interface.
+// Real-server tests live in s3_integration_test.go (gated by GFTP_TEST_S3_ENDPOINT).
 package staging
 
 import (
@@ -224,12 +221,11 @@ func TestS3AssembleReader_MissingChunk(t *testing.T) {
 	meta, err := store.NewUpload(t.Context(), "/f.txt", 2, 5)
 	require.NoError(t, err)
 
-	// Write only chunk 0, not chunk 1.
 	require.NoError(t, store.WriteChunk(t.Context(), meta.ID, 0, 5, strings.NewReader("hello")))
 
 	_, err = store.AssembleReader(t.Context(), meta.ID, 2)
 	assert.Error(t, err)
-	// The service responded (NotFound) - this is not an outage.
+	// The service responded (NotFound), so this is not an outage.
 	assert.False(t, errors.Is(err, ErrUnavailable))
 }
 
@@ -258,7 +254,6 @@ func TestS3AssembleReader_CloseMidStream(t *testing.T) {
 	require.NoError(t, rc.Close())
 	assert.Equal(t, 0, fake.openBodies, "open body must be closed on abort")
 
-	// Reads after Close return EOF.
 	n, err := rc.Read(buf)
 	assert.Equal(t, 0, n)
 	assert.Equal(t, io.EOF, err)
@@ -280,7 +275,6 @@ func TestS3Cleanup(t *testing.T) {
 
 	assert.NotContains(t, fake.objects, "gftp-uploads/"+meta.ID+"/0000")
 	assert.NotContains(t, fake.objects, "gftp-uploads/"+meta.ID+"/0001")
-	// Other uploads are untouched.
 	assert.Contains(t, fake.objects, "gftp-uploads/"+other.ID+"/0000")
 }
 

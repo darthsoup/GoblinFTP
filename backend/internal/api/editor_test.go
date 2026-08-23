@@ -154,8 +154,8 @@ func TestWriteFileTooLarge(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "ERR_FILE_TOO_LARGE")
 }
 
-// TestReadFileDownloadError: a protocol error from the server is classified into
-// a stable code + friendly message - the raw "550 ..." string must not leak.
+// A protocol error is classified into a stable code plus friendly message. The
+// raw "550 ..." string must not leak.
 func TestReadFileDownloadError(t *testing.T) {
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
 		DownloadFn: func(string) (io.ReadCloser, error) { return nil, errors.New("550 Permission denied") },
@@ -174,7 +174,7 @@ func TestReadFileDownloadError(t *testing.T) {
 	assert.NotContains(t, resp.Errors[0].Message, "550", "raw protocol string must not leak")
 }
 
-// TestWriteFileUploadError: same classification guarantee on the write path.
+// Same classification guarantee on the write path.
 func TestWriteFileUploadError(t *testing.T) {
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
 		UploadFn: func(string, io.Reader) error { return errors.New("550 Permission denied") },
@@ -210,8 +210,6 @@ func TestWriteFileViewOnly(t *testing.T) {
 
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
-
-// ── Edit-conflict detection ──────────────────────────────────────────────────
 
 // statSeq returns a StatFn yielding each info in turn, repeating the last one.
 // It models the file changing on the server between the open and the save.
@@ -342,9 +340,8 @@ func TestWriteFileDeletedSinceOpen(t *testing.T) {
 	assert.False(t, uploaded)
 }
 
-// Fail closed: a client that forgets the token must not silently lose the
-// protection. This also stops Mod-S on a tab whose read failed from writing an
-// empty file over a healthy one.
+// Fail closed: a missing token must not silently drop the protection, which also
+// stops a tab whose read failed from writing an empty file over a healthy one.
 func TestWriteFileRequiresPrecondition(t *testing.T) {
 	uploaded := false
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{

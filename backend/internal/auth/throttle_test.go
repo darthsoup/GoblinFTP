@@ -63,10 +63,8 @@ func TestThrottleIndependentKeys(t *testing.T) {
 	assert.False(t, th.IsThrottled("good@example.com", 3))
 }
 
-// TestThrottleEvictsExpiredEntries covers the sweeper. Without it an entry was
-// only removed when that exact key was probed again after expiry, so keys that
-// are never revisited accumulated forever - and the keys are attacker-supplied
-// (host+username), making it an unauthenticated memory-growth path.
+// TestThrottleEvictsExpiredEntries covers the sweeper: never-revisited keys would
+// accumulate forever, and they are attacker-supplied (host+username).
 func TestThrottleEvictsExpiredEntries(t *testing.T) {
 	thr := auth.NewThrottle()
 	defer thr.Close()
@@ -85,9 +83,8 @@ func TestThrottleEvictsExpiredEntries(t *testing.T) {
 	}
 }
 
-// TestThrottleCapsEntryCount asserts the map cannot grow without bound even
-// when every key is still live, which is the shape of an attack that varies
-// the username on every attempt.
+// TestThrottleCapsEntryCount asserts the map cannot grow without bound even when
+// every key is live, the shape of an attack varying the username each attempt.
 func TestThrottleCapsEntryCount(t *testing.T) {
 	thr := auth.NewThrottle()
 	defer thr.Close()
@@ -109,8 +106,8 @@ func TestThrottleCapsEntryCount(t *testing.T) {
 	}
 }
 
-// TestThrottleCloseIsIdempotent - Store.Close panicked on a second call, and
-// these two sibling types should not disagree about that.
+// TestThrottleCloseIsIdempotent guards a regression: Store.Close once panicked on
+// a second call, and these two sibling types should not disagree about that.
 func TestThrottleCloseIsIdempotent(t *testing.T) {
 	thr := auth.NewThrottle()
 	thr.Close()

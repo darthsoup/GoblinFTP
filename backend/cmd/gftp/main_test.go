@@ -1,4 +1,3 @@
-// backend/cmd/gftp/main_test.go
 package main
 
 import (

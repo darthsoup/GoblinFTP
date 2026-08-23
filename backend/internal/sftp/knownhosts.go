@@ -13,24 +13,21 @@ import (
 	"golang.org/x/crypto/ssh/knownhosts"
 )
 
-// HostKeyPrompt describes an unverified SSH host key that the user must confirm
-// before the connection can proceed (trust-on-first-use), or - when Changed is
-// set - a key that differs from the pinned one and needs explicit re-trust.
+// HostKeyPrompt describes an SSH host key the user must confirm before connecting:
+// unverified (trust-on-first-use), or, when Changed is set, differing from the pin.
 type HostKeyPrompt struct {
 	Fingerprint    string // SHA256:…
 	KeyType        string // e.g. "ssh-ed25519"
-	Changed        bool   // a different key is pinned (server reinstalled - or MITM)
+	Changed        bool   // a different key is pinned (server reinstalled, or MITM)
 	OldFingerprint string // previously pinned key's fingerprint (set when Changed)
 }
 
-// knownHostsMu serializes reads and appends of the known_hosts file across
-// concurrent dials. The file is read fresh on every dial, so a key trusted in
-// one connection is honored by the next.
+// knownHostsMu serializes reads and appends of known_hosts across concurrent dials.
+// The file is read fresh per dial, so a key trusted in one connection binds the next.
 var knownHostsMu sync.Mutex
 
-// errHostKeyHalt aborts the SSH handshake before authentication once the
-// callback has decided the key is unknown (captured for a prompt) or mismatched
-// - so the password is never sent to an unverified host.
+// errHostKeyHalt aborts the SSH handshake before authentication once the callback
+// finds the key unknown or mismatched, so no password reaches an unverified host.
 var errHostKeyHalt = errors.New("host key not verified")
 
 // hostKeyResult is populated as a side effect of the host-key callback so Dial
@@ -39,13 +36,8 @@ type hostKeyResult struct {
 	prompt *HostKeyPrompt // key is unknown or changed, not yet accepted
 }
 
-// buildHostKeyCallback verifies the server key against knownHostsPath with
-// trust-on-first-use semantics:
-//   - known + match            → accept
-//   - known + different key    → res.prompt (Changed), halt; an acceptFP match
-//     on the NEW key replaces the pin (explicit re-trust after the warning)
-//   - unknown + acceptFP match → pin to known_hosts, accept
-//   - unknown otherwise        → res.prompt, halt (needs confirmation)
+// buildHostKeyCallback verifies the server key against knownHostsPath with trust-on-first-use:
+// a pinned match accepts, an acceptFingerprint match pins or re-pins, anything else halts with res.prompt.
 func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *hostKeyResult) (ssh.HostKeyCallback, error) {
 	verify, err := loadKnownHosts(knownHostsPath)
 	if err != nil {
@@ -62,9 +54,8 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 		}
 		fp := ssh.FingerprintSHA256(key)
 		if len(keyErr.Want) > 0 {
-			// A different key is pinned (server reinstalled - or MITM). Replacing
-			// it needs the same explicit confirmation as first trust, against the
-			// new key's fingerprint.
+			// A different key is pinned (server reinstalled, or MITM). Replacing it
+			// needs explicit confirmation against the new key's fingerprint.
 			if acceptFingerprint != "" && acceptFingerprint == fp {
 				if err := replaceKnownHost(knownHostsPath, addr, key); err != nil {
 					return err
@@ -121,10 +112,8 @@ func appendKnownHost(path, addr string, key ssh.PublicKey) error {
 	return err
 }
 
-// replaceKnownHost re-pins addr to key: existing plain entries for addr are
-// dropped (multi-host lines just lose the addr) and the new line is appended.
-// Hashed (|1|…) and marker (@…) lines can't be matched textually and are kept -
-// the app itself only ever writes plain Normalize(addr) entries.
+// replaceKnownHost re-pins addr to key: plain entries for addr are dropped, the new line appended.
+// Hashed (|1|…) and marker (@…) lines are unmatchable textually and stay; the app writes only plain ones.
 func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 	knownHostsMu.Lock()
 	defer knownHostsMu.Unlock()
@@ -153,11 +142,8 @@ func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 	return writeFileAtomic(path, []byte(strings.Join(out, "\n")+"\n"))
 }
 
-// writeFileAtomic replaces path via a temp file and rename. os.WriteFile
-// truncates first, so a crash or a full disk between truncate and write left
-// an empty known_hosts - silently reverting the whole instance to first-use
-// trust, with no prompt and no error. rename(2) is atomic within a filesystem,
-// and the temp file is created alongside the target to stay on one.
+// writeFileAtomic replaces path via a same-filesystem temp file plus rename(2). os.WriteFile
+// truncates first, so a crash mid-write left an empty known_hosts: silent first-use trust, no error.
 func writeFileAtomic(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".tmp-*")

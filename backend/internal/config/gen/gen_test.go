@@ -66,9 +66,8 @@ func TestCommittedEnvExampleInSync(t *testing.T) {
 	assert.Equal(t, EnvExample(), string(committed), ".env.example is stale, run `just confgen`")
 }
 
-// TestCommittedDocTablesInSync checks that the doc tables list the registry's
-// variables with their current defaults. The description column is deliberately
-// not compared: wording in the docs is not a test failure.
+// TestCommittedDocTablesInSync checks the doc tables against the registry's
+// current defaults. The description column is not compared: wording may differ.
 func TestCommittedDocTablesInSync(t *testing.T) {
 	for _, page := range DocPages {
 		t.Run(page, func(t *testing.T) {

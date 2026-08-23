@@ -1,4 +1,3 @@
-// backend/internal/staging/local.go
 package staging
 
 import (
@@ -8,9 +7,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// LocalStore stages chunks on local disk under dataDir. It is a thin
-// delegation to the original functions in internal/transfer, so behavior
-// is identical to the pre-ChunkStore implementation.
+// LocalStore stages chunks on local disk under dataDir, delegating to the
+// original disk functions in internal/transfer.
 type LocalStore struct {
 	dataDir string
 }

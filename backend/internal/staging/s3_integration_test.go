@@ -1,9 +1,5 @@
-// backend/internal/staging/s3_integration_test.go
-//
-// Integration tests against a real S3-compatible server. Start one with
-// `just s3-up` (MinIO on localhost:9000), then run:
-//
-//	GFTP_TEST_S3_ENDPOINT=http://localhost:9000 go test ./internal/staging/...
+// Integration tests against a real S3-compatible server (`just s3-up` starts MinIO), run with
+// GFTP_TEST_S3_ENDPOINT=http://localhost:9000 go test ./internal/staging/...
 package staging_test
 
 import (
@@ -52,7 +48,7 @@ func TestS3Integration_RoundTrip(t *testing.T) {
 
 	meta, err := store.NewUpload(ctx, "/remote/file.txt", 3, 4)
 	require.NoError(t, err)
-	// t.Context() is canceled before cleanups run - use a fresh context.
+	// t.Context() is canceled before cleanups run, so use a fresh context.
 	t.Cleanup(func() { _ = store.Cleanup(context.Background(), meta.ID) })
 
 	require.NoError(t, store.WriteChunk(ctx, meta.ID, 0, 4, strings.NewReader("abcd")))
@@ -68,7 +64,6 @@ func TestS3Integration_RoundTrip(t *testing.T) {
 
 	require.NoError(t, store.Cleanup(ctx, meta.ID))
 
-	// After cleanup the chunks are gone.
 	_, err = store.AssembleReader(ctx, meta.ID, 3)
 	assert.Error(t, err)
 }
@@ -79,7 +74,7 @@ func TestS3Integration_MissingChunk(t *testing.T) {
 
 	meta, err := store.NewUpload(ctx, "/remote/file.txt", 2, 4)
 	require.NoError(t, err)
-	// t.Context() is canceled before cleanups run - use a fresh context.
+	// t.Context() is canceled before cleanups run, so use a fresh context.
 	t.Cleanup(func() { _ = store.Cleanup(context.Background(), meta.ID) })
 
 	require.NoError(t, store.WriteChunk(ctx, meta.ID, 0, 4, strings.NewReader("abcd")))

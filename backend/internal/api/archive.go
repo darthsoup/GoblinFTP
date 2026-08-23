@@ -1,4 +1,3 @@
-// backend/internal/api/archive.go
 package api
 
 import (
@@ -23,11 +22,8 @@ import (
 
 const maxZipSize = 512 * 1024 * 1024 // 512 MB
 
-// maxTreeDepth bounds every recursive walk of a remote directory tree. A
-// symlink loop on the server (a/b -> a) otherwise recurses until the goroutine
-// stack is exhausted, and a Go stack overflow is a hard process crash that
-// middleware.Recover cannot catch - one hostile or merely misconfigured server
-// would take down the instance for every other user.
+// maxTreeDepth bounds every recursive walk of a remote directory tree: a symlink
+// loop otherwise exhausts the goroutine stack, a crash middleware.Recover cannot catch.
 const maxTreeDepth = 64
 
 // errTreeTooDeep is returned once maxTreeDepth is exceeded.
@@ -36,10 +32,8 @@ var errTreeTooDeep = errors.New("directory tree is nested too deeply")
 // errArchiveTooLarge is returned once an extraction exceeds its budget.
 var errArchiveTooLarge = errors.New("archive expands beyond the maximum extracted size")
 
-// extractBudget caps the total DECOMPRESSED bytes an extraction may write to
-// the remote server. maxZipSize bounds only the compressed upload, and the tar
-// branches were not bounded at all, so a 1 MB bz2 could expand to gigabytes
-// written into the user's account.
+// extractBudget caps the total DECOMPRESSED bytes an extraction may write to the
+// remote. maxZipSize bounds only the compressed upload: 1 MB of bz2 expands to GBs.
 type extractBudget struct{ remaining int64 }
 
 func newExtractBudget() *extractBudget { return &extractBudget{remaining: maxZipSize} }
@@ -69,7 +63,7 @@ func (br *budgetReader) Read(p []byte) (int, error) {
 func safeJoin(destination, name string) (string, error) {
 	outPath := path.Clean(path.Join(destination, name))
 	cleanDest := path.Clean(destination)
-	// Ensure outPath is inside cleanDest (add trailing slash to avoid prefix matching "/dir" vs "/dir2")
+	// Trailing slash so "/dir" cannot prefix-match "/dir2".
 	if outPath != cleanDest && !strings.HasPrefix(outPath, cleanDest+"/") {
 		return "", fmt.Errorf("archive entry %q escapes destination", name)
 	}
@@ -103,9 +97,8 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 		if fh.Size > maxZipSize {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "archive exceeds maximum size"))
 		}
-		// multipart.File is an io.ReaderAt, which is all zip.NewReader wants,
-		// so the archive never has to be held in memory. net/http has already
-		// spooled anything past its in-memory threshold to a temp file.
+		// multipart.File is an io.ReaderAt, all zip.NewReader wants, so the archive
+		// is never held in memory (net/http already spooled it past its threshold).
 		zr, err := zip.NewReader(f, fh.Size)
 		if err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid zip archive"))
@@ -223,13 +216,8 @@ func (h *Handler) CreateZip(c echo.Context) error {
 		}
 	}
 
-	// Spooled to disk rather than streamed straight into the upload. Building
-	// the archive reads its sources through the same client the upload writes
-	// to, and FTP allows only one data transfer per control connection, so a
-	// pipe interleaved RETR with STOR and desynced the control channel (the
-	// reason copyFile stages too - see files.go). The pipe also deadlocked
-	// whenever Upload returned without draining it, holding the session's
-	// transfer lock for the life of the process.
+	// Spooled to disk, not piped into the upload: FTP allows one data transfer per
+	// control connection, so a pipe desynced RETR against STOR and could deadlock.
 	tmp, err := os.CreateTemp(h.cfg.DataDir, "gftp-zip-*")
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))
@@ -245,8 +233,8 @@ func (h *Handler) CreateZip(c echo.Context) error {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	}
-	// A failed finalization must not reach the upload - otherwise a truncated
-	// archive would be written and reported as success.
+	// A failed finalization must not reach the upload: it would write a truncated
+	// archive and report success.
 	if err := zw.Close(); err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalize archive").WithCause(err))
 	}
@@ -259,10 +247,8 @@ func (h *Handler) CreateZip(c echo.Context) error {
 	return OK(c, nil)
 }
 
-// addToZip recursively adds a file or directory to the zip writer. counter
-// (nil to skip) receives the source bytes read - DownloadZip passes the
-// download counter; CreateZip passes nil (remote-to-remote, not a transfer
-// between browser and server).
+// addToZip recursively adds a file or directory to the zip writer. counter takes
+// the source bytes read; CreateZip passes nil, remote-to-remote being no transfer.
 func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter) error {
 	return addToZipDepth(zw, client, remotePath, base, counter, 0)
 }

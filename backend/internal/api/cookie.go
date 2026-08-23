@@ -9,15 +9,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/config"
 )
 
-// lookupSession resolves the request's session, trying every gftp_session
-// cookie rather than just the first.
-//
-// A browser can legitimately hold more than one cookie of the same name: a
-// Partitioned cookie and an unpartitioned one are distinct entries, so enabling
-// GFTP_FRAME_ANCESTORS on a deployment whose users already hold a SameSite=Lax
-// session leaves both in the jar. They are sent together, and picking only the
-// first would hand back the stale one and 401 every request until the user
-// cleared their cookies by hand.
+// lookupSession resolves the request's session, trying every gftp_session cookie:
+// a Partitioned and an unpartitioned one coexist in the jar, and the first may be stale.
 func lookupSession(c echo.Context, store *auth.Store) (*auth.Session, bool) {
 	for _, ck := range c.Request().Cookies() {
 		if ck.Name != SessionCookieName {
@@ -30,9 +23,8 @@ func lookupSession(c echo.Context, store *auth.Store) (*auth.Session, bool) {
 	return nil, false
 }
 
-// hasSessionCookie reports whether any gftp_session cookie was sent, regardless
-// of whether it still resolves. Distinguishes "not authenticated" from
-// "session expired".
+// hasSessionCookie reports whether any gftp_session cookie was sent, resolvable
+// or not. Distinguishes "not authenticated" from "session expired".
 func hasSessionCookie(c echo.Context) bool {
 	for _, ck := range c.Request().Cookies() {
 		if ck.Name == SessionCookieName {
@@ -42,11 +34,8 @@ func hasSessionCookie(c echo.Context) bool {
 	return false
 }
 
-// sessionCookie builds the gftp_session cookie with the deployment's
-// SameSite/Secure policy. Both setting (maxAge 0) and clearing (value "",
-// maxAge -1) go through here on purpose: a browser only replaces or deletes a
-// cookie when every attribute matches, so a clear that diverged from the set
-// would silently no-op and leave the session cookie in place.
+// sessionCookie builds the gftp_session cookie. Clearing (maxAge -1) must go
+// through here too: a browser only drops a cookie when every attribute matches.
 func sessionCookie(c echo.Context, cfg *config.Config, value string, maxAge int) *http.Cookie {
 	ck := &http.Cookie{
 		Name:     SessionCookieName,
@@ -54,29 +43,19 @@ func sessionCookie(c echo.Context, cfg *config.Config, value string, maxAge int)
 		Path:     "/",
 		MaxAge:   maxAge,
 		HttpOnly: true,
-		// Secure when served over TLS. Behind an external terminator Caddy
-		// listens on plain HTTP inside the container and forwards
-		// X-Forwarded-Proto, so that header is the only signal - but it is
-		// only believed when a proxy allowlist says so (see proxy.go). Without
-		// one, plain-HTTP LAN deployments keep working.
+		// Secure when served over TLS. Behind an external terminator only
+		// X-Forwarded-Proto signals that, believed for trusted proxies alone (proxy.go).
 		Secure:   clientScheme(c, cfg) == "https",
 		SameSite: http.SameSiteLaxMode,
 	}
 
 	if cfg.EmbeddingEnabled() {
-		// A cross-site iframe only receives the cookie with SameSite=None, which
-		// browsers reject unless Secure is also set. Secure is forced here
-		// rather than derived from c.Scheme(): behind an external TLS
-		// terminator Caddy listens on :80 inside the container and forwards
-		// X-Forwarded-Proto: http, so c.Scheme() reports "http" and the cookie
-		// would be dropped with no diagnostic. Config rejects non-loopback
-		// http:// ancestors for the same reason.
-		//
-		// Partitioned (CHIPS) keeps the cookie working under Chrome's
-		// third-party-cookie restrictions. It also means the framed session is
-		// keyed to the embedding site and is NOT shared with a top-level tab.
+		// A cross-site iframe needs SameSite=None, which browsers reject without
+		// Secure. Forced, not derived: Caddy reports X-Forwarded-Proto: http here.
 		ck.SameSite = http.SameSiteNoneMode
 		ck.Secure = true
+		// Partitioned (CHIPS) survives third-party-cookie restrictions and keys the
+		// framed session to the embedding site, so no top-level tab shares it.
 		ck.Partitioned = true
 	}
 	return ck

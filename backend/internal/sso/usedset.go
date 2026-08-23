@@ -30,10 +30,8 @@ func (u *UsedSet) Mark(tokenHash string, expiry time.Time) {
 	u.tokens[tokenHash] = expiry
 }
 
-// MarkIfUnused atomically marks tokenHash used and reports whether the caller
-// won the race. IsUsed followed by Mark is two lock acquisitions, so two
-// simultaneous requests carrying the same one-time token both saw "unused" and
-// both minted a session; only the caller that gets true here may proceed.
+// MarkIfUnused atomically marks tokenHash used and reports whether the caller won
+// the race. IsUsed then Mark is two locks, so both racers could mint a session.
 func (u *UsedSet) MarkIfUnused(tokenHash string, expiry time.Time) bool {
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -45,8 +43,7 @@ func (u *UsedSet) MarkIfUnused(tokenHash string, expiry time.Time) bool {
 	return true
 }
 
-// IsUsed checks if a token has been used and is not expired
-// Returns false if the token hasn't been marked or if it has expired
+// IsUsed reports whether a token has been marked used and has not expired.
 func (u *UsedSet) IsUsed(tokenHash string) bool {
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -56,7 +53,6 @@ func (u *UsedSet) IsUsed(tokenHash string) bool {
 		return false
 	}
 
-	// If expired, clean it up and return false
 	if time.Now().After(expiry) {
 		delete(u.tokens, tokenHash)
 		return false
@@ -77,7 +73,6 @@ func (u *UsedSet) Stop() {
 	close(u.stopCh)
 }
 
-// cleanup runs in a background goroutine and periodically removes expired entries
 func (u *UsedSet) cleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
@@ -92,7 +87,6 @@ func (u *UsedSet) cleanup() {
 	}
 }
 
-// cleanupExpired removes all expired tokens from the set
 func (u *UsedSet) cleanupExpired() {
 	u.mu.Lock()
 	defer u.mu.Unlock()

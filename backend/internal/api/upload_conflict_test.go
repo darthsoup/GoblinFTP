@@ -1,4 +1,3 @@
-// backend/internal/api/upload_conflict_test.go
 package api_test
 
 import (
@@ -72,8 +71,7 @@ func conflictsFrom(t *testing.T, rec *httptest.ResponseRecorder) []map[string]an
 	return resp.Data.Conflicts
 }
 
-// TestUploadSimpleRefusesExistingFile: without consent, an occupied destination
-// is a 409 and nothing is written.
+// Without consent, an occupied destination is a 409 and nothing is written.
 func TestUploadSimpleRefusesExistingFile(t *testing.T) {
 	uploaded := false
 	mock := &testutil.MockClient{
@@ -91,8 +89,8 @@ func TestUploadSimpleRefusesExistingFile(t *testing.T) {
 	assert.False(t, uploaded, "must not write over an existing file")
 }
 
-// TestUploadSimpleOverwriteSkipsDestinationStat: explicit consent both allows the
-// write and costs no extra probe - on FTP that probe is a full parent LIST.
+// Explicit consent both allows the write and costs no extra probe, which on FTP
+// would be a full parent LIST.
 func TestUploadSimpleOverwriteSkipsDestinationStat(t *testing.T) {
 	var statted []string
 	uploaded := false
@@ -117,9 +115,8 @@ func TestUploadSimpleOverwriteSkipsDestinationStat(t *testing.T) {
 	assert.NotContains(t, statted, "/uploads/test.txt", "overwrite must skip the destination probe")
 }
 
-// TestUploadSimpleFreshParentSkipsExistenceStat: a parent we just created cannot
-// already hold the destination, so the probe is skipped. Guards the optimization
-// that keeps folder uploads from doubling their FTP round trips.
+// A parent we just created cannot already hold the destination, so skipping the
+// probe keeps folder uploads from doubling their FTP round trips.
 func TestUploadSimpleFreshParentSkipsExistenceStat(t *testing.T) {
 	var statted []string
 	mock := &testutil.MockClient{
@@ -140,8 +137,8 @@ func TestUploadSimpleFreshParentSkipsExistenceStat(t *testing.T) {
 	assert.NotContains(t, statted, "/fresh/dir/f.txt", "a freshly created parent needs no probe")
 }
 
-// TestUploadSimpleStatConnectionLostFails: a probe that fails because the
-// connection died must not be read as "the path is free".
+// A probe that fails because the connection died must not be read as "the path
+// is free".
 func TestUploadSimpleStatConnectionLostFails(t *testing.T) {
 	uploaded := false
 	mock := &testutil.MockClient{
@@ -164,8 +161,7 @@ func TestUploadSimpleStatConnectionLostFails(t *testing.T) {
 	assert.False(t, uploaded, "a failed probe must never fall through to a write")
 }
 
-// TestUploadReserveRefusesExistingFile: the conflict surfaces before a single
-// chunk is staged.
+// The conflict must surface before a single chunk is staged.
 func TestUploadReserveRefusesExistingFile(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
@@ -198,9 +194,8 @@ func TestUploadReserveOverwriteAllowed(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "uploadId")
 }
 
-// TestUploadCommitConflictKeepsStagedChunks is the key regression test: a
-// conflict raised at commit must leave the staged bytes intact so the client can
-// re-commit with consent instead of re-uploading a multi-GB file.
+// A conflict raised at commit must leave the staged bytes intact, so the client
+// can re-commit with consent instead of re-uploading a multi-GB file.
 func TestUploadCommitConflictKeepsStagedChunks(t *testing.T) {
 	var assembled string
 	exists := false
@@ -232,15 +227,15 @@ func TestUploadCommitConflictKeepsStagedChunks(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "ERR_FILE_EXISTS")
 	assert.NotContains(t, store.cleaned, uploadID, "a conflict must not discard staged chunks")
 
-	// The same upload now commits with consent - no bytes re-sent.
+	// The same upload now commits with consent, with no bytes re-sent.
 	rec = doJSON(app, sess, http.MethodPost, "/api/files/upload/commit",
 		fmt.Sprintf(`{"uploadId":%q,"overwrite":true}`, uploadID))
 	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 	assert.Equal(t, "helloworld", assembled)
 }
 
-// TestUploadCommitDestinationOverrideSameDirOnly: "keep both" after a race can
-// retarget the commit, but only inside the directory it reserved.
+// "Keep both" after a race can retarget the commit, but only inside the directory
+// it reserved.
 func TestUploadCommitDestinationOverrideSameDirOnly(t *testing.T) {
 	var uploadedPath string
 	mock := &testutil.MockClient{
@@ -292,9 +287,8 @@ func TestUploadAbortCleansUpChunks(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
-// TestUploadCheckGroupsListsByDirectory: the pre-flight costs one LIST per
-// distinct directory, not one per file - FTP has no stat, so the difference is
-// 2 round trips instead of 500 on a large folder upload.
+// FTP has no stat, so grouping the pre-flight into one LIST per distinct directory
+// is 2 round trips instead of 500 on a large folder upload.
 func TestUploadCheckGroupsListsByDirectory(t *testing.T) {
 	var listed []string
 	mock := &testutil.MockClient{
@@ -325,8 +319,8 @@ func TestUploadCheckGroupsListsByDirectory(t *testing.T) {
 	assert.Equal(t, "x (1).txt", conflicts[0]["suggestedName"])
 }
 
-// TestUploadCheckMissingParentIsNoConflict: an unlistable directory means the
-// upload will create it, so nothing in it can conflict.
+// An unlistable directory means the upload will create it, so nothing in it can
+// conflict.
 func TestUploadCheckMissingParentIsNoConflict(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
@@ -360,8 +354,8 @@ func TestUploadCheckSuggestsNonCollidingName(t *testing.T) {
 	assert.Equal(t, "a (2).txt", conflicts[0]["suggestedName"])
 }
 
-// TestUploadCheckSuggestionAvoidsOtherRequestedPaths: a suggestion must not land
-// on a name another file in the same batch is about to occupy.
+// A suggestion must not land on a name another file in the same batch is about
+// to occupy.
 func TestUploadCheckSuggestionAvoidsOtherRequestedPaths(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },

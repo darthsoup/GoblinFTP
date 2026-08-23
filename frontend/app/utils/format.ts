@@ -28,9 +28,8 @@ const RELATIVE_STEPS: Array<{ limit: number, divisor: number, unit: Intl.Relativ
   { limit: 7 * 86400, divisor: 86400, unit: 'day' },
 ]
 
-// formatFileDate renders an ISO timestamp according to the user's date format:
-// auto (compact, year only when it differs), absolute (full date + time), or
-// relative ("2 hours ago", falling back to auto beyond a week).
+// formatFileDate renders an ISO timestamp per the user's date format: auto (compact,
+// year only when it differs), absolute (full date + time), or relative ("2 hours ago").
 export function formatFileDate(iso: string, format: DateFormat, locale = 'en'): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime()))

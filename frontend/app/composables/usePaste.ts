@@ -1,8 +1,7 @@
 import { ApiError } from '~/types/api'
 
-// Paste the files-store clipboard into the current directory and surface the
-// outcome as a toast. Shared by the context menu, the toolbar button, and the
-// Ctrl/Cmd+V shortcut so the feedback stays consistent.
+// Shared by the context menu, the toolbar button and the Ctrl/Cmd+V shortcut,
+// so paste feedback stays consistent.
 export function usePaste() {
   const filesStore = useFilesStore()
   const notify = useNotify()

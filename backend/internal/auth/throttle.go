@@ -5,12 +5,8 @@ import (
 	"time"
 )
 
-// maxThrottleEntries caps the map. Throttle keys are attacker-controlled
-// (host+username on connect, client IP on the frontend-log endpoint) and every
-// failed attempt inserts one, so an unbounded map is a memory-exhaustion path
-// on unauthenticated endpoints. At the cap the oldest-expiring entries are
-// dropped: losing throttle state degrades to "not yet throttled", which is the
-// same state a fresh key has, and is preferable to unbounded growth.
+// Throttle keys are attacker-controlled (host+username, client IP), so an uncapped
+// map is a memory-exhaustion path; dropping state only degrades to "not throttled".
 const maxThrottleEntries = 10000
 
 type throttleEntry struct {
@@ -126,9 +122,8 @@ func (t *Throttle) evictLocked() {
 	}
 }
 
-// cleanup drops expired entries on an interval. Without it an entry is only
-// removed when that exact key is probed again after expiry, so keys that are
-// never revisited accumulate forever.
+// cleanup drops expired entries on an interval. Without it, keys never probed
+// again after expiry accumulate forever.
 func (t *Throttle) cleanup() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()

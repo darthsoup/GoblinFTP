@@ -1,24 +1,14 @@
-/* Example white-label tenant theme for GoblinFTP.
+/* Example white-label tenant theme: redefine color tokens under the SAME selectors
+ * the base theme uses (`:root, .light` and `.dark`). Injected last, so it wins.
  *
- * GoblinFTP is fully CSS-variable-driven, so a theme just redefines a curated
- * set of COLOR tokens under the SAME selectors the base theme uses
- * (`:root, .light` and `.dark`). This file is injected AFTER the bundled
- * stylesheet, so equal-specificity `:root` rules win by source order.
+ * Set each token in BOTH blocks: a `:root, .light` value also applies in dark mode,
+ * because `:root` always matches and this sheet beats the base `.dark` rule.
  *
- * Set each token you override in BOTH blocks (or leave the default). A value
- * placed only under `:root, .light` also applies in DARK mode - `:root` always
- * matches, and this sheet loads last, so it beats the base `.dark` rule.
+ * Install: copy this folder (logo.* and logo-dark.* go here too) to
+ * <dataDir>/themes/<tenant>/, then mint a link with `gftp-sso-link -tenant <tenant> …`.
  *
- * Install: copy this folder to  <dataDir>/themes/<tenant>/  (default
- *   /app/data/themes/<tenant>/), then mint a login link with:
- *     gftp-sso-link -tenant <tenant> -host … -username …
- *   (or map a custom domain to the tenant via theme.json "hosts" - see README).
- *
- * Drive --ui-primary DIRECTLY and leave the global branding.primaryColor unset:
- * the runtime accent injector is skipped whenever a tenant stylesheet is present.
- * If you pick a LIGHT accent (e.g. yellow), set --gftp-primary-text to a dark color
- * so primary-button text stays legible - do NOT override --ui-text-inverted for
- * this (it's shared with tooltips). Drop a logo-dark.* for a dark-mode logo.
+ * Drive --ui-primary directly; the runtime accent injector is skipped when a tenant
+ * sheet exists. For a light accent set --gftp-primary-text, never --ui-text-inverted.
  */
 
 :root,
@@ -48,7 +38,7 @@
   --ui-bg-accented: #1e293b;
 
   --ui-border: #1e293b;
-  --ui-text-highlighted: #f1f5f9; /* light - the .light value above would bleed here otherwise */
+  --ui-text-highlighted: #f1f5f9; /* the .light value above would bleed here otherwise */
 
   --gftp-editor-bg: #080d16;
   --gftp-input-bg: #1e293b;

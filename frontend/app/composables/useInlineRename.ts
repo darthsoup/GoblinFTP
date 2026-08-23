@@ -1,7 +1,5 @@
-// Shared in-place rename behaviour for FileRow (table) and FileCard (cards):
-// seeds a draft from the file name when editing starts, focuses + selects the
-// base name, and dedupes the trailing blur that fires when the input unmounts
-// after Enter/Esc.
+// Shared in-place rename behaviour for FileRow and FileCard. Dedupes the
+// trailing blur that fires when the input unmounts after Enter/Esc.
 export function useInlineRename(opts: {
   editing: () => boolean
   name: () => string

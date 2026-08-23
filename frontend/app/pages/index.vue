@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The authenticated workspace. The global auth middleware guarantees we only
-// land here while connected, and the layout's connected-watcher routes back to
-// /login if the connection drops.
+// The authenticated workspace. The auth middleware guarantees we only land here
+// while connected; the layout's watcher routes back to /login on a drop.
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
 const route = useRoute()
@@ -18,7 +17,7 @@ onMounted(async () => {
   await filesStore.list(start)
 })
 
-// Keep ?path=<dir> in sync with the current directory (replace, not push - the
+// Keep ?path=<dir> in sync with the current directory (replace, not push: the
 // store owns back/forward history) so a reload reopens the same folder.
 watch(() => filesStore.currentPath, (path) => {
   if (route.query.path !== path)

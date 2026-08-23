@@ -10,9 +10,8 @@ const { t } = useI18n()
 const { appName, logoUrl } = useBranding()
 const { embedded } = useEmbed()
 
-// Centre switcher between the file browser and the editor - only relevant while
-// the editor has open tabs. The Files link carries the current browse path so
-// returning from the editor reopens the same folder.
+// Centre switcher, shown only while the editor has open tabs. The Files link
+// carries the current browse path so returning reopens the same folder.
 const navItems = computed<NavigationMenuItem[]>(() => [
   {
     label: t('header.files'),
@@ -57,11 +56,8 @@ async function handleDisconnect() {
       center: 'flex',
     }"
   >
-    <!-- Embedded: the hosting panel already brands the page and the frame's
-         vertical space is scarce. The header itself is only trimmed, never
-         removed - it carries the only route back from /edit.
-         The slot must still render an element when embedded: an empty #left
-         makes UHeader fall back to its own default title ("Nuxt UI"). -->
+    <!-- Embedded: trim the header, never remove it (it holds the only route back
+         from /edit). An empty #left makes UHeader show its own "Nuxt UI" title. -->
     <template #left>
       <span v-if="embedded" />
       <div v-else class="flex items-center gap-2 select-none">
@@ -106,9 +102,8 @@ async function handleDisconnect() {
         />
       </UTooltip>
 
-      <!-- The panel owns the session lifecycle when embedded: a user who
-           disconnects inside the frame has no credentials to reconnect with
-           and would be left staring at a dead frame. -->
+      <!-- The panel owns the session when embedded: disconnecting inside the
+           frame leaves no credentials to reconnect with. -->
       <template v-if="!embedded">
         <USeparator orientation="vertical" class="h-5 mx-1" />
 

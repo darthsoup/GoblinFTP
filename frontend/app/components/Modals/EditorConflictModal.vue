@@ -1,8 +1,6 @@
 <script setup lang="ts">
-// Raised when the server refused a save because the file changed (or vanished)
-// after it was opened. Driven by modalStore.editorConflict() (a promise the
-// editor store awaits). Backdrop/Esc resolves as 'cancel', the non-destructive
-// choice, so an inattentive dismissal cannot lose either copy.
+// Raised when a save was refused because the file changed or vanished. Driven by
+// modalStore.editorConflict(); backdrop/Esc resolves as the safe 'cancel'.
 const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
 const { t, locale } = useI18n()

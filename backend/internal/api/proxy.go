@@ -1,4 +1,3 @@
-// backend/internal/api/proxy.go
 package api
 
 import (
@@ -9,18 +8,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/config"
 )
 
-// IPExtractor returns the echo.IPExtractor matching the deployment's proxy
-// configuration.
-//
-// With no GFTP_ACCESS_TRUSTED_PROXIES set, forwarded headers are ignored
-// entirely and the direct peer is the client: echo's default would otherwise
-// take the leftmost X-Forwarded-For value, which any client can set.
-//
-// With trusted ranges configured, the chain is walked right to left and trusted
-// hops are skipped, yielding the first address the deployment did not vouch
-// for. This is the case that matters behind an external TLS terminator, where
-// otherwise every client collapses to the terminator's address and the client
-// allowlist and per-IP throttles stop distinguishing anyone.
+// IPExtractor matches the deployment's proxy config: with no trusted proxies the
+// client-settable X-Forwarded-For is ignored, else the chain is walked right to left.
 func IPExtractor(cfg *config.Config) echo.IPExtractor {
 	if !cfg.TrustProxies() {
 		return echo.ExtractIPDirect()
@@ -30,12 +19,10 @@ func IPExtractor(cfg *config.Config) echo.IPExtractor {
 }
 
 // trustOptions converts the configured ranges into echo trust options. Config
-// validates each entry as an IP or CIDR at startup, so a parse failure here is
-// not reachable; entries that somehow fail are skipped rather than trusted.
+// validated every entry at startup; anything that still fails to parse is skipped.
 func trustOptions(ranges []string) []echo.TrustOption {
-	// The defaults trust all private ranges. That is too broad for a decision
-	// this security-sensitive, so start from "trust nothing" and add only what
-	// the operator listed.
+	// echo's defaults trust every private range, too broad here: start from
+	// "trust nothing" and add only what the operator listed.
 	opts := []echo.TrustOption{
 		echo.TrustLoopback(false),
 		echo.TrustLinkLocal(false),
@@ -61,10 +48,8 @@ func singleHostNet(ip net.IP) *net.IPNet {
 	return &net.IPNet{IP: ip, Mask: net.CIDRMask(128, 128)}
 }
 
-// clientScheme reports the scheme the browser used. c.Scheme() reads
-// X-Forwarded-Proto unconditionally, which is spoofable when no proxy is
-// trusted; behind a trusted proxy it is the only source of truth, because Caddy
-// listens on plain HTTP inside the container.
+// clientScheme reports the scheme the browser used: X-Forwarded-Proto is spoofable
+// without a trusted proxy, but the only signal behind one (Caddy serves plain HTTP).
 func clientScheme(c echo.Context, cfg *config.Config) string {
 	if cfg.TrustProxies() {
 		return c.Scheme()

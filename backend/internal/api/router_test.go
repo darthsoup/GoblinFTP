@@ -1,4 +1,3 @@
-// backend/internal/api/router_test.go
 package api_test
 
 import (
@@ -130,7 +129,6 @@ func TestCSRFMiddlewareBlocksMutatingRequestsWithoutToken(t *testing.T) {
 	assert.NoError(t, err)
 	sess.Set(auth.CSRFSessionKey, csrfToken)
 
-	// POST without X-CSRF-Token header
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/disconnect", strings.NewReader("{}"))
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: api.SessionCookieName, Value: sess.ID})

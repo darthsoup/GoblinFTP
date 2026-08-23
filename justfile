@@ -1,10 +1,10 @@
-# GoblinFTP task runner - https://just.systems
+# GoblinFTP task runner (https://just.systems)
 set dotenv-load
 
 default:
     @just --list
 
-# Start frontend + backend together (concurrently - installed via `pnpm install`)
+# Start frontend + backend together (concurrently, installed via `pnpm install`)
 [group('dev')]
 dev:
     pnpm exec concurrently -k -n backend,frontend -c blue,green "just dev-be" "just dev-fe"
@@ -14,9 +14,8 @@ dev:
 dev-fe:
     cd frontend && pnpm run dev
 
-# A relative GFTP_DATA_DIR (e.g. `data` from .env) resolves against the repo root -
-# dev data (themes/known_hosts/staging) lives in <repo>/data, but `go run` runs
-# from backend/, so a bare relative path would otherwise land in backend/data.
+# A relative GFTP_DATA_DIR resolves against the repo root, so dev data lives in
+# <repo>/data; `go run` runs from backend/, where it would land in backend/data.
 # Start backend dev server only (:8080)
 [group('dev')]
 dev-be:
@@ -89,7 +88,7 @@ docker-build:
 docker-run:
     docker run -p 8080:80 ghcr.io/darthsoup/goblinftp
 
-# Push Docker image (docker login ghcr.io first - releases are normally published by CI on v* tags)
+# Push Docker image (docker login ghcr.io first; releases normally come from CI on v* tags)
 [group('docker')]
 docker-push:
     docker push ghcr.io/darthsoup/goblinftp

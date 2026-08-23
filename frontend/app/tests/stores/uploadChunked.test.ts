@@ -12,10 +12,8 @@ const COMMIT = '/api/files/upload/commit'
 const ABORT = '/api/files/upload/abort'
 const CHUNK = '/api/files/upload/chunk'
 
-// The store splits on file.size > chunkSize, and chunkSize comes from the auth
-// store's systemVars. A tiny chunk size keeps the fixtures small while still
-// exercising the multi-chunk path - which no existing test reaches, because
-// every other fixture is a few bytes and takes the single-request branch.
+// The store splits on file.size > chunkSize, which comes from systemVars. A tiny chunk
+// size exercises the multi-chunk path every other fixture is too small to reach.
 const CHUNK_SIZE = 4
 
 function bigFile(name = 'big.bin', size = 10) {
@@ -65,10 +63,8 @@ describe('chunked upload', () => {
     expect(postCalls(COMMIT)).toHaveLength(1)
   })
 
-  // Regression: retryItem reset every field except uploadId, and _uploadChunked
-  // branches on that field to decide "already staged, just commit". A retry
-  // therefore skipped all chunks and committed a partial set, which the backend
-  // rejects on the first missing chunk - so the item could never recover.
+  // Regression: retryItem reset every field but uploadId, which _uploadChunked reads as
+  // "already staged", so a retry committed a partial set and the item never recovered.
   it('retry after a mid-transfer failure re-uploads instead of committing a partial set', async () => {
     const store = useUploadStore()
     let failChunks = true
@@ -97,9 +93,8 @@ describe('chunked upload', () => {
     expect(postCalls(RESERVE)).toHaveLength(1)
   })
 
-  // Regression: the error path never released staged chunks, and nothing
-  // sweeps the staging area server-side, so every failed large upload left its
-  // bytes on the volume permanently.
+  // Regression: the error path never released staged chunks, and nothing sweeps the
+  // staging area server-side, so every failed large upload leaked bytes onto the volume.
   it('a failed upload releases its staged chunks', async () => {
     const store = useUploadStore()
     mockApi.postForm.mockImplementation((url: string) => {

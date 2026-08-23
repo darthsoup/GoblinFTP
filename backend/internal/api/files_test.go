@@ -1,4 +1,3 @@
-// backend/internal/api/files_test.go
 package api_test
 
 import (
@@ -104,7 +103,6 @@ func TestCreateDirectory(t *testing.T) {
 	assert.Equal(t, []string{"/newdir"}, made)
 }
 
-// TestCreateDirectoryNested: a multi-segment path creates each missing ancestor.
 func TestCreateDirectoryNested(t *testing.T) {
 	var made []string
 	mock := &testutil.MockClient{
@@ -121,8 +119,7 @@ func TestCreateDirectoryNested(t *testing.T) {
 	assert.Equal(t, []string{"/a", "/a/b", "/a/b/c"}, made)
 }
 
-// TestCreateDirectoryIdempotent: an already-existing directory is a no-op success
-// (raw FTP MakeDir would otherwise error).
+// Raw FTP MakeDir errors on an existing directory, so this must be a no-op success.
 func TestCreateDirectoryIdempotent(t *testing.T) {
 	var made []string
 	mock := &testutil.MockClient{
@@ -139,9 +136,8 @@ func TestCreateDirectoryIdempotent(t *testing.T) {
 	assert.Empty(t, made, "existing dir must not be re-created")
 }
 
-// TestDeleteFilesPartialFailure: a batch where some items fail returns HTTP 200
-// success:true with per-item results - the failure carries a classified code +
-// friendly message, never the raw protocol string.
+// A partly failing batch is still HTTP 200 success:true with per-item results,
+// each failure carrying a classified code and message, never the raw string.
 func TestDeleteFilesPartialFailure(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
@@ -179,9 +175,8 @@ func TestDeleteFilesPartialFailure(t *testing.T) {
 	assert.NotContains(t, resp.Data.Failed[0].Message, "550", "raw protocol string must not leak")
 }
 
-// TestDeleteFilesAllFailStillSucceeds: even when every item fails, the response
-// is HTTP 200 success:true so the SPA keeps the per-item data (it would discard
-// data on success:false).
+// Even an all-failed batch answers success:true, because the SPA discards the
+// per-item data on success:false.
 func TestDeleteFilesAllFailStillSucceeds(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
@@ -210,10 +205,8 @@ func TestDeleteFilesAllFailStillSucceeds(t *testing.T) {
 	assert.Equal(t, string(gftperrors.ErrFilePermission), resp.Data.Failed[0].Code)
 }
 
-// TestDeleteFilesAllSuccessArraysNotNull: an all-success delete must serialize
-// `deleted`/`failed` as arrays, never null. The SPA reads `result.failed.length`
-// unconditionally, so a null there throws and surfaces a spurious "Operation
-// failed" even though every file was removed.
+// The SPA reads `result.failed.length` unconditionally, so serializing an empty
+// list as null throws and surfaces a spurious failure.
 func TestDeleteFilesAllSuccessArraysNotNull(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },

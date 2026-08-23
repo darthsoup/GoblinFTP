@@ -1,9 +1,6 @@
 <script setup lang="ts">
-// Trust-on-first-use prompt for an unknown SFTP host key. Driven directly by
-// authStore.pendingHostKey (set during the login/SSO connect flow), so it lives
-// on the login screen rather than the file-browser modal store. When the server
-// presents a key that differs from the pinned one, the same modal switches to a
-// danger-styled re-trust variant showing both fingerprints.
+// Trust-on-first-use prompt for an unknown (or changed) SFTP host key. Driven by
+// authStore.pendingHostKey, not the modal store, so it lives on the login screen.
 const authStore = useAuthStore()
 const { t } = useI18n()
 

@@ -1,4 +1,3 @@
-// backend/internal/api/themes.go
 package api
 
 import (
@@ -43,11 +42,10 @@ func normalizeHost(host string) string {
 }
 
 // themeManifest is the optional <dataDir>/themes/<tenant>/theme.json. Only the
-// custom-domain mapping is read today; the struct can grow other per-theme
-// settings later. Unknown JSON fields are ignored.
+// custom-domain mapping is read today; unknown JSON fields are ignored.
 type themeManifest struct {
-	// Hosts are the exact FQDNs (case-insensitive) that select this tenant.
-	// Kept clean and out of the filesystem path - matched by string only.
+	// Hosts are the exact FQDNs (case-insensitive) that select this tenant,
+	// matched by string only and never used in a filesystem path.
 	Hosts []string `json:"hosts"`
 }
 
@@ -71,9 +69,8 @@ func themeManifestHosts(dir string) []string {
 	return out
 }
 
-// buildThemeHostMap scans <dataDir>/themes/*/theme.json and returns a
-// host→tenant map. Directory names that aren't valid slugs are skipped; on a
-// duplicate host the alphabetically-first tenant wins (os.ReadDir is sorted).
+// buildThemeHostMap scans <dataDir>/themes/*/theme.json into a host→tenant map.
+// On a duplicate host the alphabetically first tenant wins (os.ReadDir is sorted).
 func buildThemeHostMap(dataDir string) map[string]string {
 	out := map[string]string{}
 	if dataDir == "" {
@@ -101,9 +98,8 @@ func buildThemeHostMap(dataDir string) map[string]string {
 	return out
 }
 
-// themeHostIndex caches the custom-domain→tenant map, rebuilt at most once per
-// ttl so the unauthenticated SystemVars endpoint never does an unbounded
-// directory scan per request. Edits to theme.json take effect within ttl.
+// themeHostIndex caches the host→tenant map, rebuilt at most once per ttl so the
+// unauthenticated SystemVars endpoint never scans directories per request.
 type themeHostIndex struct {
 	dataDir string
 	ttl     time.Duration
@@ -131,10 +127,8 @@ func (idx *themeHostIndex) tenantFor(host string) string {
 	return idx.hosts[host]
 }
 
-// resolveTenantTheme reports whether a tenant theme exists under
-// <dataDir>/themes/<tenant>/ and, if so, returns cache-busted asset URLs.
-// A theme requires config.css; logo/favicon are optional. Fail-soft: any
-// invalid/missing input returns ok=false and the caller keeps default branding.
+// resolveTenantTheme returns cache-busted asset URLs for <dataDir>/themes/<tenant>/.
+// A theme requires config.css; fail-soft, ok=false leaves the caller's branding.
 func resolveTenantTheme(dataDir, tenant string) (cssURL string, logoURL, logoDarkURL, faviconURL *string, ok bool) {
 	tenant = sanitizeTenant(tenant)
 	if tenant == "" || dataDir == "" {
@@ -149,8 +143,8 @@ func resolveTenantTheme(dataDir, tenant string) (cssURL string, logoURL, logoDar
 	if u := firstThemeAsset(dir, tenant, "logo", "png", "svg", "webp", "jpg"); u != "" {
 		logoURL = &u
 	}
-	// Optional dark-mode logo, swapped client-side by color mode - a light-mode
-	// wordmark (dark ink) would otherwise vanish on the dark canvas.
+	// Optional dark-mode logo, swapped client-side by color mode: a dark-ink
+	// wordmark would otherwise vanish on the dark canvas.
 	if u := firstThemeAsset(dir, tenant, "logo-dark", "png", "svg", "webp", "jpg"); u != "" {
 		logoDarkURL = &u
 	}
@@ -172,8 +166,7 @@ func firstThemeAsset(dir, tenant, base string, exts ...string) string {
 }
 
 // themeContentType maps an allowlisted extension to an explicit Content-Type so
-// the browser applies config.css as a stylesheet regardless of the host OS's
-// mime registry (some return text/plain for .css).
+// config.css applies as a stylesheet whatever the host OS mime registry says.
 var themeContentType = map[string]string{
 	".css":  "text/css; charset=utf-8",
 	".png":  "image/png",
@@ -183,9 +176,8 @@ var themeContentType = map[string]string{
 	".ico":  "image/x-icon",
 }
 
-// ServeTheme handles GET /themes/:tenant/:file - the per-tenant static assets.
-// Public, no auth (branding is not secret). Both params are allowlisted and the
-// resolved path is asserted to stay within the themes root before serving.
+// ServeTheme handles GET /themes/:tenant/:file, the per-tenant static assets.
+// Public (branding is not secret); params allowlisted, path confined to the root.
 func (h *Handler) ServeTheme(c echo.Context) error {
 	tenant := sanitizeTenant(c.Param("tenant"))
 	file := c.Param("file")
@@ -212,8 +204,7 @@ func (h *Handler) ServeTheme(c echo.Context) error {
 }
 
 // resolveTenantBranding resolves the request's tenant (SSO session first, then
-// host/subdomain) and returns its theme asset URLs, or all-nil when no tenant
-// theme applies.
+// host) and returns its theme asset URLs, or all-nil when no theme applies.
 func (h *Handler) resolveTenantBranding(c echo.Context) (themeCSS, logo, logoDark, favicon *string) {
 	tenant := ""
 	if sess, ok := lookupSession(c, h.store); ok {

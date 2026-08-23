@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# ── Stage 1: Build Nuxt SPA ────────────────────────────────────────────────────
-# Runs on the build platform - the generated SPA is static and arch-independent.
+# Runs on the build platform: the generated SPA is static and arch-independent.
 FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-builder
 WORKDIR /build
 RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
@@ -12,8 +11,7 @@ RUN pnpm install --frozen-lockfile
 COPY frontend/ frontend/
 RUN pnpm --filter goblinftp-frontend run generate
 
-# ── Stage 2: Build Go binary ───────────────────────────────────────────────────
-# Runs on the build platform and cross-compiles for the target - no emulation.
+# Runs on the build platform and cross-compiles for the target, so no emulation.
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS backend-builder
 WORKDIR /build/backend
 ARG TARGETOS
@@ -26,7 +24,6 @@ COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -ldflags="-w -s -X main.version=${VERSION}" -o /app/gftp ./cmd/gftp
 
-# ── Stage 3: Final image ───────────────────────────────────────────────────────
 FROM caddy:2-alpine
 
 RUN mkdir -p /app/public /app/data

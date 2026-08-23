@@ -1,11 +1,7 @@
 import type { FrontendErrorKind } from '~/utils/errorReport'
 
-// Forwards uncaught browser errors to POST /api/log/frontend so they show up
-// in the server's central log. Invisible to the user; coexists with Sentry.
-//
-// Deliberately uses bare $fetch instead of useApi(): the endpoint is public
-// (no CSRF/session), and the reporter must never trigger the session-lost
-// machinery or loop on its own failures.
+// Bare $fetch instead of useApi(): the endpoint is public (no CSRF/session), and the
+// reporter must never trigger the session-lost machinery or loop on its own failures.
 const MAX_REPORTS_PER_PAGE = 20
 
 export default defineNuxtPlugin((nuxtApp) => {

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { UploadConflictAction } from '~/stores/modal'
 
-// Asks how each occupied upload destination should be resolved. Driven by
-// modalStore.uploadConflict() (a promise the upload store awaits). Closing via
-// backdrop/Esc resolves as 'cancel', which drops the whole batch.
+// Asks how each occupied upload destination is resolved. Driven by
+// modalStore.uploadConflict(); backdrop/Esc cancels and drops the whole batch.
 const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
 const { t, locale } = useI18n()

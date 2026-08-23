@@ -1,4 +1,3 @@
-// backend/internal/api/system_test.go
 package api_test
 
 import (
@@ -95,7 +94,7 @@ func TestSystemVarsBranding(t *testing.T) {
 func TestSystemVarsNoSession(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig())
 	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)
-	// No cookie set - should still work (public route)
+	// Public route, so no cookie is needed.
 	rec := httptest.NewRecorder()
 	app.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -124,8 +123,8 @@ func TestSystemVarsSSOFields(t *testing.T) {
 	assert.True(t, resp.Data.LoginFormDisabled)
 }
 
-// TestSystemVarsCoversSPAKeys asserts every SPA-flagged registry key exists in
-// the /api/system/vars response, so a new key cannot silently miss the frontend.
+// Every SPA-flagged registry key must exist in /api/system/vars, so a new key
+// cannot silently miss the frontend.
 func TestSystemVarsCoversSPAKeys(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig())
 	req := httptest.NewRequest(http.MethodGet, "/api/system/vars", nil)

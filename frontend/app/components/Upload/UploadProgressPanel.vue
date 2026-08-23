@@ -26,7 +26,6 @@ const overall = computed(() => {
     v-if="uploadStore.items.length > 0"
     class="flex flex-col border-t border-default bg-elevated/40 shrink-0"
   >
-    <!-- Header -->
     <div
       class="flex items-center justify-between gap-2 px-2 sm:px-4 h-10 bg-elevated shrink-0"
       :class="{ 'border-b border-default': !collapsed }"
@@ -50,8 +49,8 @@ const overall = computed(() => {
           {{ uploadStore.items.length }}
         </UBadge>
 
-        <!-- Aggregate progress - only while collapsed and something is uploading.
-             Expanded, every row carries its own rate and ETA. -->
+        <!-- Aggregate progress, only while collapsed and uploading. Expanded,
+             every row carries its own rate and ETA. -->
         <span v-if="collapsed && overall !== null" class="flex items-center gap-2 min-w-0 pl-1">
           <UProgress class="w-14 sm:w-28" size="sm" :model-value="overall" />
           <span class="text-xs tabular-nums text-muted shrink-0">{{ overall }}%</span>
@@ -86,7 +85,6 @@ const overall = computed(() => {
       </div>
     </div>
 
-    <!-- Item list -->
     <ul v-show="!collapsed" class="max-h-44 sm:max-h-56 overflow-y-auto">
       <UploadRow
         v-for="item in uploadStore.items"

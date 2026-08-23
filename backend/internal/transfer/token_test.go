@@ -1,4 +1,3 @@
-// backend/internal/transfer/token_test.go
 package transfer_test
 
 import (

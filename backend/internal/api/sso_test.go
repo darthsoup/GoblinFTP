@@ -1,4 +1,3 @@
-// backend/internal/api/sso_test.go
 package api_test
 
 import (
@@ -89,14 +88,13 @@ func TestSSOLoginExpiredToken(t *testing.T) {
 	e, store, _ := newTestApp(t, cfg)
 	defer store.Close()
 
-	// Create an expired token
 	payload := &sso.Payload{
 		Type:     "ftp",
 		Host:     "ftp.example.com",
 		Port:     21,
 		Username: "user",
 		Password: "pass",
-		Exp:      time.Now().Add(-5 * time.Minute).Unix(), // expired
+		Exp:      time.Now().Add(-5 * time.Minute).Unix(),
 	}
 	tok, err := sso.Encrypt(payload, cfg.SSOSecret)
 	require.NoError(t, err)
@@ -123,7 +121,6 @@ func TestSSOLoginSuccess(t *testing.T) {
 	assert.Equal(t, http.StatusFound, rec.Code)
 	assert.Equal(t, "/login", rec.Header().Get("Location"))
 
-	// Check that a session cookie was set
 	cookies := rec.Result().Cookies()
 	var sessionCookie *http.Cookie
 	for _, c := range cookies {
@@ -143,13 +140,11 @@ func TestSSOLoginReplay(t *testing.T) {
 
 	tok := validSSO(t, cfg.SSOSecret)
 
-	// First attempt should succeed
 	req1 := httptest.NewRequest(http.MethodGet, "/?sso="+tok, nil)
 	rec1 := httptest.NewRecorder()
 	e.ServeHTTP(rec1, req1)
 	assert.Equal(t, http.StatusFound, rec1.Code)
 
-	// Second attempt with same token should fail
 	req2 := httptest.NewRequest(http.MethodGet, "/?sso="+tok, nil)
 	rec2 := httptest.NewRecorder()
 	e.ServeHTTP(rec2, req2)
@@ -190,13 +185,11 @@ func TestAuthStatusWithSSOPending(t *testing.T) {
 
 	tok := validSSO(t, cfg.SSOSecret)
 
-	// Hit SSOLogin to create session with pending SSO
 	loginReq := httptest.NewRequest(http.MethodGet, "/?sso="+tok, nil)
 	loginRec := httptest.NewRecorder()
 	e.ServeHTTP(loginRec, loginReq)
 	require.Equal(t, http.StatusFound, loginRec.Code)
 
-	// Get the session cookie
 	cookies := loginRec.Result().Cookies()
 	var sessionCookie *http.Cookie
 	for _, c := range cookies {
@@ -207,7 +200,6 @@ func TestAuthStatusWithSSOPending(t *testing.T) {
 	}
 	require.NotNil(t, sessionCookie)
 
-	// Now check auth status with that cookie
 	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
 	statusReq.AddCookie(sessionCookie)
 	statusRec := httptest.NewRecorder()
@@ -239,10 +231,8 @@ func TestAuthStatusConnected(t *testing.T) {
 	e, store, _ := newTestApp(t, cfg, api.WithDial(dialFn))
 	defer store.Close()
 
-	// Connect via regular auth
 	sess := connectAndGetSession(t, e)
 
-	// Check auth status
 	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
 	addSession(statusReq, sess)
 	statusRec := httptest.NewRecorder()
@@ -318,7 +308,6 @@ func TestSSOConnectFullFlow(t *testing.T) {
 	e.ServeHTTP(loginRec, loginReq)
 	require.Equal(t, http.StatusFound, loginRec.Code)
 
-	// Get session cookie
 	cookies := loginRec.Result().Cookies()
 	var sessionCookie *http.Cookie
 	for _, c := range cookies {
@@ -371,7 +360,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 	assert.NotEmpty(t, connectResp.Data.CSRFToken)
 }
 
-// validSSOSFTP creates an encrypted SFTP SSO token with future expiry - the
+// validSSOSFTP creates an encrypted SFTP SSO token with future expiry, since the
 // host-key flow only applies to sftp.
 func validSSOSFTP(t *testing.T, secret []byte) string {
 	t.Helper()
@@ -433,10 +422,8 @@ func doSSOConnect(e http.Handler, cookie *http.Cookie, csrf, body string) *httpt
 	return rec
 }
 
-// TestSSOConnectHostKeyPrompt: an unknown SFTP host key returns a 200 with the
-// fingerprint (and no client pinned to the session); confirming it with a second
-// request that carries the fingerprint completes the connection. The pending SSO
-// request survives the prompt so the retry can use it.
+// An unknown host key returns the fingerprint with no client pinned; the pending
+// SSO request survives the prompt so the confirming retry can use it.
 func TestSSOConnectHostKeyPrompt(t *testing.T) {
 	cfg := ssoEnabledConfig()
 	mock := workingMock()
@@ -491,8 +478,8 @@ func TestSSOConnectHostKeyPrompt(t *testing.T) {
 	assert.Equal(t, 2, calls, "dial called once for the prompt and once for the confirmed retry")
 }
 
-// TestSSOConnectHostKeyMismatch: a changed host key is refused with
-// ERR_HOST_KEY_MISMATCH and the raw cause is not leaked into the envelope.
+// A changed host key is refused with ERR_HOST_KEY_MISMATCH and the raw cause is
+// not leaked into the envelope.
 func TestSSOConnectHostKeyMismatch(t *testing.T) {
 	cfg := ssoEnabledConfig()
 	dialFn := api.WithDial(func(api.DialRequest) (transfer.Client, *api.HostKeyPrompt, error) {

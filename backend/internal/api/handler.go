@@ -1,4 +1,3 @@
-// backend/internal/api/handler.go
 package api
 
 import (
@@ -25,10 +24,8 @@ type DialRequest struct {
 	AcceptHostKey string
 }
 
-// HostKeyPrompt is returned (with a nil client and nil error) when an SFTP host
-// key must be confirmed by the user before the connection can proceed - either
-// an unknown host (trust-on-first-use) or, when changed is set, a key that
-// differs from the pinned one and needs explicit re-trust.
+// HostKeyPrompt is returned (nil client, nil error) when an SFTP host key needs
+// confirmation: an unknown host, or with Changed set, one differing from the pin.
 type HostKeyPrompt struct {
 	Host           string `json:"host"` // bare host the key belongs to (shown in the prompt)
 	Fingerprint    string `json:"fingerprint"`
@@ -37,9 +34,8 @@ type HostKeyPrompt struct {
 	OldFingerprint string `json:"oldFingerprint,omitempty"`
 }
 
-// DialFunc creates a transfer.Client. It returns (client, nil, nil) on success,
-// (nil, prompt, nil) when an SFTP host key needs user confirmation, and
-// (nil, nil, err) on failure.
+// DialFunc creates a transfer.Client: (client, nil, nil) on success, (nil, prompt,
+// nil) when an SFTP host key needs confirmation, (nil, nil, err) on failure.
 type DialFunc func(DialRequest) (transfer.Client, *HostKeyPrompt, error)
 
 // HandlerOption is a functional option for constructing a Handler.
@@ -67,9 +63,8 @@ func WithLogger(l *slog.Logger) HandlerOption {
 	}
 }
 
-// WithMetrics overrides the metrics instance. main.go shares its registry
-// with the dedicated /metrics listener; tests assert against a known registry.
-// newHandler wires the session-store snapshot into whichever instance is active.
+// WithMetrics overrides the metrics instance. main.go shares its registry with
+// the dedicated /metrics listener; tests assert against a known registry.
 func WithMetrics(m *metrics.Metrics) HandlerOption {
 	return func(h *Handler) {
 		h.metrics = m
@@ -77,7 +72,7 @@ func WithMetrics(m *metrics.Metrics) HandlerOption {
 }
 
 // WithVersion sets the build version surfaced in /healthz and /api/system/vars
-// ("dev" when unset - release builds inject the tag via ldflags in main).
+// ("dev" when unset; release builds inject the tag via ldflags in main).
 func WithVersion(v string) HandlerOption {
 	return func(h *Handler) {
 		h.version = v
@@ -95,7 +90,7 @@ type Handler struct {
 	logger   *slog.Logger
 	metrics  *metrics.Metrics
 	version  string
-	// frontendLog rate-limits /api/log/frontend per client IP - deliberately
+	// frontendLog rate-limits /api/log/frontend per client IP, deliberately
 	// separate from the login throttle so report spam cannot lock out logins.
 	frontendLog *auth.Throttle
 	// themeHosts caches the custom-domain→tenant map from each theme's
@@ -120,8 +115,8 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 	for _, opt := range opts {
 		opt(h)
 	}
-	// Wire the scrape-time gauges into whichever metrics instance is active
-	// (the default above, or one supplied via WithMetrics).
+	// Wire the scrape-time gauges into whichever instance is active (the default
+	// above, or one supplied via WithMetrics).
 	h.metrics.SetConnectionSnapshot(h.connectionSnapshot)
 	// Expiry drops a session from the map; without this its FTP/SFTP connection
 	// would stay open until the remote server timed it out.

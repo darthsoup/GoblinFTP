@@ -51,7 +51,6 @@ const meta = computed(() => {
   return parts.join(' · ')
 })
 
-// ── Lazy thumbnail ────────────────────────────────────────────────────────────
 const thumbEl = ref<HTMLElement | null>(null)
 const thumbUrl = ref<string | null>(null)
 const failed = ref(false)
@@ -154,7 +153,6 @@ function onKeydown(e: KeyboardEvent) {
     @click="handleClick"
     @keydown="onKeydown"
   >
-    <!-- Thumbnail / icon -->
     <div
       ref="thumbEl"
       class="relative aspect-square rounded-md border border-default bg-default overflow-hidden flex items-center justify-center"
@@ -178,7 +176,6 @@ function onKeydown(e: KeyboardEvent) {
         :style="iconDef.color ? { color: iconDef.color } : undefined"
       />
 
-      <!-- Selection checkbox (top-left), shown on hover or when selected -->
       <UCheckbox
         :model-value="selected"
         size="md"
@@ -190,7 +187,6 @@ function onKeydown(e: KeyboardEvent) {
         @update:model-value="emit('select', file.name)"
       />
 
-      <!-- Quick download (top-right, files only) -->
       <UButton
         v-if="!file.isDir"
         size="xs"
@@ -203,7 +199,6 @@ function onKeydown(e: KeyboardEvent) {
       />
     </div>
 
-    <!-- Name -->
     <input
       v-if="editing"
       ref="inputRef"
@@ -228,7 +223,6 @@ function onKeydown(e: KeyboardEvent) {
       {{ file.name }}
     </div>
 
-    <!-- Meta -->
     <div class="text-xs text-muted text-center truncate">
       {{ meta }}
     </div>

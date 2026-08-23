@@ -1,4 +1,3 @@
-// backend/internal/api/connlost_test.go
 package api_test
 
 import (
@@ -19,9 +18,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer/testutil"
 )
 
-// TestListConnLost: a dead FTP connection during list must not leak the raw
-// socket error - it maps to ERR_CONNECTION_LOST, the client is dropped from
-// the session, and a follow-up status reports connected=false.
+// A dead connection must map to ERR_CONNECTION_LOST without leaking the raw
+// socket error, and the client must be dropped from the surviving session.
 func TestListConnLost(t *testing.T) {
 	cfg := defaultTestConfig()
 	brokenPipe := &net.OpError{Op: "write", Net: "tcp", Err: syscall.EPIPE}
@@ -47,15 +45,13 @@ func TestListConnLost(t *testing.T) {
 	assert.NotContains(t, resp.Errors[0].Message, "broken pipe", "raw socket error must not leak")
 	assert.True(t, mock.IsClosed(), "dead client must be closed")
 
-	// Session survives, but the client is gone.
 	status := getStatus(t, e, sess, "")
 	assert.False(t, status.Data.Connected)
 	assert.NotEmpty(t, status.Data.CSRFToken)
 }
 
-// TestListOtherErrorKeepsClient: a non-connection error leaves the connection in
-// place and is classified into a friendly code+message - the raw protocol string
-// ("550 ...") must not leak into the envelope.
+// A non-connection error keeps the connection and is classified into a friendly
+// code plus message. The raw "550 ..." string must not reach the envelope.
 func TestListOtherErrorKeepsClient(t *testing.T) {
 	cfg := defaultTestConfig()
 	mock := &testutil.MockClient{
@@ -83,9 +79,8 @@ func TestListOtherErrorKeepsClient(t *testing.T) {
 	assert.True(t, status.Data.Connected)
 }
 
-// TestListGenericErrorKeepsCode: an unrecognized (unclassifiable) error keeps the
-// caller's category code (ERR_LIST_FAILED) but still surfaces a friendly message
-// rather than the raw error string.
+// An unclassifiable error keeps the caller's category code (ERR_LIST_FAILED) but
+// still surfaces a friendly message instead of the raw error string.
 func TestListGenericErrorKeepsCode(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },

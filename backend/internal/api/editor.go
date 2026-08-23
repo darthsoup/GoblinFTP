@@ -33,24 +33,21 @@ type writeFileRequest struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
 	// ExpectedVersion is an If-Match-style precondition carrying the version the
-	// client saw when it opened the file. nil means the client made no claim,
-	// which is rejected rather than silently written.
+	// client opened. nil means no claim, which is rejected rather than written.
 	ExpectedVersion *string `json:"expectedVersion"`
-	// Overwrite skips the precondition entirely - the user was shown the
-	// conflict and chose to replace the server's copy.
+	// Overwrite skips the precondition entirely: the user saw the conflict and
+	// chose to replace the server's copy.
 	Overwrite bool `json:"overwrite"`
 }
 
-// fileVersion is the editor's optimistic-concurrency token. It is opaque to
-// clients on purpose: they must not parse or reconstruct it, so the precision
-// policy (and any later move to a content hash or FTP MDTM) stays server-side.
+// fileVersion is the editor's optimistic-concurrency token, opaque to clients on
+// purpose so the precision policy (or a later content hash) stays server-side.
 func fileVersion(fi transfer.FileInfo) string {
 	return strconv.FormatInt(fi.Size, 10) + ":" + strconv.FormatInt(fi.ModTime, 10)
 }
 
-// fileMeta is the version block returned by both read and write. Version is nil
-// when the server could not stat the path, which tells the client it has no
-// conflict detection for this file and must save unconditionally.
+// fileMeta is the version block returned by read and write. A nil Version tells
+// the client it has no conflict detection here and must save unconditionally.
 type fileMeta struct {
 	Version  *string `json:"version"`
 	Size     int64   `json:"size"`
@@ -79,9 +76,8 @@ type writeFileResult struct {
 	fileMeta
 }
 
-// statForVersion mirrors destinationTaken's semantics (an ordinary Stat failure
-// means "absent", a dead connection is surfaced) but keeps the FileInfo.
-// Callers must already hold the per-session transfer lock.
+// statForVersion mirrors destinationTaken (an ordinary Stat failure means
+// "absent", a dead connection is surfaced). Callers must hold the transfer lock.
 func statForVersion(client transfer.Client, p string) (transfer.FileInfo, bool, error) {
 	fi, err := client.Stat(p)
 	if err == nil {
@@ -112,11 +108,8 @@ func (h *Handler) ReadFile(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrEditorDisabled, "file type not editable"))
 	}
 
-	// Stat before Download, not after. A write landing between the two would
-	// otherwise hand the client a token matching content it never saw, and the
-	// next save would destroy that write silently. This order yields a token
-	// older than the content instead, i.e. a spurious conflict - the safe way to
-	// lose the race.
+	// Stat before Download: the reverse hands back a token matching content the
+	// client never saw, so the next save destroys that write silently.
 	fi, found, statErr := statForVersion(client, path)
 	if statErr != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, statErr)
@@ -172,9 +165,8 @@ func (h *Handler) WriteFile(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrFileTooLarge, "content exceeds 1 MB editor limit"))
 	}
 
-	// Neither protocol offers compare-and-swap, so the gap between this check and
-	// the Upload below is inherently racy. It narrows the window from the whole
-	// editing session to one round trip; it does not close it.
+	// Neither protocol offers compare-and-swap: this narrows the race window from
+	// the whole editing session to one round trip, it does not close it.
 	switch {
 	case req.Overwrite:
 		// The user was shown the conflict and chose to replace.

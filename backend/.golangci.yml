@@ -1,5 +1,5 @@
-# golangci-lint v2 - https://golangci-lint.run
-# Run via `just lint-be` (or `golangci-lint run ./...` from backend/).
+# golangci-lint v2 (https://golangci-lint.run).
+# Run via `just lint-be`, or `golangci-lint run ./...` from backend/.
 version: "2"
 
 linters:

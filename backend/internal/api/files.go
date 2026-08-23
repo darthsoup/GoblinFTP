@@ -1,4 +1,3 @@
-// backend/internal/api/files.go
 package api
 
 import (
@@ -51,12 +50,8 @@ func clientFromContext(c echo.Context) (transfer.Client, *auth.Session, bool) {
 	return client, sess, ok
 }
 
-// lockedClient returns the session's transfer client with the per-session
-// transfer lock HELD, plus a release func the caller MUST defer. Only one client
-// operation runs at a time per session, so concurrent requests never interleave
-// two data transfers on the single FTP/SFTP control connection (jlaffaye/ftp's
-// ServerConn is not safe for concurrent use). Returns (nil, nil, false) when
-// there is no active connection, in which case the lock is not taken.
+// lockedClient returns the session's transfer client with the per-session lock
+// HELD plus a release func the caller MUST defer: ServerConn is not concurrency-safe.
 func lockedClient(c echo.Context) (transfer.Client, func(), bool) {
 	client, sess, ok := clientFromContext(c)
 	if !ok {
@@ -128,8 +123,8 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
 	}
-	// Initialize non-nil so the JSON always carries arrays (never null) - the SPA
-	// reads result.failed.length unconditionally, and a null there would throw.
+	// Initialize non-nil so the JSON always carries arrays, never null: the SPA
+	// reads result.failed.length unconditionally and would throw.
 	result := deleteResult{Deleted: []string{}, Failed: []deleteFailed{}}
 	for _, p := range req.Paths {
 		err := client.Delete(p)
@@ -142,9 +137,8 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 		if isConnLost(err) {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
-		// Per-item failures are part of a successful (HTTP 200) batch response;
-		// classify into a stable code + friendly message and log the raw cause
-		// here (it never reaches the client and no longer flows through Fail()).
+		// Per-item failures ride in a successful (HTTP 200) batch response, so the
+		// raw cause is logged here rather than through Fail().
 		code, msg := classify(err)
 		result.Failed = append(result.Failed, deleteFailed{Path: p, Code: string(code), Message: msg})
 		attrs := []slog.Attr{slog.String("path", p), slog.String("code", string(code))}
@@ -194,20 +188,15 @@ func (h *Handler) CopyFile(c echo.Context) error {
 	return OK(c, nil)
 }
 
-// ensureDirAll creates dir and any missing parents, idempotently and uniformly
-// across FTP and SFTP. FTP's MakeDir is single-level and errors if the target
-// already exists, while SFTP's is recursive; the Stat guard normalizes both so a
-// folder upload can recreate a tree without spurious "already exists" failures.
+// ensureDirAll creates dir and any missing parents, idempotently across FTP and
+// SFTP: FTP's MakeDir is single-level and errors when the target already exists.
 func ensureDirAll(client transfer.Client, dir string) error {
 	_, err := ensureDirAllCreated(client, dir)
 	return err
 }
 
-// ensureDirAllCreated is ensureDirAll reporting whether it had to create dir or
-// any of its parents. A freshly created parent cannot already contain the
-// destination, so upload handlers use this to skip their existence probe - on
-// FTP that probe is a full parent LIST, so the skip is load-bearing for folder
-// uploads, not a micro-optimization.
+// ensureDirAllCreated is ensureDirAll, also reporting whether it created anything.
+// A fresh parent cannot hold the destination, so callers skip their probe (a LIST).
 func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 	dir = path.Clean(dir)
 	if dir == "/" || dir == "." || dir == "" {
@@ -225,9 +214,8 @@ func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 		}
 	}
 	if err := client.MakeDir(dir); err != nil {
-		// Tolerate an idempotent/raced create (SFTP MkdirAll, or another request
-		// won the race): an existing directory is success. It was not created by
-		// us, so the caller must still probe for the destination.
+		// Tolerate an idempotent or raced create: an existing directory is success,
+		// but we did not create it, so the caller must still probe.
 		if fi, statErr := client.Stat(dir); statErr == nil && fi.IsDir {
 			return false, nil
 		}
@@ -236,10 +224,8 @@ func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 	return true, nil
 }
 
-// copyTree copies from src to dst, recursing into directories. Files are streamed
-// via Download→Upload (Upload overwrites). For directories it recreates the tree,
-// only calling MakeDir when dst doesn't already exist so an overwrite merges into
-// the existing directory rather than failing.
+// copyTree copies src to dst recursively. MakeDir runs only when dst is missing,
+// so an overwrite merges into the existing directory rather than failing.
 func copyTree(client transfer.Client, dataDir, src, dst string) error {
 	return copyTreeDepth(client, dataDir, src, dst, 0)
 }
@@ -272,10 +258,8 @@ func copyTreeDepth(client transfer.Client, dataDir, src, dst string, depth int) 
 	return copyFile(client, dataDir, src, dst)
 }
 
-// copyFile copies a single file. The download is staged to a temp file and fully
-// closed before the upload starts: FTP allows only one data transfer per control
-// connection at a time, so streaming Download→Upload directly would interleave
-// RETR and STOR and desync the control channel.
+// copyFile stages the download to a temp file and closes it before uploading:
+// FTP allows one data transfer per control connection, so streaming desyncs it.
 func copyFile(client transfer.Client, dataDir, src, dst string) error {
 	r, err := client.Download(src)
 	if err != nil {

@@ -7,9 +7,8 @@ const route = useRoute()
 
 useSessionChecker()
 
-// Warn on browser reload/close while the editor has unsaved buffers. Lives here
-// (not on the editor page) so it still fires after returning to the browser with
-// dirty tabs still held in the editor store.
+// Warn on reload/close while the editor has unsaved buffers. Lives here, not on
+// the editor page, so it still fires after returning to the file browser.
 useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
   if (editorStore.hasDirty) {
     e.preventDefault()
@@ -17,10 +16,8 @@ useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
   }
 })
 
-// Single source of truth for connected → route, independent of which page is
-// mounted. The global auth middleware covers navigations; this covers in-place
-// state flips (manual connect, SSO auto-connect, disconnect, session-expiry
-// acknowledge) that the middleware can't see because no navigation occurs.
+// Single source of truth for connected → route. The global auth middleware
+// covers navigations; this covers in-place flips, which it cannot see.
 watch(() => authStore.connected, (connected) => {
   if (connected && route.path === '/login')
     navigateTo('/')

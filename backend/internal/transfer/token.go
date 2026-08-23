@@ -1,4 +1,3 @@
-// backend/internal/transfer/token.go
 package transfer
 
 import (
@@ -17,12 +16,8 @@ var (
 	ErrTokenInvalid = errors.New("token invalid")
 )
 
-// IssueToken creates a signed download token.
-// Format (before outer base64): subject:base64url(path):expiryUnix:hexHMAC
-//
-// The token is signed, not encrypted: base64 is trivially reversible, so
-// subject must never be a credential. Callers pass a session's DownloadKey,
-// which identifies the session without being usable as one.
+// IssueToken creates a signed (never encrypted) download token, base64 of
+// subject:base64url(path):expiryUnix:hexHMAC. subject must never be a credential.
 func IssueToken(secret []byte, subject, path string, expiry time.Time) string {
 	encodedPath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	expiryStr := strconv.FormatInt(expiry.Unix(), 10)

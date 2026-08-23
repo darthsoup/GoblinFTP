@@ -6,12 +6,8 @@ import (
 	"strings"
 )
 
-// parseFrameAncestors validates GFTP_FRAME_ANCESTORS into a CSP frame-ancestors
-// source list. Empty means framing is denied.
-//
-// Deliberately not a regex: the value has to accept single-label hosts
-// (docker-compose service names, k8s short DNS) as readily as public domains,
-// and a pattern tight enough to be useful ends up rejecting them.
+// parseFrameAncestors validates GFTP_FRAME_ANCESTORS into a CSP source list;
+// empty denies framing. Not a regex: single-label hosts (compose, k8s) must pass.
 func parseFrameAncestors(raw string) ([]string, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, nil

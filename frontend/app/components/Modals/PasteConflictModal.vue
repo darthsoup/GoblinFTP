@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// Asks how to resolve name collisions during a paste. Driven by
-// modalStore.pasteConflict() (a promise the files store awaits). Closing via
-// backdrop/Esc resolves as 'cancel'.
+// Asks how to resolve paste name collisions. Driven by modalStore.pasteConflict()
+// (a promise the files store awaits); backdrop/Esc resolves as 'cancel'.
 const modalStore = useModalStore()
 const { t } = useI18n()
 

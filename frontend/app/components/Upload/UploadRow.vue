@@ -34,9 +34,8 @@ function fmt(n: number): string {
   return formatFileSize(n, settingsStore.sizeFormat, locale.value)
 }
 
-// Three states, deliberately distinct: null renders nothing (still measuring, or
-// finalizing where any figure would be a guess about the server), 0 renders
-// "Stalled", and a real rate renders alongside the ETA.
+// Three distinct states: null renders nothing (still measuring, or finalizing
+// where any figure would be a guess), 0 renders "Stalled", a rate renders an ETA.
 const telemetry = computed(() => {
   const item = props.item
   if (item.status !== 'uploading' || item.finalizing)
@@ -57,7 +56,6 @@ const telemetry = computed(() => {
 <template>
   <li class="group flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 border-b border-muted last:border-b-0 even:bg-elevated/40 text-xs">
     <div class="min-w-0 flex-1 flex flex-col gap-1.5">
-      <!-- Name + byte counts (sizes shown from sm up; name always truncates) -->
       <div class="flex items-baseline gap-2">
         <span class="min-w-0 flex-1 truncate text-default" :title="path">{{ path }}</span>
         <span class="hidden sm:inline shrink-0 tabular-nums text-muted">
@@ -66,12 +64,11 @@ const telemetry = computed(() => {
         </span>
       </div>
 
-      <!-- Progress bar + compact status (percent while uploading, else the label) -
-           this line keeps every row informative at any width. -->
+      <!-- Progress bar plus compact status (percent while uploading, else the
+           label), which keeps every row informative at any width. -->
       <div class="flex items-center gap-2.5">
-        <!-- null renders an indeterminate bar: during commit the bytes really
-             are all sent but the server is still writing, so a percentage would
-             be fabricated. -->
+        <!-- null renders an indeterminate bar: during commit all bytes are sent
+             but the server is still writing, so a percentage would be invented. -->
         <UProgress
           class="min-w-0 flex-1"
           size="sm"
@@ -89,13 +86,12 @@ const telemetry = computed(() => {
         </span>
       </div>
 
-      <!-- Failure reason - always reachable now (was hidden below lg). -->
+      <!-- Failure reason, always reachable now (was hidden below lg). -->
       <p v-if="item.status === 'error' && failure" class="truncate text-error" :title="failure">
         {{ failure }}
       </p>
     </div>
 
-    <!-- Action: cancel while active, retry once failed/cancelled, check when done. -->
     <div class="shrink-0 w-7 flex justify-center">
       <UTooltip v-if="isActive" :text="t('upload.cancel')">
         <UButton

@@ -20,7 +20,6 @@ function toggleView() {
   settingsStore.fileViewMode = settingsStore.fileViewMode === 'table' ? 'cards' : 'table'
 }
 
-// Hidden file input ref
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 function openNewFolder() {
@@ -45,8 +44,8 @@ async function onFilesSelected(event: Event) {
   const input = event.target as HTMLInputElement
   if (!input.files || input.files.length === 0)
     return
-  // Snapshot before resetting the input - clearing it empties the live FileList,
-  // and addFiles now awaits a conflict check before reading it.
+  // Snapshot before resetting the input: clearing it empties the live FileList,
+  // and addFiles awaits a conflict check before reading it.
   const files = Array.from(input.files)
   // Reset input so the same file can be re-selected later
   input.value = ''
@@ -77,7 +76,6 @@ const paste = usePaste()
 
 <template>
   <div class="flex flex-wrap items-center gap-2 px-4 min-h-10 py-1.5 bg-elevated border-t border-muted border-b border-default shrink-0">
-    <!-- Hidden file input for uploads -->
     <input
       ref="fileInputRef"
       type="file"
@@ -89,7 +87,6 @@ const paste = usePaste()
     <!-- Left region swaps between the default command set and a selection mode.
          The filter is anchored right (outside the transition) so it never shifts. -->
     <Transition name="cmd-swap" mode="out-in">
-      <!-- Selection mode -->
       <div v-if="selectedCount > 0" key="sel" class="flex flex-wrap items-center gap-2">
         <UBadge color="primary" variant="subtle" size="sm" class="tabular-nums">
           {{ t('toolbar.selected', { n: selectedCount }) }}
@@ -131,7 +128,6 @@ const paste = usePaste()
         </UButton>
       </div>
 
-      <!-- Default command set -->
       <div v-else key="def" class="flex flex-wrap items-center gap-2">
         <UButton
           size="sm"
@@ -223,7 +219,7 @@ const paste = usePaste()
 </template>
 
 <style scoped>
-/* Left-region swap between default and selection modes - restrained slide+fade. */
+/* Left-region swap between default and selection modes: restrained slide+fade. */
 .cmd-swap-enter-active,
 .cmd-swap-leave-active {
   transition:

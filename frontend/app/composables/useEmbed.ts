@@ -1,15 +1,8 @@
-// Chromeless embed state, shaped like useBranding().
-//
-// PRESENTATION ONLY. This hides UI; it never restricts what a user can do, and
-// nothing on the server branches on it. Anything that must be *forbidden*
-// inside a panel belongs in server-side config (editor.disabled,
-// connection.lockHost, GFTP_LOGIN_FORM_DISABLED). Do not turn this into a
-// security control.
-//
-// Detection is `window.self !== window.top` rather than a query param: being
-// framed is a boot-time environment fact, whereas the SSO redirect and both
-// auth redirects drop the query string, so a param would survive only the very
-// first load.
+// PRESENTATION ONLY: this hides UI, it never restricts what a user can do.
+// Anything that must be forbidden in a panel belongs in server-side config.
+
+// Detection is `window.self !== window.top`, not a query param: the SSO and auth
+// redirects drop the query string, so a param would survive only the first load.
 export function useEmbed() {
   const authStore = useAuthStore()
 

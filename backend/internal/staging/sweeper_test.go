@@ -28,9 +28,8 @@ func mkUpload(t *testing.T, root, id string, age time.Duration) string {
 	return dir
 }
 
-// TestSweepReclaimsStaleUpload is the leak this closes: handlers clean up on
-// commit and abort, but an abandoned reservation (or any upload reserved before
-// a restart, since sessions are in-memory) was never collected.
+// TestSweepReclaimsStaleUpload covers the leak: handlers clean up on commit and
+// abort, but an abandoned reservation (sessions are in-memory) was never collected.
 func TestSweepReclaimsStaleUpload(t *testing.T) {
 	root := t.TempDir()
 	dir := mkUpload(t, root, validID, 48*time.Hour)
@@ -49,9 +48,8 @@ func TestSweepKeepsRecentUpload(t *testing.T) {
 	assert.DirExists(t, dir, "an upload in progress must never be reclaimed")
 }
 
-// TestSweepLeavesForeignEntriesAlone is the safety property. GFTP_DATA_DIR also
-// holds known_hosts and themes/, so a guard that is too loose deletes operator
-// data.
+// TestSweepLeavesForeignEntriesAlone is the safety property: GFTP_DATA_DIR also
+// holds known_hosts and themes/, so a guard that is too loose deletes operator data.
 func TestSweepLeavesForeignEntriesAlone(t *testing.T) {
 	root := t.TempDir()
 	old := time.Now().Add(-72 * time.Hour)
@@ -83,10 +81,8 @@ func TestSweeperCloseIsIdempotent(t *testing.T) {
 	s.Close()
 }
 
-// TestSweepSkipsUploadStillReferenced is the guard against destroying a user's
-// work: the age check alone is not enough, because the session TTL has no upper
-// bound and a retried chunk (os.Create truncates in place) does not refresh the
-// directory mtime.
+// TestSweepSkipsUploadStillReferenced guards a user's work: age alone is not
+// enough, since a retried chunk (os.Create truncates in place) leaves the mtime.
 func TestSweepSkipsUploadStillReferenced(t *testing.T) {
 	root := t.TempDir()
 	dir := mkUpload(t, root, validID, 72*time.Hour)

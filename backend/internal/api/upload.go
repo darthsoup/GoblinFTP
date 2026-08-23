@@ -1,4 +1,3 @@
-// backend/internal/api/upload.go
 package api
 
 import (
@@ -15,9 +14,8 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// stagingError maps chunk-store failures to API errors: connection-level
-// storage outages become ERR_STORAGE_UNAVAILABLE (503), everything else
-// keeps the handler's usual code.
+// stagingError maps chunk-store failures to API errors: a storage outage becomes
+// ERR_STORAGE_UNAVAILABLE (503), everything else keeps the handler's code.
 func stagingError(err error, fallback gftperrors.Code, msg string) *gftperrors.GFTPError {
 	if errors.Is(err, staging.ErrUnavailable) {
 		return gftperrors.New(gftperrors.ErrStorageUnavailable, "chunk storage unavailable")
@@ -25,11 +23,8 @@ func stagingError(err error, fallback gftperrors.Code, msg string) *gftperrors.G
 	return gftperrors.New(fallback, msg)
 }
 
-// destinationTaken reports whether p already exists on the remote. An ordinary
-// Stat failure means "free", matching how ensureDirAll and copyTree infer
-// non-existence, but a dead connection is surfaced as err so the caller fails
-// the request instead of assuming the path is free and clobbering it.
-// Callers must already hold the per-session transfer lock.
+// destinationTaken reports whether p exists; callers must hold the transfer lock.
+// An ordinary Stat failure means "free", but a dead connection is surfaced as err.
 func destinationTaken(client transfer.Client, p string) (taken, isDir bool, err error) {
 	fi, statErr := client.Stat(p)
 	if statErr == nil {
@@ -41,10 +36,8 @@ func destinationTaken(client transfer.Client, p string) (taken, isDir bool, err 
 	return false, false, nil
 }
 
-// probeDestination reports whether p is taken, taking and releasing the
-// per-session transfer lock itself. The deferred release matters: reserve holds
-// the lock only for this probe, and an explicit release would strand it - and
-// with it every later request on the session - if the probe panicked.
+// probeDestination reports whether p is taken, taking and releasing the transfer
+// lock itself. Deferred release: an explicit one would strand it on a panic.
 func probeDestination(c echo.Context, p string) (taken, connected bool, err error) {
 	client, release, ok := lockedClient(c)
 	if !ok {
@@ -81,9 +74,8 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 	if err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
-	// Echo has already parsed the multipart body by now, so this 409 is a safety
-	// net rather than a bandwidth saver - /files/upload/check is what lets the
-	// client resolve conflicts before sending anything.
+	// Echo has already parsed the multipart body, so this 409 is a safety net;
+	// /files/upload/check is what lets the client resolve conflicts up front.
 	if !overwrite && !created {
 		taken, _, err := destinationTaken(client, remotePath)
 		if err != nil {
@@ -115,10 +107,8 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || req.Path == "" || req.TotalChunks < 1 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path and totalChunks are required"))
 	}
-	// Reject a conflict here, before the client stages a single chunk. The lock
-	// is required because a LIST issued mid-transfer would desync the shared
-	// FTP control connection; it is released before the chunk-store call, which
-	// has nothing to do with the remote.
+	// Reject a conflict before the client stages a single chunk. The lock is
+	// required because a LIST issued mid-transfer desyncs the FTP control connection.
 	if !req.Overwrite {
 		taken, connected, err := probeDestination(c, req.Path)
 		if !connected {
@@ -223,10 +213,8 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		overwrite = *req.Overwrite
 	}
 	ctx := c.Request().Context()
-	// Probed before assembling so a conflict costs no reader setup. A conflict
-	// deliberately leaves the staged chunks in place so the client can re-commit
-	// with overwrite or a new destination instead of re-uploading; /upload/abort
-	// is how it discards them after choosing to skip.
+	// Probed before assembling so a conflict costs no reader setup, and the staged
+	// chunks survive it so the client can re-commit rather than re-upload.
 	if !overwrite {
 		taken, _, err := destinationTaken(client, destination)
 		if err != nil {
@@ -248,8 +236,8 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	}
 	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
 	if err := client.Upload(destination, src); err != nil {
-		// The frontend never retries a failed commit, so the staged chunks
-		// are unreachable - clean them up instead of leaving them behind.
+		// The frontend never retries a failed commit, so the staged chunks are
+		// unreachable: clean them up instead of leaving them behind.
 		_ = h.chunks.Cleanup(ctx, meta.ID)
 		sess.DeleteUpload(req.UploadID)
 		return failClient(c, gftperrors.ErrOperationFailed, err)
@@ -259,10 +247,8 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	return OK(c, nil)
 }
 
-// UploadAbort discards a reserved upload and its staged chunks. Calling it is
-// still the right thing on the client side: staging.Sweeper only reclaims
-// directories untouched for 24h and unreferenced by any live session, so an
-// abort frees the space now rather than a day later.
+// UploadAbort discards a reserved upload and its staged chunks. Worth calling:
+// staging.Sweeper only reclaims dirs untouched for 24h, an abort frees space now.
 func (h *Handler) UploadAbort(c echo.Context) error {
 	sess, ok := c.Get("session").(*auth.Session)
 	if !ok {

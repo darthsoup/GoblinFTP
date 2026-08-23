@@ -1,4 +1,3 @@
-// backend/internal/api/response_test.go
 package api_test
 
 import (

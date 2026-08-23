@@ -35,7 +35,7 @@ func TestThemeHostMapping(t *testing.T) {
 	}
 	write("acme/config.css", ":root{}")
 	write("acme/theme.json", `{"hosts":["ftp.acme.com","Portal.ACME.io"]}`)
-	write("beta/theme.json", `{"hosts":["files.beta.io"]}`) // no config.css - still indexed
+	write("beta/theme.json", `{"hosts":["files.beta.io"]}`) // no config.css, still indexed
 	write("Upper/theme.json", `{"hosts":["skip.me"]}`)      // invalid slug dir → skipped
 	write("broke/theme.json", `{bad json`)                  // malformed → no hosts
 

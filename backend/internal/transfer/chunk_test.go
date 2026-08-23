@@ -1,4 +1,3 @@
-// backend/internal/transfer/chunk_test.go
 package transfer_test
 
 import (
@@ -62,7 +61,6 @@ func TestAssembleReader_MissingChunk(t *testing.T) {
 	meta, err := transfer.NewUpload(dir, "/f.txt", 2, 5)
 	require.NoError(t, err)
 
-	// Write only chunk 0, not chunk 1.
 	require.NoError(t, transfer.WriteChunk(dir, meta.ID, 0, strings.NewReader("hello")))
 
 	_, err = transfer.AssembleReader(dir, meta.ID, 2)

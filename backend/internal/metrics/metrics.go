@@ -1,7 +1,5 @@
-// Package metrics owns the Prometheus registry and all GoblinFTP series.
-// The Metrics instance lives on the API handler (override via api.WithMetrics);
-// the /metrics endpoint is served by a dedicated listener in cmd/gftp, never
-// on the main echo server.
+// Package metrics owns the Prometheus registry and all GoblinFTP series. /metrics is
+// served by a dedicated listener in cmd/gftp, never on the main echo server.
 package metrics
 
 import (
@@ -32,9 +30,8 @@ type Metrics struct {
 	conns *connCollector
 }
 
-// New builds a Metrics instance with its own private registry (never the
-// global default - keeps tests isolated). The session gauges report zeros
-// until SetConnectionSnapshot wires in the store.
+// New builds a Metrics instance with its own private registry (never the global
+// default, which keeps tests isolated). Gauges read zero until SetConnectionSnapshot.
 func New() *Metrics {
 	m := &Metrics{
 		Registry: prometheus.NewRegistry(),
@@ -76,9 +73,8 @@ func (m *Metrics) SetConnectionSnapshot(fn func() Snapshot) {
 	m.conns.set(fn)
 }
 
-// CountingReader wraps r so every byte read is added to counter. Bytes are
-// counted as they are read, so a transfer that fails mid-stream still counts
-// what actually moved. A nil counter returns r unchanged (opt-out).
+// CountingReader wraps r so bytes count as they are read: a transfer that fails
+// mid-stream still counts what actually moved. A nil counter returns r unchanged.
 func CountingReader(r io.Reader, counter prometheus.Counter) io.Reader {
 	if counter == nil {
 		return r

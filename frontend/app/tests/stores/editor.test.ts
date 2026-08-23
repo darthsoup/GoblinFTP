@@ -62,9 +62,8 @@ describe('useEditorStore', () => {
   })
 })
 
-// The token must survive open -> save -> save: the server refuses a write whose
-// expectedVersion is stale, so a tab that fails to adopt the refreshed version
-// would conflict with the write it just made.
+// The token must survive open -> save -> save: the server refuses a stale
+// expectedVersion, so a tab that misses the refreshed one conflicts with its own write.
 describe('useEditorStore conflict detection', () => {
   beforeEach(() => {
     setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
@@ -193,9 +192,8 @@ describe('useEditorStore conflict detection', () => {
     expect(store.tabs[0]!.version).toBe('4:3000')
   })
 
-  // The revision bump is what makes EditorPane rebuild its CodeMirror state.
-  // Without it the pane keeps showing the document the user just discarded and
-  // the next save writes it back, which is the loss this feature prevents.
+  // The revision bump is what makes EditorPane rebuild its CodeMirror state. Without
+  // it the pane keeps the discarded document and the next save writes it back.
   it('reloadTab replaces the buffer and bumps the revision', async () => {
     const { store, id } = await openTab()
     mockApi.post.mockRejectedValue(new ApiError('ERR_FILE_MODIFIED', 'changed'))

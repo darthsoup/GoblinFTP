@@ -57,9 +57,8 @@ watch(() => filesStore.currentPath, () => {
   filter.value = ''
 })
 
-// Moves focus between rows for the roving tabindex. Rows carry
-// data-file-name, so focus is found by query rather than by holding a ref per
-// row - the list can be thousands of entries.
+// Roving-tabindex focus move. Rows are found by a data-file-name query rather
+// than a ref each, since a listing can be thousands of entries.
 function moveRowFocus(from: number, delta: number | 'first' | 'last') {
   const rows = Array.from(
     document.querySelectorAll<HTMLElement>('tr.file-row[data-file-name], [data-file-card][data-file-name]'),
@@ -106,7 +105,6 @@ const sortedFiles = computed(() => {
   if (!key)
     return filesStore.files
   const arr = [...filesStore.files]
-  // Directories always first
   arr.sort((a, b) => {
     if (a.isDir !== b.isDir)
       return a.isDir ? -1 : 1
@@ -129,14 +127,13 @@ const visibleFiles = computed(() => {
 })
 
 const compact = computed(() => settingsStore.density === 'compact')
-// Many FTP servers return no mode - hide the Permissions column entirely when
-// nothing in the listing carries one, rather than filling it with placeholders.
+// Many FTP servers return no mode, so hide the Permissions column entirely
+// rather than filling it with placeholders.
 const hasPermissions = computed(() => visibleFiles.value.some(f => !!f.mode))
 
 // Browser-only keyboard shortcuts (select-all matches the visible/filtered set).
 useFileBrowserShortcuts(() => visibleFiles.value.map(f => f.name))
 
-// ── Empty state ───────────────────────────────────────────────────────────────
 const emptyActions = computed<ButtonProps[]>(() => {
   if (filter.value) {
     return [{
@@ -155,7 +152,6 @@ const emptyActions = computed<ButtonProps[]>(() => {
   ]
 })
 
-// ── Selection ─────────────────────────────────────────────────────────────────
 const allSelected = computed(() =>
   visibleFiles.value.length > 0 && visibleFiles.value.every(f => filesStore.selected.has(f.name)),
 )
@@ -173,7 +169,7 @@ function toggleSelectAll() {
     filesStore.setSelection(visibleFiles.value.map(f => f.name))
 }
 
-// Names dimmed as "pending move" - only the cut items still in their source dir.
+// Names dimmed as "pending move": only cut items still in their source dir.
 const cutNames = computed(() => {
   const cb = filesStore.clipboard
   if (!cb || cb.mode !== 'cut' || cb.sourcePath !== filesStore.currentPath.replace(/\/$/, ''))
@@ -181,7 +177,6 @@ const cutNames = computed(() => {
   return new Set(cb.names)
 })
 
-// ── Preview panel ─────────────────────────────────────────────────────────────
 // Derive the previewed file from the store so it auto-clears when the entry
 // disappears after a refresh; reset on navigation.
 const previewName = ref<string | null>(null)
@@ -195,7 +190,6 @@ watch(() => filesStore.currentPath, () => {
 // Table vs. stacked-cards layout (user toggle; defaults by viewport width).
 const viewMode = computed(() => settingsStore.fileViewMode)
 
-// ── Context menu ──────────────────────────────────────────────────────────────
 const menuFile = ref<FileInfo | null>(null)
 
 const editEnabled = computed(() => {
@@ -216,7 +210,7 @@ function buildFileMenu(file: FileInfo): DropdownMenuItem[][] {
   const dir = filesStore.currentPath.replace(/\/$/, '')
   const path = `${dir}/${file.name}`
 
-  // Directories can't be downloaded - the group is dropped below when empty.
+  // Directories can't be downloaded, so the group is dropped below when empty.
   const primary: DropdownMenuItem[] = []
   if (!file.isDir)
     primary.push({ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) })
@@ -249,9 +243,8 @@ function buildFileMenu(file: FileInfo): DropdownMenuItem[][] {
 
 const menuItems = computed<DropdownMenuItem[][]>(() => menuFile.value ? buildFileMenu(menuFile.value) : [])
 
-// Capture-phase: resolve the right-clicked row/card before Reka's trigger opens
-// the menu; on empty space, stop the event so the browser menu shows instead.
-// `[data-file-name]` matches both the table <tr> and the cards <div>.
+// Capture-phase: resolve the right-clicked row/card by `[data-file-name]` before
+// Reka opens the menu; on empty space the browser's own menu shows instead.
 function onAreaContextMenu(e: MouseEvent) {
   const row = (e.target as HTMLElement).closest<HTMLElement>('[data-file-name]')
   const file = row ? visibleFiles.value.find(f => f.name === row.dataset.fileName) : undefined
@@ -262,7 +255,6 @@ function onAreaContextMenu(e: MouseEvent) {
   menuFile.value = file
 }
 
-// ── Drag & drop upload ────────────────────────────────────────────────────────
 const uploadStore = useUploadStore()
 const isDragOver = ref(false)
 let dragCounter = 0 // counter to handle child element enter/leave events
@@ -331,7 +323,7 @@ async function onDrop(e: DragEvent) {
     <div class="relative flex flex-1 min-h-0">
       <UContextMenu :items="menuItems">
         <div class="flex-1 min-w-0 overflow-auto" @contextmenu.capture="onAreaContextMenu">
-          <!-- Loading / error / empty - shared by both views -->
+          <!-- Loading, error and empty states, shared by both views -->
           <div v-if="filesStore.loading" class="py-12 text-center text-muted text-sm">
             <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
             {{ t('files.loading') }}
@@ -374,7 +366,6 @@ async function onDrop(e: DragEvent) {
             </div>
           </div>
 
-          <!-- Table view -->
           <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse" :aria-label="t('files.listOf', { path: filesStore.currentPath })">
             <thead class="sticky top-0 z-[5] bg-elevated/95 backdrop-blur label-caps text-muted">
               <tr class="border-b border-default shadow-sm">
@@ -437,7 +428,6 @@ async function onDrop(e: DragEvent) {
             </tbody>
           </table>
 
-          <!-- Cards view -->
           <template v-else>
             <!-- The grid has no column header, so this sticky bar carries the
                  select-all affordance the table gets from its <thead> checkbox. -->
@@ -445,13 +435,8 @@ async function onDrop(e: DragEvent) {
               class="sticky top-0 z-[5] flex items-center bg-elevated/95 backdrop-blur border-b border-default"
               :class="compact ? 'px-2.5 py-1.5' : 'px-3.5 py-2'"
             >
-              <!-- Stable label + explicit reactive :aria-label. Two reasons the label
-                   must stay constant ("Select all") rather than showing the count:
-                   (1) the count is already surfaced in the toolbar's selection badge;
-                   (2) a dynamic label whose text isn't in the accessible name fails
-                   WCAG 2.5.3. The explicit :aria-label is required because Reka's
-                   CheckboxRoot otherwise freezes an aria-label from the label's
-                   uppercased innerText at mount, going stale across locale/state. -->
+              <!-- The label stays constant: a count not carried into the accessible
+                   name fails WCAG 2.5.3, and Reka freezes a stale one at mount. -->
               <UCheckbox
                 :model-value="headerChecked"
                 size="md"
@@ -494,9 +479,8 @@ async function onDrop(e: DragEvent) {
         </div>
       </UContextMenu>
 
-      <!-- Inspector overlays the right edge at every width (rather than reserving a
-           column) so opening it never reflows the list / resizes the card grid.
-           Non-modal: clicking a visible file still swaps the preview in place. -->
+      <!-- Inspector overlays the right edge rather than reserving a column, so
+           opening it never reflows the list. Non-modal: previews swap in place. -->
       <Transition name="preview">
         <FilePreviewPanel
           v-if="previewFile"

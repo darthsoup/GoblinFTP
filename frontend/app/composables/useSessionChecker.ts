@@ -1,7 +1,5 @@
-// Periodically verifies the session + FTP/SFTP connection are really alive
-// (GET /api/auth/status?ping=1). Also re-checks when the tab regains focus.
-// Polls are skipped during active transfers: a NOOP must not interleave with
-// a running upload on the same control connection.
+// Polls GET /api/auth/status?ping=1, and re-checks when the tab regains focus.
+// Skipped during transfers: a NOOP must not interleave with a running upload.
 const CHECK_INTERVAL_MS = 30_000
 
 export function useSessionChecker() {

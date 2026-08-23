@@ -35,7 +35,6 @@ const editEnabled = computed(() => {
   return ed.allowedExtensions.some(a => a.toLowerCase() === ext.value)
 })
 
-// ── Preview loading ───────────────────────────────────────────────────────────
 type Status = 'loading' | 'ready' | 'tooLarge' | 'none' | 'error'
 const status = ref<Status>('loading')
 const mediaUrl = ref<string | null>(null)
@@ -76,12 +75,11 @@ async function load() {
       textContent.value = data.content
     }
     else {
-      // image/video/audio/pdf: fetch as a typed object URL. The download endpoint
-      // serves octet-stream, so a typed blob is needed for reliable rendering
-      // (e.g. SVG won't render from an octet-stream <img> in some browsers).
+      // The download endpoint serves octet-stream, so media needs a typed blob to
+      // render reliably (e.g. SVG in an <img> fails in some browsers otherwise).
       const url = await filesStore.fetchObjectUrl(path, previewMime(props.file.name))
       if (id !== reqId) {
-        URL.revokeObjectURL(url) // a newer request superseded us - don't leak
+        URL.revokeObjectURL(url) // a newer request superseded us, don't leak
         return
       }
       mediaUrl.value = url
@@ -101,7 +99,6 @@ async function load() {
 watch(fullPath, load, { immediate: true })
 onBeforeUnmount(revoke)
 
-// ── Actions ───────────────────────────────────────────────────────────────────
 async function download() {
   try {
     await filesStore.downloadFile(fullPath.value)
@@ -130,7 +127,6 @@ function fmtDate(iso: string): string {
 
 <template>
   <aside class="flex flex-col overflow-hidden border-l border-default bg-elevated">
-    <!-- Header -->
     <div class="flex items-center gap-2 px-3 h-11 border-b border-default shrink-0">
       <UIcon
         :name="iconDef.icon"
@@ -150,7 +146,6 @@ function fmtDate(iso: string): string {
     </div>
 
     <div class="flex-1 overflow-auto">
-      <!-- Preview region -->
       <div class="p-3">
         <div
           v-if="status === 'loading'"
@@ -211,7 +206,6 @@ function fmtDate(iso: string): string {
         </template>
       </div>
 
-      <!-- Metadata -->
       <div class="px-3 pb-3">
         <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
           <div>
@@ -228,13 +222,12 @@ function fmtDate(iso: string): string {
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.permissions') }}</span>
-            <span class="text-sm" :class="file.mode ? 'text-default' : 'text-dimmed/60'">{{ file.mode || '–' }}</span>
+            <span class="text-sm" :class="file.mode ? 'text-default' : 'text-dimmed/60'">{{ file.mode || '-' }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Actions -->
     <div class="flex items-center gap-2 px-3 py-2 border-t border-default shrink-0">
       <UButton size="sm" color="primary" variant="subtle" icon="i-lucide-download" @click="download">
         {{ t('context.download') }}

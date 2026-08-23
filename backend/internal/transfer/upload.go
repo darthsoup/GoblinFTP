@@ -1,4 +1,3 @@
-// backend/internal/transfer/upload.go
 package transfer
 
 import (
@@ -106,9 +105,8 @@ func WriteChunk(dataDir, uploadID string, index int, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	// A discarded Close hides a failed flush, leaving a short chunk that
-	// AssembleReader accepts: it checks that every chunk exists, never that
-	// any is complete, so the upload would silently corrupt.
+	// A discarded Close hides a failed flush, leaving a short chunk: AssembleReader
+	// checks that every chunk exists, never that any of them is complete.
 	_, copyErr := io.Copy(f, r)
 	closeErr := f.Close()
 	if copyErr != nil {
@@ -129,14 +127,12 @@ func AssembleReader(dataDir, uploadID string, totalChunks int) (io.ReadCloser, e
 			return nil, fmt.Errorf("chunk %d missing: %w", i, err)
 		}
 	}
-	// Then open them
 	readers := make([]io.Reader, totalChunks)
 	closers := make([]io.Closer, totalChunks)
 	for i := range totalChunks {
 		name := filepath.Join(dataDir, uploadID, fmt.Sprintf("%04d", i))
 		f, err := os.Open(name)
 		if err != nil {
-			// close already opened files
 			for j := range i {
 				_ = closers[j].Close()
 			}

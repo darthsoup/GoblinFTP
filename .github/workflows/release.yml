@@ -1,9 +1,7 @@
 name: Release
 
-# Releasing: git tag v0.2.0 && git push --tags
-# → gates (tests + lint + frontend build)
-# → multi-arch image to ghcr.io with semver tags + latest
-# → GitHub Release with commit-grouped notes.
+# Releasing: git tag v0.2.0 && git push --tags. Runs the shared gates, then publishes
+# a multi-arch image (semver tags + latest) and a Release with commit-grouped notes.
 on:
   push:
     tags: ["v*"]
@@ -30,7 +28,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # flavor.latest defaults to auto: `latest` is added for semver tags but
-      # correctly skipped for prereleases (v1.0.0-rc1) - do not force it.
+      # correctly skipped for prereleases (v1.0.0-rc1). Do not force it.
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
@@ -81,8 +79,8 @@ jobs:
         with:
           fetch-depth: 0 # full history for git describe + the log range
 
-      # Commits land directly on main, so GitHub's PR-based notes would be
-      # empty - group commit subjects by conventional prefix instead.
+      # Commits land directly on main, so GitHub's PR-based notes would be empty.
+      # Group commit subjects by conventional prefix instead.
       - name: Build commit-grouped release notes
         run: |
           set -euo pipefail

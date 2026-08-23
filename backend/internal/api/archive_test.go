@@ -45,14 +45,12 @@ func TestExtractZipArchive(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))
 	sess := connectAndGetSession(t, app)
 
-	// Build a small zip in memory
 	var zipBuf bytes.Buffer
 	zw := zip.NewWriter(&zipBuf)
 	w, _ := zw.Create("hello.txt")
 	_, _ = io.WriteString(w, "hello")
 	zw.Close()
 
-	// Upload via multipart
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	_ = writer.WriteField("destination", "/extracted/")
@@ -101,13 +99,8 @@ func TestCreateZipArchive(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 }
 
-// TestCreateZipUploadFailsWithoutReading is the regression test for a deadlock:
-// CreateZip used to stream the archive through an io.Pipe, so an Upload that
-// returned an error without draining the reader left the writer goroutine
-// blocked in pw.Write forever. That goroutine held the session's transfer lock,
-// wedging every later request on that session for the life of the process.
-//
-// The short timeout is the assertion - a regression hangs rather than fails.
+// Regression: an Upload that errors without draining the io.Pipe reader used to
+// block the writer goroutine forever, holding the session's transfer lock.
 func TestCreateZipUploadFailsWithoutReading(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
@@ -204,8 +197,6 @@ func postArchive(t *testing.T, app *echo.Echo, sess sessionCtx, filename string,
 	return rec
 }
 
-// TestExtractTarGzArchive covers the tar branch, which had no test at all -
-// only the zip branch was exercised.
 func TestExtractTarGzArchive(t *testing.T) {
 	var uploaded []string
 	mock := &testutil.MockClient{
@@ -229,8 +220,7 @@ func TestExtractTarGzArchive(t *testing.T) {
 	assert.Equal(t, []string{"/extracted/hello.txt"}, uploaded)
 }
 
-// TestExtractTarRejectsPathTraversal covers safeJoin, which is the security
-// boundary of the whole extract feature and previously had zero test coverage.
+// Covers safeJoin, the security boundary of the whole extract feature.
 func TestExtractTarRejectsPathTraversal(t *testing.T) {
 	for _, name := range []string{"../escaped.txt", "../../etc/passwd", "a/../../escaped.txt"} {
 		t.Run(name, func(t *testing.T) {
@@ -258,9 +248,8 @@ func TestExtractTarRejectsPathTraversal(t *testing.T) {
 	}
 }
 
-// TestExtractRejectsDecompressionBomb - maxZipSize bounded only the compressed
-// upload, and the tar branches were unbounded entirely, so a small archive
-// could expand to gigabytes written into the user's remote account.
+// maxZipSize bounds only the compressed upload, so an unbounded tar branch lets
+// a small archive expand to gigabytes on the user's remote account.
 func TestExtractRejectsDecompressionBomb(t *testing.T) {
 	// ~600 MB of zeroes, which gzip squeezes into a very small upload.
 	bomb := buildTarGz(t, map[string]string{"big.bin": strings.Repeat("\x00", 600*1024*1024)})
@@ -289,11 +278,8 @@ func TestExtractRejectsDecompressionBomb(t *testing.T) {
 		"extraction wrote %d bytes, past the budget", written)
 }
 
-// TestExtractCreatesNestedDirectories covers 2.7d. FTP's MakeDir is
-// single-level and the extractors discarded its error while only ever
-// attempting path.Dir(outPath), so an archive carrying implicit nested
-// directories (no explicit directory entries) failed on FTP with a confusing
-// upload error instead of creating the tree.
+// FTP's MakeDir is single-level, so an archive with implicit nested directories
+// (no explicit directory entries) needs every missing parent created in turn.
 func TestExtractCreatesNestedDirectories(t *testing.T) {
 	var made []string
 	var uploaded []string

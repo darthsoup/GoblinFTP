@@ -1,31 +1,26 @@
 import { isAppLanguage } from '~/stores/settings'
 
-// Resolves session + system vars (and applies the language preference) once,
-// before the auth route middleware makes its first decision. This is what lets
-// a cold load or hard refresh of any route land correctly - without it, a
-// restored cookie session would bounce '/' → /login → '/' because `connected`
-// defaults to false until init() runs.
+// Resolves session + system vars before the auth middleware's first decision.
+// Without it a restored cookie session bounces '/' → /login → '/' on a hard refresh.
 export default defineNuxtPlugin(async (nuxtApp) => {
   const authStore = useAuthStore()
   const settingsStore = useSettingsStore()
 
-  // Document title + favicon track the (white-label) branding. Registered with
-  // reactive getters before init() so they update the moment systemVars arrives
-  // (and so useHead runs inside the synchronous plugin-setup context).
+  // Reactive getters registered before init(), so title/favicon update the moment
+  // systemVars arrives and useHead still runs in the synchronous setup context.
   useHead(() => {
     const branding = authStore.systemVars?.branding
     const appName = branding?.appName || 'GoblinFTP'
     // ui.pageTitle is empty unless an admin sets it explicitly; then it wins
     // over the (branding) app name for the tab title only.
     const baseTitle = authStore.systemVars?.ui.pageTitle || appName
-    // Surface the connected server in the tab title (server first - tab titles
-    // truncate the tail). serverHost is host:port; empty for a fresh SSO connect.
+    // Server first, since tab titles truncate the tail. serverHost is host:port,
+    // empty for a fresh SSO connect.
     const title = authStore.connected && authStore.serverHost
       ? `${authStore.serverHost} - ${baseTitle}`
       : baseTitle
-    // unhead v3 types link `rel` as a discriminated union (one literal per
-    // shape), so each entry needs its own concrete `rel` rather than a shared
-    // `rel: string`.
+    // unhead v3 types `rel` as a discriminated union, so each entry needs its own
+    // concrete `rel` rather than a shared `rel: string`.
     const link: Array<
       { rel: 'icon', href: string, key: string } | { rel: 'stylesheet', href: string, key: string }
     > = []
@@ -43,24 +38,19 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   await authStore.init()
 
-  // Accent color (white-label): override the goblin scale at runtime. No-op when
-  // unset, so the default green stays. Skipped when a tenant theme stylesheet is
-  // present - it drives --ui-primary directly, and applyBrandColor's inline
-  // --color-goblin-* would otherwise beat the stylesheet's :root rules.
+  // Accent color (white-label): override the goblin scale at runtime. Skipped for
+  // tenant themes, whose :root rules the inline --color-goblin-* would otherwise beat.
   const branding = authStore.systemVars?.branding
   if (!branding?.themeCssUrl) {
     applyBrandColor(branding?.primaryColor)
-    // Selectable button/primary text color - drives --gftp-primary-text, which
-    // only the primary solid surfaces read (not the shared --ui-text-inverted),
-    // so a light accent (e.g. yellow) pairs with dark button text without
-    // breaking tooltips. Skipped for tenant themes - their config.css owns it.
+    // Only primary solid surfaces read --gftp-primary-text (not --ui-text-inverted),
+    // so a light accent pairs with dark button text without breaking tooltips.
     if (branding?.primaryTextColor)
       document.documentElement.style.setProperty('--gftp-primary-text', branding.primaryTextColor)
   }
 
-  // Language precedence: explicit user choice > admin default > en. Applied
-  // here (not on a page) so a restored session landing straight on the
-  // workspace still gets the right locale.
+  // Precedence: explicit user choice > admin default > en. Applied here so a session
+  // restored straight onto the workspace still gets the right locale.
   const i18n = nuxtApp.$i18n as {
     locale: { value: string }
     setLocale: (locale: string) => Promise<void>
