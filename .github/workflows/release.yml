@@ -12,6 +12,9 @@ concurrency:
   group: release-${{ github.ref }}
   # No cancel-in-progress: never interrupt a release mid-publish.
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     uses: ./.github/workflows/checks.yml

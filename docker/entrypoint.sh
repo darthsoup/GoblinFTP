@@ -31,6 +31,12 @@ if [ -n "${GFTP_PORT:-}" ] && [ "${GFTP_PORT}" != "8080" ]; then
 fi
 export GFTP_PORT=8080
 
+# Caddy's trusted_proxies takes space-separated ranges; GFTP_ACCESS_TRUSTED_PROXIES
+# is comma-separated like every other GFTP_* list. Translate rather than making
+# this one key differ from the rest.
+GFTP_CADDY_TRUSTED_PROXIES="$(printf '%s' "${GFTP_ACCESS_TRUSTED_PROXIES:-}" | tr ',' ' ')"
+export GFTP_CADDY_TRUSTED_PROXIES
+
 # Start Go backend in background
 /app/gftp &
 backend_pid=$!

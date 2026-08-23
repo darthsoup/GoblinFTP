@@ -4,6 +4,9 @@ name: Checks
 on:
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend tests
@@ -14,9 +17,11 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+      # -race matters here: the session store, the per-session transfer lock,
+      # the SSO replay set and the login throttle are all shared mutable state.
       - name: Run tests
         working-directory: backend
-        run: go test ./... -v
+        run: go test -race ./... -v
 
   backend-lint:
     name: Backend lint
@@ -31,6 +36,20 @@ jobs:
         with:
           version: v2.12.2 # keep in sync with the local install (brew install golangci-lint)
           working-directory: backend
+
+  backend-vuln:
+    name: Backend vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      # golangci's gosec finds our bugs; govulncheck finds our dependencies'.
+      - name: govulncheck
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
   frontend:
     name: Frontend build
@@ -47,6 +66,12 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: i18n parity
         run: node frontend/scripts/i18n-check.mjs
+      - name: Lint
+        run: pnpm --filter goblinftp-frontend run lint
+      # nuxt generate does not typecheck, so a type error would otherwise merge
+      # as long as the build succeeds. Needs .nuxt, which nuxt typecheck prepares.
+      - name: Typecheck
+        run: pnpm --filter goblinftp-frontend run typecheck
       - name: Generate SPA
         run: pnpm --filter goblinftp-frontend run generate
 

@@ -1,4 +1,19 @@
+{
+	# Believe X-Forwarded-* only from the ranges the operator declared, matching
+	# GFTP_ACCESS_TRUSTED_PROXIES on the Go side. Both must agree: Caddy decides
+	# what reaches the backend, the backend decides what it believes. Empty (the
+	# default) trusts nothing, so a client cannot spoof its own address.
+	# entrypoint.sh derives the space-separated form Caddy wants from the
+	# comma-separated GFTP_ACCESS_TRUSTED_PROXIES.
+	servers {
+		trusted_proxies static {$GFTP_CADDY_TRUSTED_PROXIES:}
+		trusted_proxies_strict
+	}
+}
+
 :80 {
+	encode zstd gzip
+
 	@sso {
 		path /
 		query sso=*
@@ -24,6 +39,15 @@
 		reverse_proxy localhost:8080
 	}
 
+	# Content-hashed build output: the filename changes whenever the bytes do,
+	# so it can be cached indefinitely.
+	@immutable path /_nuxt/*
+	handle @immutable {
+		header Cache-Control "public, max-age=31536000, immutable"
+		root * /app/public
+		file_server
+	}
+
 	# All other requests → Nuxt SPA with HTML5 history fallback
 	handle {
 		# frame-ancestors is only honoured on the response carrying the framed
@@ -40,6 +64,15 @@
 		# <script> blocks and an importmap, so a document-level script-src
 		# 'self' would white-screen the app.
 		header Content-Security-Policy "frame-ancestors {$GFTP_FRAME_ANCESTORS:'none'}"
+		# Mirrors the headers the Go binary sets on its own responses.
+		header X-Content-Type-Options "nosniff"
+		header Referrer-Policy "no-referrer"
+		header Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# index.html must never be cached: it names the hashed chunks, so a
+		# stale copy points at files that no longer exist after an upgrade -
+		# a white screen rather than an old-but-working app.
+		header Cache-Control "no-cache"
+
 		root * /app/public
 		try_files {path} /index.html
 		file_server

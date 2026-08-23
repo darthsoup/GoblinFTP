@@ -82,7 +82,7 @@ fmt:
 # Build Docker image
 [group('docker')]
 docker-build:
-    docker build -t ghcr.io/darthsoup/goblinftp .
+    docker build -f docker/Dockerfile -t ghcr.io/darthsoup/goblinftp .
 
 # Run Docker image (:8080)
 [group('docker')]
