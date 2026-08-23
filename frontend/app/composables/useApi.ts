@@ -67,9 +67,18 @@ export function useApi() {
   // lives here, not in the upload store, so CSRF injection, the envelope
   // unwrap, ApiError and the session-lost side effect in raise() are shared
   // with the other methods instead of duplicated.
-  function postForm<T>(path: string, form: FormData, opts?: { onProgress?: (p: UploadProgress) => void }): Promise<T> {
+  function postForm<T>(path: string, form: FormData, opts?: { onProgress?: (p: UploadProgress) => void, signal?: AbortSignal }): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
+      // Without this the request is unreachable once started: cancelling only
+      // relabelled the row while the browser kept uploading the whole file.
+      if (opts?.signal) {
+        if (opts.signal.aborted) {
+          reject(new ApiError('ERR_ABORTED', 'Request aborted'))
+          return
+        }
+        opts.signal.addEventListener('abort', () => xhr.abort(), { once: true })
+      }
       xhr.open('POST', path)
       const csrf = getCsrfToken()
       if (csrf)
@@ -99,7 +108,7 @@ export function useApi() {
         }
       }
       xhr.onerror = () => reject(new ApiError('ERR_NETWORK', 'Network error'))
-      xhr.onabort = () => reject(new ApiError('ERR_NETWORK', 'Request aborted'))
+      xhr.onabort = () => reject(new ApiError('ERR_ABORTED', 'Request aborted'))
       xhr.send(form)
     })
   }

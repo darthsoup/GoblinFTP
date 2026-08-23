@@ -121,9 +121,14 @@ func (c *Client) Upload(p string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = io.Copy(f, r)
-	return err
+	// Close carries the server's status for the final flush, so discarding it
+	// reports a quota or I/O failure at end-of-write as a successful upload.
+	_, copyErr := io.Copy(f, r)
+	closeErr := f.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
 }
 
 func (c *Client) Ping() error {

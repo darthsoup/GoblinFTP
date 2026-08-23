@@ -84,7 +84,12 @@
     "noMatches": "Žiadne súbory nezodpovedajú filtru",
     "clearFilter": "Zrušiť filter",
     "dropToUpload": "Presuňte súbory alebo priečinky na nahranie",
-    "retry": "Skúsiť znova"
+    "retry": "Skúsiť znova",
+    "selectItem": "Vybrať {name}",
+    "renameItem": "Premenovať {name}",
+    "folderNamed": "Priečinok {name}",
+    "fileNamed": "Súbor {name}",
+    "listOf": "Obsah {path}"
   },
   "toolbar": {
     "newFolder": "Nový priečinok",

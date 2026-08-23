@@ -101,13 +101,20 @@ func matrixFor(t *testing.T, k *Key, def *Config) (matrixCase, bool) {
 	case "port":
 		m = matrixCase{valid: "9301", want: "9301", invalid: []string{"abc", "0", "70000"}}
 	case "list":
-		vals := []string{"alpha"}
-		if k.listAllowed != nil {
-			vals = []string{k.listAllowed[0]}
+		switch {
+		// A validated list (IPs, CIDRs) cannot use the generic placeholder, so
+		// it supplies its own samples rather than being skipped by the matrix.
+		case k.listValidate != nil:
+			require.NotEmpty(t, k.sampleValid, "%s: a validated list needs samples()", k.Env)
+			m.valid, m.want = k.sampleValid, k.sampleValid
+			m.invalid = []string{k.sampleInvalid}
+		case k.listAllowed != nil:
+			m.valid = k.listAllowed[0]
+			m.want = m.valid
 			m.invalid = []string{"banana"}
+		default:
+			m.valid, m.want = "alpha", "alpha"
 		}
-		m.valid = strings.Join(vals, ",")
-		m.want = m.valid
 	default:
 		t.Fatalf("unknown kind %q", k.kind)
 	}

@@ -45,7 +45,7 @@ func TestListConnLost(t *testing.T) {
 	assert.False(t, resp.Success)
 	assert.Equal(t, string(gftperrors.ErrConnectionLost), resp.Errors[0].Code)
 	assert.NotContains(t, resp.Errors[0].Message, "broken pipe", "raw socket error must not leak")
-	assert.True(t, mock.Closed, "dead client must be closed")
+	assert.True(t, mock.IsClosed(), "dead client must be closed")
 
 	// Session survives, but the client is gone.
 	status := getStatus(t, e, sess, "")
@@ -77,7 +77,7 @@ func TestListOtherErrorKeepsClient(t *testing.T) {
 	assert.Equal(t, string(gftperrors.ErrFilePermission), resp.Errors[0].Code)
 	assert.Contains(t, resp.Errors[0].Message, "Permission denied")
 	assert.NotContains(t, resp.Errors[0].Message, "550", "raw protocol string must not leak")
-	assert.False(t, mock.Closed)
+	assert.False(t, mock.IsClosed())
 
 	status := getStatus(t, e, sess, "")
 	assert.True(t, status.Data.Connected)

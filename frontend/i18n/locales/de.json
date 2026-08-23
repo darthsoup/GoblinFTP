@@ -84,7 +84,12 @@
     "noMatches": "Keine Dateien entsprechen dem Filter",
     "clearFilter": "Filter zurücksetzen",
     "dropToUpload": "Dateien oder Ordner zum Hochladen ablegen",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "selectItem": "{name} auswählen",
+    "renameItem": "{name} umbenennen",
+    "folderNamed": "Ordner {name}",
+    "fileNamed": "Datei {name}",
+    "listOf": "Inhalt von {path}"
   },
   "toolbar": {
     "newFolder": "Neuer Ordner",

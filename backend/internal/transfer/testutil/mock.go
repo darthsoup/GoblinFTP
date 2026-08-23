@@ -3,6 +3,7 @@ package testutil
 
 import (
 	"io"
+	"sync"
 
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
@@ -22,7 +23,12 @@ type MockClient struct {
 	UploadFn        func(path string, r io.Reader) error
 	PingFn          func() error
 	CloseFn         func() error
-	Closed          bool
+
+	// closed is written by whichever goroutine closes the client, which since
+	// session eviction is no longer always the test's own. Read it with
+	// IsClosed.
+	mu     sync.Mutex
+	closed bool
 }
 
 func (m *MockClient) WorkingDir() (string, error)                   { return m.WorkingDirFn() }
@@ -54,11 +60,20 @@ func (m *MockClient) Ping() error {
 }
 
 func (m *MockClient) Close() error {
-	m.Closed = true
+	m.mu.Lock()
+	m.closed = true
+	m.mu.Unlock()
 	if m.CloseFn != nil {
 		return m.CloseFn()
 	}
 	return nil
+}
+
+// IsClosed reports whether Close has been called.
+func (m *MockClient) IsClosed() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.closed
 }
 
 // Verify MockClient implements transfer.Client at compile time.

@@ -60,11 +60,21 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		return h.ssoReject(c, "invalid", err)
 	}
 
-	hash := tokenHash(raw)
-	if h.ssoUsed.IsUsed(hash) {
+	// The protocol allowlist is policy of the GoblinFTP operator, who is not
+	// necessarily whoever minted the token (white-label deployments), so it is
+	// enforced here rather than trusted from the payload.
+	if !isAllowedType(payload.Type, h.cfg.Settings.Connection.AllowedTypes) {
+		return h.ssoReject(c, "invalid", fmt.Errorf("connection type %q is not allowed", payload.Type))
+	}
+	if gftperr := h.checkHostLock(payload.Host, payload.Port); gftperr != nil {
+		return h.ssoReject(c, "invalid", gftperr)
+	}
+
+	// Atomic: IsUsed-then-Mark let two concurrent requests with the same
+	// one-time token both mint a session.
+	if !h.ssoUsed.MarkIfUnused(tokenHash(raw), time.Unix(payload.Exp, 0)) {
 		return h.ssoReject(c, "used", nil)
 	}
-	h.ssoUsed.Mark(hash, time.Unix(payload.Exp, 0))
 
 	csrfToken, csrfErr := auth.GenerateCSRFToken()
 	if csrfErr != nil {
@@ -82,6 +92,9 @@ func (h *Handler) SSOLogin(c echo.Context) error {
 		Port:     payload.Port,
 		Username: payload.Username,
 		Password: payload.Password,
+		// sso.Payload carries no passive flag, so this defaulted to false and
+		// every SSO FTP login dialed in active mode, failing behind NAT.
+		Passive: h.cfg.Settings.Connection.PassiveMode,
 	})
 	// White-label theming: carry the (validated) tenant on the session directly so
 	// it survives the pending→connected transition and reaches SystemVars. An
@@ -161,7 +174,10 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 // Requires valid session (enforced by requireSession middleware).
 // Reads the pending SSO ConnectRequest from session, dials, and returns ConnectData.
 func (h *Handler) SSOConnect(c echo.Context) error {
-	sess := c.Get("session").(*auth.Session)
+	sess, ok := c.Get("session").(*auth.Session)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active session"))
+	}
 
 	pendingVal, ok := sess.Get(ssoPendingKey)
 	if !ok {
@@ -177,7 +193,9 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	var body struct {
 		AcceptHostKey string `json:"acceptHostKey"`
 	}
-	_ = c.Bind(&body)
+	if err := c.Bind(&body); err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid request body"))
+	}
 
 	if gftperr := h.checkIPAllowlist(c); gftperr != nil {
 		return Fail(c, gftperr)

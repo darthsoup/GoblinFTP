@@ -84,7 +84,12 @@
     "noMatches": "No files match your filter",
     "clearFilter": "Clear filter",
     "dropToUpload": "Drop files or folders to upload",
-    "retry": "Retry"
+    "retry": "Retry",
+    "selectItem": "Select {name}",
+    "renameItem": "Rename {name}",
+    "folderNamed": "Folder {name}",
+    "fileNamed": "File {name}",
+    "listOf": "Contents of {path}"
   },
   "toolbar": {
     "newFolder": "New Folder",

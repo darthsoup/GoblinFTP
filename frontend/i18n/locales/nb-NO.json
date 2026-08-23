@@ -84,7 +84,12 @@
     "noMatches": "Ingen filer samsvarer med filteret",
     "clearFilter": "Tøm filter",
     "dropToUpload": "Slipp filer eller mapper for å laste opp",
-    "retry": "Prøv igjen"
+    "retry": "Prøv igjen",
+    "selectItem": "Velg {name}",
+    "renameItem": "Gi {name} nytt navn",
+    "folderNamed": "Mappe {name}",
+    "fileNamed": "Fil {name}",
+    "listOf": "Innhold i {path}"
   },
   "toolbar": {
     "newFolder": "Ny mappe",

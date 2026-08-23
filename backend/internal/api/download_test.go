@@ -4,6 +4,7 @@ package api_test
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -167,4 +168,59 @@ func TestDownloadZipRejectsOversizedArchive(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.False(t, calledDownload)
+}
+
+// TestDownloadTokenDoesNotCarrySessionID is the regression test for a privilege
+// escalation. The token is signed, not encrypted, so anything inside it is
+// readable by whoever holds the URL - and download URLs travel where the
+// HttpOnly session cookie deliberately does not (history, Referer, proxy logs,
+// "copy link"). Embedding the session ID turned any leaked download link into a
+// full session takeover: decode, extract, resend as gftp_session.
+func TestDownloadTokenDoesNotCarrySessionID(t *testing.T) {
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		DownloadFn: func(string) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader("data")), nil
+		},
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	sess := connectAndGetSession(t, app)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/files/download-token",
+		strings.NewReader(`{"path":"/file.txt"}`))
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
+
+	var envelope struct {
+		Data struct {
+			Token string `json:"token"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &envelope))
+	require.NotEmpty(t, envelope.Data.Token)
+
+	decoded, err := base64.RawURLEncoding.DecodeString(envelope.Data.Token)
+	require.NoError(t, err, "token must be plain base64 - that is the whole point")
+	var sessionID string
+	for _, ck := range sess.cookies {
+		if ck.Name == "gftp_session" {
+			sessionID = ck.Value
+		}
+	}
+	require.NotEmpty(t, sessionID)
+	assert.NotContains(t, string(decoded), sessionID,
+		"the session ID must never appear in a download token")
+
+	// And the value that IS in the token must be useless as a session cookie.
+	subject := strings.SplitN(string(decoded), ":", 2)[0]
+	require.NotEmpty(t, subject)
+	replay := httptest.NewRequest(http.MethodGet, "/api/files?path=/", nil)
+	replay.AddCookie(&http.Cookie{Name: "gftp_session", Value: subject})
+	replayRec := httptest.NewRecorder()
+	app.ServeHTTP(replayRec, replay)
+	assert.NotEqual(t, http.StatusOK, replayRec.Code,
+		"the token subject must not authenticate as a session")
 }

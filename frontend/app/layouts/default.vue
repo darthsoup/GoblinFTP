@@ -30,8 +30,7 @@ watch(() => authStore.connected, (connected) => {
 </script>
 
 <template>
-  <div class="relative isolate h-screen flex flex-col overflow-hidden bg-default text-default">
-    <div class="gftp-atmosphere pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
+  <div class="relative h-screen flex flex-col overflow-hidden bg-default text-default">
     <slot />
 
     <!-- Global overlays (each renders only when its modalStore state is active) -->

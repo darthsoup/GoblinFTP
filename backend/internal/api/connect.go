@@ -4,6 +4,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -43,6 +44,10 @@ type Capabilities struct {
 	DisableChmod bool `json:"disableChmod"`
 }
 
+// loginIPAttemptMultiplier widens the per-IP budget relative to the
+// per-host+username one: many users can legitimately share an egress address.
+const loginIPAttemptMultiplier = 4
+
 // Connect handles POST /api/auth/connect.
 // Phase 2: validates input, checks IP allowlist, checks throttle. Returns 501.
 // Phase 3: adds actual FTP/SFTP connection and session creation.
@@ -66,14 +71,28 @@ func (h *Handler) Connect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "port must be between 1 and 65535"))
 	}
 
+	// Enforce the host lock server-side. LockHost only ever disabled the SPA's
+	// host field, so a direct POST could still dial anywhere - both a bypass of
+	// the operator's policy and an unauthenticated way to probe the internal
+	// network, since the error codes distinguish refused from auth-failed.
+	if gftperr := h.checkHostLock(req.Host, req.Port); gftperr != nil {
+		return Fail(c, gftperr)
+	}
+
 	// Check IP allowlist
 	if gftperr := h.checkIPAllowlist(c); gftperr != nil {
 		return Fail(c, gftperr)
 	}
 
-	// Check login throttle
+	// Two throttle dimensions. host+username alone is trivially evaded by
+	// varying the username, which is exactly the shape of a password spray, so
+	// the client IP is counted too and gets a wider budget (a shared NAT egress
+	// is one address for many legitimate users).
 	throttleKey := req.Host + ":" + req.Username
-	if h.throttle.IsThrottled(throttleKey, h.cfg.LoginMaxAttempts) {
+	ipKey := "ip:" + c.RealIP()
+	ipMaxAttempts := h.cfg.LoginMaxAttempts * loginIPAttemptMultiplier
+	if h.throttle.IsThrottled(throttleKey, h.cfg.LoginMaxAttempts) ||
+		h.throttle.IsThrottled(ipKey, ipMaxAttempts) {
 		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "throttled").Inc()
 		return Fail(c, gftperrors.New(gftperrors.ErrLoginThrottled,
 			"too many failed login attempts, please try again later"))
@@ -96,7 +115,9 @@ func (h *Handler) Connect(c echo.Context) error {
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
 	}
 	if dialErr != nil {
-		h.throttle.Record(throttleKey, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
+		cooldown := time.Duration(h.cfg.LoginCooldownSeconds) * time.Second
+		h.throttle.Record(throttleKey, cooldown)
+		h.throttle.Record(ipKey, cooldown)
 		switch {
 		case errors.Is(dialErr, transfer.ErrAuthFailed):
 			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "auth_failed").Inc()
@@ -115,6 +136,7 @@ func (h *Handler) Connect(c echo.Context) error {
 		}
 	}
 	h.throttle.Reset(throttleKey)
+	h.throttle.Reset(ipKey)
 
 	initialDir, wdErr := client.WorkingDir()
 	if wdErr != nil {
@@ -158,16 +180,15 @@ func (h *Handler) Connect(c echo.Context) error {
 // Disconnect handles POST /api/auth/disconnect.
 // Requires a valid session (enforced by requireSession middleware in router.go).
 func (h *Handler) Disconnect(c echo.Context) error {
-	sess := c.Get("session").(*auth.Session)
-	if client, ok := sess.Get("client"); ok {
-		if c, ok := client.(transfer.Client); ok {
-			// Hold the transfer lock so a disconnect can't close the connection
-			// out from under an in-flight transfer mid-data-stream.
-			sess.LockTransfer()
-			_ = c.Close()
-			sess.UnlockTransfer()
-		}
+	sess, ok := c.Get("session").(*auth.Session)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active session"))
 	}
+	// Hold the transfer lock so a disconnect can't close the connection out
+	// from under an in-flight transfer mid-data-stream.
+	sess.LockTransfer()
+	closeSessionClient(sess)
+	sess.UnlockTransfer()
 	h.store.Delete(sess.ID)
 	c.SetCookie(sessionCookie(c, h.cfg, "", -1))
 	return OK(c, nil)
@@ -182,17 +203,46 @@ func isAllowedType(t string, allowed []string) bool {
 	return false
 }
 
+// checkHostLock rejects a target that differs from the configured preset when
+// GFTP_CONNECTION_LOCK_HOST is set. Config guarantees PresetHost is non-empty
+// whenever LockHost is true, so an unset preset here means the lock is off.
+// PresetPort is only enforced when it is also configured: locking the host
+// without pinning a port is a valid setup.
+func (h *Handler) checkHostLock(host string, port int) *gftperrors.GFTPError {
+	conn := h.cfg.Settings.Connection
+	if !conn.LockHost || conn.PresetHost == nil || *conn.PresetHost == "" {
+		return nil
+	}
+	if !strings.EqualFold(strings.TrimSuffix(host, "."), strings.TrimSuffix(*conn.PresetHost, ".")) {
+		return gftperrors.New(gftperrors.ErrForbidden, "this instance is locked to a fixed host")
+	}
+	if conn.PresetPort != nil && port != *conn.PresetPort {
+		return gftperrors.New(gftperrors.ErrForbidden, "this instance is locked to a fixed port")
+	}
+	return nil
+}
+
 func (h *Handler) checkIPAllowlist(c echo.Context) *gftperrors.GFTPError {
 	allowed := h.cfg.Settings.Access.AllowedClientAddresses
 	if len(allowed) == 0 {
 		return nil
 	}
-	// c.RealIP() reads X-Forwarded-For first (set by Caddy in production).
-	// This is safe because the Go binary only listens on localhost inside the container,
-	// so only Caddy can send requests and control the XFF header.
-	clientIP := c.RealIP()
+	// c.RealIP() is governed by the IPExtractor installed in newApp: the direct
+	// peer unless GFTP_ACCESS_TRUSTED_PROXIES names the proxy in front. Behind
+	// an untrusted-but-present proxy every client looks like the proxy, which
+	// is why that key exists.
+	clientIP := net.ParseIP(c.RealIP())
+	if clientIP == nil {
+		return gftperrors.New(gftperrors.ErrForbidden, "client IP address is not in the allowlist")
+	}
 	for _, addr := range allowed {
-		if addr == clientIP {
+		if strings.Contains(addr, "/") {
+			if _, ipnet, err := net.ParseCIDR(addr); err == nil && ipnet.Contains(clientIP) {
+				return nil
+			}
+			continue
+		}
+		if allowedIP := net.ParseIP(addr); allowedIP != nil && allowedIP.Equal(clientIP) {
 			return nil
 		}
 	}

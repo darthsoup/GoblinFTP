@@ -84,7 +84,12 @@
     "noMatches": "Inga filer matchar filtret",
     "clearFilter": "Rensa filter",
     "dropToUpload": "Släpp filer eller mappar för att ladda upp",
-    "retry": "Försök igen"
+    "retry": "Försök igen",
+    "selectItem": "Välj {name}",
+    "renameItem": "Byt namn på {name}",
+    "folderNamed": "Mapp {name}",
+    "fileNamed": "Fil {name}",
+    "listOf": "Innehåll i {path}"
   },
   "toolbar": {
     "newFolder": "Ny mapp",

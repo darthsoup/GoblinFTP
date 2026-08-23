@@ -20,6 +20,7 @@ const emit = defineEmits<{
   cancelRename: []
   requestRename: []
   preview: []
+  focusMove: [delta: number | 'first' | 'last']
 }>()
 
 const { t, locale } = useI18n()
@@ -94,12 +95,55 @@ function handleClick() {
 function handleDownload() {
   emit('download', fullPath.value)
 }
+
+// Mirrors FileRow: cards are a roving tabindex so the grid view is operable
+// without a mouse.
+function onKeydown(e: KeyboardEvent) {
+  switch (e.key) {
+    case 'Enter':
+      e.preventDefault()
+      handleClick()
+      break
+    case ' ':
+      e.preventDefault()
+      emit('select', props.file.name)
+      break
+    case 'ArrowRight':
+    case 'ArrowDown':
+      e.preventDefault()
+      emit('focusMove', 1)
+      break
+    case 'ArrowLeft':
+    case 'ArrowUp':
+      e.preventDefault()
+      emit('focusMove', -1)
+      break
+    case 'Home':
+      e.preventDefault()
+      emit('focusMove', 'first')
+      break
+    case 'End':
+      e.preventDefault()
+      emit('focusMove', 'last')
+      break
+    case 'F2':
+      if (!props.file.isDir) {
+        e.preventDefault()
+        emit('requestRename')
+      }
+      break
+  }
+}
 </script>
 
 <template>
   <div
     role="listitem"
-    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md"
+    :tabindex="index === 0 ? 0 : -1"
+    :aria-selected="selected"
+    :aria-label="file.isDir ? t('files.folderNamed', { name: file.name }) : t('files.fileNamed', { name: file.name })"
+    data-file-card
+    class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-primary"
     :class="[
       compact ? 'p-1.5' : 'p-2',
       selected ? 'ring-2 ring-primary border-primary bg-primary/5' : (active ? 'ring-1 ring-inset ring-accented' : ''),
@@ -108,6 +152,7 @@ function handleDownload() {
     :style="{ '--card-i': index }"
     :data-file-name="file.name"
     @click="handleClick"
+    @keydown="onKeydown"
   >
     <!-- Thumbnail / icon -->
     <div
@@ -139,7 +184,8 @@ function handleDownload() {
         size="md"
         class="absolute top-1 left-1 transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        :aria-label="file.name"
+        :aria-label="t('files.selectItem', { name: file.name })"
+        tabindex="-1"
         @click.stop
         @update:model-value="emit('select', file.name)"
       />
@@ -163,6 +209,7 @@ function handleDownload() {
       ref="inputRef"
       v-model="draft"
       class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-sm text-default outline-none focus:ring-1 focus:ring-primary"
+      :aria-label="t('files.renameItem', { name: file.name })"
       @click.stop
       @keydown.enter.prevent="commit"
       @keydown.escape.prevent="cancel"

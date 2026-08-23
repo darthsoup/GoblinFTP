@@ -84,7 +84,12 @@
     "noMatches": "Filtru neodpovídají žádné soubory",
     "clearFilter": "Vymazat filtr",
     "dropToUpload": "Přetáhněte soubory nebo složky k nahrání",
-    "retry": "Zkusit znovu"
+    "retry": "Zkusit znovu",
+    "selectItem": "Vybrat {name}",
+    "renameItem": "Přejmenovat {name}",
+    "folderNamed": "Složka {name}",
+    "fileNamed": "Soubor {name}",
+    "listOf": "Obsah {path}"
   },
   "toolbar": {
     "newFolder": "Nová složka",

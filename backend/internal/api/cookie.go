@@ -54,9 +54,12 @@ func sessionCookie(c echo.Context, cfg *config.Config, value string, maxAge int)
 		Path:     "/",
 		MaxAge:   maxAge,
 		HttpOnly: true,
-		// Secure when served over TLS (directly or behind a proxy setting
-		// X-Forwarded-Proto); plain-HTTP LAN deployments keep working.
-		Secure:   c.Scheme() == "https",
+		// Secure when served over TLS. Behind an external terminator Caddy
+		// listens on plain HTTP inside the container and forwards
+		// X-Forwarded-Proto, so that header is the only signal - but it is
+		// only believed when a proxy allowlist says so (see proxy.go). Without
+		// one, plain-HTTP LAN deployments keep working.
+		Secure:   clientScheme(c, cfg) == "https",
 		SameSite: http.SameSiteLaxMode,
 	}
 

@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+// maxThrottleEntries caps the map. Throttle keys are attacker-controlled
+// (host+username on connect, client IP on the frontend-log endpoint) and every
+// failed attempt inserts one, so an unbounded map is a memory-exhaustion path
+// on unauthenticated endpoints. At the cap the oldest-expiring entries are
+// dropped: losing throttle state degrades to "not yet throttled", which is the
+// same state a fresh key has, and is preferable to unbounded growth.
+const maxThrottleEntries = 10000
+
 type throttleEntry struct {
 	attempts  int
 	expiresAt time.Time
@@ -14,11 +22,18 @@ type throttleEntry struct {
 type Throttle struct {
 	mu      sync.Mutex
 	entries map[string]*throttleEntry
+	done    chan struct{}
+	stopped bool
 }
 
-// NewThrottle creates a new Throttle.
+// NewThrottle creates a new Throttle and starts its background sweeper.
 func NewThrottle() *Throttle {
-	return &Throttle{entries: make(map[string]*throttleEntry)}
+	t := &Throttle{
+		entries: make(map[string]*throttleEntry),
+		done:    make(chan struct{}),
+	}
+	go t.cleanup()
+	return t
 }
 
 // Record increments the attempt counter for key and sets or extends the cooldown.
@@ -28,6 +43,9 @@ func (t *Throttle) Record(key string, cooldown time.Duration) {
 
 	e := t.entries[key]
 	if e == nil {
+		if len(t.entries) >= maxThrottleEntries {
+			t.evictLocked()
+		}
 		e = &throttleEntry{}
 		t.entries[key] = e
 	}
@@ -58,4 +76,76 @@ func (t *Throttle) Reset(key string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.entries, key)
+}
+
+// Len returns the number of tracked entries. Exposed so tests can assert the
+// entry cap actually holds.
+func (t *Throttle) Len() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return len(t.entries)
+}
+
+// Close stops the background sweeper. Safe to call more than once.
+func (t *Throttle) Close() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.stopped {
+		return
+	}
+	t.stopped = true
+	close(t.done)
+}
+
+// evictLocked drops expired entries, and if that frees nothing, the entries
+// closest to expiry. Caller must hold mu.
+func (t *Throttle) evictLocked() {
+	now := time.Now()
+	for k, e := range t.entries {
+		if now.After(e.expiresAt) {
+			delete(t.entries, k)
+		}
+	}
+	if len(t.entries) < maxThrottleEntries {
+		return
+	}
+	// All live: drop the soonest-expiring tenth so the map cannot wedge full.
+	target := len(t.entries) - maxThrottleEntries + maxThrottleEntries/10
+	for range target {
+		var oldestKey string
+		var oldest time.Time
+		for k, e := range t.entries {
+			if oldestKey == "" || e.expiresAt.Before(oldest) {
+				oldestKey, oldest = k, e.expiresAt
+			}
+		}
+		if oldestKey == "" {
+			return
+		}
+		delete(t.entries, oldestKey)
+	}
+}
+
+// cleanup drops expired entries on an interval. Without it an entry is only
+// removed when that exact key is probed again after expiry, so keys that are
+// never revisited accumulate forever.
+func (t *Throttle) cleanup() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			now := time.Now()
+			t.mu.Lock()
+			for k, e := range t.entries {
+				if now.After(e.expiresAt) {
+					delete(t.entries, k)
+				}
+			}
+			t.mu.Unlock()
+		case <-t.done:
+			return
+		}
+	}
 }

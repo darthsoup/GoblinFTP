@@ -51,7 +51,7 @@ func TestAuthStatusPingAlive(t *testing.T) {
 	resp := getStatus(t, e, sess, "?ping=1")
 	assert.True(t, resp.Data.Connected)
 	assert.True(t, pinged)
-	assert.False(t, mock.Closed)
+	assert.False(t, mock.IsClosed())
 }
 
 func TestAuthStatusPingDead(t *testing.T) {
@@ -67,7 +67,7 @@ func TestAuthStatusPingDead(t *testing.T) {
 
 	resp := getStatus(t, e, sess, "?ping=1")
 	assert.False(t, resp.Data.Connected, "dead connection must report connected=false")
-	assert.True(t, mock.Closed, "dead client must be closed")
+	assert.True(t, mock.IsClosed(), "dead client must be closed")
 	// CSRF token survives so the SPA can still talk to the session.
 	assert.NotEmpty(t, resp.Data.CSRFToken)
 

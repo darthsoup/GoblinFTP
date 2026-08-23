@@ -24,12 +24,21 @@ const emit = defineEmits<{
   cancelRename: []
   requestRename: []
   preview: []
+  focusMove: [delta: number | 'first' | 'last']
 }>()
 
 const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
+
+// Screen readers announce the row as a whole; without this they read the cells
+// with no indication of what the row IS.
+const rowLabel = computed(() =>
+  props.file.isDir
+    ? t('files.folderNamed', { name: props.file.name })
+    : t('files.fileNamed', { name: props.file.name }),
+)
 
 // Inline rename behaviour is shared with FileCard.
 const { inputRef, draft, commit, cancel } = useInlineRename({
@@ -52,6 +61,45 @@ function formatDate(iso: string): string {
   return formatFileDate(iso, settingsStore.dateFormat, locale.value)
 }
 
+// Rows are a roving tabindex: exactly one is in the tab order and the arrow
+// keys move focus between them, so the list is reachable without a mouse.
+// Previously a row was a bare <tr @click>, leaving the whole file manager
+// keyboard-inoperable (WCAG 2.1.1).
+function onKeydown(e: KeyboardEvent) {
+  switch (e.key) {
+    case 'Enter':
+      e.preventDefault()
+      handleClick()
+      break
+    case ' ':
+      e.preventDefault()
+      emit('select', props.file.name)
+      break
+    case 'ArrowDown':
+      e.preventDefault()
+      emit('focusMove', 1)
+      break
+    case 'ArrowUp':
+      e.preventDefault()
+      emit('focusMove', -1)
+      break
+    case 'Home':
+      e.preventDefault()
+      emit('focusMove', 'first')
+      break
+    case 'End':
+      e.preventDefault()
+      emit('focusMove', 'last')
+      break
+    case 'F2':
+      if (!props.file.isDir) {
+        e.preventDefault()
+        emit('requestRename')
+      }
+      break
+  }
+}
+
 function handleClick() {
   if (props.file.isDir) {
     const path = `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`
@@ -65,7 +113,7 @@ function handleClick() {
 
 <template>
   <tr
-    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm"
+    class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     :class="[
       compact ? 'h-9' : 'h-12',
       selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
@@ -73,7 +121,11 @@ function handleClick() {
     ]"
     :style="{ '--row-i': index }"
     :data-file-name="file.name"
+    :tabindex="index === 0 ? 0 : -1"
+    :aria-selected="selected"
+    :aria-label="rowLabel"
     @click="handleClick"
+    @keydown="onKeydown"
   >
     <td class="w-10 px-4">
       <UCheckbox
@@ -81,7 +133,8 @@ function handleClick() {
         size="md"
         class="justify-center transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        :aria-label="file.name"
+        :aria-label="t('files.selectItem', { name: file.name })"
+        tabindex="-1"
         @click.stop
         @update:model-value="emit('select', file.name)"
       />
@@ -92,6 +145,7 @@ function handleClick() {
         ref="inputRef"
         v-model="draft"
         class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
+        :aria-label="t('files.renameItem', { name: file.name })"
         @click.stop
         @keydown.enter.prevent="commit"
         @keydown.escape.prevent="cancel"

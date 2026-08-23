@@ -150,5 +150,39 @@ func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 		}
 	}
 	out = append(out, knownhosts.Line([]string{norm}, key))
-	return os.WriteFile(path, []byte(strings.Join(out, "\n")+"\n"), 0o600)
+	return writeFileAtomic(path, []byte(strings.Join(out, "\n")+"\n"))
+}
+
+// writeFileAtomic replaces path via a temp file and rename. os.WriteFile
+// truncates first, so a crash or a full disk between truncate and write left
+// an empty known_hosts - silently reverting the whole instance to first-use
+// trust, with no prompt and no error. rename(2) is atomic within a filesystem,
+// and the temp file is created alongside the target to stay on one.
+func writeFileAtomic(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() { _ = os.Remove(tmpName) }() // no-op once the rename succeeded
+
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	// Durability before the rename: otherwise a power loss can leave the
+	// renamed entry pointing at unwritten data.
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
 }

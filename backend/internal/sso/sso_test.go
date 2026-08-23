@@ -2,6 +2,8 @@ package sso
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -193,5 +195,56 @@ func TestUsedSetExpiredEntryNotUsed(t *testing.T) {
 	// Should return false for expired token
 	if us.IsUsed(tokenHash) {
 		t.Error("Expired token should not be considered used")
+	}
+}
+
+// TestMarkIfUnusedIsAtomic covers the one-time-use guarantee under concurrency.
+// The handler used to call IsUsed then Mark as two separate lock acquisitions,
+// so two simultaneous requests carrying the same single-use token both observed
+// "unused" and both minted a session - a leaked link was replayable inside that
+// window.
+func TestMarkIfUnusedIsAtomic(t *testing.T) {
+	us := NewUsedSet()
+	defer us.Stop()
+
+	const racers = 50
+	hash := "same-token-hash"
+	expiry := time.Now().Add(time.Hour)
+
+	var wins atomic.Int32
+	var start, done sync.WaitGroup
+	start.Add(1)
+	done.Add(racers)
+	for range racers {
+		go func() {
+			defer done.Done()
+			start.Wait()
+			if us.MarkIfUnused(hash, expiry) {
+				wins.Add(1)
+			}
+		}()
+	}
+	start.Done()
+	done.Wait()
+
+	if got := wins.Load(); got != 1 {
+		t.Errorf("%d concurrent claims of one single-use token succeeded, want exactly 1", got)
+	}
+}
+
+// TestMarkIfUnusedAllowsReuseAfterExpiry - an expired entry must not keep a
+// hash blocked forever, otherwise the used-set would only ever grow.
+func TestMarkIfUnusedAllowsReuseAfterExpiry(t *testing.T) {
+	us := NewUsedSet()
+	defer us.Stop()
+
+	if !us.MarkIfUnused("h", time.Now().Add(-time.Second)) {
+		t.Fatal("first claim of an unused hash must succeed")
+	}
+	if !us.MarkIfUnused("h", time.Now().Add(time.Hour)) {
+		t.Error("an expired entry must not block a later claim")
+	}
+	if us.MarkIfUnused("h", time.Now().Add(time.Hour)) {
+		t.Error("a live entry must block a second claim")
 	}
 }

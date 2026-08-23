@@ -34,7 +34,7 @@ func testConfig() *config.Config {
 }
 
 func TestHealthz(t *testing.T) {
-	e := newApp(testConfig())
+	e, _, _, _ := newApp(testConfig())
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -45,7 +45,7 @@ func TestHealthz(t *testing.T) {
 }
 
 func TestUnauthenticatedAPIReturns401(t *testing.T) {
-	e := newApp(testConfig())
+	e, _, _, _ := newApp(testConfig())
 
 	req := httptest.NewRequest(http.MethodGet, "/api/files", nil)
 	rec := httptest.NewRecorder()

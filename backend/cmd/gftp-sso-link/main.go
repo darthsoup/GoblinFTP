@@ -57,7 +57,7 @@ func main() {
 	if *username == "" {
 		fail("missing -username")
 	}
-	if *protocol != "ftp" && *protocol != "sftp" {
+	if *protocol != "ftp" && *protocol != "ftps" && *protocol != "sftp" {
 		fail("-protocol must be ftp or sftp")
 	}
 	if *port == 0 {

@@ -123,13 +123,21 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 	// Wire the scrape-time gauges into whichever metrics instance is active
 	// (the default above, or one supplied via WithMetrics).
 	h.metrics.SetConnectionSnapshot(h.connectionSnapshot)
+	// Expiry drops a session from the map; without this its FTP/SFTP connection
+	// would stay open until the remote server timed it out.
+	store.SetOnEvict(h.evictSession)
 	return h
 }
 
+// Close releases the handler's own background workers. The session store and
+// throttle are owned by the caller and closed separately.
+func (h *Handler) Close() {
+	h.ssoUsed.Stop()
+	h.frontendLog.Close()
+}
+
 // connectionSnapshot is the scrape-time view of the session store: live
-// sessions, and those holding a transfer client grouped by protocol. The TTL
-// cleanup drops expired sessions without closing the underlying connection -
-// a session is deliberately the unit counted here.
+// sessions, and those holding a transfer client grouped by protocol.
 func (h *Handler) connectionSnapshot() metrics.Snapshot {
 	snap := metrics.Snapshot{ConnsByProtocol: map[string]int{"ftp": 0, "ftps": 0, "sftp": 0}}
 	h.store.Range(func(sess *auth.Session) {

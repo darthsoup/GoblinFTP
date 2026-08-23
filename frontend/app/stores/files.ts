@@ -51,14 +51,24 @@ export const useFilesStore = defineStore('files', () => {
   const canGoBack = computed(() => historyIndex.value > 0)
   const canGoForward = computed(() => historyIndex.value >= 0 && historyIndex.value < history.value.length - 1)
 
+  // Sequence guard, same shape as FilePreviewPanel's. Rapid navigation (open a
+  // folder, immediately breadcrumb back) has two listings in flight; without
+  // this the slower one wins and the view shows a directory the user already
+  // left, with currentPath and selection to match. Same reason `loading` is
+  // only cleared by the newest request.
+  let _listSeq = 0
+
   async function list(path?: string) {
     const api = useApi()
     const target = path ?? currentPath.value
+    const seq = ++_listSeq
     loading.value = true
     error.value = null
     editingName.value = null
     try {
       const result = await api.get<FileInfo[]>(`/api/files?path=${encodeURIComponent(target)}`)
+      if (seq !== _listSeq)
+        return
       files.value = result
       currentPath.value = target
       selected.value = new Set()
@@ -69,10 +79,13 @@ export const useFilesStore = defineStore('files', () => {
       }
     }
     catch (e) {
+      if (seq !== _listSeq)
+        return
       error.value = e instanceof ApiError ? e.message : 'Failed to list directory'
     }
     finally {
-      loading.value = false
+      if (seq === _listSeq)
+        loading.value = false
     }
   }
 

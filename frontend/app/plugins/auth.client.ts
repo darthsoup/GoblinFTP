@@ -35,7 +35,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     // :root/.light/.dark overrides win by source order.
     if (branding?.themeCssUrl)
       link.push({ rel: 'stylesheet', href: branding.themeCssUrl, key: 'tenant-theme' })
-    return { title, link }
+    // <html lang> was never set, so a screen reader read all 13 locales with
+    // English phonemes (WCAG 3.1.1). Reactive, so it follows the picker.
+    const lang = (nuxtApp.$i18n as { locale?: { value: string } } | undefined)?.locale?.value
+    return { title, link, htmlAttrs: { lang: lang || 'en' } }
   })
 
   await authStore.init()

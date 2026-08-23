@@ -36,7 +36,7 @@ docker run -p 8080:80 \
 
 ## Object lifecycle and reaping
 
-Chunks live under `{prefix}/{uploadId}/` and are deleted once the file is committed to the remote server. Uploads abandoned mid-flight (a closed tab, a cancelled transfer) are not reaped automatically, so add a bucket lifecycle rule that expires objects under the prefix. Note that staging bytes are intentionally excluded from `gftp_transfer_bytes_total` (see [Metrics](metrics.md)).
+Chunks live under `{prefix}/{uploadId}/` and are deleted once the file is committed to the remote server. Uploads abandoned mid-flight (a closed tab, a cancelled transfer) are not reaped automatically, so add a bucket lifecycle rule that expires objects under the prefix. This applies to S3 staging only: with local staging (the default) the server sweeps its own data directory, reclaiming upload directories untouched for 24 hours that no live session still references. Note that staging bytes are intentionally excluded from `gftp_transfer_bytes_total` (see [Metrics](metrics.md)).
 
 ```bash
 # MinIO

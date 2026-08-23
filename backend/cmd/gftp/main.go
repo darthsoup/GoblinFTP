@@ -3,10 +3,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -27,17 +30,55 @@ import (
 // release.
 var version = "dev"
 
-func newApp(cfg *config.Config, opts ...api.HandlerOption) *echo.Echo {
+// shutdownGrace bounds the drain: a transfer wedged on an unresponsive remote
+// server must not keep the container alive past the orchestrator's own kill
+// timeout (Docker sends SIGKILL 10s after SIGTERM by default, so this is
+// already generous and mostly matters for `docker stop -t`).
+const shutdownGrace = 20 * time.Second
+
+func newApp(cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle, *api.Handler) {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true // the port is logged structured in main; keep stdout pure JSON
+	// No WriteTimeout on purpose: it is an absolute deadline on the whole
+	// response, so it would abort long legitimate downloads and archive
+	// streams. Stalled writers are handled per write in download.go instead.
+	e.Server.ReadHeaderTimeout = 10 * time.Second
+	e.Server.IdleTimeout = 120 * time.Second
+	// Echo's default RealIP() trusts the leftmost X-Forwarded-For entry from
+	// anyone. With a proxy allowlist configured it walks the chain right to
+	// left instead, skipping trusted hops - so the client allowlist and the
+	// per-IP throttles see the real client rather than the proxy. Without one,
+	// the direct peer is the client and forwarded headers are ignored.
+	e.IPExtractor = api.IPExtractor(cfg)
 	e.Use(gftpsentry.Middleware())
 
 	store := auth.NewStore(time.Duration(cfg.SessionTTLSeconds) * time.Second)
 	throttle := auth.NewThrottle()
-	api.Register(e, cfg, store, throttle, opts...)
+	h := api.Register(e, cfg, store, throttle, opts...)
 
-	return e
+	return e, store, throttle, h
+}
+
+// liveUploadIDs reports whether an upload is still referenced by a session, so
+// the sweeper never reclaims chunks a user could still commit. Lock order is
+// store then session, matching connectionSnapshot.
+func liveUploadIDs(store *auth.Store) func(string) bool {
+	return func(uploadID string) bool {
+		found := false
+		store.Range(func(sess *auth.Session) {
+			if found {
+				return
+			}
+			for _, id := range sess.UploadIDs() {
+				if id == uploadID {
+					found = true
+					return
+				}
+			}
+		})
+		return found
+	}
 }
 
 // newS3Store builds the optional S3 chunk-staging backend and probes the
@@ -134,17 +175,61 @@ func main() {
 		opts = append(opts, api.WithMetrics(m))
 	}
 
-	e := newApp(cfg, opts...)
+	e, store, throttle, handler := newApp(cfg, opts...)
 
+	// Local staging only. A restart loses the in-memory session store, so every
+	// upload reserved before it is orphaned on disk with nothing left to
+	// reference it.
+	var sweeper *staging.Sweeper
+	if !cfg.S3Enabled {
+		sweeper = staging.NewSweeper(cfg.DataDir, logger, liveUploadIDs(store))
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	var metricsSrv *http.Server
 	if cfg.MetricsEnabled {
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{}))
+		metricsSrv = &http.Server{Addr: ":" + cfg.MetricsPort, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 		go func() {
-			mux := http.NewServeMux()
-			mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{}))
 			logger.Info("metrics listening", "port", cfg.MetricsPort)
-			srv := &http.Server{Addr: ":" + cfg.MetricsPort, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
-			logger.Error("metrics server stopped", "error", srv.ListenAndServe().Error())
+			if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logger.Error("metrics server stopped", "error", err.Error())
+			}
 		}()
 	}
 
-	logger.Error("server stopped", "error", e.Start(":"+cfg.Port).Error())
+	go func() {
+		if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("server stopped", "error", err.Error())
+			stop()
+		}
+	}()
+
+	<-ctx.Done()
+	logger.Info("shutting down", "grace_seconds", int(shutdownGrace.Seconds()))
+
+	// Ordering matters: stop accepting and let in-flight requests drain first,
+	// so EvictAll is not closing connections under running transfers.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
+	defer cancel()
+	if err := e.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("graceful shutdown timed out, closing anyway", "error", err.Error())
+	}
+	if metricsSrv != nil {
+		_ = metricsSrv.Shutdown(shutdownCtx)
+	}
+
+	// Closes each session's FTP/SFTP connection properly instead of letting
+	// process death sever it, leaving the remote server to time it out.
+	store.EvictAll()
+	store.Close()
+	throttle.Close()
+	handler.Close()
+	if sweeper != nil {
+		sweeper.Close()
+	}
+	logger.Info("stopped")
 }

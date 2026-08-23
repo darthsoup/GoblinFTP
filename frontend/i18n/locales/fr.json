@@ -84,7 +84,12 @@
     "noMatches": "Aucun fichier ne correspond au filtre",
     "clearFilter": "Effacer le filtre",
     "dropToUpload": "Déposez des fichiers ou des dossiers à téléverser",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "selectItem": "Sélectionner {name}",
+    "renameItem": "Renommer {name}",
+    "folderNamed": "Dossier {name}",
+    "fileNamed": "Fichier {name}",
+    "listOf": "Contenu de {path}"
   },
   "toolbar": {
     "newFolder": "Nouveau dossier",

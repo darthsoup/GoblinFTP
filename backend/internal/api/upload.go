@@ -259,9 +259,10 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	return OK(c, nil)
 }
 
-// UploadAbort discards a reserved upload and its staged chunks. Nothing sweeps
-// staging, so a client that walks away from a commit conflict must call this or
-// the chunks live until the volume fills.
+// UploadAbort discards a reserved upload and its staged chunks. Calling it is
+// still the right thing on the client side: staging.Sweeper only reclaims
+// directories untouched for 24h and unreferenced by any live session, so an
+// abort frees the space now rather than a day later.
 func (h *Handler) UploadAbort(c echo.Context) error {
 	sess, ok := c.Get("session").(*auth.Session)
 	if !ok {

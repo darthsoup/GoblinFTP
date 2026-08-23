@@ -117,12 +117,26 @@ func (c *Client) MakeDir(p string) error {
 	return c.conn.MakeDir(p)
 }
 
+// Delete removes a file, falling back to a recursive directory removal only
+// when the target actually is a directory. Retrying every DELE failure as
+// RemoveDirRecur and returning that error instead discarded the real one, so a
+// permission denial on a file surfaced as ERR_DIR_NOT_EMPTY and a dropped
+// socket never reached isConnLost.
 func (c *Client) Delete(p string) error {
-	err := c.conn.Delete(p)
-	if err != nil {
+	fi, statErr := c.Stat(p)
+	if statErr == nil && fi.IsDir {
 		return c.conn.RemoveDirRecur(p)
 	}
-	return nil
+	err := c.conn.Delete(p)
+	if err != nil && statErr != nil {
+		// Stat could not classify the target (some servers refuse LIST on a
+		// directory), so the old fallback is still worth one attempt. The
+		// original DELE error wins if it also fails.
+		if rmErr := c.conn.RemoveDirRecur(p); rmErr == nil {
+			return nil
+		}
+	}
+	return err
 }
 
 func (c *Client) Rename(src, dst string) error {

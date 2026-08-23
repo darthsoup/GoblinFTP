@@ -84,7 +84,12 @@
     "noMatches": "Mikään tiedosto ei vastaa suodatinta",
     "clearFilter": "Tyhjennä suodatin",
     "dropToUpload": "Pudota tiedostot tai kansiot lähetettäväksi",
-    "retry": "Yritä uudelleen"
+    "retry": "Yritä uudelleen",
+    "selectItem": "Valitse {name}",
+    "renameItem": "Nimeä {name} uudelleen",
+    "folderNamed": "Kansio {name}",
+    "fileNamed": "Tiedosto {name}",
+    "listOf": "Kohteen {path} sisältö"
   },
   "toolbar": {
     "newFolder": "Uusi kansio",

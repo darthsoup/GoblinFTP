@@ -317,7 +317,9 @@ describe('useUploadStore progress telemetry', () => {
     const id = store.items[0]!.id
     store.rates[id] = 1234
     routePosts()
-    store.retryItem(id)
+    // retryItem is async: it releases any staged chunks before re-queueing, so
+    // a stale uploadId cannot make the retry commit a half-staged upload.
+    await store.retryItem(id)
 
     expect(store.rates[id]).toBeUndefined()
   })

@@ -84,7 +84,12 @@
     "noMatches": "Geen bestanden voldoen aan je filter",
     "clearFilter": "Filter wissen",
     "dropToUpload": "Sleep bestanden of mappen hierheen om te uploaden",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "selectItem": "{name} selecteren",
+    "renameItem": "{name} hernoemen",
+    "folderNamed": "Map {name}",
+    "fileNamed": "Bestand {name}",
+    "listOf": "Inhoud van {path}"
   },
   "toolbar": {
     "newFolder": "Nieuwe map",

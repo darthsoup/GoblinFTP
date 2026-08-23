@@ -106,9 +106,15 @@ func WriteChunk(dataDir, uploadID string, index int, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = io.Copy(f, r)
-	return err
+	// A discarded Close hides a failed flush, leaving a short chunk that
+	// AssembleReader accepts: it checks that every chunk exists, never that
+	// any is complete, so the upload would silently corrupt.
+	_, copyErr := io.Copy(f, r)
+	closeErr := f.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
 }
 
 // AssembleReader returns an io.ReadCloser that reads all chunks in order.

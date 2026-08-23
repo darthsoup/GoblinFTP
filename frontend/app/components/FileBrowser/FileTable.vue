@@ -57,6 +57,25 @@ watch(() => filesStore.currentPath, () => {
   filter.value = ''
 })
 
+// Moves focus between rows for the roving tabindex. Rows carry
+// data-file-name, so focus is found by query rather than by holding a ref per
+// row - the list can be thousands of entries.
+function moveRowFocus(from: number, delta: number | 'first' | 'last') {
+  const rows = Array.from(
+    document.querySelectorAll<HTMLElement>('tr.file-row[data-file-name], [data-file-card][data-file-name]'),
+  )
+  if (rows.length === 0)
+    return
+  let next: number
+  if (delta === 'first')
+    next = 0
+  else if (delta === 'last')
+    next = rows.length - 1
+  else
+    next = Math.min(rows.length - 1, Math.max(0, from + delta))
+  rows[next]?.focus()
+}
+
 function toggleSort(key: SortKey) {
   if (sortKey.value !== key) {
     sortKey.value = key
@@ -356,7 +375,7 @@ async function onDrop(e: DragEvent) {
           </div>
 
           <!-- Table view -->
-          <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse">
+          <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse" :aria-label="t('files.listOf', { path: filesStore.currentPath })">
             <thead class="sticky top-0 z-[5] bg-elevated/95 backdrop-blur label-caps text-muted">
               <tr class="border-b border-default shadow-sm">
                 <th class="w-10 px-4 py-2">
@@ -368,17 +387,23 @@ async function onDrop(e: DragEvent) {
                     @update:model-value="toggleSelectAll"
                   />
                 </th>
-                <th class="px-3 py-2.5 cursor-pointer hover:text-primary font-bold transition-colors" :aria-sort="ariaSort('name')" @click="toggleSort('name')">
-                  {{ t('files.name') }}
-                  <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
+                <th class="px-3 py-2.5 font-bold" :aria-sort="ariaSort('name')">
+                  <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('name')">
+                    {{ t('files.name') }}
+                    <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
+                  </button>
                 </th>
-                <th class="w-24 px-4 py-2 text-right whitespace-nowrap cursor-pointer hover:text-primary font-bold transition-colors hidden sm:table-cell" :aria-sort="ariaSort('size')" @click="toggleSort('size')">
-                  {{ t('files.size') }}
-                  <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
+                <th class="w-24 px-4 py-2 text-right whitespace-nowrap font-bold hidden sm:table-cell" :aria-sort="ariaSort('size')">
+                  <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('size')">
+                    {{ t('files.size') }}
+                    <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
+                  </button>
                 </th>
-                <th class="w-40 px-4 py-2 text-right whitespace-nowrap cursor-pointer hover:text-primary font-bold transition-colors hidden md:table-cell" :aria-sort="ariaSort('modified')" @click="toggleSort('modified')">
-                  {{ t('files.modified') }}
-                  <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
+                <th class="w-40 px-4 py-2 text-right whitespace-nowrap font-bold hidden md:table-cell" :aria-sort="ariaSort('modified')">
+                  <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('modified')">
+                    {{ t('files.modified') }}
+                    <UIcon :name="sortIcon('modified')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'modified' ? 'text-primary' : 'text-dimmed'" />
+                  </button>
                 </th>
                 <th v-if="hasPermissions" class="w-28 px-4 py-2 text-center font-bold hidden sm:table-cell">
                   {{ t('files.permissions') }}
@@ -390,7 +415,7 @@ async function onDrop(e: DragEvent) {
             <tbody>
               <FileRow
                 v-for="(file, i) in visibleFiles"
-                :key="file.name"
+                :key="`${filesStore.currentPath}/${file.name}`"
                 :file="file"
                 :selected="filesStore.selected.has(file.name)"
                 :current-path="filesStore.currentPath"
@@ -407,6 +432,7 @@ async function onDrop(e: DragEvent) {
                 @cancel-rename="filesStore.cancelRename"
                 @commit-rename="(name: string) => onCommitRename(file, name)"
                 @preview="previewName = file.name"
+                @focus-move="(d: number | 'first' | 'last') => moveRowFocus(i, d)"
               />
             </tbody>
           </table>
@@ -445,7 +471,7 @@ async function onDrop(e: DragEvent) {
             >
               <FileCard
                 v-for="(file, i) in visibleFiles"
-                :key="file.name"
+                :key="`${filesStore.currentPath}/${file.name}`"
                 :file="file"
                 :selected="filesStore.selected.has(file.name)"
                 :current-path="filesStore.currentPath"
@@ -461,6 +487,7 @@ async function onDrop(e: DragEvent) {
                 @cancel-rename="filesStore.cancelRename"
                 @commit-rename="(name: string) => onCommitRename(file, name)"
                 @preview="previewName = file.name"
+                @focus-move="(d: number | 'first' | 'last') => moveRowFocus(i, d)"
               />
             </div>
           </template>

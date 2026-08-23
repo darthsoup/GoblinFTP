@@ -84,7 +84,12 @@
     "noMatches": "Ningún archivo coincide con el filtro",
     "clearFilter": "Borrar filtro",
     "dropToUpload": "Suelta archivos o carpetas para subirlos",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "selectItem": "Seleccionar {name}",
+    "renameItem": "Renombrar {name}",
+    "folderNamed": "Carpeta {name}",
+    "fileNamed": "Archivo {name}",
+    "listOf": "Contenido de {path}"
   },
   "toolbar": {
     "newFolder": "Nueva carpeta",

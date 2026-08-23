@@ -37,7 +37,19 @@ const MAX_RETRIES = 5
 
 // Retrying these is pointless - nothing about the request will change. Without
 // ERR_FILE_EXISTS here a conflict would burn ~31s of backoff before surfacing.
-const NON_RETRYABLE = new Set(['ERR_FILE_EXISTS', 'ERR_FILE_PERMISSION', 'ERR_QUOTA_EXCEEDED'])
+// Errors a retry can never recover from. Includes the session-lost family:
+// retrying those burned 5 attempts and ~31s of backoff per queued item after a
+// dropped connection, with markSessionLost() firing on each one.
+const NON_RETRYABLE = new Set([
+  'ERR_FILE_EXISTS',
+  'ERR_FILE_PERMISSION',
+  'ERR_QUOTA_EXCEEDED',
+  'ERR_SESSION_NOT_FOUND',
+  'ERR_UNAUTHORIZED',
+  'ERR_CSRF_INVALID',
+  'ERR_CONNECTION_LOST',
+  'ERR_UPLOAD_NOT_FOUND',
+])
 
 export const useUploadStore = defineStore('upload', () => {
   const items = ref<UploadItem[]>([])
@@ -69,6 +81,19 @@ export const useUploadStore = defineStore('upload', () => {
   // Windows are plain (non-reactive) state: they change twice a second per item
   // and nothing renders them directly, only the derived rate.
   const windows = new Map<string, RateSample[]>()
+  // Abort handles for in-flight requests, keyed by item id. Deliberately not on
+  // the reactive item: nothing renders them, and a controller in a ref would be
+  // proxied for no reason.
+  const _controllers = new Map<string, AbortController>()
+
+  // Returns a fresh signal for this item's next request, replacing any handle
+  // from a previous attempt. A retry gets a new controller, so an abort of the
+  // old attempt cannot cancel the new one.
+  function _signalFor(item: UploadItem): AbortSignal {
+    const controller = new AbortController()
+    _controllers.set(item.id, controller)
+    return controller.signal
+  }
 
   // xhr.upload.onprogress fires every few milliseconds on a fast link. Writing
   // through to the store that often thrashes reactivity across the whole queue
@@ -128,7 +153,7 @@ export const useUploadStore = defineStore('upload', () => {
   async function addEntries(entries: { file: File, relativePath: string }[], destDir: string) {
     const base = destDir.replace(/\/$/, '')
     const newItems: UploadItem[] = entries.map(({ file, relativePath }) => ({
-      id: crypto.randomUUID(),
+      id: uid(),
       file,
       destPath: `${base}/${relativePath}`,
       relativePath,
@@ -245,6 +270,11 @@ export const useUploadStore = defineStore('upload', () => {
       item.status = 'error'
       item.errorCode = e instanceof ApiError ? e.code : undefined
       item.error = e instanceof Error ? e.message : 'Upload failed'
+      // Nothing sweeps the staging area, so a failed chunked upload has to
+      // release its chunks here or they occupy the server volume forever.
+      // This also clears uploadId, which is what makes a later retry re-send
+      // the file instead of committing a half-staged set.
+      await _discardStaged(item)
     }
   }
 
@@ -324,6 +354,7 @@ export const useUploadStore = defineStore('upload', () => {
         form.append('overwrite', 'true')
       try {
         await api.postForm('/api/files/upload', form, {
+          signal: _signalFor(item),
           // total is the multipart body size, a little larger than the file, so
           // clamp: the queue row renders bytesUploaded against file.size and
           // would otherwise read "1.1 MiB / 1.0 MiB".
@@ -338,7 +369,7 @@ export const useUploadStore = defineStore('upload', () => {
       finally {
         item.finalizing = false
       }
-    })
+    }, item)
   }
 
   async function _uploadChunked(item: UploadItem) {
@@ -373,13 +404,14 @@ export const useUploadStore = defineStore('upload', () => {
           form.append('chunkIndex', String(i))
           form.append('chunk', chunk, item.file.name)
           await api.postForm('/api/files/upload/chunk', form, {
+            signal: _signalFor(item),
             onProgress: _throttledProgress(({ loaded, total }) => {
               const sent = total > 0 ? Math.min(chunk.size, (loaded / total) * chunk.size) : 0
               item.bytesUploaded = Math.min(item.file.size, start + sent)
               item.progress = Math.round((item.bytesUploaded / item.file.size) * 100)
             }),
           })
-        })
+        }, item)
 
         // Authoritative settle: a retried chunk replays onProgress from zero,
         // so the running figure can dip by up to one chunk before this lands.
@@ -407,7 +439,7 @@ export const useUploadStore = defineStore('upload', () => {
     item.uploadId = undefined
   }
 
-  async function _withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  async function _withRetry<T>(fn: () => Promise<T>, item?: UploadItem): Promise<T> {
     let lastError: unknown
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
@@ -416,21 +448,50 @@ export const useUploadStore = defineStore('upload', () => {
       catch (e) {
         if (e instanceof Error && e.message === 'Cancelled')
           throw e
+        if (e instanceof ApiError && e.code === 'ERR_ABORTED')
+          throw e
         if (e instanceof ApiError && NON_RETRYABLE.has(e.code))
           throw e
         lastError = e
-        await new Promise(r => setTimeout(r, Math.min(30_000, 1000 * 2 ** attempt)))
+        // The backoff has to be interruptible: sleeping it out kept _active
+        // incremented for up to 31s after Cancel, blocking the whole queue on
+        // an item the user had already given up on.
+        await _backoff(Math.min(30_000, 1000 * 2 ** attempt), item)
+        if (item && (item.status === 'cancelled' || item.status === 'skipped'))
+          throw new Error('Cancelled')
       }
     }
     throw lastError
   }
 
+  // Sleeps ms, returning early once the item is no longer running.
+  function _backoff(ms: number, item?: UploadItem): Promise<void> {
+    return new Promise((resolve) => {
+      const started = Date.now()
+      const tick = window.setInterval(() => {
+        const stopped = item && (item.status === 'cancelled' || item.status === 'skipped')
+        if (stopped || Date.now() - started >= ms) {
+          window.clearInterval(tick)
+          resolve()
+        }
+      }, 200)
+    })
+  }
+
   const CANCELLABLE: UploadStatus[] = ['checking', 'queued', 'uploading']
+
+  function _abort(item: UploadItem) {
+    // Aborting the in-flight XHR is what actually stops the bytes; setting the
+    // status alone only relabelled the row while the upload ran to completion.
+    _controllers.get(item.id)?.abort()
+    _controllers.delete(item.id)
+  }
 
   function cancelItem(id: string) {
     const item = items.value.find(i => i.id === id)
     if (item && CANCELLABLE.includes(item.status)) {
       item.status = 'cancelled'
+      _abort(item)
       void _discardStaged(item)
     }
   }
@@ -439,6 +500,7 @@ export const useUploadStore = defineStore('upload', () => {
     items.value.forEach((item) => {
       if (CANCELLABLE.includes(item.status)) {
         item.status = 'cancelled'
+        _abort(item)
         void _discardStaged(item)
       }
     })
@@ -447,9 +509,14 @@ export const useUploadStore = defineStore('upload', () => {
   // Re-queue a failed, cancelled or skipped item; _runUpload re-runs it from
   // scratch. A skipped item re-runs without consent, so it conflicts again and
   // re-prompts rather than silently overwriting.
-  function retryItem(id: string) {
+  async function retryItem(id: string) {
     const item = items.value.find(i => i.id === id)
     if (item && (item.status === 'error' || item.status === 'cancelled' || item.status === 'skipped')) {
+      // Release any chunks still staged from the abandoned attempt before
+      // re-queueing. Leaving uploadId set made _uploadChunked take its
+      // "already staged, just commit" branch, so a retry skipped every chunk
+      // and committed a partial set - which could never succeed.
+      await _discardStaged(item)
       item.status = 'queued'
       item.progress = 0
       item.bytesUploaded = 0
@@ -467,12 +534,24 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   function clearDone() {
+    // Fire-and-forget: dropping an errored item from the list must not leave
+    // its chunks stranded on the server.
+    for (const item of items.value) {
+      if (item.uploadId && item.status !== 'uploading')
+        void _discardStaged(item)
+    }
     items.value = items.value.filter(
       i => i.status !== 'done' && i.status !== 'error' && i.status !== 'cancelled' && i.status !== 'skipped',
     )
   }
 
   function $reset() {
+    // Release staged chunks before dropping the items that reference them.
+    // Best-effort: a disconnect must not block on the server answering.
+    for (const item of items.value) {
+      if (item.uploadId)
+        void _discardStaged(item)
+    }
     items.value = []
     _active.value = 0
     _blanketPolicy.value = null

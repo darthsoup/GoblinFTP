@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net"
 	"regexp"
 	"slices"
 	"strconv"
@@ -35,6 +36,7 @@ type Key struct {
 	kind          string
 	enumAllowed   []string
 	listAllowed   []string
+	listValidate  func(string) error
 	intMin        int64
 	intMax        int64
 	floatMin      float64
@@ -49,7 +51,12 @@ type Key struct {
 
 type keyOpt func(*Key)
 
-func spaPath(p string) keyOpt    { return func(k *Key) { k.SPA = true; k.SPAPath = p } }
+func spaPath(p string) keyOpt { return func(k *Key) { k.SPA = true; k.SPAPath = p } }
+
+// listValidator attaches a per-entry validator to a list key.
+func listValidator(fn func(string) error) keyOpt {
+	return func(k *Key) { k.listValidate = fn }
+}
 func doc(s string) keyOpt        { return func(k *Key) { k.Doc = s } }
 func secret() keyOpt             { return func(k *Key) { k.Secret = true } }
 func minMax(lo, hi int64) keyOpt { return func(k *Key) { k.intMin = lo; k.intMax = hi } }
@@ -231,9 +238,26 @@ func enum(env string, target func(*Config) *string, allowed []string, opts ...ke
 	return k
 }
 
+// validIPOrCIDR accepts a bare address or a CIDR range. A security allowlist
+// with a typo in it silently matches nothing, so entries are parsed at startup
+// rather than compared as strings at request time.
+func validIPOrCIDR(v string) error {
+	if strings.Contains(v, "/") {
+		if _, _, err := net.ParseCIDR(v); err != nil {
+			return fmt.Errorf("%q is not a valid CIDR range", v)
+		}
+		return nil
+	}
+	if net.ParseIP(v) == nil {
+		return fmt.Errorf("%q is not a valid IP address", v)
+	}
+	return nil
+}
+
 func list(env string, target func(*Config) *[]string, opts ...keyOpt) Key {
 	k := newKey(env, "list", opts)
 	allowed := k.listAllowed
+	validate := k.listValidate
 	k.fromEnv = func(c *Config, raw string) error {
 		vs := []string{}
 		for _, part := range strings.Split(raw, ",") {
@@ -245,6 +269,13 @@ func list(env string, target func(*Config) *[]string, opts ...keyOpt) Key {
 			for _, v := range vs {
 				if !slices.Contains(allowed, v) {
 					return fmt.Errorf("invalid %s: %q is not one of %s", env, v, strings.Join(allowed, ", "))
+				}
+			}
+		}
+		if validate != nil {
+			for _, v := range vs {
+				if err := validate(v); err != nil {
+					return fmt.Errorf("invalid %s: %w", env, err)
 				}
 			}
 		}
@@ -375,7 +406,11 @@ var Registry = slices.Concat(
 	),
 	group("Access", "configuration",
 		list("GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES", func(c *Config) *[]string { return &c.Settings.Access.AllowedClientAddresses },
-			doc("Client IP allowlist; empty allows all.")),
+			listValidator(validIPOrCIDR), samples("203.0.113.4,198.51.100.0/24", "not-an-ip"),
+			doc("Client IP or CIDR allowlist; empty allows all.")),
+		list("GFTP_ACCESS_TRUSTED_PROXIES", func(c *Config) *[]string { return &c.Settings.Access.TrustedProxies },
+			listValidator(validIPOrCIDR), samples("10.0.0.0/8,192.168.0.0/16", "not-a-cidr"),
+			doc("CIDR ranges whose X-Forwarded-For and X-Forwarded-Proto are trusted. Set this when a reverse proxy sits in front, otherwise every client is seen as the proxy and the client allowlist cannot work. Empty trusts none.")),
 	),
 	group("White-label branding", "configuration",
 		str("GFTP_BRANDING_APP_NAME", func(c *Config) *string { return &c.Settings.Branding.AppName },

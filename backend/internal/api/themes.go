@@ -205,6 +205,9 @@ func (h *Handler) ServeTheme(c echo.Context) error {
 	}
 	// Assets are cache-busted via ?v=<mtime>, so a short public cache is safe.
 	c.Response().Header().Set("Cache-Control", "public, max-age=300")
+	// An SVG navigated to directly is a document and can execute script on this
+	// origin. Overrides the app-wide CSP for theme assets only.
+	c.Response().Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 	return c.File(p)
 }
 

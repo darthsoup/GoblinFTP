@@ -17,8 +17,7 @@ func TestTokenRoundTrip(t *testing.T) {
 	path := "/some/path/file.txt"
 	expiry := time.Now().Add(5 * time.Minute)
 
-	tok, err := transfer.IssueToken(secret, sessionID, path, expiry)
-	require.NoError(t, err)
+	tok := transfer.IssueToken(secret, sessionID, path, expiry)
 	assert.NotEmpty(t, tok)
 
 	gotSession, gotPath, err := transfer.ValidateToken(secret, tok)
@@ -29,19 +28,17 @@ func TestTokenRoundTrip(t *testing.T) {
 
 func TestTokenExpired(t *testing.T) {
 	secret := []byte("supersecret")
-	tok, err := transfer.IssueToken(secret, "s", "/f", time.Now().Add(-1*time.Second))
-	require.NoError(t, err)
+	tok := transfer.IssueToken(secret, "s", "/f", time.Now().Add(-1*time.Second))
 
-	_, _, err = transfer.ValidateToken(secret, tok)
+	_, _, err := transfer.ValidateToken(secret, tok)
 	assert.ErrorIs(t, err, transfer.ErrTokenExpired)
 }
 
 func TestTokenTampered(t *testing.T) {
 	secret := []byte("supersecret")
-	tok, err := transfer.IssueToken(secret, "s", "/f", time.Now().Add(time.Minute))
-	require.NoError(t, err)
+	tok := transfer.IssueToken(secret, "s", "/f", time.Now().Add(time.Minute))
 
-	_, _, err = transfer.ValidateToken([]byte("wrong"), tok)
+	_, _, err := transfer.ValidateToken([]byte("wrong"), tok)
 	assert.ErrorIs(t, err, transfer.ErrTokenInvalid)
 }
 

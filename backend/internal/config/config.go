@@ -40,7 +40,13 @@ type ConnectionSettings struct {
 // AccessSettings holds the GFTP_ACCESS_* values.
 type AccessSettings struct {
 	AllowedClientAddresses []string
+	// TrustedProxies are CIDR ranges whose X-Forwarded-* headers are believed.
+	// Empty means trust none, and the client address is the direct peer.
+	TrustedProxies []string
 }
+
+// TrustProxies reports whether a proxy allowlist was configured.
+func (c *Config) TrustProxies() bool { return len(c.Settings.Access.TrustedProxies) > 0 }
 
 // BrandingSettings holds the GFTP_BRANDING_* white-labeling values, exposed to
 // the SPA via /api/system/vars. Nil pointers mean "use the built-in default".

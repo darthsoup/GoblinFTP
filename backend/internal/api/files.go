@@ -188,7 +188,7 @@ func (h *Handler) CopyFile(c echo.Context) error {
 	if err := c.Bind(&req); err != nil || req.From == "" || req.To == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
-	if err := copyTree(client, req.From, req.To); err != nil {
+	if err := copyTree(client, h.cfg.DataDir, req.From, req.To); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
@@ -240,7 +240,14 @@ func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 // via Download→Upload (Upload overwrites). For directories it recreates the tree,
 // only calling MakeDir when dst doesn't already exist so an overwrite merges into
 // the existing directory rather than failing.
-func copyTree(client transfer.Client, src, dst string) error {
+func copyTree(client transfer.Client, dataDir, src, dst string) error {
+	return copyTreeDepth(client, dataDir, src, dst, 0)
+}
+
+func copyTreeDepth(client transfer.Client, dataDir, src, dst string, depth int) error {
+	if depth > maxTreeDepth {
+		return errTreeTooDeep
+	}
 	info, err := client.Stat(src)
 	if err != nil {
 		return err
@@ -256,25 +263,25 @@ func copyTree(client transfer.Client, src, dst string) error {
 			return err
 		}
 		for _, e := range entries {
-			if err := copyTree(client, path.Join(src, e.Name), path.Join(dst, e.Name)); err != nil {
+			if err := copyTreeDepth(client, dataDir, path.Join(src, e.Name), path.Join(dst, e.Name), depth+1); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	return copyFile(client, src, dst)
+	return copyFile(client, dataDir, src, dst)
 }
 
 // copyFile copies a single file. The download is staged to a temp file and fully
 // closed before the upload starts: FTP allows only one data transfer per control
 // connection at a time, so streaming Download→Upload directly would interleave
 // RETR and STOR and desync the control channel.
-func copyFile(client transfer.Client, src, dst string) error {
+func copyFile(client transfer.Client, dataDir, src, dst string) error {
 	r, err := client.Download(src)
 	if err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp("", "gftp-copy-*")
+	tmp, err := os.CreateTemp(dataDir, "gftp-copy-*")
 	if err != nil {
 		_ = r.Close()
 		return err

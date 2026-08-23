@@ -45,7 +45,8 @@ Notation: "(none)" means unset by default; "fails startup" means `config.Load` r
 <!-- confgen:begin env-table "Access" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES` | (none) | Client IP allowlist; empty allows all. |
+| `GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES` | (none) | Client IP or CIDR allowlist; empty allows all. |
+| `GFTP_ACCESS_TRUSTED_PROXIES` | (none) | CIDR ranges whose X-Forwarded-For and X-Forwarded-Proto are trusted. Set this when a reverse proxy sits in front, otherwise every client is seen as the proxy and the client allowlist cannot work. Empty trusts none. |
 <!-- confgen:end -->
 
 ### Secrets

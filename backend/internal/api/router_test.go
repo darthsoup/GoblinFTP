@@ -35,7 +35,8 @@ func newTestApp(t *testing.T, cfg *config.Config, opts ...api.HandlerOption) (*e
 	e.HideBanner = true
 	store := auth.NewStore(time.Duration(cfg.SessionTTLSeconds) * time.Second)
 	thr := auth.NewThrottle()
-	api.Register(e, cfg, store, thr, opts...)
+	h := api.Register(e, cfg, store, thr, opts...)
+	t.Cleanup(h.Close)
 	return e, store, thr
 }
 

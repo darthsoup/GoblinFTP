@@ -203,7 +203,7 @@ export const useEditorStore = defineStore('editor', () => {
       return
     }
 
-    const id = crypto.randomUUID()
+    const id = uid()
     const name = path.split('/').pop() ?? path
     const tab: EditorTab = { id, path, name, content: '', savedContent: '', loading: true, saving: false, revision: 0 }
     tabs.value = [...tabs.value, tab]

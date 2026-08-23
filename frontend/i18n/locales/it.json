@@ -84,7 +84,12 @@
     "noMatches": "Nessun file corrisponde al filtro",
     "clearFilter": "Cancella filtro",
     "dropToUpload": "Trascina qui file o cartelle da caricare",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "selectItem": "Seleziona {name}",
+    "renameItem": "Rinomina {name}",
+    "folderNamed": "Cartella {name}",
+    "fileNamed": "File {name}",
+    "listOf": "Contenuto di {path}"
   },
   "toolbar": {
     "newFolder": "Nuova cartella",

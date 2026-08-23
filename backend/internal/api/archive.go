@@ -4,12 +4,12 @@ package api
 import (
 	"archive/tar"
 	"archive/zip"
-	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"strings"
 
@@ -22,6 +22,48 @@ import (
 )
 
 const maxZipSize = 512 * 1024 * 1024 // 512 MB
+
+// maxTreeDepth bounds every recursive walk of a remote directory tree. A
+// symlink loop on the server (a/b -> a) otherwise recurses until the goroutine
+// stack is exhausted, and a Go stack overflow is a hard process crash that
+// middleware.Recover cannot catch - one hostile or merely misconfigured server
+// would take down the instance for every other user.
+const maxTreeDepth = 64
+
+// errTreeTooDeep is returned once maxTreeDepth is exceeded.
+var errTreeTooDeep = errors.New("directory tree is nested too deeply")
+
+// errArchiveTooLarge is returned once an extraction exceeds its budget.
+var errArchiveTooLarge = errors.New("archive expands beyond the maximum extracted size")
+
+// extractBudget caps the total DECOMPRESSED bytes an extraction may write to
+// the remote server. maxZipSize bounds only the compressed upload, and the tar
+// branches were not bounded at all, so a 1 MB bz2 could expand to gigabytes
+// written into the user's account.
+type extractBudget struct{ remaining int64 }
+
+func newExtractBudget() *extractBudget { return &extractBudget{remaining: maxZipSize} }
+
+// wrap returns r limited to the budget still available, decrementing as it is
+// consumed. Reading past the budget fails the whole extraction.
+func (b *extractBudget) wrap(r io.Reader) io.Reader { return &budgetReader{b: b, r: r} }
+
+type budgetReader struct {
+	b *extractBudget
+	r io.Reader
+}
+
+func (br *budgetReader) Read(p []byte) (int, error) {
+	if br.b.remaining <= 0 {
+		return 0, errArchiveTooLarge
+	}
+	if int64(len(p)) > br.b.remaining {
+		p = p[:br.b.remaining]
+	}
+	n, err := br.r.Read(p)
+	br.b.remaining -= int64(n)
+	return n, err
+}
 
 // safeJoin joins destination and name, returning an error if the result escapes destination.
 func safeJoin(destination, name string) (string, error) {
@@ -58,19 +100,17 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 	filename := strings.ToLower(fh.Filename)
 	switch {
 	case strings.HasSuffix(filename, ".zip"):
-		limited := io.LimitReader(f, maxZipSize+1)
-		data, err := io.ReadAll(limited)
-		if err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to read archive"))
-		}
-		if int64(len(data)) > maxZipSize {
+		if fh.Size > maxZipSize {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "archive exceeds maximum size"))
 		}
-		zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+		// multipart.File is an io.ReaderAt, which is all zip.NewReader wants,
+		// so the archive never has to be held in memory. net/http has already
+		// spooled anything past its in-memory threshold to a temp file.
+		zr, err := zip.NewReader(f, fh.Size)
 		if err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid zip archive"))
 		}
-		if err := extractZip(client, zr, destination); err != nil {
+		if err := extractZip(client, zr, destination, newExtractBudget()); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	case strings.HasSuffix(filename, ".tar.gz") || strings.HasSuffix(filename, ".tgz"):
@@ -79,15 +119,15 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid gzip archive"))
 		}
 		defer gr.Close()
-		if err := extractTar(client, tar.NewReader(gr), destination); err != nil {
+		if err := extractTar(client, tar.NewReader(gr), destination, newExtractBudget()); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	case strings.HasSuffix(filename, ".tar.bz2"):
-		if err := extractTar(client, tar.NewReader(bzip2.NewReader(f)), destination); err != nil {
+		if err := extractTar(client, tar.NewReader(bzip2.NewReader(f)), destination, newExtractBudget()); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	case strings.HasSuffix(filename, ".tar"):
-		if err := extractTar(client, tar.NewReader(f), destination); err != nil {
+		if err := extractTar(client, tar.NewReader(f), destination, newExtractBudget()); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	default:
@@ -96,22 +136,26 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 	return OK(c, nil)
 }
 
-func extractZip(client transfer.Client, zr *zip.Reader, destination string) error {
+func extractZip(client transfer.Client, zr *zip.Reader, destination string, budget *extractBudget) error {
 	for _, entry := range zr.File {
 		outPath, err := safeJoin(destination, entry.Name)
 		if err != nil {
 			return err
 		}
 		if entry.FileInfo().IsDir() {
-			_ = client.MakeDir(outPath)
+			if err := ensureDirAll(client, outPath); err != nil {
+				return err
+			}
 			continue
 		}
-		_ = client.MakeDir(path.Dir(outPath))
+		if err := ensureDirAll(client, path.Dir(outPath)); err != nil {
+			return err
+		}
 		rc, err := entry.Open()
 		if err != nil {
 			return err
 		}
-		err = client.Upload(outPath, rc)
+		err = client.Upload(outPath, budget.wrap(rc))
 		_ = rc.Close()
 		if err != nil {
 			return err
@@ -120,7 +164,7 @@ func extractZip(client transfer.Client, zr *zip.Reader, destination string) erro
 	return nil
 }
 
-func extractTar(client transfer.Client, tr *tar.Reader, destination string) error {
+func extractTar(client transfer.Client, tr *tar.Reader, destination string, budget *extractBudget) error {
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
@@ -135,10 +179,14 @@ func extractTar(client transfer.Client, tr *tar.Reader, destination string) erro
 		}
 		switch hdr.Typeflag {
 		case tar.TypeDir:
-			_ = client.MakeDir(outPath)
+			if err := ensureDirAll(client, outPath); err != nil {
+				return err
+			}
 		case tar.TypeReg:
-			_ = client.MakeDir(path.Dir(outPath))
-			if err := client.Upload(outPath, tr); err != nil {
+			if err := ensureDirAll(client, path.Dir(outPath)); err != nil {
+				return err
+			}
+			if err := client.Upload(outPath, budget.wrap(tr)); err != nil {
 				return err
 			}
 		}
@@ -161,36 +209,51 @@ func (h *Handler) CreateZip(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths and destination are required"))
 	}
 
-	pr, pw := io.Pipe()
-	zw := zip.NewWriter(pw)
-	errCh := make(chan error, 1)
+	// Bounded before anything is written: the archive is spooled to the data
+	// dir, so an unbounded input would fill the volume.
+	var totalSize int64
+	for _, p := range req.Paths {
+		size, err := zipInputSize(client, p)
+		if err != nil {
+			return failClient(c, gftperrors.ErrOperationFailed, err)
+		}
+		totalSize += size
+		if totalSize > maxZipSize {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "archive exceeds maximum size"))
+		}
+	}
 
-	go func() {
-		for _, p := range req.Paths {
-			if err := addToZip(zw, client, p, "", nil); err != nil {
-				pw.CloseWithError(err)
-				errCh <- err
-				return
-			}
-		}
-		// A failed zip finalization must reach the reader - otherwise a
-		// truncated archive would be uploaded and reported as success.
-		if err := zw.Close(); err != nil {
-			pw.CloseWithError(err)
-			errCh <- err
-			return
-		}
-		_ = pw.Close() // io.PipeWriter.Close never returns an error
-		errCh <- nil
+	// Spooled to disk rather than streamed straight into the upload. Building
+	// the archive reads its sources through the same client the upload writes
+	// to, and FTP allows only one data transfer per control connection, so a
+	// pipe interleaved RETR with STOR and desynced the control channel (the
+	// reason copyFile stages too - see files.go). The pipe also deadlocked
+	// whenever Upload returned without draining it, holding the session's
+	// transfer lock for the life of the process.
+	tmp, err := os.CreateTemp(h.cfg.DataDir, "gftp-zip-*")
+	if err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))
+	}
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
 	}()
 
-	if err := client.Upload(req.Destination, pr); err != nil {
-		<-errCh
-		return failClient(c, gftperrors.ErrOperationFailed, err)
+	zw := zip.NewWriter(tmp)
+	for _, p := range req.Paths {
+		if err := addToZip(zw, client, p, "", nil); err != nil {
+			return failClient(c, gftperrors.ErrOperationFailed, err)
+		}
 	}
-	if err := <-errCh; err != nil {
-		// The zip goroutine reads sources via the client - its errors can be
-		// connection-level too.
+	// A failed finalization must not reach the upload - otherwise a truncated
+	// archive would be written and reported as success.
+	if err := zw.Close(); err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalize archive").WithCause(err))
+	}
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to rewind archive").WithCause(err))
+	}
+	if err := client.Upload(req.Destination, tmp); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
@@ -201,6 +264,13 @@ func (h *Handler) CreateZip(c echo.Context) error {
 // download counter; CreateZip passes nil (remote-to-remote, not a transfer
 // between browser and server).
 func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter) error {
+	return addToZipDepth(zw, client, remotePath, base, counter, 0)
+}
+
+func addToZipDepth(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter, depth int) error {
+	if depth > maxTreeDepth {
+		return errTreeTooDeep
+	}
 	fi, err := client.Stat(remotePath)
 	if err != nil {
 		return err
@@ -214,7 +284,7 @@ func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string, c
 		}
 		for _, e := range entries {
 			childPath := remotePath + "/" + e.Name
-			if err := addToZip(zw, client, childPath, entryName, counter); err != nil {
+			if err := addToZipDepth(zw, client, childPath, entryName, counter, depth+1); err != nil {
 				return err
 			}
 		}

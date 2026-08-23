@@ -127,7 +127,7 @@ func checkStaleEnv() error {
 // silently ignoring it is exactly the failure class this config system kills.
 func checkStaleSettingsFile(dataDir string) error {
 	path := filepath.Join(dataDir, "settings.json")
-	if _, err := os.Stat(path); err == nil {
+	if _, err := os.Stat(path); err == nil { //nolint:gosec // G703: dataDir is GFTP_DATA_DIR, set by the operator, never by a request
 		return fmt.Errorf("%s exists but settings.json is no longer read: move its values to environment variables and remove the file (see docs/configuration.md)", path)
 	}
 	return nil

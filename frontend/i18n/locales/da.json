@@ -84,7 +84,12 @@
     "noMatches": "Ingen filer matcher dit filter",
     "clearFilter": "Ryd filter",
     "dropToUpload": "Slip filer eller mapper for at uploade",
-    "retry": "Prøv igen"
+    "retry": "Prøv igen",
+    "selectItem": "Vælg {name}",
+    "renameItem": "Omdøb {name}",
+    "folderNamed": "Mappe {name}",
+    "fileNamed": "Fil {name}",
+    "listOf": "Indhold af {path}"
   },
   "toolbar": {
     "newFolder": "Ny mappe",

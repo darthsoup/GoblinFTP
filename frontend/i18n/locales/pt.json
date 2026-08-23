@@ -84,7 +84,12 @@
     "noMatches": "Nenhum ficheiro corresponde ao filtro",
     "clearFilter": "Limpar filtro",
     "dropToUpload": "Largue ficheiros ou pastas para carregar",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "selectItem": "Selecionar {name}",
+    "renameItem": "Renomear {name}",
+    "folderNamed": "Pasta {name}",
+    "fileNamed": "Ficheiro {name}",
+    "listOf": "Conteúdo de {path}"
   },
   "toolbar": {
     "newFolder": "Nova pasta",

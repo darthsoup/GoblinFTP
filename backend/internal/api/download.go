@@ -3,9 +3,9 @@ package api
 
 import (
 	"archive/zip"
-	"bytes"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -44,10 +44,10 @@ func (h *Handler) IssueDownloadToken(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
 	expiry := time.Now().Add(15 * time.Minute)
-	tok, err := transfer.IssueToken(h.cfg.DownloadTokenSecret, sess.ID, req.Path, expiry)
-	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to issue token"))
-	}
+	// sess.DownloadKey, never sess.ID: the token is only base64, so whatever
+	// goes in here is readable by anyone who sees the URL. A session ID there
+	// could be replayed as a gftp_session cookie for full account access.
+	tok := transfer.IssueToken(h.cfg.DownloadTokenSecret, sess.DownloadKey, req.Path, expiry)
 	return OK(c, map[string]string{"token": tok})
 }
 
@@ -57,11 +57,13 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	if token == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "token is required"))
 	}
-	sessionID, filePath, err := transfer.ValidateToken(h.cfg.DownloadTokenSecret, token)
+	downloadKey, filePath, err := transfer.ValidateToken(h.cfg.DownloadTokenSecret, token)
 	if err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, err.Error()))
+		// The message is the caller's own token being rejected, so it must not
+		// carry the internal error text (see classify() in errclass.go).
+		return Fail(c, gftperrors.New(gftperrors.ErrInvalidToken, "download link is invalid or has expired"))
 	}
-	sess, ok := h.store.Get(sessionID)
+	sess, ok := h.store.GetByDownloadKey(downloadKey)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "session not found"))
 	}
@@ -88,8 +90,31 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
 	c.Response().Header().Set("Content-Type", "application/octet-stream")
 	c.Response().WriteHeader(http.StatusOK)
-	_, copyErr := io.Copy(c.Response(), src)
+
+	// This endpoint needs no cookie and holds the session's transfer lock for
+	// the whole stream, so a client reading at a trickle would otherwise block
+	// every other request on the victim's session indefinitely. The deadline is
+	// per write, not for the transfer as a whole, so a slow-but-progressing
+	// download still completes while a stalled one is cut loose.
+	_, copyErr := io.Copy(&deadlineWriter{c: c, w: c.Response()}, src)
 	return copyErr
+}
+
+// downloadWriteTimeout is how long a single write may block before the client
+// is treated as stalled.
+const downloadWriteTimeout = 60 * time.Second
+
+// deadlineWriter refreshes the connection's write deadline before every write.
+type deadlineWriter struct {
+	c echo.Context
+	w io.Writer
+}
+
+func (d *deadlineWriter) Write(p []byte) (int, error) {
+	// Best-effort: a server without deadline support (or a test recorder) just
+	// keeps the previous behavior rather than failing the download.
+	_ = http.NewResponseController(d.c.Response()).SetWriteDeadline(time.Now().Add(downloadWriteTimeout))
+	return d.w.Write(p)
 }
 
 // DownloadZip assembles multiple remote paths into a ZIP and sends it to the browser.
@@ -121,22 +146,56 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	}
 	sess, _ := c.Get("session").(*auth.Session)
 	counter := h.metrics.TransferBytes.WithLabelValues("download", protocolFromSession(sess))
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
+
+	// Spooled to disk, not a bytes.Buffer: the buffer held the whole archive
+	// (up to maxZipSize, and Buffer growth doubles) per concurrent request,
+	// which a handful of users could turn into an OOM. Building it fully before
+	// any header is written is deliberate and preserved: a failure mid-archive
+	// must still be reportable as an error rather than a truncated 200.
+	tmp, err := os.CreateTemp(h.cfg.DataDir, "gftp-zip-*")
+	if err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))
+	}
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+	}()
+
+	zw := zip.NewWriter(tmp)
 	for _, p := range req.Paths {
 		if err := addToZip(zw, client, p, "", counter); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	}
 	if err := zw.Close(); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalize archive"))
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalize archive").WithCause(err))
 	}
+	size, err := tmp.Seek(0, io.SeekEnd)
+	if err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to stage archive").WithCause(err))
+	}
+	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to stage archive").WithCause(err))
+	}
+
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="archive.zip"`)
-	c.Response().Header().Set("Content-Length", strconv.Itoa(buf.Len()))
-	return c.Blob(http.StatusOK, "application/zip", buf.Bytes())
+	c.Response().Header().Set("Content-Type", "application/zip")
+	c.Response().Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	c.Response().WriteHeader(http.StatusOK)
+	_, copyErr := io.Copy(&deadlineWriter{c: c, w: c.Response()}, tmp)
+	return copyErr
 }
 
 func zipInputSize(client transfer.Client, remotePath string) (int64, error) {
+	return zipInputSizeDepth(client, remotePath, 0)
+}
+
+func zipInputSizeDepth(client transfer.Client, remotePath string, depth int) (int64, error) {
+	// The maxZipSize guard below counts file bytes only, so a loop of empty
+	// directories accumulates nothing and would recurse until the stack blows.
+	if depth > maxTreeDepth {
+		return 0, errTreeTooDeep
+	}
 	fi, err := client.Stat(remotePath)
 	if err != nil {
 		return 0, err
@@ -150,7 +209,7 @@ func zipInputSize(client transfer.Client, remotePath string) (int64, error) {
 	}
 	var total int64
 	for _, entry := range entries {
-		size, err := zipInputSize(client, path.Join(remotePath, entry.Name))
+		size, err := zipInputSizeDepth(client, path.Join(remotePath, entry.Name), depth+1)
 		if err != nil {
 			return 0, err
 		}
