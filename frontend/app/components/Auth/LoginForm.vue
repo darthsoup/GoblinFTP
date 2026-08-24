@@ -109,11 +109,22 @@ const form = reactive({
 })
 
 const error = ref<string | null>(null)
+const errorCode = ref<string | null>(null)
 const loading = ref(false)
+
+const { localizeError } = useErrorMessage()
 
 // authStore.error survives the connect lifecycle (and carries SSO failures from
 // before this form mounts); the local ref captures the manual-connect failure.
-const displayError = computed(() => error.value ?? authStore.error)
+// Both are rendered through localizeError so the user gets a translated string
+// instead of whatever English the backend happened to send.
+const displayError = computed(() => {
+  if (error.value)
+    return localizeError(errorCode.value ?? '', error.value)
+  if (authStore.error)
+    return localizeError(authStore.errorCode ?? '', authStore.error)
+  return null
+})
 
 const protocolItems = computed(() =>
   authStore.allowedTypes.map(type => ({ label: type.toUpperCase(), value: type })),
@@ -154,12 +165,14 @@ function validate(state: Partial<typeof form>): FormError[] {
 async function onSubmit(_event: FormSubmitEvent<typeof form>) {
   loading.value = true
   error.value = null
+  errorCode.value = null
   try {
     // On success `connected` flips; the layout's connected-watcher routes to
     // the workspace, which loads the directory listing.
     await authStore.connect({ ...form })
   }
   catch (e) {
+    errorCode.value = e instanceof ApiError ? e.code : null
     error.value = e instanceof ApiError ? e.message : t('error.connectionFailed')
   }
   finally {

@@ -94,7 +94,7 @@ func TestReadFileTooLarge(t *testing.T) {
 	rec := httptest.NewRecorder()
 	app.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
 	assert.Contains(t, rec.Body.String(), "ERR_FILE_TOO_LARGE")
 }
 
@@ -150,7 +150,7 @@ func TestWriteFileTooLarge(t *testing.T) {
 	rec := httptest.NewRecorder()
 	app.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
 	assert.Contains(t, rec.Body.String(), "ERR_FILE_TOO_LARGE")
 }
 
@@ -263,7 +263,7 @@ func TestReadFileReturnsVersion(t *testing.T) {
 // conflict detection via a null version rather than being blocked.
 func TestReadFileUnstattableReturnsNullVersion(t *testing.T) {
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
-		StatFn:     func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("550 not found") },
+		StatFn:     func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		DownloadFn: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("body")), nil },
 	}))
 	sess := connectAndGetSession(t, app)
@@ -328,7 +328,7 @@ func TestWriteFileReturnsRefreshedVersion(t *testing.T) {
 func TestWriteFileDeletedSinceOpen(t *testing.T) {
 	uploaded := false
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{
-		StatFn:   func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("550 no such file") },
+		StatFn:   func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		UploadFn: func(string, io.Reader) error { uploaded = true; return nil },
 	}))
 	sess := connectAndGetSession(t, app)

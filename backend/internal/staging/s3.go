@@ -17,9 +17,9 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// ErrUnavailable tags connection-level staging failures (endpoint unreachable,
+// (ErrUnavailable now lives in store.go, shared with LocalStore.)
+// Retained note: tags connection-level staging failures (endpoint unreachable,
 // timeout before any S3 response). Handlers map it to ERR_STORAGE_UNAVAILABLE.
-var ErrUnavailable = errors.New("chunk storage unavailable")
 
 // s3API is the subset of the S3 client used by S3Store; tests inject a fake.
 type s3API interface {
@@ -231,11 +231,32 @@ func (r *s3SequentialReader) Close() error {
 	return err
 }
 
-// wrapUnavailable tags connection-level failures with ErrUnavailable. Errors
-// carrying an S3 API response (NoSuchKey, AccessDenied) pass through: not an outage.
+// retryableS3Codes are bucket-side conditions that clear on their own, so they
+// deserve the same 503 as an unreachable endpoint. A misconfiguration
+// (NoSuchBucket, AccessDenied, ExpiredToken) does not: it needs an operator, and
+// tagging it retryable would just make the SPA hammer a broken deployment.
+var retryableS3Codes = map[string]bool{
+	"SlowDown":             true,
+	"ServiceUnavailable":   true,
+	"InternalError":        true,
+	"RequestTimeout":       true,
+	"RequestTimeTooSkewed": true,
+}
+
+// wrapUnavailable tags connection-level failures with ErrUnavailable. A
+// context cancellation is the user hanging up, never an outage.
 func wrapUnavailable(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, context.Canceled) {
+		return err
+	}
 	var apiErr smithy.APIError
 	if errors.As(err, &apiErr) {
+		if retryableS3Codes[apiErr.ErrorCode()] {
+			return fmt.Errorf("%w: %w", ErrUnavailable, err)
+		}
 		return err
 	}
 	return fmt.Errorf("%w: %w", ErrUnavailable, err)

@@ -32,6 +32,34 @@ var errTreeTooDeep = errors.New("directory tree is nested too deeply")
 // errArchiveTooLarge is returned once an extraction exceeds its budget.
 var errArchiveTooLarge = errors.New("archive expands beyond the maximum extracted size")
 
+// errArchiveEscape marks a zip-slip entry, and errArchiveCorrupt a truncated or
+// malformed archive. Both are the caller's payload, never a server fault, so
+// they must be classified before failClient sees them.
+var (
+	errArchiveEscape  = errors.New("archive entry escapes the destination")
+	errArchiveCorrupt = errors.New("archive is truncated or corrupt")
+)
+
+// archiveError maps an extraction failure to its API error. Ordered most
+// specific first; anything unmatched belongs to the remote server.
+func archiveError(err error) *gftperrors.GFTPError {
+	switch {
+	case errors.Is(err, errArchiveCorrupt):
+		return gftperrors.New(gftperrors.ErrArchiveFormat,
+			"the archive is truncated or corrupt").WithCause(err)
+	case errors.Is(err, errArchiveEscape):
+		return gftperrors.New(gftperrors.ErrArchiveFormat,
+			"the archive contains an entry that would write outside the destination").WithCause(err)
+	case errors.Is(err, errArchiveTooLarge):
+		return gftperrors.New(gftperrors.ErrFileTooLarge,
+			"the archive expands beyond the maximum extracted size").WithCause(err)
+	case errors.Is(err, errTreeTooDeep):
+		return gftperrors.New(gftperrors.ErrBadRequest,
+			"the archive is nested too deeply").WithCause(err)
+	}
+	return nil
+}
+
 // extractBudget caps the total DECOMPRESSED bytes an extraction may write to the
 // remote. maxZipSize bounds only the compressed upload: 1 MB of bz2 expands to GBs.
 type extractBudget struct{ remaining int64 }
@@ -56,7 +84,25 @@ func (br *budgetReader) Read(p []byte) (int, error) {
 	}
 	n, err := br.r.Read(p)
 	br.b.remaining -= int64(n)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return n, tagCorrupt(err)
+	}
 	return n, err
+}
+
+// tagCorrupt marks the reader-side failures that mean a bad payload rather than
+// a dead connection. io.ErrUnexpectedEOF in particular used to reach isConnLost
+// and close a perfectly healthy session.
+func tagCorrupt(err error) error {
+	if errors.Is(err, errArchiveTooLarge) || errors.Is(err, errArchiveCorrupt) {
+		return err
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, gzip.ErrChecksum) ||
+		errors.Is(err, gzip.ErrHeader) || errors.Is(err, tar.ErrHeader) ||
+		errors.Is(err, zip.ErrFormat) || errors.Is(err, zip.ErrChecksum) {
+		return fmt.Errorf("%w: %w", errArchiveCorrupt, err)
+	}
+	return err
 }
 
 // safeJoin joins destination and name, returning an error if the result escapes destination.
@@ -65,7 +111,7 @@ func safeJoin(destination, name string) (string, error) {
 	cleanDest := path.Clean(destination)
 	// Trailing slash so "/dir" cannot prefix-match "/dir2".
 	if outPath != cleanDest && !strings.HasPrefix(outPath, cleanDest+"/") {
-		return "", fmt.Errorf("archive entry %q escapes destination", name)
+		return "", fmt.Errorf("%w: %q", errArchiveEscape, name)
 	}
 	return outPath, nil
 }
@@ -99,92 +145,156 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 		}
 		// multipart.File is an io.ReaderAt, all zip.NewReader wants, so the archive
 		// is never held in memory (net/http already spooled it past its threshold).
-		zr, err := zip.NewReader(f, fh.Size)
-		if err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid zip archive"))
+		zr, zipErr := zip.NewReader(f, fh.Size)
+		if zipErr != nil {
+			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid zip archive").WithCause(zipErr))
 		}
-		if err := extractZip(client, zr, destination, newExtractBudget()); err != nil {
+		written, skipped, err := extractZip(client, zr, destination, newExtractBudget())
+		if err != nil {
+			if gerr := archiveError(err); gerr != nil {
+				return Fail(c, gerr)
+			}
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
+		return OK(c, extractResult{Written: written, Skipped: skipped})
 	case strings.HasSuffix(filename, ".tar.gz") || strings.HasSuffix(filename, ".tgz"):
-		gr, err := gzip.NewReader(f)
-		if err != nil {
-			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid gzip archive"))
+		gr, gzErr := gzip.NewReader(f)
+		if gzErr != nil {
+			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid gzip archive").WithCause(gzErr))
 		}
 		defer gr.Close()
-		if err := extractTar(client, tar.NewReader(gr), destination, newExtractBudget()); err != nil {
+		written, skipped, err := extractTar(client, tar.NewReader(gr), destination, newExtractBudget())
+		if err != nil {
+			if gerr := archiveError(err); gerr != nil {
+				return Fail(c, gerr)
+			}
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
+		return OK(c, extractResult{Written: written, Skipped: skipped})
 	case strings.HasSuffix(filename, ".tar.bz2"):
-		if err := extractTar(client, tar.NewReader(bzip2.NewReader(f)), destination, newExtractBudget()); err != nil {
+		written, skipped, err := extractTar(client, tar.NewReader(bzip2.NewReader(f)), destination, newExtractBudget())
+		if err != nil {
+			if gerr := archiveError(err); gerr != nil {
+				return Fail(c, gerr)
+			}
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
+		return OK(c, extractResult{Written: written, Skipped: skipped})
 	case strings.HasSuffix(filename, ".tar"):
-		if err := extractTar(client, tar.NewReader(f), destination, newExtractBudget()); err != nil {
+		written, skipped, err := extractTar(client, tar.NewReader(f), destination, newExtractBudget())
+		if err != nil {
+			if gerr := archiveError(err); gerr != nil {
+				return Fail(c, gerr)
+			}
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
+		return OK(c, extractResult{Written: written, Skipped: skipped})
 	default:
 		return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "unsupported archive format"))
 	}
-	return OK(c, nil)
 }
 
-func extractZip(client transfer.Client, zr *zip.Reader, destination string, budget *extractBudget) error {
+// extractResult reports what an extraction actually did. Entries an archive
+// format allows but SFTP/FTP cannot represent (symlinks, devices) are skipped
+// rather than failing the whole upload, so the caller has to be told.
+type extractResult struct {
+	Written int            `json:"written"`
+	Skipped []skippedEntry `json:"skipped"`
+}
+
+type skippedEntry struct {
+	Name   string `json:"name"`
+	Reason string `json:"reason"`
+}
+
+func extractZip(client transfer.Client, zr *zip.Reader, destination string, budget *extractBudget) (int, []skippedEntry, error) {
+	written := 0
+	skipped := []skippedEntry{}
 	for _, entry := range zr.File {
 		outPath, err := safeJoin(destination, entry.Name)
 		if err != nil {
-			return err
+			return written, skipped, err
 		}
 		if entry.FileInfo().IsDir() {
 			if err := ensureDirAll(client, outPath); err != nil {
-				return err
+				return written, skipped, err
 			}
 			continue
 		}
+		if !entry.FileInfo().Mode().IsRegular() {
+			skipped = append(skipped, skippedEntry{Name: entry.Name, Reason: "not a regular file"})
+			continue
+		}
 		if err := ensureDirAll(client, path.Dir(outPath)); err != nil {
-			return err
+			return written, skipped, err
 		}
 		rc, err := entry.Open()
 		if err != nil {
-			return err
+			return written, skipped, tagCorrupt(err)
 		}
 		err = client.Upload(outPath, budget.wrap(rc))
 		_ = rc.Close()
 		if err != nil {
-			return err
+			return written, skipped, err
 		}
+		written++
 	}
-	return nil
+	return written, skipped, nil
 }
 
-func extractTar(client transfer.Client, tr *tar.Reader, destination string, budget *extractBudget) error {
+func extractTar(client transfer.Client, tr *tar.Reader, destination string, budget *extractBudget) (int, []skippedEntry, error) {
+	written := 0
+	skipped := []skippedEntry{}
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return err
+			return written, skipped, tagCorrupt(err)
 		}
 		outPath, err := safeJoin(destination, hdr.Name)
 		if err != nil {
-			return err
+			return written, skipped, err
 		}
 		switch hdr.Typeflag {
 		case tar.TypeDir:
 			if err := ensureDirAll(client, outPath); err != nil {
-				return err
+				return written, skipped, err
 			}
 		case tar.TypeReg:
 			if err := ensureDirAll(client, path.Dir(outPath)); err != nil {
-				return err
+				return written, skipped, err
 			}
 			if err := client.Upload(outPath, budget.wrap(tr)); err != nil {
-				return err
+				return written, skipped, err
 			}
+			written++
+		case tar.TypeXHeader, tar.TypeXGlobalHeader:
+			// Metadata records, not entries: silently correct to ignore.
+		default:
+			skipped = append(skipped, skippedEntry{
+				Name:   hdr.Name,
+				Reason: tarTypeName(hdr.Typeflag),
+			})
 		}
 	}
-	return nil
+	return written, skipped, nil
+}
+
+func tarTypeName(flag byte) string {
+	switch flag {
+	case tar.TypeSymlink:
+		return "symlink"
+	case tar.TypeLink:
+		return "hard link"
+	case tar.TypeChar, tar.TypeBlock:
+		return "device node"
+	case tar.TypeFifo:
+		return "fifo"
+	default:
+		return "unsupported entry type"
+	}
 }
 
 // CreateZip downloads the given remote paths and uploads a new zip to destination.
@@ -198,7 +308,10 @@ func (h *Handler) CreateZip(c echo.Context) error {
 		Paths       []string `json:"paths"`
 		Destination string   `json:"destination"`
 	}
-	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 || req.Destination == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if len(req.Paths) == 0 || req.Destination == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths and destination are required"))
 	}
 
@@ -284,7 +397,11 @@ func addToZipDepth(zw *zip.Writer, client transfer.Client, remotePath, base stri
 	if err != nil {
 		return err
 	}
-	defer r.Close()
-	_, err = io.Copy(w, metrics.CountingReader(r, counter))
-	return err
+	_, copyErr := io.Copy(w, metrics.CountingReader(r, counter))
+	// A short member would otherwise be zipped up and served as complete.
+	closeErr := r.Close()
+	if err := errors.Join(copyErr, closeErr); err != nil {
+		return fmt.Errorf("%w: %w", transfer.ErrTransferIncomplete, err)
+	}
+	return nil
 }

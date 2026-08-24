@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,9 +28,14 @@ import (
 // `-ldflags "-X main.version=<tag>"` (see docker/Dockerfile).
 var version = "dev"
 
-// shutdownGrace bounds the drain: a transfer wedged on an unresponsive remote must
-// not outlive the orchestrator's kill timeout (Docker SIGKILLs 10s after SIGTERM).
-const shutdownGrace = 20 * time.Second
+// shutdownGrace bounds the drain, and evictBudget the connection teardown that
+// follows it. Their sum must fit the orchestrator's kill timeout: Docker
+// SIGKILLs 10s after SIGTERM, so 20s of grace was never actually honored.
+// Operators who want a longer drain must raise stop_grace_period to match.
+const (
+	shutdownGrace = 5 * time.Second
+	evictBudget   = 3 * time.Second
+)
 
 func newApp(cfg *config.Config, opts ...api.HandlerOption) (*echo.Echo, *auth.Store, *auth.Throttle, *api.Handler) {
 	e := echo.New()
@@ -93,6 +99,13 @@ func newS3Store(cfg *config.Config, logger *slog.Logger) *staging.S3Store {
 }
 
 func main() {
+	os.Exit(run())
+}
+
+// run holds the whole lifecycle so its defers (log close, Sentry flush) still
+// execute on a fatal path. A bare `defer` plus os.Exit in main would skip them,
+// and returning normally from a failed start reported success to systemd.
+func run() int {
 	// Bootstrap logger at default level to capture config-load warnings
 	// (stdout-only, so this Init cannot fail).
 	logger, _, _ := logging.Init(logging.Options{Level: "info"})
@@ -100,7 +113,7 @@ func main() {
 	cfg, err := config.Load(logger)
 	if err != nil {
 		logger.Error("failed to load configuration", "error", err.Error())
-		os.Exit(1)
+		return 1
 	}
 
 	full, closeLog, logErr := logging.Init(logging.Options{
@@ -113,7 +126,7 @@ func main() {
 	})
 	if logErr != nil {
 		logger.Error("failed to initialize logging", "error", logErr.Error())
-		os.Exit(1)
+		return 1
 	}
 	logger = full
 	defer func() { _ = closeLog() }()
@@ -121,6 +134,14 @@ func main() {
 	logger.Info("starting GoblinFTP",
 		"version", version,
 		"port", cfg.Port, "log_level", cfg.LogLevel, "log_format", cfg.LogFormat, "log_file", cfg.LogFile)
+
+	// Probed at boot, not on the first SFTP connect: an unwritable data dir
+	// otherwise surfaced as a confusing per-connection failure much later.
+	if dirErr := ensureDataDir(cfg.DataDir); dirErr != nil {
+		logger.Error("data directory is not usable, set GFTP_DATA_DIR to a writable path",
+			"path", cfg.DataDir, "error", dirErr.Error())
+		return 1
+	}
 
 	// A cross-site embed fails in several ways that look identical from the browser
 	// (redirect loop, no console error), so state the policy to check Set-Cookie against.
@@ -145,7 +166,9 @@ func main() {
 		ErrorSampleRate:    cfg.SentryErrorSampleRate,
 		SendSessionContext: cfg.SentrySendSessionContext,
 	}); initErr != nil {
-		logger.Warn("sentry init failed", "error", initErr.Error())
+		// Not fatal, but not a warning either: the operator asked for error
+		// tracking and is not getting it.
+		logger.Error("sentry init failed, error tracking is disabled", "error", initErr.Error())
 	}
 	defer gftpsentry.Flush()
 
@@ -176,27 +199,53 @@ func main() {
 
 	var metricsSrv *http.Server
 	if cfg.MetricsEnabled {
+		// Bound here rather than inside the goroutine: a clash used to be logged
+		// from a background goroutine while startup carried on regardless.
+		ln, lnErr := net.Listen("tcp", ":"+cfg.MetricsPort)
+		if lnErr != nil {
+			logger.Error("could not bind the metrics listener, check GFTP_METRICS_PORT",
+				"port", cfg.MetricsPort, "error", lnErr.Error())
+			return 1
+		}
 		mux := http.NewServeMux()
-		mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{}))
-		metricsSrv = &http.Server{Addr: ":" + cfg.MetricsPort, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+		mux.Handle("/metrics", promhttp.HandlerFor(m.Registry, promhttp.HandlerOpts{
+			ErrorLog:      slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
+			ErrorHandling: promhttp.ContinueOnError,
+			Registry:      m.Registry,
+		}))
+		metricsSrv = &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 		go func() {
 			defer gftpsentry.Recover()
 			logger.Info("metrics listening", "port", cfg.MetricsPort)
-			if err := metricsSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			if err := metricsSrv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Error("metrics server stopped", "error", err.Error())
 			}
 		}()
 	}
 
+	// Buffered so a failed start is never lost, and so the goroutine can exit
+	// even when the signal path wins the race.
+	serveErr := make(chan error, 1)
 	go func() {
 		defer gftpsentry.Recover()
 		if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("server stopped", "error", err.Error())
-			stop()
+			serveErr <- err
+			return
 		}
+		serveErr <- nil
 	}()
 
-	<-ctx.Done()
+	exitCode := 0
+	select {
+	case <-ctx.Done():
+	case err := <-serveErr:
+		if err != nil {
+			// A failed bind is fatal. Falling through to the normal shutdown
+			// reported a healthy exit 0 to systemd and to CI.
+			logger.Error("server stopped", "error", err.Error())
+			exitCode = 1
+		}
+	}
 	logger.Info("shutting down", "grace_seconds", int(shutdownGrace.Seconds()))
 
 	// Ordering matters: stop accepting and let in-flight requests drain first,
@@ -212,12 +261,40 @@ func main() {
 
 	// Closes each session's FTP/SFTP connection properly instead of letting
 	// process death sever it, leaving the remote server to time it out.
-	store.EvictAll()
+	clean, forced, abandoned := store.EvictAll()
 	store.Close()
 	throttle.Close()
 	handler.Close()
 	if sweeper != nil {
 		sweeper.Close()
 	}
-	logger.Info("stopped")
+	// Warn, not Info: a forced or abandoned session means a connection was cut
+	// under a running transfer, which an operator wants to see.
+	level := slog.LevelInfo
+	if forced+abandoned > 0 {
+		level = slog.LevelWarn
+	}
+	logger.LogAttrs(context.Background(), level, "stopped",
+		slog.Int("sessions_closed", clean),
+		slog.Int("sessions_forced", forced),
+		slog.Int("sessions_abandoned", abandoned))
+	return exitCode
+}
+
+// ensureDataDir creates the data dir and proves it is writable, since SFTP
+// known_hosts, local chunk staging and themes all live under it.
+func ensureDataDir(dir string) error {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	probe, err := os.CreateTemp(dir, ".gftp-write-probe-*")
+	if err != nil {
+		return err
+	}
+	name := probe.Name()
+	if closeErr := probe.Close(); closeErr != nil {
+		_ = os.Remove(name)
+		return closeErr
+	}
+	return os.Remove(name)
 }

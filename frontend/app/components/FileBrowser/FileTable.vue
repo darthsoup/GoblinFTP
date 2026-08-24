@@ -205,13 +205,14 @@ const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
 const notify = useNotify()
 const { t } = useI18n()
+const { localizeError } = useErrorMessage()
 
 async function onDownload(path: string) {
   try {
     await filesStore.downloadFile(path)
   }
   catch (e) {
-    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+    notify.error(e instanceof ApiError ? localizeError(e.code, e.message) : t('toast.downloadFailed'))
   }
 }
 
@@ -236,7 +237,7 @@ async function onCommitRename(file: FileInfo, newName: string) {
     notify.success(t('toast.renamed', { name: trimmed }))
   }
   catch (e) {
-    notify.error(e instanceof ApiError ? e.message : t('error.operationFailed'))
+    notify.error(e instanceof ApiError ? localizeError(e.code, e.message) : t('error.operationFailed'))
   }
   finally {
     filesStore.cancelRename()

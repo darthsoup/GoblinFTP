@@ -136,6 +136,12 @@ export interface SystemVars {
   version: string
 }
 
+// Frontend-only codes for failures that never reach the API envelope. Declared
+// here so they get errorCode.* translations like any backend code.
+export const ERR_NETWORK = 'ERR_NETWORK'
+export const ERR_UNKNOWN = 'ERR_UNKNOWN'
+export const ERR_ABORTED = 'ERR_ABORTED'
+
 export class ApiError extends Error {
   constructor(public code: string, message: string) {
     super(message)

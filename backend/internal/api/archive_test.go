@@ -38,7 +38,7 @@ func TestExtractZipArchive(t *testing.T) {
 		MakeDirFn: func(path string) error { return nil },
 		StatFn: func(string) (transfer.FileInfo, error) {
 			// Destination does not exist yet, so ensureDirAll creates it.
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 	}
 	dialFn := staticDial(mock)
@@ -204,7 +204,7 @@ func TestExtractTarGzArchive(t *testing.T) {
 		MakeDirFn:    func(string) error { return nil },
 		StatFn: func(string) (transfer.FileInfo, error) {
 			// Destination does not exist yet, so ensureDirAll creates it.
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		UploadFn: func(p string, r io.Reader) error {
 			_, _ = io.Copy(io.Discard, r)
@@ -230,7 +230,7 @@ func TestExtractTarRejectsPathTraversal(t *testing.T) {
 				MakeDirFn:    func(string) error { return nil },
 				StatFn: func(string) (transfer.FileInfo, error) {
 					// Destination does not exist yet, so ensureDirAll creates it.
-					return transfer.FileInfo{}, errors.New("not found")
+					return transfer.FileInfo{}, transfer.ErrNotFound
 				},
 				UploadFn: func(p string, r io.Reader) error {
 					_, _ = io.Copy(io.Discard, r)
@@ -261,7 +261,7 @@ func TestExtractRejectsDecompressionBomb(t *testing.T) {
 		MakeDirFn:    func(string) error { return nil },
 		StatFn: func(string) (transfer.FileInfo, error) {
 			// Destination does not exist yet, so ensureDirAll creates it.
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		UploadFn: func(p string, r io.Reader) error {
 			n, err := io.Copy(io.Discard, r)
@@ -291,7 +291,7 @@ func TestExtractCreatesNestedDirectories(t *testing.T) {
 			if existing[p] {
 				return transfer.FileInfo{Name: path.Base(p), IsDir: true}, nil
 			}
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		// Single-level, exactly like the real FTP adapter: creating "/a/b"
 		// fails unless "/a" already exists.

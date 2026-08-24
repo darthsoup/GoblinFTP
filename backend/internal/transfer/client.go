@@ -58,4 +58,30 @@ var (
 	// ErrHostKeyMismatch marks an SFTP host key that does not match the pinned
 	// known_hosts entry (a possible man-in-the-middle).
 	ErrHostKeyMismatch = errors.New("host key mismatch")
+	// ErrConnectionTimeout marks a dial or command that exceeded its deadline,
+	// as opposed to being actively refused.
+	ErrConnectionTimeout = errors.New("connection timed out")
+	// ErrConnectionLost marks a socket that died mid-operation. Adapters set it
+	// where they know it is one, so classify need not guess from message text.
+	ErrConnectionLost = errors.New("connection lost")
+	ErrNotFound       = errors.New("not found")
+	ErrFileExists     = errors.New("file exists")
+	// ErrPermissionDenied is set structurally by the adapters, so handlers never
+	// have to match server text (a path can contain "permission denied" too).
+	ErrPermissionDenied = errors.New("permission denied")
+	ErrQuotaExceeded    = errors.New("quota exceeded")
+	ErrDirNotEmpty      = errors.New("directory not empty")
+	// ErrDataConnectionFailed marks an FTP data channel that could not be
+	// established or died early: usually passive mode, NAT, or a firewall.
+	ErrDataConnectionFailed = errors.New("data connection failed")
+	// ErrTransferIncomplete marks a transfer that ended early, so the
+	// destination is in a partial state rather than untouched.
+	ErrTransferIncomplete = errors.New("transfer incomplete")
+	// ErrHostKeyStoreUnavailable marks a known_hosts file that could not be
+	// read or written, which must never be reported as an auth failure.
+	ErrHostKeyStoreUnavailable = errors.New("host key store unavailable")
+	// ErrSubsystemUnavailable marks an SSH login that succeeded against a
+	// server providing no SFTP subsystem.
+	ErrSubsystemUnavailable = errors.New("sftp subsystem unavailable")
+	ErrInvalidType          = errors.New("invalid type")
 )

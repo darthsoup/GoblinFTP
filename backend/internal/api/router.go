@@ -25,8 +25,9 @@ const (
 	// editorBodyLimit sits above the handler's own 1 MB check (editor.go) so an
 	// oversized edit gets the enveloped ERR_FILE_TOO_LARGE, not a bare 413.
 	editorBodyLimit = "4M"
-	// archiveBodyLimit matches maxZipSize, the extract handler's own cap.
-	archiveBodyLimit = "512M"
+	// archiveBodyLimit sits above maxZipSize so the extract handler's own check
+	// wins and returns an enveloped ERR_ARCHIVE_FORMAT, not a bare 413.
+	archiveBodyLimit = "544M"
 )
 
 // chunkBodyLimit sizes the upload endpoints from the configured chunk size,
@@ -40,6 +41,9 @@ func chunkBodyLimit(cfg *config.Config) string {
 // e, and returns the handler so its owner can Close it at shutdown.
 func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts ...HandlerOption) *Handler {
 	h := newHandler(cfg, store, thr, opts)
+
+	// Installed here, not in main, so newTestApp exercises the same behavior.
+	e.HTTPErrorHandler = httpErrorHandler(h.logger)
 
 	// Order matters: RequestID before the logger (the line carries the ID) and
 	// before Sentry (the event carries it), Sentry outside the logger (whose

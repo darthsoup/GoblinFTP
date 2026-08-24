@@ -468,7 +468,7 @@ var Registry = slices.Concat(
 			doc("Sliding login cooldown in seconds, keyed on host:username.")),
 		boolean("GFTP_LOGIN_FORM_DISABLED", func(c *Config) *bool { return &c.LoginFormDisabled },
 			spaPath("loginFormDisabled"),
-			doc("Hide the manual login form (SSO-only deployments).")),
+			doc("Disable manual logins for SSO-only deployments: the form is hidden and POST /api/auth/connect is rejected. SSO logins are unaffected.")),
 	),
 	group("SSO login links", "configuration",
 		boolean("GFTP_SSO_ENABLED", func(c *Config) *bool { return &c.SSOEnabled },

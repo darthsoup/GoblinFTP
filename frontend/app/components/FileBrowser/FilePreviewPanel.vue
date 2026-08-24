@@ -149,6 +149,7 @@ const settingsStore = useSettingsStore()
 const modalStore = useModalStore()
 const notify = useNotify()
 const { t, locale } = useI18n()
+const { localizeError } = useErrorMessage()
 
 // Fallback text extensions when systemVars hasn't loaded yet (the read endpoint
 // still gates on the server's allowed list, so this is just for classification).
@@ -236,7 +237,7 @@ async function download() {
     await filesStore.downloadFile(fullPath.value)
   }
   catch (e) {
-    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+    notify.error(e instanceof ApiError ? localizeError(e.code, e.message) : t('toast.downloadFailed'))
   }
 }
 

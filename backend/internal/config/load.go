@@ -108,7 +108,25 @@ func Load(logger *slog.Logger) (*Config, error) {
 	if err := validate(cfg); err != nil {
 		return nil, err
 	}
+	warn(cfg, logger)
 	return cfg, nil
+}
+
+// warn reports configurations that load fine but behave surprisingly. They are
+// not errors: each is legitimate in some deployment.
+func warn(cfg *Config, logger *slog.Logger) {
+	if logger == nil {
+		return
+	}
+	// Behind a proxy every request reports the proxy's address, so an allowlist
+	// rejects all of them. Directly exposed, the peer is the real client and
+	// this is correct, which is why it cannot be a hard failure.
+	if len(cfg.Settings.Access.AllowedClientAddresses) > 0 && len(cfg.Settings.Access.TrustedProxies) == 0 {
+		logger.Warn("GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES is set without GFTP_ACCESS_TRUSTED_PROXIES; "+
+			"correct only if clients reach this instance directly, otherwise every request is attributed "+
+			"to the proxy and the allowlist rejects all of them",
+			"allowed_addresses", len(cfg.Settings.Access.AllowedClientAddresses))
+	}
 }
 
 func checkStaleEnv() error {
@@ -157,6 +175,11 @@ func validate(cfg *Config) error {
 	conn := &cfg.Settings.Connection
 	if conn.LockHost && (conn.PresetHost == nil || *conn.PresetHost == "") {
 		return fmt.Errorf("GFTP_CONNECTION_LOCK_HOST requires GFTP_CONNECTION_PRESET_HOST to be set")
+	}
+	// The metrics listener binds first, so an identical port silently stole the
+	// main server's bind and the process then exited without serving anything.
+	if cfg.MetricsEnabled && cfg.MetricsPort == cfg.Port {
+		return fmt.Errorf("GFTP_METRICS_PORT (%s) must differ from GFTP_PORT", cfg.MetricsPort)
 	}
 	if cfg.Settings.Branding.AppName == "" {
 		cfg.Settings.Branding.AppName = "GoblinFTP"

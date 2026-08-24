@@ -153,6 +153,7 @@ const modalStore = useModalStore()
 const settingsStore = useSettingsStore()
 const notify = useNotify()
 const { t } = useI18n()
+const { localizeError } = useErrorMessage()
 
 const selectedCount = computed(() => filesStore.selected.size)
 
@@ -203,7 +204,7 @@ async function downloadZip() {
     await filesStore.downloadZip(paths)
   }
   catch (e) {
-    notify.error(e instanceof ApiError ? e.message : t('toast.downloadFailed'))
+    notify.error(e instanceof ApiError ? localizeError(e.code, e.message) : t('toast.downloadFailed'))
   }
 }
 

@@ -41,7 +41,10 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 	var req struct {
 		Paths []string `json:"paths"`
 	}
-	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
 	}
 	if len(req.Paths) > maxUploadCheckPaths {

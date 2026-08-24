@@ -1,9 +1,12 @@
 package api
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -17,23 +20,32 @@ import (
 // stagingError maps chunk-store failures to API errors: a storage outage becomes
 // ERR_STORAGE_UNAVAILABLE (503), everything else keeps the handler's code.
 func stagingError(err error, fallback gftperrors.Code, msg string) *gftperrors.GFTPError {
-	if errors.Is(err, staging.ErrUnavailable) {
-		return gftperrors.New(gftperrors.ErrStorageUnavailable, "chunk storage unavailable")
+	switch {
+	case errors.Is(err, staging.ErrUnavailable):
+		return gftperrors.New(gftperrors.ErrStorageUnavailable,
+			"temporary storage is unavailable").WithCause(err)
+	case errors.Is(err, staging.ErrChunkMissing):
+		// The upload is stale or already cleaned up, so the caller must start
+		// over. Reporting it as an internal fault invited an endless retry.
+		return gftperrors.New(gftperrors.ErrUploadNotFound,
+			"the staged upload is no longer available, please upload again").WithCause(err)
 	}
-	return gftperrors.New(fallback, msg)
+	return gftperrors.New(fallback, msg).WithCause(err)
 }
 
 // destinationTaken reports whether p exists; callers must hold the transfer lock.
-// An ordinary Stat failure means "free", but a dead connection is surfaced as err.
+// It fails closed: only a definite ErrNotFound counts as free.
 func destinationTaken(client transfer.Client, p string) (taken, isDir bool, err error) {
 	fi, statErr := client.Stat(p)
 	if statErr == nil {
 		return true, fi.IsDir, nil
 	}
-	if isConnLost(statErr) {
-		return false, false, statErr
+	// Only a definite "not there" clears the overwrite guard. Treating every
+	// other Stat failure as free let a dropped LIST entry clobber a real file.
+	if errors.Is(statErr, transfer.ErrNotFound) {
+		return false, false, nil
 	}
-	return false, false, nil
+	return true, false, statErr
 }
 
 // probeDestination reports whether p is taken, taking and releasing the transfer
@@ -104,8 +116,20 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 		ChunkSize   int64  `json:"chunkSize"`
 		Overwrite   bool   `json:"overwrite"`
 	}
-	if err := c.Bind(&req); err != nil || req.Path == "" || req.TotalChunks < 1 {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.Path == "" || req.TotalChunks < 1 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path and totalChunks are required"))
+	}
+	if req.TotalChunks > maxTotalChunks {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "too many chunks for one upload"))
+	}
+	if req.ChunkSize <= 0 {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "chunkSize must be positive"))
+	}
+	if req.TotalSize < 0 {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "totalSize must not be negative"))
 	}
 	// Reject a conflict before the client stages a single chunk. The lock is
 	// required because a LIST issued mid-transfer desyncs the FTP control connection.
@@ -126,8 +150,28 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to reserve upload"))
 	}
 	meta.Overwrite = req.Overwrite
+	meta.TotalSize = req.TotalSize
 	sess.PutUpload(meta.ID, meta)
 	return OK(c, map[string]string{"uploadId": meta.ID})
+}
+
+// maxTotalChunks bounds a single reservation: the count is client-supplied and
+// drives an allocation in AssembleReader.
+const maxTotalChunks = 100_000
+
+// checkChunkSize rejects a chunk that cannot belong to the reserved upload.
+// Only the final chunk may be short, and none may exceed the reserved size.
+func checkChunkSize(meta *transfer.UploadMeta, index int, size int64) *gftperrors.GFTPError {
+	if meta.ChunkSize <= 0 || size < 0 {
+		return nil
+	}
+	if size > meta.ChunkSize {
+		return gftperrors.New(gftperrors.ErrBadRequest, "chunk is larger than the reserved chunk size")
+	}
+	if size < meta.ChunkSize && index != meta.TotalChunks-1 {
+		return gftperrors.New(gftperrors.ErrBadRequest, "only the final chunk may be short")
+	}
+	return nil
 }
 
 func (h *Handler) UploadChunk(c echo.Context) error {
@@ -159,6 +203,9 @@ func (h *Handler) UploadChunk(c echo.Context) error {
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "chunk file is required"))
 	}
+	if gerr := checkChunkSize(meta, chunkIndex, fh.Size); gerr != nil {
+		return Fail(c, gerr)
+	}
 	f, err := fh.Open()
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to open chunk"))
@@ -188,7 +235,10 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		// Optional rename, restricted to the reserved parent directory.
 		Destination string `json:"destination"`
 	}
-	if err := c.Bind(&req); err != nil || req.UploadID == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.UploadID == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "uploadId is required"))
 	}
 	metaVal, ok := sess.GetUpload(req.UploadID)
@@ -215,6 +265,7 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	ctx := c.Request().Context()
 	// Probed before assembling so a conflict costs no reader setup, and the staged
 	// chunks survive it so the client can re-commit rather than re-upload.
+	createdHere := false
 	if !overwrite {
 		taken, _, err := destinationTaken(client, destination)
 		if err != nil {
@@ -223,6 +274,7 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		if taken {
 			return Fail(c, gftperrors.New(gftperrors.ErrFileExists, "destination already exists"))
 		}
+		createdHere = true
 	}
 	r, err := h.chunks.AssembleReader(ctx, meta.ID, meta.TotalChunks)
 	if err != nil {
@@ -230,7 +282,7 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	}
 	defer r.Close()
 	if err := ensureDirAll(client, path.Dir(destination)); err != nil {
-		_ = h.chunks.Cleanup(ctx, meta.ID)
+		h.cleanupChunks(meta.ID)
 		sess.DeleteUpload(req.UploadID)
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
@@ -238,13 +290,31 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	if err := client.Upload(destination, src); err != nil {
 		// The frontend never retries a failed commit, so the staged chunks are
 		// unreachable: clean them up instead of leaving them behind.
-		_ = h.chunks.Cleanup(ctx, meta.ID)
+		h.cleanupChunks(meta.ID)
 		sess.DeleteUpload(req.UploadID)
+		// A half-written file we created ourselves is pure litter. One we were
+		// overwriting is the user's data, so a partial write is reported, never
+		// deleted.
+		if createdHere && errors.Is(err, transfer.ErrTransferIncomplete) {
+			_ = client.Delete(destination)
+			return failClient(c, gftperrors.ErrTransferIncomplete, err)
+		}
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
-	_ = h.chunks.Cleanup(ctx, meta.ID)
+	h.cleanupChunks(meta.ID)
 	sess.DeleteUpload(req.UploadID)
 	return OK(c, nil)
+}
+
+// cleanupChunks reclaims staged chunks on a fresh context: the request context
+// is already canceled whenever the client hung up mid-commit.
+func (h *Handler) cleanupChunks(uploadID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := h.chunks.Cleanup(ctx, uploadID); err != nil {
+		h.logger.Warn("failed to clean up staged chunks",
+			slog.String("upload_id", uploadID), slog.String("error", err.Error()))
+	}
 }
 
 // UploadAbort discards a reserved upload and its staged chunks. Worth calling:
@@ -257,9 +327,19 @@ func (h *Handler) UploadAbort(c echo.Context) error {
 	var req struct {
 		UploadID string `json:"uploadId"`
 	}
-	if err := c.Bind(&req); err != nil || req.UploadID == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.UploadID == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "uploadId is required"))
 	}
+	// Serialized behind a running commit: without the lock an abort deleted the
+	// chunks out from under the commit's reader and truncated the remote file.
+	// By the time the lock is free a finished commit has already removed the
+	// upload, so this falls through to the ordinary not-found below.
+	sess.LockTransfer()
+	defer sess.UnlockTransfer()
+
 	metaVal, ok := sess.GetUpload(req.UploadID)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))

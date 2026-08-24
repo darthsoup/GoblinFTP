@@ -12,6 +12,7 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
+	"github.com/darthsoup/goblinftp/internal/logging"
 	"github.com/darthsoup/goblinftp/internal/sso"
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
@@ -135,6 +136,11 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 				if pingErr != nil {
 					sess.Delete("client")
 					result.Connected = false
+					code, _ := classify(pingErr)
+					attrs := []slog.Attr{slog.String("code", string(code))}
+					attrs = append(attrs, logging.SafeLogAttrs(slog.String("cause", pingErr.Error()))...)
+					h.logger.LogAttrs(c.Request().Context(), slog.LevelWarn,
+						"connection dropped, session marked disconnected", attrs...)
 				}
 			}
 		}
@@ -176,8 +182,8 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	var body struct {
 		AcceptHostKey string `json:"acceptHostKey"`
 	}
-	if err := c.Bind(&body); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid request body"))
+	if gerr := bindJSON(c, &body); gerr != nil {
+		return Fail(c, gerr)
 	}
 
 	if gftperr := h.checkIPAllowlist(c); gftperr != nil {
@@ -196,26 +202,14 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	})
 	if hostKey != nil {
 		// Keep the pending SSO request so the SPA can retry with the trusted key.
-		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "host_key_prompt").Inc()
+		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, hostKeyLabel(hostKey)).Inc()
+		noteHostKeyChange(c, h.logger, pending.Host, hostKey)
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
 	}
 	if dialErr != nil {
-		switch {
-		case errors.Is(dialErr, transfer.ErrAuthFailed):
-			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "auth_failed").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
-		case errors.Is(dialErr, transfer.ErrHostKeyMismatch):
-			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "host_key_mismatch").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrHostKeyMismatch,
-				"the server's host key changed since it was trusted - possible man-in-the-middle, connection refused").WithCause(dialErr))
-		case errors.Is(dialErr, transfer.ErrTLSFailed):
-			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "tls_failed").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrTLSFailed,
-				"the server's TLS certificate could not be verified").WithCause(dialErr))
-		default:
-			h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "failed").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
-		}
+		failure := classifyDial(dialErr)
+		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, failure.metricLabel).Inc()
+		return Fail(c, failure.err)
 	}
 
 	initialDir, wdErr := client.WorkingDir()

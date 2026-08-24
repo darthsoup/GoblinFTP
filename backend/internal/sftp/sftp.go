@@ -1,10 +1,10 @@
 package sftp
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"path"
 	"strings"
 	"time"
 
@@ -26,19 +26,31 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 	var res hostKeyResult
 	cb, err := buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint, &res)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
+		// A known_hosts file that cannot be read is an operator problem. Calling
+		// it a connection failure sent the user to check the wrong thing.
+		return nil, nil, fmt.Errorf("%w: %w", transfer.ErrHostKeyStoreUnavailable, err)
 	}
 	cfg := &ssh.ClientConfig{
 		User:            user,
 		Auth:            []ssh.AuthMethod{ssh.Password(pass)},
 		HostKeyCallback: cb,
-		Timeout:         10 * time.Second,
+		Timeout:         dialTimeout,
 	}
 	sshConn, err := ssh.Dial("tcp", addr, cfg)
 	if err != nil {
+		// Order matters: a failed known_hosts write reports "permission denied",
+		// which isAuthErr would otherwise read as bad credentials and throttle
+		// the user into a lockout over a read-only data volume.
 		switch {
+		case res.writeErr != nil:
+			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrHostKeyStoreUnavailable, res.writeErr)
+		case res.revoked:
+			return nil, nil, fmt.Errorf("%w: the server's host key is marked revoked in known_hosts",
+				transfer.ErrHostKeyMismatch)
 		case res.prompt != nil:
 			return nil, res.prompt, nil // unknown or changed host key, needs confirmation
+		case isTimeout(err):
+			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrConnectionTimeout, err)
 		case isAuthErr(err.Error()):
 			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 		default:
@@ -48,10 +60,14 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 	sftpClient, err := sftp.NewClient(sshConn)
 	if err != nil {
 		_ = sshConn.Close()
-		return nil, nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
+		// The login worked, the server just does not offer the subsystem. Telling
+		// the user "could not connect" sends them to check the wrong thing.
+		return nil, nil, fmt.Errorf("%w: %w", transfer.ErrSubsystemUnavailable, err)
 	}
 	return &Client{ssh: sshConn, sftp: sftpClient}, nil, nil
 }
+
+const dialTimeout = 10 * time.Second
 
 func (c *Client) WorkingDir() (string, error) {
 	return c.sftp.Getwd()
@@ -60,7 +76,7 @@ func (c *Client) WorkingDir() (string, error) {
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 	entries, err := c.sftp.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return nil, wrapErr(err)
 	}
 	out := make([]transfer.FileInfo, 0, len(entries))
 	for _, e := range entries {
@@ -72,28 +88,31 @@ func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 func (c *Client) Stat(p string) (transfer.FileInfo, error) {
 	fi, err := c.sftp.Stat(p)
 	if err != nil {
-		return transfer.FileInfo{}, err
+		return transfer.FileInfo{}, wrapErr(err)
 	}
 	return infoFromFS(fi), nil
 }
 
 func (c *Client) MakeDir(p string) error {
-	return c.sftp.MkdirAll(p)
+	return wrapErr(c.sftp.MkdirAll(p))
 }
 
 func (c *Client) Delete(p string) error {
+	if isRootPath(p) {
+		return fmt.Errorf("%w: refusing to delete the remote root", transfer.ErrInvalidType)
+	}
 	fi, err := c.sftp.Stat(p)
 	if err != nil {
-		return err
+		return wrapErr(err)
 	}
 	if fi.IsDir() {
-		return c.sftp.RemoveAll(p)
+		return wrapErr(c.sftp.RemoveAll(p))
 	}
-	return c.sftp.Remove(p)
+	return wrapErr(c.sftp.Remove(p))
 }
 
 func (c *Client) Rename(src, dst string) error {
-	return c.sftp.Rename(src, dst)
+	return wrapErr(c.sftp.Rename(src, dst))
 }
 
 // SupportsChmod is true because SFTP defines SETSTAT; an individual server may
@@ -101,35 +120,45 @@ func (c *Client) Rename(src, dst string) error {
 func (c *Client) SupportsChmod() bool { return true }
 
 func (c *Client) Chmod(p string, mode uint32) error {
-	err := c.sftp.Chmod(p, fs.FileMode(mode))
-	if err != nil && errors.Is(err, sftp.ErrSSHFxOpUnsupported) {
-		return transfer.ErrPermissionsNotSupported
-	}
-	return err
+	return wrapErr(c.sftp.Chmod(p, fs.FileMode(mode)))
 }
 
 func (c *Client) Download(p string) (io.ReadCloser, error) {
-	return c.sftp.Open(p)
+	fi, err := c.sftp.Stat(p)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	if fi.IsDir() {
+		return nil, fmt.Errorf("%w: %s is a directory", transfer.ErrInvalidType, p)
+	}
+	f, err := c.sftp.Open(p)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return f, nil
 }
 
 func (c *Client) Upload(p string, r io.Reader) error {
 	f, err := c.sftp.Create(p)
 	if err != nil {
-		return err
+		return wrapErr(err)
 	}
 	// Close carries the server's status for the final flush, so discarding it
 	// reports a quota or I/O failure at end-of-write as a successful upload.
 	_, copyErr := io.Copy(f, r)
 	closeErr := f.Close()
 	if copyErr != nil {
-		return copyErr
+		return fmt.Errorf("%w: %w", transfer.ErrTransferIncomplete, wrapErr(copyErr))
 	}
-	return closeErr
+	if closeErr != nil {
+		return fmt.Errorf("%w: %w", transfer.ErrTransferIncomplete, wrapErr(closeErr))
+	}
+	return nil
 }
 
 func (c *Client) Ping() error {
 	_, err := c.sftp.Getwd()
-	return err
+	return wrapErr(err)
 }
 
 func (c *Client) Close() error {
@@ -157,4 +186,11 @@ func isAuthErr(msg string) bool {
 	return strings.Contains(msg, "unable to authenticate") ||
 		strings.Contains(msg, "permission denied") ||
 		strings.Contains(msg, "auth fail")
+}
+
+// isRootPath guards the recursive delete: "/" reaches RemoveAll and would wipe
+// the account. Handlers check too; this is the defensive half.
+func isRootPath(p string) bool {
+	cleaned := path.Clean(p)
+	return cleaned == "/" || cleaned == "." || cleaned == ""
 }
