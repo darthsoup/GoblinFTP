@@ -1,6 +1,6 @@
 import type { AuthStatus, ConnectData, ConnectRequest, HostKeyPrompt, SystemVars } from '~/types/api'
 import { defineStore } from 'pinia'
-import { ApiError } from '~/types/api'
+import { ApiError, ERR_NETWORK } from '~/types/api'
 
 // A pending SFTP host-key confirmation (trust-on-first-use). `sso` distinguishes
 // which connect endpoint to retry once the user trusts the key.
@@ -17,7 +17,13 @@ export const useAuthStore = defineStore('auth', () => {
   const capabilities = ref<{ disableChmod: boolean }>({ disableChmod: false })
   const systemVars = ref<SystemVars | null>(null)
   const error = ref<string | null>(null)
+  // The code beside the message, so the login screen can render a translated
+  // string instead of whatever English the backend happened to send.
+  const errorCode = ref<string | null>(null)
   const loading = ref(false)
+  // Set when the bootstrap requests fail, so the screen can offer a retry
+  // instead of rendering a form built on fallback defaults.
+  const bootFailed = ref(false)
   const sessionLost = ref(false)
   let disconnecting = false
 
@@ -29,12 +35,18 @@ export const useAuthStore = defineStore('auth', () => {
   // $fetch directly rather than useApi: these GETs need no CSRF, and it avoids
   // the circular dep with the api composable.
   async function init() {
+    bootFailed.value = false
     try {
       const svRes = await $fetch<{ success: boolean, data?: SystemVars }>('/api/system/vars')
       if (svRes.success && svRes.data)
         systemVars.value = svRes.data
     }
-    catch {}
+    catch (e) {
+      // Swallowing this left the login screen built on fallback defaults, so
+      // the user saw a normal form for a server that was not reachable.
+      bootFailed.value = true
+      reportBootFailure('/api/system/vars', e)
+    }
 
     try {
       const statusRes = await $fetch<{ success: boolean, data?: AuthStatus }>('/api/auth/status')
@@ -56,7 +68,17 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     }
-    catch {}
+    catch (e) {
+      bootFailed.value = true
+      reportBootFailure('/api/auth/status', e)
+    }
+  }
+
+  // reportBootFailure forwards a bootstrap failure to the error reporter. The
+  // login screen renders its own state; this is only so operators see it.
+  function reportBootFailure(path: string, e: unknown) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.error(`[gftp] bootstrap request failed: ${path}`, message)
   }
 
   // SSO auto-connect: called when ssoAutoConnect=true after init().
@@ -64,6 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function ssoConnect(acceptHostKey?: string) {
     loading.value = true
     error.value = null
+    errorCode.value = null
     try {
       const api = useApi()
       const data = await api.post<ConnectData>('/api/auth/sso-connect', acceptHostKey ? { acceptHostKey } : undefined)
@@ -78,7 +101,9 @@ export const useAuthStore = defineStore('auth', () => {
       capabilities.value = data.capabilities
     }
     catch (e) {
-      error.value = e instanceof ApiError ? e.message : 'SSO connect failed'
+      const apiErr = toApiError(e)
+      errorCode.value = apiErr.code
+      error.value = apiErr.message
       // Don't leave the client poised to auto-retry a failed finalization on
       // the next /login load. Fall back to the manual form.
       ssoAutoConnect.value = false
@@ -91,16 +116,13 @@ export const useAuthStore = defineStore('auth', () => {
   async function connect(req: ConnectRequest) {
     loading.value = true
     error.value = null
+    errorCode.value = null
     try {
       // POST /api/auth/connect is public (no CSRF), use $fetch directly
       const res = await $fetch<{ success: boolean, data?: ConnectData, errors?: Array<{ code: string, message: string }> }>(
         '/api/auth/connect',
         { method: 'POST', body: req },
       )
-      if (!res.success) {
-        const err = res.errors?.[0]
-        throw new ApiError(err?.code ?? 'ERR_UNKNOWN', err?.message ?? 'Login failed')
-      }
       const data = res.data!
       if (data.hostKeyPrompt) {
         // Unknown SFTP host key: confirm with the user before marking the
@@ -116,8 +138,13 @@ export const useAuthStore = defineStore('auth', () => {
       capabilities.value = data.capabilities
     }
     catch (e) {
-      error.value = e instanceof ApiError ? e.message : 'Connection failed'
-      throw e
+      // ofetch rejects on any non-2xx and the envelope rides on the rejection's
+      // body, so without unwrapping it here every failure rendered the same
+      // "Connection failed", the host-key mismatch warning included.
+      const apiErr = toApiError(e)
+      errorCode.value = apiErr.code
+      error.value = apiErr.message
+      throw apiErr
     }
     finally {
       loading.value = false
@@ -204,6 +231,17 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
   }
 
+  // toApiError normalizes anything a failed request threw into an ApiError,
+  // reading the envelope off the rejection body the way useApi does.
+  function toApiError(e: unknown): ApiError {
+    if (e instanceof ApiError)
+      return e
+    const err = (e as { data?: { errors?: Array<{ code: string, message: string }> } }).data?.errors?.[0]
+    if (err)
+      return new ApiError(err.code, err.message)
+    return new ApiError(ERR_NETWORK, e instanceof Error ? e.message : 'Request failed')
+  }
+
   const allowedTypes = computed(() =>
     systemVars.value?.connection.allowedTypes ?? ['ftp', 'ftps', 'sftp'],
   )
@@ -217,7 +255,9 @@ export const useAuthStore = defineStore('auth', () => {
     capabilities,
     systemVars,
     error,
+    errorCode,
     loading,
+    bootFailed,
     sessionLost,
     pendingHostKey,
     allowedTypes,

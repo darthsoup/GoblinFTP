@@ -85,12 +85,16 @@ type MiddlewareConfig struct {
 // server, its TLS, its disk, or the network between. They are business events for
 // the access log and Prometheus, so they stay out of Sentry unless asked for.
 var remoteFaults = map[gftperrors.Code]bool{
-	gftperrors.ErrConnectionFailed:   true,
-	gftperrors.ErrConnectionLost:     true,
-	gftperrors.ErrConnectionTimeout:  true,
-	gftperrors.ErrTLSFailed:          true,
-	gftperrors.ErrQuotaExceeded:      true,
-	gftperrors.ErrStorageUnavailable: true,
+	gftperrors.ErrConnectionFailed:     true,
+	gftperrors.ErrConnectionLost:       true,
+	gftperrors.ErrConnectionTimeout:    true,
+	gftperrors.ErrTLSFailed:            true,
+	gftperrors.ErrQuotaExceeded:        true,
+	gftperrors.ErrStorageUnavailable:   true,
+	gftperrors.ErrListFailed:           true,
+	gftperrors.ErrOperationFailed:      true,
+	gftperrors.ErrDataConnectionFailed: true,
+	gftperrors.ErrTransferIncomplete:   true,
 }
 
 // eventLevel decides whether a finished request becomes an event and how loud it

@@ -119,15 +119,21 @@ func (h *Handler) ReadFile(c echo.Context) error {
 	if err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
-	defer r.Close()
 
 	lr := &io.LimitedReader{R: r, N: maxEditorReadSize + 1}
-	data, err := io.ReadAll(lr)
-	if err != nil {
-		return failClient(c, gftperrors.ErrOperationFailed, err)
+	data, readErr := io.ReadAll(lr)
+	oversize := int64(len(data)) > maxEditorReadSize
+	// Close reports a truncated RETR. It must be checked before the version
+	// token is built, or the next save persists the truncation over the file.
+	closeErr := r.Close()
+	if readErr != nil {
+		return failClient(c, gftperrors.ErrOperationFailed, readErr)
 	}
-	if int64(len(data)) > maxEditorReadSize {
+	if oversize {
 		return Fail(c, gftperrors.New(gftperrors.ErrFileTooLarge, "file exceeds 1 MB editor limit"))
+	}
+	if closeErr != nil {
+		return failClient(c, gftperrors.ErrTransferIncomplete, closeErr)
 	}
 
 	return OK(c, readFileResult{
@@ -150,8 +156,8 @@ func (h *Handler) WriteFile(c echo.Context) error {
 	}
 
 	var req writeFileRequest
-	if err := c.Bind(&req); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid request body"))
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
 	}
 	if req.Path == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))

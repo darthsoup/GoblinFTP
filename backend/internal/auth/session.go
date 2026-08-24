@@ -255,17 +255,21 @@ func (s *Store) Close() {
 
 // EvictExpired drops every expired session and runs onEvict for each. One
 // mid-transfer is skipped, not severed; it cannot revive, so a later sweep gets it.
-func (s *Store) EvictExpired() { s.evict(false) }
+func (s *Store) EvictExpired() { _, _, _ = s.evict(false) }
 
 // evictAllBudget bounds the whole shutdown sweep. A transfer wedged on an
 // unresponsive remote server must not keep the process alive.
-const evictAllBudget = 5 * time.Second
+const evictAllBudget = 3 * time.Second
 
-// EvictAll drops every session at shutdown so connections close with a QUIT. It
-// returns within evictAllBudget even if a transfer never finishes.
-func (s *Store) EvictAll() { s.evict(true) }
+// EvictAll drops every session at shutdown so connections close with a QUIT,
+// returning within evictAllBudget even if a transfer never finishes. It reports
+// counts rather than taking a logger, which keeps package auth logging-free.
+//
+// clean: the transfer lock was free. forced: it was acquired after waiting.
+// abandoned: the budget ran out, so the session was left for process exit.
+func (s *Store) EvictAll() (clean, forced, abandoned int) { return s.evict(true) }
 
-func (s *Store) evict(all bool) {
+func (s *Store) evict(all bool) (clean, forced, abandoned int) {
 	now := time.Now()
 
 	s.mu.RLock()
@@ -279,13 +283,15 @@ func (s *Store) evict(all bool) {
 	s.mu.RUnlock()
 
 	deadline := time.Now().Add(evictAllBudget)
-	for _, sess := range victims {
+	for i, sess := range victims {
 		// The hook closes a connection and may talk to the chunk store, so the
 		// budget has to cover the whole loop, not only the lock wait.
 		if all && time.Now().After(deadline) {
+			abandoned += len(victims) - i
 			break
 		}
 		locked := sess.TryLockTransfer()
+		wasBusy := !locked
 		if !locked {
 			if !all {
 				// Busy: a transfer is proof of life. Collect it next tick
@@ -302,12 +308,21 @@ func (s *Store) evict(all bool) {
 		if locked {
 			sess.UnlockTransfer()
 		}
+		switch {
+		case !locked:
+			abandoned++
+		case wasBusy:
+			forced++
+		default:
+			clean++
+		}
 
 		s.mu.Lock()
 		delete(s.byDownloadKey, sess.DownloadKey)
 		delete(s.sessions, sess.ID)
 		s.mu.Unlock()
 	}
+	return clean, forced, abandoned
 }
 
 // waitForTransfer polls for the session's transfer lock until deadline. Polling

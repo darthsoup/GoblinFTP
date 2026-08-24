@@ -20,7 +20,6 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
 const filesStore = useFilesStore()
-const editorStore = useEditorStore()
 const uploadStore = useUploadStore()
 const { t } = useI18n()
 
@@ -30,7 +29,9 @@ const open = computed(() => authStore.sessionLost)
 function reconnect() {
   uploadStore.cancelAll()
   filesStore.$reset()
-  editorStore.$reset()
+  // The editor is deliberately NOT reset: this modal is not dismissible, so
+  // wiping it destroyed every unsaved buffer with no prompt (auto-save is off
+  // by default). The tabs survive the reconnect and stay saveable.
   authStore.acknowledgeSessionLost()
 }
 </script>

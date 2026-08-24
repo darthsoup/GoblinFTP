@@ -28,6 +28,9 @@ type UploadMeta struct {
 	TotalChunks    int
 	ReceivedChunks int
 	ChunkSize      int64
+	// TotalSize is the size the client promised at reserve time, used to reject
+	// chunks that do not add up before anything reaches the remote server.
+	TotalSize int64
 	// Overwrite records the caller's consent to replace an existing
 	// destination, carried from reserve through to commit.
 	Overwrite bool

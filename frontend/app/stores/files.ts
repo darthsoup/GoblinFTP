@@ -39,6 +39,9 @@ export const useFilesStore = defineStore('files', () => {
   const files = ref<FileInfo[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  // The code beside the message, so the table renders a translated string
+  // rather than whatever English the backend happened to send.
+  const errorCode = ref<string | null>(null)
   const selected = ref<Set<string>>(new Set())
   const editingName = ref<string | null>(null)
   // Paste targets the current directory, not the clipboard's source.
@@ -60,6 +63,7 @@ export const useFilesStore = defineStore('files', () => {
     const seq = ++_listSeq
     loading.value = true
     error.value = null
+    errorCode.value = null
     editingName.value = null
     try {
       const result = await api.get<FileInfo[]>(`/api/files?path=${encodeURIComponent(target)}`)
@@ -76,6 +80,7 @@ export const useFilesStore = defineStore('files', () => {
     catch (e) {
       if (seq !== _listSeq)
         return
+      errorCode.value = e instanceof ApiError ? e.code : null
       error.value = e instanceof ApiError ? e.message : 'Failed to list directory'
     }
     finally {
@@ -127,17 +132,20 @@ export const useFilesStore = defineStore('files', () => {
     return `/api/files/download?path=${encodeURIComponent(path)}&token=${data.token}`
   }
 
+  // window.open rendered a failure as raw JSON in a blank tab and never reached
+  // markSessionLost, so the download goes through useApi like everything else.
   async function downloadFile(filePath: string): Promise<void> {
-    window.open(await downloadUrl(filePath), '_blank')
+    const api = useApi()
+    const blob = await api.getBlob(await downloadUrl(filePath))
+    api.saveBlob(blob, filePath.split('/').pop() || 'download')
   }
 
   // The download endpoint serves application/octet-stream, so re-wrap the bytes
   // with the real MIME type. Caller owns the URL and must revokeObjectURL() it.
   async function fetchObjectUrl(path: string, mime: string): Promise<string> {
-    const url = await downloadUrl(path)
-    const resp = await $fetch.raw(url, { responseType: 'blob' })
-    const blob = new Blob([resp._data as Blob], { type: mime })
-    return URL.createObjectURL(blob)
+    const api = useApi()
+    const raw = await api.getBlob(await downloadUrl(path))
+    return URL.createObjectURL(new Blob([raw], { type: mime }))
   }
 
   function toggleSelection(name: string) {
@@ -242,9 +250,34 @@ export const useFilesStore = defineStore('files', () => {
         else {
           if (from === to)
             continue // moving onto itself, nothing to do
-          if (conflict && choice === 'overwrite')
-            await api.del('/api/files', { paths: [to] })
-          await move(from, to)
+          let destinationRemoved = false
+          if (conflict && choice === 'overwrite') {
+            // DELETE answers 200 with per-item outcomes, so it does not throw.
+            // Moving on regardless meant a failed delete was reported only as a
+            // generic "paste failed" after the move also failed.
+            const del = await api.del<DeleteResult>('/api/files', { paths: [to] })
+            const denied = del.failed[0]
+            if (denied) {
+              failed++
+              failures.push({ path: to, code: denied.code, message: denied.message })
+              continue
+            }
+            destinationRemoved = true
+          }
+          try {
+            await move(from, to)
+          }
+          catch (e) {
+            failed++
+            failures.push({
+              path: to,
+              // The destination is already gone, so this is not a plain move
+              // failure: the user has to know the old file is not coming back.
+              code: destinationRemoved ? 'ERR_OVERWRITE_LOST_DESTINATION' : (e instanceof ApiError ? e.code : 'ERR_UNKNOWN'),
+              message: e instanceof Error ? e.message : 'Failed',
+            })
+            continue
+          }
         }
         taken.add(toName)
         ok++
@@ -300,23 +333,9 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   async function downloadZip(paths: string[]): Promise<void> {
-    const authStore = useAuthStore()
-    const csrf = authStore.csrfToken
-    const resp = await $fetch.raw('/api/files/download-zip', {
-      method: 'POST',
-      headers: { 'X-CSRF-Token': csrf },
-      body: { paths },
-      responseType: 'blob',
-    })
-    const blob = resp._data as Blob
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'archive.zip'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const api = useApi()
+    const blob = await api.postBlob('/api/files/download-zip', { paths })
+    api.saveBlob(blob, 'archive.zip')
   }
 
   function $reset() {
@@ -324,6 +343,7 @@ export const useFilesStore = defineStore('files', () => {
     files.value = []
     loading.value = false
     error.value = null
+    errorCode.value = null
     selected.value = new Set()
     editingName.value = null
     clipboard.value = null
@@ -347,6 +367,7 @@ export const useFilesStore = defineStore('files', () => {
     files,
     loading,
     error,
+    errorCode,
     selected,
     editingName,
     clipboard,

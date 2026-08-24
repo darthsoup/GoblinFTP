@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -92,7 +91,7 @@ func TestCreateDirectory(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
 	}
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
@@ -108,7 +107,7 @@ func TestCreateDirectoryNested(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
 	}
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))

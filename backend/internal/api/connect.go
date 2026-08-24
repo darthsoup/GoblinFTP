@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	gftperrors "github.com/darthsoup/goblinftp/internal/errors"
-	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
 // ConnectRequest is the JSON body for POST /api/auth/connect.
@@ -49,8 +47,17 @@ const loginIPAttemptMultiplier = 4
 // Connect handles POST /api/auth/connect.
 func (h *Handler) Connect(c echo.Context) error {
 	var req ConnectRequest
-	if err := c.Bind(&req); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid request body"))
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+
+	// Enforced server-side, not only hidden in the SPA: without this an SSO-only
+	// instance is still an unauthenticated dialer for arbitrary hosts. Placed
+	// before the throttle so a rejected request consumes no login attempts, and
+	// deliberately not on the SSOConnect path.
+	if h.cfg.LoginFormDisabled {
+		return Fail(c, gftperrors.New(gftperrors.ErrLoginDisabled,
+			"manual login is disabled on this server"))
 	}
 
 	if !isAllowedType(req.Protocol, h.cfg.Settings.Connection.AllowedTypes) {
@@ -100,29 +107,23 @@ func (h *Handler) Connect(c echo.Context) error {
 	if hostKey != nil {
 		// Unknown SFTP host key: confirm before sending credentials. Not a failed
 		// attempt, so the throttle is untouched.
-		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_prompt").Inc()
+		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, hostKeyLabel(hostKey)).Inc()
+		noteHostKeyChange(c, h.logger, req.Host, hostKey)
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
 	}
 	if dialErr != nil {
+		failure := classifyDial(dialErr)
 		cooldown := time.Duration(h.cfg.LoginCooldownSeconds) * time.Second
-		h.throttle.Record(throttleKey, cooldown)
+		// Every failed dial charges the per-IP budget, because this endpoint
+		// connects to arbitrary hosts and must stay rate limited. Only a real
+		// credential rejection charges the per-account one, so a certificate
+		// problem no longer locks a user out of their own account.
 		h.throttle.Record(ipKey, cooldown)
-		switch {
-		case errors.Is(dialErr, transfer.ErrAuthFailed):
-			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "auth_failed").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrAuthFailed, "authentication failed").WithCause(dialErr))
-		case errors.Is(dialErr, transfer.ErrHostKeyMismatch):
-			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "host_key_mismatch").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrHostKeyMismatch,
-				"the server's host key changed since it was trusted - possible man-in-the-middle, connection refused").WithCause(dialErr))
-		case errors.Is(dialErr, transfer.ErrTLSFailed):
-			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "tls_failed").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrTLSFailed,
-				"the server's TLS certificate could not be verified").WithCause(dialErr))
-		default:
-			h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "failed").Inc()
-			return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not connect to server").WithCause(dialErr))
+		if failure.credentialAttempt {
+			h.throttle.Record(throttleKey, cooldown)
 		}
+		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, failure.metricLabel).Inc()
+		return Fail(c, failure.err)
 	}
 	h.throttle.Reset(throttleKey)
 	h.throttle.Reset(ipKey)
@@ -174,9 +175,11 @@ func (h *Handler) Disconnect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active session"))
 	}
 	// Hold the transfer lock so a disconnect can't close the connection out
-	// from under an in-flight transfer mid-data-stream.
+	// from under an in-flight transfer mid-data-stream. evictSession, not a bare
+	// close: an explicit disconnect must release staged chunks as well, or they
+	// sit on the volume until the 24h sweeper reclaims them.
 	sess.LockTransfer()
-	closeSessionClient(sess)
+	h.evictSession(sess)
 	sess.UnlockTransfer()
 	h.store.Delete(sess.ID)
 	c.SetCookie(sessionCookie(c, h.cfg, "", -1))

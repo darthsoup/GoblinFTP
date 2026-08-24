@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -40,7 +39,7 @@ func TestUploadSimple(t *testing.T) {
 			if p == "/uploads" {
 				return transfer.FileInfo{IsDir: true}, nil
 			}
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		UploadFn: func(path string, r io.Reader) error {
 			uploadedPath = path
@@ -79,7 +78,7 @@ func TestUploadSimpleCreatesParentDirs(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
 		UploadFn: func(p string, r io.Reader) error {
 			uploadedPath = p
@@ -115,7 +114,7 @@ func TestUploadCommitCreatesParentDirs(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		MakeDirFn:    func(p string) error { made = append(made, p); return nil },
 		UploadFn: func(p string, r io.Reader) error {
 			uploadedPath = p
@@ -136,7 +135,7 @@ func TestUploadChunked(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		UploadFn: func(path string, r io.Reader) error {
 			data, _ := io.ReadAll(r)
 			assembled = string(data)
@@ -304,7 +303,7 @@ func TestUploadChunkedWithCustomChunkStore(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		UploadFn: func(path string, r io.Reader) error {
 			data, _ := io.ReadAll(r)
 			assembled = string(data)
@@ -326,7 +325,7 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		UploadFn: func(path string, r io.Reader) error {
 			_, _ = io.ReadAll(r)
 			return fmt.Errorf("ftp server went away")
@@ -338,7 +337,7 @@ func TestUploadCommitFailureCleansUpChunks(t *testing.T) {
 	sess := connectAndGetSession(t, app)
 
 	uploadID, commitRec := runChunkedUpload(t, app, sess, []string{"hello", "world"})
-	assert.Equal(t, http.StatusInternalServerError, commitRec.Code)
+	assert.Equal(t, http.StatusBadGateway, commitRec.Code)
 	assert.Contains(t, commitRec.Body.String(), "ERR_OPERATION_FAILED")
 	assert.Contains(t, store.cleaned, uploadID, "staged chunks must be cleaned up after a failed commit")
 
@@ -444,7 +443,7 @@ func TestConcurrentSessionUploadsNoRace(t *testing.T) {
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ListFn:       func(string) ([]transfer.FileInfo, error) { return nil, nil },
 		// Pure, so the concurrent probes stay race-clean.
-		StatFn: func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn: func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 		UploadFn: func(_ string, r io.Reader) error {
 			n := inFlight.Add(1)
 			for {
@@ -494,7 +493,7 @@ func TestUploadChunkStorageUnavailable(t *testing.T) {
 	dialFn := staticDial(&testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 	})
 	store := newMemChunkStore()
 	store.writeErr = fmt.Errorf("%w: dial tcp: connection refused", staging.ErrUnavailable)

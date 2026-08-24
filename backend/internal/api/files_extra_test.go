@@ -89,7 +89,7 @@ func TestCopyFile_Directory(t *testing.T) {
 				return transfer.FileInfo{Name: "file.txt"}, nil
 			default:
 				// destination paths don't exist yet
-				return transfer.FileInfo{}, errors.New("not found")
+				return transfer.FileInfo{}, transfer.ErrNotFound
 			}
 		},
 		ListFn: func(string) ([]transfer.FileInfo, error) {

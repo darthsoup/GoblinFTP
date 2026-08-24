@@ -58,7 +58,7 @@ func TestCollectorZeroBeforeSnapshotWired(t *testing.T) {
 	m := New()
 	series, err := testutil.GatherAndCount(m.Registry, "gftp_sessions_active", "gftp_connections_active")
 	require.NoError(t, err)
-	assert.Equal(t, 3, series, "1 sessions + 2 protocol series present even before wiring")
+	assert.Equal(t, 4, series, "1 sessions + 3 protocol series present even before wiring")
 
 	assert.NoError(t, testutil.GatherAndCompare(m.Registry, strings.NewReader(`
 # HELP gftp_sessions_active Live authenticated sessions, computed from the session store at scrape time.
@@ -67,6 +67,7 @@ gftp_sessions_active 0
 # HELP gftp_connections_active Live FTP/SFTP connections by protocol, computed at scrape time.
 # TYPE gftp_connections_active gauge
 gftp_connections_active{protocol="ftp"} 0
+gftp_connections_active{protocol="ftps"} 0
 gftp_connections_active{protocol="sftp"} 0
 `), "gftp_sessions_active", "gftp_connections_active"))
 }
@@ -74,16 +75,17 @@ gftp_connections_active{protocol="sftp"} 0
 func TestCollectorReportsSnapshot(t *testing.T) {
 	m := New()
 	m.SetConnectionSnapshot(func() Snapshot {
-		return Snapshot{Sessions: 3, ConnsByProtocol: map[string]int{"ftp": 2, "sftp": 1}}
+		return Snapshot{Sessions: 6, ConnsByProtocol: map[string]int{"ftp": 2, "ftps": 3, "sftp": 1}}
 	})
 
 	assert.NoError(t, testutil.GatherAndCompare(m.Registry, strings.NewReader(`
 # HELP gftp_sessions_active Live authenticated sessions, computed from the session store at scrape time.
 # TYPE gftp_sessions_active gauge
-gftp_sessions_active 3
+gftp_sessions_active 6
 # HELP gftp_connections_active Live FTP/SFTP connections by protocol, computed at scrape time.
 # TYPE gftp_connections_active gauge
 gftp_connections_active{protocol="ftp"} 2
+gftp_connections_active{protocol="ftps"} 3
 gftp_connections_active{protocol="sftp"} 1
 `), "gftp_sessions_active", "gftp_connections_active"))
 }

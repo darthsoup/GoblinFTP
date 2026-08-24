@@ -3,7 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -28,7 +28,7 @@ func workingMock() *mocks.MockClient {
 		ChmodFn:      func(string, uint32) error { return nil },
 		// Nothing exists, so uploads never hit the overwrite guard.
 		StatFn: func(string) (transfer.FileInfo, error) {
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 	}
 }
@@ -98,10 +98,11 @@ func TestMetricsConnectAuthFailed(t *testing.T) {
 func TestMetricsConnectFailedAndThrottled(t *testing.T) {
 	m := metrics.New()
 	cfg := defaultTestConfig() // LoginMaxAttempts: 5
-	e, store, _ := newTestApp(t, cfg, api.WithMetrics(m), mockDial(nil, errors.New("dial: connection refused")))
+	dialErr := fmt.Errorf("%w: 530 not logged in", transfer.ErrAuthFailed)
+	e, store, _ := newTestApp(t, cfg, api.WithMetrics(m), mockDial(nil, dialErr))
 	defer store.Close()
 
-	// 5 failed dials reach the throttle limit; the 6th is rejected up front.
+	// 5 rejected credentials reach the limit; the 6th is refused up front.
 	for range 6 {
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/connect",
 			strings.NewReader(`{"protocol":"ftp","host":"h","port":21,"username":"u","password":"p"}`))
@@ -109,8 +110,52 @@ func TestMetricsConnectFailedAndThrottled(t *testing.T) {
 		e.ServeHTTP(httptest.NewRecorder(), req)
 	}
 
-	assert.Equal(t, float64(5), testutil.ToFloat64(m.ConnectAttempts.WithLabelValues("ftp", "failed")))
+	assert.Equal(t, float64(5), testutil.ToFloat64(m.ConnectAttempts.WithLabelValues("ftp", "auth_failed")))
 	assert.Equal(t, float64(1), testutil.ToFloat64(m.ConnectAttempts.WithLabelValues("ftp", "throttled")))
+}
+
+// A certificate the server cannot prove is not a wrong password, so it must not
+// consume the account's login budget and eventually lock the user out.
+func TestNonCredentialFailuresDoNotLockTheAccountOut(t *testing.T) {
+	m := metrics.New()
+	cfg := defaultTestConfig() // LoginMaxAttempts: 5
+	cfg.Settings.Connection.AllowedTypes = []string{"ftp", "ftps", "sftp"}
+	dialErr := fmt.Errorf("%w: x509: certificate signed by unknown authority", transfer.ErrTLSFailed)
+	e, store, _ := newTestApp(t, cfg, api.WithMetrics(m), mockDial(nil, dialErr))
+	defer store.Close()
+
+	for range 6 {
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/connect",
+			strings.NewReader(`{"protocol":"ftps","host":"h","port":21,"username":"u","password":"p"}`))
+		req.Header.Set("Content-Type", "application/json")
+		e.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	assert.Equal(t, float64(6), testutil.ToFloat64(m.ConnectAttempts.WithLabelValues("ftps", "tls_failed")),
+		"every attempt must still report the real reason")
+	assert.Equal(t, float64(0), testutil.ToFloat64(m.ConnectAttempts.WithLabelValues("ftps", "throttled")),
+		"a certificate problem must never throttle the account")
+}
+
+// The per-IP budget is the abuse limiter for an endpoint that dials arbitrary
+// hosts, so it is charged for every failed dial, credential or not.
+func TestNonCredentialFailuresStillChargeTheIPBudget(t *testing.T) {
+	m := metrics.New()
+	cfg := defaultTestConfig() // LoginMaxAttempts: 5, so the per-IP budget is 20
+	dialErr := fmt.Errorf("%w: connection refused", transfer.ErrConnectionFailed)
+	e, store, _ := newTestApp(t, cfg, api.WithMetrics(m), mockDial(nil, dialErr))
+	defer store.Close()
+
+	// Vary the host each time so only the per-IP dimension can accumulate.
+	for i := range 21 {
+		body := fmt.Sprintf(`{"protocol":"ftp","host":"h%d","port":21,"username":"u","password":"p"}`, i)
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/connect", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		e.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	assert.Positive(t, testutil.ToFloat64(m.ConnectAttempts.WithLabelValues("ftp", "throttled")),
+		"an unauthenticated dialer must stay rate limited per IP")
 }
 
 func TestMetricsDownloadBytes(t *testing.T) {
@@ -206,6 +251,7 @@ gftp_sessions_active 1
 # HELP gftp_connections_active Live FTP/SFTP connections by protocol, computed at scrape time.
 # TYPE gftp_connections_active gauge
 gftp_connections_active{protocol="ftp"} 1
+gftp_connections_active{protocol="ftps"} 0
 gftp_connections_active{protocol="sftp"} 0
 `), "gftp_sessions_active", "gftp_connections_active"))
 
@@ -222,6 +268,7 @@ gftp_sessions_active 0
 # HELP gftp_connections_active Live FTP/SFTP connections by protocol, computed at scrape time.
 # TYPE gftp_connections_active gauge
 gftp_connections_active{protocol="ftp"} 0
+gftp_connections_active{protocol="ftps"} 0
 gftp_connections_active{protocol="sftp"} 0
 `), "gftp_sessions_active", "gftp_connections_active"))
 }

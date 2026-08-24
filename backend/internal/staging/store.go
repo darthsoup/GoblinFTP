@@ -4,10 +4,19 @@ package staging
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
+
+// ErrUnavailable tags staging failures the operator can act on (a full volume, a
+// read-only mount, an unreachable bucket) so they become a 503 rather than a 500.
+var ErrUnavailable = errors.New("chunk storage unavailable")
+
+// ErrChunkMissing marks an assembly that cannot find a chunk it was promised.
+// That is a stale or already-cleaned upload, not an internal fault.
+var ErrChunkMissing = errors.New("staged chunk missing")
 
 // ChunkStore stages upload chunks between the browser and the remote server.
 // Implementations must preserve the semantics of the disk functions in internal/transfer.

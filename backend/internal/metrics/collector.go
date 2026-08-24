@@ -52,7 +52,9 @@ func (c *connCollector) Collect(ch chan<- prometheus.Metric) {
 		snap = fn()
 	}
 	ch <- prometheus.MustNewConstMetric(c.sessions, prometheus.GaugeValue, float64(snap.Sessions))
-	for _, proto := range []string{"ftp", "sftp"} {
+	// Must list every protocol the snapshot can carry: omitting ftps reported
+	// its gauge as 0 forever, whatever the real connection count.
+	for _, proto := range []string{"ftp", "ftps", "sftp"} {
 		ch <- prometheus.MustNewConstMetric(c.conns, prometheus.GaugeValue, float64(snap.ConnsByProtocol[proto]), proto)
 	}
 }

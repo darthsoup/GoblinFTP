@@ -36,6 +36,9 @@ const MAX_RETRIES = 5
 
 // A retry can never recover from these: a conflict or a lost session would burn
 // 5 attempts and ~31s of backoff per queued item before surfacing.
+// Retrying these only burns 31 seconds of backoff: the server has stated a
+// verdict that a second identical request cannot change. ERR_INTERNAL is
+// deliberately absent, since a 500 can still be a transient hiccup.
 const NON_RETRYABLE = new Set([
   'ERR_FILE_EXISTS',
   'ERR_FILE_PERMISSION',
@@ -45,6 +48,14 @@ const NON_RETRYABLE = new Set([
   'ERR_CSRF_INVALID',
   'ERR_CONNECTION_LOST',
   'ERR_UPLOAD_NOT_FOUND',
+  'ERR_STORAGE_UNAVAILABLE',
+  'ERR_BAD_REQUEST',
+  'ERR_INVALID_TYPE',
+  'ERR_FORBIDDEN',
+  'ERR_FILE_TOO_LARGE',
+  'ERR_EDITOR_DISABLED',
+  'ERR_NOT_IMPLEMENTED',
+  'ERR_LOGIN_DISABLED',
 ])
 
 export const useUploadStore = defineStore('upload', () => {
@@ -250,14 +261,14 @@ export const useUploadStore = defineStore('upload', () => {
       }
     }
     catch (e) {
+      // Discarded first: returning early on a cancel left the reserved chunks
+      // pinned against the sweeper for good.
+      await _discardStaged(item)
       if (item.status === 'cancelled' || item.status === 'skipped')
         return
       item.status = 'error'
       item.errorCode = e instanceof ApiError ? e.code : undefined
       item.error = e instanceof Error ? e.message : 'Upload failed'
-      // Nothing sweeps the staging area, and clearing uploadId is what makes a
-      // later retry re-send the file instead of committing a half-staged set.
-      await _discardStaged(item)
     }
   }
 
@@ -274,7 +285,7 @@ export const useUploadStore = defineStore('upload', () => {
       if (e instanceof ApiError && e.code === 'ERR_FILE_EXISTS' && !item.reprompted) {
         item.reprompted = true
         await _resolveRaced(item)
-        if (item.status === 'skipped')
+        if (item.status === 'skipped' || item.status === 'cancelled')
           return
         await _transfer(item)
         return
@@ -471,7 +482,10 @@ export const useUploadStore = defineStore('upload', () => {
     if (item && CANCELLABLE.includes(item.status)) {
       item.status = 'cancelled'
       _abort(item)
-      void _discardStaged(item)
+      // A commit in flight owns the chunks and cleans them up itself; aborting
+      // underneath it truncated the file being written to the remote server.
+      if (!item.finalizing)
+        void _discardStaged(item)
     }
   }
 
@@ -480,7 +494,8 @@ export const useUploadStore = defineStore('upload', () => {
       if (CANCELLABLE.includes(item.status)) {
         item.status = 'cancelled'
         _abort(item)
-        void _discardStaged(item)
+        if (!item.finalizing)
+          void _discardStaged(item)
       }
     })
   }

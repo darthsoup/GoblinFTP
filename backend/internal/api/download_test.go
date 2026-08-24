@@ -55,6 +55,11 @@ func TestDownloadFile(t *testing.T) {
 		DownloadFn: func(path string) (io.ReadCloser, error) {
 			return io.NopCloser(strings.NewReader(content)), nil
 		},
+		// The handler stats the file to set Content-Length, without which a
+		// truncated body would save as a complete file.
+		StatFn: func(path string) (transfer.FileInfo, error) {
+			return transfer.FileInfo{Name: "file.txt", Size: int64(len(content))}, nil
+		},
 	}
 	dialFn := staticDial(mock)
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(dialFn))

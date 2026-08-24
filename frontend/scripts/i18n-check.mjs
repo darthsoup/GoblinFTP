@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Checks every locale file under i18n/locales for full key + {…} placeholder parity with en.json.
+// Checks every locale file under i18n/locales for full key + {…} placeholder parity
+// with en.json, and that every backend error code has an errorCode.* translation.
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import process from 'node:process'
@@ -7,6 +8,17 @@ import { fileURLToPath } from 'node:url'
 
 const LOCALES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'i18n', 'locales')
 const REFERENCE = 'en.json'
+const ERRORS_GO = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'backend', 'internal', 'errors', 'errors.go')
+
+// Codes the SPA never renders: they route to the reconnect dialog or are
+// consumed before any message reaches the user. Adding a code here is a
+// deliberate choice not to translate it.
+const UNRENDERED_CODES = new Set([
+  'ERR_SESSION_NOT_FOUND',
+  'ERR_UNAUTHORIZED',
+  'ERR_CSRF_INVALID',
+  'ERR_NOT_IMPLEMENTED',
+])
 
 function flatten(obj, prefix = '', out = {}) {
   for (const [key, val] of Object.entries(obj)) {
@@ -62,6 +74,29 @@ for (const file of locales) {
   else {
     console.log(`✓ ${file} (${Object.keys(flat).length} keys)`)
   }
+}
+
+// Every code the backend can emit needs a translation, or the user is shown the
+// backend's English string (or a bare code) instead.
+try {
+  const goSource = readFileSync(ERRORS_GO, 'utf8')
+  const backendCodes = [...goSource.matchAll(/Code\s*=\s*"(ERR_[A-Z0-9_]+)"/g)].map(m => m[1])
+  const enErrorCodes = JSON.parse(readFileSync(join(LOCALES_DIR, REFERENCE), 'utf8')).errorCode ?? {}
+  const untranslated = backendCodes.filter(c => !UNRENDERED_CODES.has(c) && !Object.hasOwn(enErrorCodes, c))
+
+  if (untranslated.length) {
+    failed = true
+    console.log(`✗ ${REFERENCE}`)
+    console.log(`  backend codes with no errorCode.* entry (${untranslated.length}): ${untranslated.join(', ')}`)
+    console.log('  add them to every locale, or list them in UNRENDERED_CODES if the SPA never shows them')
+  }
+  else {
+    console.log(`✓ all ${backendCodes.length} backend error codes are translated or explicitly unrendered`)
+  }
+}
+catch (err) {
+  failed = true
+  console.log(`✗ could not cross-check backend error codes: ${err.message}`)
 }
 
 if (failed) {

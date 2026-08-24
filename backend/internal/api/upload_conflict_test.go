@@ -38,7 +38,7 @@ func remoteTree(dirs, files []string) func(string) (transfer.FileInfo, error) {
 		if _, ok := fileSet[p]; ok {
 			return transfer.FileInfo{Name: p, Size: 42}, nil
 		}
-		return transfer.FileInfo{}, errors.New("not found")
+		return transfer.FileInfo{}, transfer.ErrNotFound
 	}
 }
 
@@ -124,7 +124,7 @@ func TestUploadSimpleFreshParentSkipsExistenceStat(t *testing.T) {
 		ChmodFn:      func(string, uint32) error { return nil },
 		StatFn: func(p string) (transfer.FileInfo, error) {
 			statted = append(statted, p)
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		MakeDirFn: func(string) error { return nil },
 		UploadFn:  func(string, io.Reader) error { return nil },
@@ -206,7 +206,7 @@ func TestUploadCommitConflictKeepsStagedChunks(t *testing.T) {
 			if exists && p == "/big.bin" {
 				return transfer.FileInfo{Name: p}, nil
 			}
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		UploadFn: func(_ string, r io.Reader) error {
 			data, _ := io.ReadAll(r)
@@ -245,7 +245,7 @@ func TestUploadCommitDestinationOverrideSameDirOnly(t *testing.T) {
 			if p == "/data" {
 				return transfer.FileInfo{IsDir: true}, nil
 			}
-			return transfer.FileInfo{}, errors.New("not found")
+			return transfer.FileInfo{}, transfer.ErrNotFound
 		},
 		UploadFn: func(p string, r io.Reader) error {
 			uploadedPath = p
@@ -272,7 +272,7 @@ func TestUploadAbortCleansUpChunks(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, errors.New("not found") },
+		StatFn:       func(string) (transfer.FileInfo, error) { return transfer.FileInfo{}, transfer.ErrNotFound },
 	}
 	store := newMemChunkStore()
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)), api.WithChunkStore(store))

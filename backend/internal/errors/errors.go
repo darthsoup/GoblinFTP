@@ -14,7 +14,6 @@ const (
 	ErrFileModified            Code = "ERR_FILE_MODIFIED"
 	ErrDirNotEmpty             Code = "ERR_DIR_NOT_EMPTY"
 	ErrFilePermission          Code = "ERR_FILE_PERMISSION"
-	ErrFileNotWritable         Code = "ERR_FILE_NOT_WRITABLE"
 	ErrListFailed              Code = "ERR_LIST_FAILED"
 	ErrOperationFailed         Code = "ERR_OPERATION_FAILED"
 	ErrBadRequest              Code = "ERR_BAD_REQUEST"
@@ -38,6 +37,8 @@ const (
 	ErrConnectionLost          Code = "ERR_CONNECTION_LOST"
 	ErrHostKeyMismatch         Code = "ERR_HOST_KEY_MISMATCH"
 	ErrTLSFailed               Code = "ERR_TLS_FAILED"
+	ErrDataConnectionFailed    Code = "ERR_DATA_CONNECTION_FAILED"
+	ErrTransferIncomplete      Code = "ERR_TRANSFER_INCOMPLETE"
 )
 
 // GFTPError is a typed error with a machine-readable code and human message. Its
@@ -124,11 +125,19 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusUnauthorized
 	case ErrArchiveFormat:
 		return http.StatusUnprocessableEntity
-	case ErrFileTooLarge, ErrEditorDisabled:
+	case ErrEditorDisabled:
 		return http.StatusForbidden
+	case ErrFileTooLarge:
+		return http.StatusRequestEntityTooLarge
 	case ErrStorageUnavailable:
 		return http.StatusServiceUnavailable
-	case ErrConnectionLost, ErrHostKeyMismatch, ErrTLSFailed:
+	case ErrInternal:
+		return http.StatusInternalServerError
+	// The far side failed, not GoblinFTP, so these are 502 and stay out of the
+	// error budget that pages.
+	case ErrConnectionLost, ErrHostKeyMismatch, ErrTLSFailed,
+		ErrDataConnectionFailed, ErrTransferIncomplete,
+		ErrListFailed, ErrConnectionFailed, ErrOperationFailed:
 		return http.StatusBadGateway
 	default:
 		return http.StatusInternalServerError

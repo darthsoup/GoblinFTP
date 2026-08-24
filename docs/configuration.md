@@ -68,7 +68,7 @@ Generate a stable value with `openssl rand -hex 32`.
 | `GFTP_SESSION_TTL_SECONDS` | `7200` | Session lifetime in seconds. |
 | `GFTP_LOGIN_MAX_ATTEMPTS` | `5` | Failed connect attempts tolerated per host:username before the cooldown rejects further attempts. |
 | `GFTP_LOGIN_COOLDOWN_SECONDS` | `300` | Sliding login cooldown in seconds, keyed on host:username. |
-| `GFTP_LOGIN_FORM_DISABLED` | `false` | Hide the manual login form (SSO-only deployments). |
+| `GFTP_LOGIN_FORM_DISABLED` | `false` | Disable manual logins for SSO-only deployments: the form is hidden and POST /api/auth/connect is rejected. SSO logins are unaffected. |
 <!-- confgen:end -->
 
 The login throttle state is in-memory and reset on restart; each failed attempt extends the cooldown window, a successful connect clears the counter.

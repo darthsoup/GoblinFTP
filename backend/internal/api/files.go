@@ -2,10 +2,12 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -91,7 +93,10 @@ func (h *Handler) CreateDirectory(c echo.Context) error {
 	var req struct {
 		Path string `json:"path"`
 	}
-	if err := c.Bind(&req); err != nil || req.Path == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.Path == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
 	if err := ensureDirAll(client, req.Path); err != nil {
@@ -120,8 +125,19 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	var req struct {
 		Paths []string `json:"paths"`
 	}
-	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
+	}
+	// "/" reaches RemoveDirRecur and wipes the whole account. Refuse the batch
+	// outright rather than reporting it afterwards as one failed path.
+	for _, p := range req.Paths {
+		if isRootPath(p) {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest,
+				"the remote root cannot be deleted"))
+		}
 	}
 	// Initialize non-nil so the JSON always carries arrays, never null: the SPA
 	// reads result.failed.length unconditionally and would throw.
@@ -160,7 +176,10 @@ func (h *Handler) RenameFile(c echo.Context) error {
 		From string `json:"from"`
 		To   string `json:"to"`
 	}
-	if err := c.Bind(&req); err != nil || req.From == "" || req.To == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.From == "" || req.To == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
 	if err := client.Rename(req.From, req.To); err != nil {
@@ -179,7 +198,10 @@ func (h *Handler) CopyFile(c echo.Context) error {
 		From string `json:"from"`
 		To   string `json:"to"`
 	}
-	if err := c.Bind(&req); err != nil || req.From == "" || req.To == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.From == "" || req.To == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
 	if err := copyTree(client, h.cfg.DataDir, req.From, req.To); err != nil {
@@ -275,9 +297,11 @@ func copyFile(client transfer.Client, dataDir, src, dst string) error {
 		_ = os.Remove(tmp.Name())
 	}()
 	_, copyErr := io.Copy(tmp, r)
-	_ = r.Close() // completes RETR before the upload's STOR
-	if copyErr != nil {
-		return copyErr
+	// Close completes RETR before the upload's STOR and carries the server's
+	// final status: discarding it uploads a truncated read as a full copy.
+	closeErr := r.Close()
+	if err := errors.Join(copyErr, closeErr); err != nil {
+		return fmt.Errorf("%w: %w", transfer.ErrTransferIncomplete, err)
 	}
 	if _, err := tmp.Seek(0, io.SeekStart); err != nil {
 		return err
@@ -295,7 +319,10 @@ func (h *Handler) SetPermissions(c echo.Context) error {
 		Path string  `json:"path"`
 		Mode *uint32 `json:"mode"`
 	}
-	if err := c.Bind(&req); err != nil || req.Path == "" || req.Mode == nil {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.Path == "" || req.Mode == nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path and mode are required"))
 	}
 	if err := client.Chmod(req.Path, *req.Mode); err != nil {
@@ -305,4 +332,11 @@ func (h *Handler) SetPermissions(c echo.Context) error {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
+}
+
+// isRootPath guards destructive operations against the remote root. The adapters
+// refuse it too; this stops the request before it reaches them.
+func isRootPath(p string) bool {
+	cleaned := path.Clean(strings.TrimSpace(p))
+	return cleaned == "/" || cleaned == "." || cleaned == ""
 }

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -89,9 +90,32 @@ func SafeLogAttrs(attrs ...slog.Attr) []slog.Attr {
 			result[i] = slog.String(a.Key, "[REDACTED]")
 			continue
 		}
+		// Key matching alone redacted nothing in practice: every caller passes
+		// the key "cause" and the secret rides inside the value, typically as a
+		// query parameter in a URL the server echoed back.
+		if a.Value.Kind() == slog.KindString {
+			result[i] = slog.String(a.Key, SafeLogValue(a.Value.String()))
+			continue
+		}
 		result[i] = a
 	}
 	return result
+}
+
+// secretParam matches a sensitive query or form parameter and its value, so the
+// value can be replaced while the surrounding message stays readable. `path` is
+// deliberately absent: remote paths are the point of the access log.
+var secretParam = regexp.MustCompile(`(?i)\b(sso|token|session|csrf|auth|password|passwd|secret|key|sig|signature)=[^&\s"']+`)
+
+// SafeLogValue redacts secrets embedded in a free-form string.
+func SafeLogValue(v string) string {
+	return secretParam.ReplaceAllStringFunc(v, func(match string) string {
+		name, _, found := strings.Cut(match, "=")
+		if !found {
+			return "[REDACTED]"
+		}
+		return name + "=[REDACTED]"
+	})
 }
 
 func isSensitiveKey(key string) bool {

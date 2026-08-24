@@ -2,6 +2,7 @@ package api
 
 import (
 	"archive/zip"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -39,7 +40,10 @@ func (h *Handler) IssueDownloadToken(c echo.Context) error {
 	var req struct {
 		Path string `json:"path"`
 	}
-	if err := c.Bind(&req); err != nil || req.Path == "" {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if req.Path == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
 	expiry := time.Now().Add(15 * time.Minute)
@@ -77,22 +81,54 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	// connection for the whole streamed download.
 	sess.LockTransfer()
 	defer sess.UnlockTransfer()
+	// A failed open is not evidence of absence: it can equally be a denial, a
+	// directory, or a dead data connection, so let classify decide.
 	r, err := client.Download(filePath)
 	if err != nil {
-		return failClient(c, gftperrors.ErrFileNotFound, err)
+		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
-	defer r.Close()
+	closed := false
+	defer func() {
+		if !closed {
+			_ = r.Close()
+		}
+	}()
 	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("download", protocolFromSession(sess)))
 
 	filename := sanitizeFilename(path.Base(filePath))
 	c.Response().Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
 	c.Response().Header().Set("Content-Type", "application/octet-stream")
+	// With a Content-Length the browser rejects a short body by itself. Without
+	// one a truncated chunked stream still terminates cleanly and saves as whole.
+	lengthKnown := false
+	if fi, statErr := client.Stat(filePath); statErr == nil && fi.Size > 0 && !fi.IsDir {
+		c.Response().Header().Set("Content-Length", strconv.FormatInt(fi.Size, 10))
+		lengthKnown = true
+	}
 	c.Response().WriteHeader(http.StatusOK)
 
 	// The transfer lock is held for the whole stream, so a client reading at a
 	// trickle would block the session. The deadline is per write, not per transfer.
 	_, copyErr := io.Copy(&deadlineWriter{c: c, w: c.Response()}, src)
-	return copyErr
+	// Close carries the FTP "226 transfer complete" status, the only place a
+	// truncated RETR is observable, so it cannot be deferred away.
+	closeErr := r.Close()
+	closed = true
+
+	streamErr := errors.Join(copyErr, closeErr)
+	if streamErr == nil {
+		return nil
+	}
+	// The status is already committed, so this is the only way the access line
+	// and Sentry learn the transfer failed.
+	code, _ := classify(streamErr)
+	c.Set(LoggedErrorKey, gftperrors.New(code, "download aborted mid-stream").WithCause(streamErr))
+	if !lengthKnown {
+		// Break the connection instead of ending the chunked stream cleanly.
+		// echo's Recover re-panics this, and net/http drops the connection.
+		panic(http.ErrAbortHandler)
+	}
+	return nil
 }
 
 // downloadWriteTimeout is how long a single write may block before the client
@@ -123,7 +159,10 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	var req struct {
 		Paths []string `json:"paths"`
 	}
-	if err := c.Bind(&req); err != nil || len(req.Paths) == 0 {
+	if gerr := bindJSON(c, &req); gerr != nil {
+		return Fail(c, gerr)
+	}
+	if len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
 	}
 	var totalSize int64
