@@ -4,9 +4,10 @@
 .env.local
 bin/
 frontend/.output/
-frontend/node_modules/
 frontend/.nuxt/
 frontend/dist
+frontend/node_modules/
+node_modules/
 backend/gftp
 # Residue from before the dev data dir moved to the repo root.
 backend/data/
