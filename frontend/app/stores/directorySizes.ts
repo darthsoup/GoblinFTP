@@ -22,7 +22,7 @@ export const useDirectorySizesStore = defineStore('directorySizes', () => {
   const activePath = ref<string | null>(null)
   const connectionGeneration = ref(0)
   let generation = 0
-  let controller: AbortController | null = null
+  let running: { controller: AbortController, generation: number, promise: Promise<DirectorySizeResult> } | null = null
   let pending: Promise<void> | null = null
 
   function get(path: string): DirectorySizeEntry {
@@ -36,25 +36,32 @@ export const useDirectorySizesStore = defineStore('directorySizes', () => {
       delete entries.value[path]
   }
 
-  function cancel() {
+  function discard() {
+    // Invalidating totals must not abort I/O on the shared FTP/SFTP connection.
     generation++
-    controller?.abort()
     if (activePath.value && entries.value[activePath.value]?.status === 'loading')
       restore(activePath.value, entries.value[activePath.value]?.result)
     activePath.value = null
-    controller = null
     pending = null
+  }
+
+  function cancel() {
+    if (running?.generation === generation)
+      running.controller.abort()
+    discard()
   }
 
   function invalidate(connection = connectionGeneration.value) {
     if (connection !== connectionGeneration.value)
       return
-    cancel()
+    discard()
     entries.value = {}
   }
 
   function $reset() {
     connectionGeneration.value++
+    running?.controller.abort()
+    running = null
     invalidate()
   }
 
@@ -62,18 +69,35 @@ export const useDirectorySizesStore = defineStore('directorySizes', () => {
     const path = directorySizePath(rawPath)
     if (activePath.value === path && pending)
       return pending
-    cancel()
+    discard()
     const previous = get(path).result
     const requestGeneration = generation
-    const abort = new AbortController()
-    controller = abort
     activePath.value = path
     entries.value[path] = { status: 'loading', result: previous }
 
     pending = (async () => {
       try {
-        const result = await useApi().post<DirectorySizeResult>('/api/files/directory-size', { path }, { signal: abort.signal })
-        if (requestGeneration !== generation || abort.signal.aborted)
+        // The session accepts only one scan at a time.
+        if (running)
+          await running.promise.catch(() => undefined)
+        if (requestGeneration !== generation)
+          return
+        const controller = new AbortController()
+        const request = {
+          controller,
+          generation: requestGeneration,
+          promise: useApi().post<DirectorySizeResult>('/api/files/directory-size', { path }, { signal: controller.signal }),
+        }
+        running = request
+        let result: DirectorySizeResult
+        try {
+          result = await request.promise
+        }
+        finally {
+          if (running === request)
+            running = null
+        }
+        if (requestGeneration !== generation || controller.signal.aborted)
           return
         entries.value[path] = {
           status: result.complete ? 'complete' : 'partial',
@@ -81,7 +105,7 @@ export const useDirectorySizesStore = defineStore('directorySizes', () => {
         }
       }
       catch (error) {
-        if (requestGeneration !== generation || abort.signal.aborted)
+        if (requestGeneration !== generation)
           return
         if (error instanceof ApiError && error.code === ERR_ABORTED)
           restore(path, previous)
@@ -91,7 +115,6 @@ export const useDirectorySizesStore = defineStore('directorySizes', () => {
       finally {
         if (requestGeneration === generation) {
           activePath.value = null
-          controller = null
           pending = null
         }
       }
@@ -99,5 +122,5 @@ export const useDirectorySizesStore = defineStore('directorySizes', () => {
     return pending
   }
 
-  return { entries, activePath, connectionGeneration, get, calculate, cancel, invalidate, $reset }
+  return { entries, activePath, connectionGeneration, get, calculate, discard, cancel, invalidate, $reset }
 })

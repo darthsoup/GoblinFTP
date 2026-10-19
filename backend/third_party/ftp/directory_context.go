@@ -205,9 +205,11 @@ func (op *directoryOperation) closeData(conn net.Conn) error {
 func (op *directoryOperation) scan(dir string, limit int, visit func(*Entry) bool) (bool, error) {
 	command := "LIST -a"
 	parser := parseListLine
+	legacy := true
 	if op.client.mlstSupported && !op.client.options.forceListHidden {
 		command = "MLSD"
 		parser = parseRFC3659ListLine
+		legacy = false
 	}
 	conn, err := op.openData(command, dir)
 	if err != nil {
@@ -218,7 +220,12 @@ func (op *directoryOperation) scan(dir string, limit int, visit func(*Entry) boo
 	var parseErr error
 	count := 0
 	ignored := make(map[string]bool, 2)
+	summarySeen := false
 	for scanner.Scan() {
+		if legacy && count == 0 && !summarySeen && isListSummary(scanner.Text()) {
+			summarySeen = true
+			continue
+		}
 		entry, err := parser(scanner.Text(), time.Now(), op.client.options.location)
 		dotEntry := err == nil && (entry.Name == "." || entry.Name == "..")
 		if dotEntry && !ignored[entry.Name] {
@@ -241,6 +248,20 @@ func (op *directoryOperation) scan(dir string, limit int, visit func(*Entry) boo
 	readErr := scanner.Err()
 	closeErr := op.closeData(conn)
 	return truncated, errors.Join(parseErr, readErr, closeErr)
+}
+
+func isListSummary(line string) bool {
+	fields := strings.Fields(line)
+	if len(fields) != 2 || fields[0] != "total" {
+		return false
+	}
+	for _, digit := range fields[1] {
+		if digit < '0' || digit > '9' {
+			return false
+		}
+	}
+	_, err := strconv.ParseUint(fields[1], 10, 64)
+	return err == nil
 }
 
 func (c *ServerConn) ReadDirContext(ctx context.Context, dir string, limit int) (entries []*Entry, truncated bool, err error) {

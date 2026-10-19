@@ -60,7 +60,7 @@ describe('api cancellation and size invalidation', () => {
     const pending = sizes.calculate('/docs')
     const signal = fetch.mock.calls[0]![1].signal as AbortSignal
     const mutation = useFileOperations()[method](path, {})
-    expect(signal.aborted).toBe(true)
+    expect(signal.aborted).toBe(false)
     expect(sizes.entries).toEqual({})
     await mutation
     resolve({ success: true, data: total })
@@ -126,7 +126,7 @@ describe('api cancellation and size invalidation', () => {
     const signal = fetch.mock.calls[1]![1].signal as AbortSignal
     rejectMutation(new Error('request failed'))
     await expect(mutation).rejects.toThrow()
-    expect(signal.aborted).toBe(true)
+    expect(signal.aborted).toBe(false)
     resolveScan({ success: true, data: total })
     await scan
     expect(sizes.get('/docs').status).toBe('unknown')

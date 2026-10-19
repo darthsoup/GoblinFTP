@@ -66,7 +66,7 @@ Acceptance: reads and upload staging preserve totals, mutations reject stale sca
 
 ## Delivery and verification
 
-Cancellation, bounded reads, the scan interface, emptiness detection, persistent results, and mutation ownership are implemented. The development documentation describes the resulting behavior. Validation includes the full Go suite, 180 frontend tests, lint, typecheck, locale parity, repeated cancellation race regressions, and real FTP, FTPS, and SFTP test containers.
+Cancellation, bounded reads, the scan interface, emptiness detection, persistent results, and mutation ownership are implemented. The development documentation describes the resulting behavior. Validation includes the full Go suite, 185 frontend tests, lint, typecheck, locale parity, repeated cancellation race regressions, and real FTP, FTPS, and SFTP test containers.
 
 - [x] Add permanent regressions for the review reproductions, including a silent SFTP server during metadata and cleanup operations.
 - [x] Run the transfer, API, auth, FTP, and SFTP suites, plus race checks for scan cancellation and session locking.
@@ -81,3 +81,8 @@ GFTP_TEST_FTP_HOST=localhost:21 GFTP_TEST_FTPS_HOST=localhost:2121 GFTP_TEST_SFT
 ```
 
 Verify in the app through Properties, then check the same result in list and card views. Confirm that calculation remains absent from dropdown menus and that timestamps and cache details remain hidden.
+
+## Follow-up review fixes
+
+- [x] Separate automatic invalidation from transport cancellation. Navigation, refresh, and file changes discard obsolete results without aborting active metadata I/O. Subsequent calculations wait for the current request; explicit cancellation and connection resets retain abort support.
+- [x] Ignore one leading decimal `total` summary in legacy FTP LIST responses without consuming the entry limit. Repeated or malformed summaries still consume bounded work and report an error; MLSD behavior is unchanged.

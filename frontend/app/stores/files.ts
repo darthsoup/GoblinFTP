@@ -61,7 +61,7 @@ export const useFilesStore = defineStore('files', () => {
     const api = useFileOperations()
     const target = path ?? currentPath.value
     if (target !== currentPath.value)
-      useDirectorySizesStore().cancel()
+      useDirectorySizesStore().discard()
     const seq = ++_listSeq
     loading.value = true
     error.value = null

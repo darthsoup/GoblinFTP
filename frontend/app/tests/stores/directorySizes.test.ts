@@ -63,7 +63,7 @@ describe('directory size cache', () => {
     expect(api.post).toHaveBeenCalledTimes(2)
   })
 
-  it('deduplicates an active path and aborts it before switching to another path', async () => {
+  it('deduplicates an active path and waits for its request before switching paths', async () => {
     const first = deferred<DirectorySizeResult>()
     const second = deferred<DirectorySizeResult>()
     api.post.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
@@ -74,10 +74,12 @@ describe('directory size cache', () => {
     const signal = api.post.mock.calls[0]![2].signal as AbortSignal
 
     const two = store.calculate('/pub/other')
-    expect(signal.aborted).toBe(true)
+    expect(signal.aborted).toBe(false)
+    expect(api.post).toHaveBeenCalledTimes(1)
     expect(store.get('/pub/docs').status).toBe('unknown')
     first.resolve(result())
     await Promise.all([one, duplicate])
+    expect(api.post).toHaveBeenCalledTimes(2)
     expect(store.activePath).toBe('/pub/other')
     expect(store.get('/pub/docs').status).toBe('unknown')
 
@@ -94,7 +96,7 @@ describe('directory size cache', () => {
     const pending = store.calculate('/pub/docs')
     const signal = api.post.mock.calls[0]![2].signal as AbortSignal
     store[method]()
-    expect(signal.aborted).toBe(true)
+    expect(signal.aborted).toBe(method !== 'invalidate')
     response.resolve(result())
     await pending
     expect(store.get('/pub/docs').status).toBe('unknown')
@@ -147,14 +149,16 @@ describe('directory size cache', () => {
     expect(store.get('/pub/docs').status).toBe('unknown')
   })
 
-  it('cancels navigation work, keeps completed caches, and clears them on refresh or disconnect', async () => {
+  it('discards navigation results without aborting the request and clears caches on refresh or disconnect', async () => {
     const store = useDirectorySizesStore()
     api.post.mockResolvedValueOnce(result('/cached'))
     await store.calculate('/cached')
     const response = deferred<DirectorySizeResult>()
     api.post.mockReturnValueOnce(response.promise)
     const pending = store.calculate('/pub/docs')
+    const signal = api.post.mock.calls[1]![2].signal as AbortSignal
     await useFilesStore().navigate('/elsewhere')
+    expect(signal.aborted).toBe(false)
     response.resolve(result())
     await pending
     expect(store.get('/pub/docs').status).toBe('unknown')
@@ -166,5 +170,84 @@ describe('directory size cache', () => {
     await store.calculate('/pub/docs')
     await useAuthStore().disconnect()
     expect(store.entries).toEqual({})
+  })
+
+  it('refreshes during a scan without aborting its protocol operation or accepting its stale result', async () => {
+    const response = deferred<DirectorySizeResult>()
+    api.post.mockReturnValueOnce(response.promise)
+    const store = useDirectorySizesStore()
+    const pending = store.calculate('/pub/docs')
+    const signal = api.post.mock.calls[0]![2].signal as AbortSignal
+    await useFilesStore().refresh()
+    expect(signal.aborted).toBe(false)
+    expect(store.activePath).toBeNull()
+    response.resolve(result())
+    await pending
+    expect(store.entries).toEqual({})
+  })
+
+  it('waits for invalidated work before requesting another calculation', async () => {
+    const first = deferred<DirectorySizeResult>()
+    const second = deferred<DirectorySizeResult>()
+    api.post.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const store = useDirectorySizesStore()
+    const one = store.calculate('/pub/docs')
+    const signal = api.post.mock.calls[0]![2].signal as AbortSignal
+    store.invalidate()
+    const two = store.calculate('/pub/other')
+    expect(signal.aborted).toBe(false)
+    expect(api.post).toHaveBeenCalledTimes(1)
+    first.resolve(result())
+    await one
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(store.get('/pub/docs').status).toBe('unknown')
+    second.resolve(result('/pub/other'))
+    await two
+    expect(store.get('/pub/other').status).toBe('complete')
+  })
+
+  it('does not abort invalidated work when a queued calculation is cancelled', async () => {
+    const response = deferred<DirectorySizeResult>()
+    api.post.mockReturnValueOnce(response.promise)
+    const store = useDirectorySizesStore()
+    const one = store.calculate('/pub/docs')
+    const signal = api.post.mock.calls[0]![2].signal as AbortSignal
+    const two = store.calculate('/pub/other')
+    store.cancel()
+    expect(signal.aborted).toBe(false)
+    response.resolve(result())
+    await Promise.all([one, two])
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(store.activePath).toBeNull()
+    expect(store.get('/pub/other').status).toBe('unknown')
+  })
+
+  it('aborts invalidated requests when the connection resets', async () => {
+    const response = deferred<DirectorySizeResult>()
+    api.post.mockReturnValueOnce(response.promise)
+    const store = useDirectorySizesStore()
+    const pending = store.calculate('/pub/docs')
+    const signal = api.post.mock.calls[0]![2].signal as AbortSignal
+    store.invalidate()
+    expect(signal.aborted).toBe(false)
+    store.$reset()
+    expect(signal.aborted).toBe(true)
+    response.resolve(result())
+    await pending
+    expect(store.entries).toEqual({})
+  })
+
+  it('drops a queued calculation when its results are invalidated before it starts', async () => {
+    const response = deferred<DirectorySizeResult>()
+    api.post.mockReturnValueOnce(response.promise)
+    const store = useDirectorySizesStore()
+    const one = store.calculate('/pub/docs')
+    const two = store.calculate('/pub/other')
+    store.invalidate()
+    response.resolve(result())
+    await Promise.all([one, two])
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(store.entries).toEqual({})
+    expect(store.activePath).toBeNull()
   })
 })

@@ -87,7 +87,9 @@ Scans exclude symbolic links identified by the listing metadata and do not follo
 
 Scans use limits of 64 levels, 50,000 entries, and a 30-second traversal budget. Each directory read receives the remaining entry budget, and the walker reserves that budget before descending. FTP root metadata uses MLST when supported, otherwise a streaming parent lookup capped at 50,000 entries. Scan extensions to the pinned protocol libraries live in [backend/third_party](../backend/third_party/README.md).
 
-Cancellation interrupts active control, data, and metadata I/O. Cancelling during I/O closes the connection when its protocol state cannot safely be reused; the app then offers reconnection. Cancelling while waiting for the transfer lock leaves the connection usable. FTP completion recovery is bounded to one second before an uncertain connection is closed.
+Explicit cancellation interrupts active control, data, and metadata I/O. Cancelling during I/O closes the connection when its protocol state cannot safely be reused; the app then offers reconnection. Cancelling while waiting for the transfer lock leaves the connection usable. FTP completion recovery is bounded to one second before an uncertain connection is closed.
+
+Automatic invalidation from navigation, refresh, or file changes discards obsolete results without aborting active metadata I/O. A subsequent size calculation waits for that request to finish before starting, preserving the shared connection and the per-session scan limit.
 
 Calculated totals remain visible until refresh, file changes, or disconnect. Recalculation preserves the previous total and counts while loading, after a failed request, or after cancellation while the connection remains active. File mutations invalidate totals through `useFileOperations`, with connection-generation checks isolating old requests from a new session.
 

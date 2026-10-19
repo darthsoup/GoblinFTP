@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	jftp "github.com/jlaffaye/ftp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -422,4 +423,124 @@ func TestReadDirContextRecognizesMLSDSymlinks(t *testing.T) {
 	assert.True(t, entries[0].IsSymlink)
 	assert.False(t, entries[1].IsSymlink)
 	assert.False(t, truncated)
+}
+
+func TestReadDirContextAcceptsLeadingLegacySummary(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		summary   string
+		fileCount int
+		limit     int
+	}{
+		{name: "empty", summary: "total 0", limit: 1},
+		{name: "exact limit", summary: "total 1", fileCount: 2, limit: 2},
+		{name: "truncated", summary: "  total\t3  ", fileCount: 3, limit: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newDirectoryServer(t, directoryServerOptions{
+				count: tc.fileCount + 1,
+				entry: func(i int) string {
+					if i == 0 {
+						return tc.summary
+					}
+					return fmt.Sprintf("-rw-r--r-- 1 owner group %d Oct 19 2026 file-%d", i, i)
+				},
+			})
+			client := directoryClient(t, server)
+			entries, truncated, err := client.ReadDirContext(context.Background(), "/", tc.limit)
+			require.NoError(t, err)
+			assert.Len(t, entries, min(tc.fileCount, tc.limit))
+			assert.Equal(t, tc.fileCount > tc.limit, truncated)
+			require.NoError(t, client.Ping())
+
+			result, err := transfer.CalculateDirectorySize(context.Background(), client, "/")
+			require.NoError(t, err)
+			assert.True(t, result.Complete)
+			assert.Equal(t, tc.fileCount, result.FileCount)
+			assert.Equal(t, int64(tc.fileCount*(tc.fileCount+1)/2), result.Bytes)
+			assert.Equal(t, tc.fileCount > 0, result.HasEntries)
+			assert.Zero(t, result.SkippedCount)
+		})
+	}
+}
+
+func TestLstatContextAcceptsLegacyParentSummary(t *testing.T) {
+	server := newDirectoryServer(t, directoryServerOptions{
+		count: 4,
+		entry: func(i int) string {
+			if i == 0 {
+				return "total 1"
+			}
+			return "drwxr-xr-x 1 owner group 0 Oct 19 2026 " + []string{".", "..", "target"}[i-1]
+		},
+	})
+	client := directoryClient(t, server)
+	info, err := client.LstatContext(context.Background(), "/target")
+	require.NoError(t, err)
+	assert.Equal(t, "target", info.Name)
+	assert.True(t, info.IsDir)
+	require.NoError(t, client.Ping())
+}
+
+func TestReadDirContextRejectsInvalidOrMisplacedSummary(t *testing.T) {
+	for _, tc := range []struct {
+		line      string
+		mlsd      bool
+		misplaced bool
+	}{
+		{line: "total"},
+		{line: "total -1"},
+		{line: "total +1"},
+		{line: "total 1 extra"},
+		{line: "total 1.0"},
+		{line: "total 18446744073709551616"},
+		{line: "Total 1"},
+		{line: "unsupported listing line"},
+		{line: "total 1", mlsd: true},
+		{line: "total 1", misplaced: true},
+	} {
+		t.Run(fmt.Sprintf("%s/mlsd=%t/misplaced=%t", tc.line, tc.mlsd, tc.misplaced), func(t *testing.T) {
+			server := newDirectoryServer(t, directoryServerOptions{
+				mlsd: tc.mlsd, count: 2,
+				entry: func(i int) string {
+					if (i == 0) != tc.misplaced {
+						return tc.line
+					}
+					if tc.mlsd {
+						return "type=file;size=1;modify=20261019000000; actual"
+					}
+					return "-rw-r--r-- 1 owner group 1 Oct 19 2026 actual"
+				},
+			})
+			client := directoryClient(t, server)
+			entries, truncated, err := client.ReadDirContext(context.Background(), "/invalid", 3)
+			require.ErrorIs(t, err, jftp.ErrListEntry)
+			assert.Len(t, entries, 1)
+			assert.False(t, truncated)
+			require.NoError(t, client.Ping())
+		})
+	}
+}
+
+func TestReadDirContextRepeatedSummaryWorkIsBounded(t *testing.T) {
+	for _, varied := range []bool{false, true} {
+		t.Run(fmt.Sprintf("varied=%t", varied), func(t *testing.T) {
+			server := newDirectoryServer(t, directoryServerOptions{
+				count: 1000000, completion: "aborted",
+				entry: func(i int) string {
+					if varied {
+						return fmt.Sprintf("total %d", i)
+					}
+					return "total 1"
+				},
+			})
+			client := directoryClient(t, server)
+			entries, truncated, err := client.ReadDirContext(context.Background(), "/repeated", 2)
+			require.ErrorIs(t, err, jftp.ErrListEntry)
+			assert.Empty(t, entries)
+			assert.True(t, truncated)
+			assert.Less(t, server.sent.Load(), int32(1000000))
+			require.NoError(t, client.Ping())
+		})
+	}
 }
