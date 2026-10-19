@@ -47,7 +47,7 @@ Existing local temporary files are charged at startup until removal succeeds. S3
 
 ## Dependency maintenance
 
-Container base images use immutable multi-platform digests. GitHub Actions use full commit SHAs with the originating tag in a comment. Resolve new tags to their exact revisions when updating, review the dependency diff, and rerun the shared checks.
+Container base images use immutable multi-platform digests. GitHub Actions retain major-version tags so compatible upstream updates are picked up automatically. Review dependency version changes and rerun the shared checks when updating.
 
 The FTP and SFTP modules are replaced by immutable pseudo-versions from [darthsoup/ftp](https://github.com/darthsoup/ftp) and [darthsoup/sftp](https://github.com/darthsoup/sftp), pinned in `backend/go.mod` and verified by `backend/go.sum`. Dependency source is not copied into this repository. Both adapters explicitly request bounded listings; the original upstream listing APIs retain their existing behavior.
 
