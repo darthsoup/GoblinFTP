@@ -48,6 +48,6 @@ require (
 	google.golang.org/protobuf v1.36.12 // indirect
 )
 
-replace github.com/jlaffaye/ftp => ./third_party/ftp
+replace github.com/jlaffaye/ftp => github.com/darthsoup/ftp v0.2.5-0.20261019215520-67ab2e3e69d2
 
-replace github.com/pkg/sftp => ./third_party/sftp
+replace github.com/pkg/sftp => github.com/darthsoup/sftp v1.13.12-0.20261019215520-c523a51659a2

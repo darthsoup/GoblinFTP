@@ -59,10 +59,7 @@ jobs:
       # the SSO replay set and the login throttle are all shared mutable state.
       - name: Run tests
         working-directory: backend
-        run: |
-          go test -race ./... -v
-          go -C third_party/ftp test -race ./...
-          go -C third_party/sftp test -race ./...
+        run: go test -race ./... -v
 
   backend-lint:
     name: Backend lint

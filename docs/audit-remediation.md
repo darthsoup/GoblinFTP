@@ -49,7 +49,9 @@ Existing local temporary files are charged at startup until removal succeeds. S3
 
 Container base images use immutable multi-platform digests. GitHub Actions use full commit SHAs with the originating tag in a comment. Resolve new tags to their exact revisions when updating, review the dependency diff, and rerun the shared checks.
 
-`backend/third_party/ftp` and `backend/third_party/sftp` retain their upstream module identities and licenses. The local replacements add bounded directory parsing. The FTP patch also clears completion deadlines and closes a connection whose completion reply cannot be recovered. Apply these patches when upgrading their upstream versions; do not remove them until equivalent bounded APIs are available and used by the adapters.
+The FTP and SFTP modules are replaced by immutable pseudo-versions from [darthsoup/ftp](https://github.com/darthsoup/ftp) and [darthsoup/sftp](https://github.com/darthsoup/sftp), pinned in `backend/go.mod` and verified by `backend/go.sum`. Dependency source is not copied into this repository. Both adapters explicitly request bounded listings; the original upstream listing APIs retain their existing behavior.
+
+The patches are proposed upstream in [jlaffaye/ftp#478](https://github.com/jlaffaye/ftp/pull/478) and [pkg/sftp#698](https://github.com/pkg/sftp/pull/698). FTP additionally clears completion deadlines and closes connections with unrecoverable completion replies. Until upstream releases these changes, review upstream updates and refresh the fork commits deliberately. Remove each replacement only when its upstream release provides equivalent protections and the adapter tests pass. The fork repositories retain the full upstream test suites and licenses.
 
 The dedicated Caddy module is in `docker/caddy`. Keep its lockfile and Go/toolchain security floor updated independently from the backend. Container CI scans the actual shipped Go executables, not just the backend source module. Both binaries retain their symbol tables so the scan can distinguish linked code from unused packages in a dependency module.
 
@@ -86,3 +88,9 @@ The remediation branch passed these checks against the local source and `goblinf
 - Documentation generation, workflow actionlint, and `git diff --check` passed.
 
 Native Windows FTP behavior was unavailable in this validation run; an amd64 container runtime was not exercised. R2-10 retains that compatibility qualification. The protocol fixtures validate FTPS data encryption and TLS session reuse locally; they do not establish compatibility with every FTP server product.
+
+## Dependency fork validation
+
+The copied dependency modules were replaced with pinned forks after opening the upstream pull requests. FTP's complete race suite in `-short` mode and `go vet ./...` passed. Short mode skips its pre-existing fixed-port test because a local server occupies port 2121. SFTP's full race suite and its `-integration -testserver` race run passed using an isolated temporary directory. SFTP's standalone vet diagnostics match the unchanged upstream baseline.
+
+After the fork migration, GoblinFTP's complete backend race suite, backend lint, module checksum verification, documentation build, and workflow actionlint passed. The rebuilt Linux arm64 image passed all seven smoke tests. Both shipped executables again scanned with zero reachable vulnerabilities and zero vulnerable imported packages; the unused-module advisory qualification above still applies.

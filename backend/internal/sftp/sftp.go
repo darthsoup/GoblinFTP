@@ -130,7 +130,7 @@ func (c *Client) WorkingDir() (string, error) {
 }
 
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
-	entries, err := c.sftp.ReadDir(dir)
+	entries, err := c.sftp.ReadDirWithLimits(context.Background(), dir, 100000, 16<<20)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -177,7 +177,7 @@ func (c *Client) deleteBudget(p string, depth int, budget *int) error {
 	if !fi.IsDir() || fi.Mode()&fs.ModeSymlink != 0 {
 		return wrapErr(c.sftp.Remove(p))
 	}
-	entries, err := c.sftp.ReadDir(p)
+	entries, err := c.sftp.ReadDirWithLimits(context.Background(), p, 100000, 16<<20)
 	if err != nil {
 		return wrapErr(err)
 	}
