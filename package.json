@@ -7,7 +7,10 @@
     "build": "pnpm --filter goblinftp-frontend generate",
     "lint": "pnpm --filter goblinftp-frontend lint",
     "typecheck": "pnpm --filter goblinftp-frontend typecheck",
-    "test": "pnpm --filter goblinftp-frontend test"
+    "test": "pnpm --filter goblinftp-frontend test",
+    "docs:dev": "pnpm --filter goblinftp-docs dev",
+    "docs:build": "pnpm --filter goblinftp-docs build",
+    "docs:preview": "pnpm --filter goblinftp-docs preview"
   },
   "devDependencies": {
     "concurrently": "^10.0.6"

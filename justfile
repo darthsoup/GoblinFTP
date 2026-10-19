@@ -174,7 +174,22 @@ i18n-check:
 confgen:
     cd backend && go run ./cmd/gftp-confgen -root "{{ justfile_directory() }}"
 
+# Preview documentation with hot reload
+[group('docs')]
+docs-dev:
+    pnpm run docs:dev
+
+# Build the documentation site
+[group('docs')]
+docs-build:
+    pnpm run docs:build
+
+# Serve the built documentation site
+[group('docs')]
+docs-preview:
+    pnpm run docs:preview
+
 # Remove build artifacts
 [group('utils')]
 clean:
-    rm -rf frontend/.output frontend/.nuxt node_modules frontend/node_modules bin/
+    rm -rf frontend/.output frontend/.nuxt node_modules frontend/node_modules docs/node_modules docs/.vitepress/cache docs/.vitepress/dist bin/

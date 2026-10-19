@@ -1,40 +1,57 @@
+---
+description: Read container logs, save them to a file, and find out why a request failed.
+---
+
 # Logging
 
-The `requestLogger` middleware emits one structured access line per request (method, path, status, duration, request ID, client IP, and the connected user/host once a session exists). Handlers report failures by stashing the `GFTPError` in the Echo context rather than returning it, so each failing line carries a machine-readable `error_code` plus the underlying `cause`. The `cause` is logged only; it is never serialized into the client-facing response envelope. Dynamic attributes pass through `logging.SafeLogAttrs` for redaction. Browser-side errors arrive at `POST /api/log/frontend` and are logged as a separate `frontend error` line.
+GoblinFTP writes logs to the container output. To watch them:
+
+```bash
+docker logs -f goblinftp
+```
+
+Each request has a log entry with its result, duration, and request ID. Failed requests also include an error code and the cause. Browser errors appear as separate entries.
+
+## Settings
 
 <!-- confgen:begin env-table "Logging" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_LOG_LEVEL` | `info` | Log level. |
-| `GFTP_LOG_FORMAT` | `json` | Log output format. |
-| `GFTP_LOG_FILE` | (none) | Optional rotating file sink in addition to stdout; empty disables it. |
-| `GFTP_LOG_FILE_MAX_SIZE_MB` | `10` | Rotate the log file when it exceeds this size. |
-| `GFTP_LOG_FILE_MAX_BACKUPS` | `5` | Rotated files to keep; 0 keeps all. |
-| `GFTP_LOG_FILE_MAX_AGE_DAYS` | `0` | Days to keep rotated files; 0 keeps them indefinitely. |
-| `GFTP_LOG_FRONTEND` | `true` | Forward browser errors to POST /api/log/frontend. |
+| `GFTP_LOG_LEVEL` | `info` | Messages to include: debug, info, warn, or error. |
+| `GFTP_LOG_FORMAT` | `json` | Output format: json or text. |
+| `GFTP_LOG_FILE` | (none) | Also write logs to this file. Empty keeps logs in the container output only. |
+| `GFTP_LOG_FILE_MAX_SIZE_MB` | `10` | Start a new log file when the current file reaches this size in MB. |
+| `GFTP_LOG_FILE_MAX_BACKUPS` | `5` | Old log files to keep. Set to 0 to keep all. |
+| `GFTP_LOG_FILE_MAX_AGE_DAYS` | `0` | Days to keep old log files. Set to 0 for no time limit. |
+| `GFTP_LOG_FRONTEND` | `true` | Send browser errors to the backend for logging. |
 <!-- confgen:end -->
 
-At `warn` and above the successful-request lines are suppressed while failures remain. Stdout is always written; the `GFTP_LOG_FILE_*` knobs apply only when a file sink is set. `POST /api/log/frontend` is public, CSRF-exempt, and per-IP rate-limited.
+JSON is the default format. Use `text` if you prefer plain text. Set the level to `debug` for more detail, or `warn` to show failures without successful requests.
+
+## Save logs to a file
+
+Set `GFTP_LOG_FILE` to a writable path. GoblinFTP keeps writing to the container output too.
 
 ```bash
-# Docker-native: read the container output and ship it via your log driver, Loki, or ELK.
-docker logs -f goblinftp
-
-# Optional file sink on the data volume, for setups without a log collector.
-docker run -p 8080:80 \
+docker run -p 8080:8080 \
   -e GFTP_LOG_FILE=/app/data/logs/gftp.log \
   -v gftp-data:/app/data \
   ghcr.io/darthsoup/goblinftp
 ```
 
-## Redaction and edge cases
+The size, backup count, and age settings control when old log files are replaced or removed.
 
-- The full session ID is never logged; only an 8-character prefix appears.
-- Passwords and tokens are never logged.
-- `/healthz` polling logs at `debug`, so it is silent at the default `info` level.
-- Streaming downloads log the committed response status. Once headers are sent as `200`, a transfer that dies mid-stream still logs `status=200` with a short `bytes_out`.
+## What logs include
+
+- Passwords and tokens are not logged. Session IDs are shortened to eight characters.
+- Logs can include the connected username, server address, and client IP.
+- Health checks only appear at the `debug` level.
+- A download that fails after it starts can still show `status=200`. Check the error and transferred byte count too.
+- `GFTP_LOG_FRONTEND=false` stops browser-error entries and their metric counter. A separately configured browser Sentry SDK can still send reports.
+
+Use `request_id` to match an error with its request or a [Sentry report](sentry.md).
 
 ## See also
 
-- [Configuration](configuration.md) for the full environment-variable reference.
-- [Metrics](metrics.md) for the Prometheus endpoint.
+- [Metrics](metrics.md) to monitor activity over time.
+- [Error tracking](sentry.md) for crash and error reports.

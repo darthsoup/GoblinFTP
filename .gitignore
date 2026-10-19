@@ -8,6 +8,9 @@ frontend/.nuxt/
 frontend/dist
 frontend/node_modules/
 node_modules/
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
 backend/gftp
 # Residue from before the dev data dir moved to the repo root.
 backend/data/

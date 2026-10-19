@@ -1,22 +1,25 @@
+---
+description: Change login, upload, connection, and branding settings for GoblinFTP.
+---
+
 # Configuration
 
-GoblinFTP is configured entirely through environment variables, read once at startup by `config.Load` and driven by a single key registry in `backend/internal/config`. Names follow one rule: `GFTP_<SECTION>_<KEY>`. There is no hot reload, so a change requires a restart. Invalid values abort startup with a specific error naming the offending variable rather than being silently coerced. An empty variable counts as unset. Booleans accept the `strconv.ParseBool` forms (`true`, `false`, `1`, `0`, `t`, `f`, any casing). Lists are comma-separated.
+Use the settings below to change how GoblinFTP works. Add them to your Docker setup or `.env` file, then restart GoblinFTP. See [Installation](installation.md) for an example.
 
-Upgrading from v0.25 or earlier: several variables were renamed and the `settings.json` file was removed. Nothing is silently ignored. A stale variable aborts startup with an error naming its replacement, and a `settings.json` still present in the data directory does the same.
-
-Larger subsystems have dedicated pages: [Logging](logging.md), [Metrics](metrics.md), [S3 chunk staging](s3-staging.md), [Theming](theming.md), [Iframe embedding](embedding.md), and [SSO login links](../examples/sso/README.md). The complete annotated variable list is [`.env.example`](../.env.example).
+Start with [`.env.example`](https://github.com/darthsoup/goblinftp/blob/main/.env.example) for a complete list of settings.
 
 ## Environment variables
 
-Notation: "(none)" means unset by default; "fails startup" means `config.Load` returns an error and the process exits non-zero.
+Use `true` or `false` to turn options on or off. Separate list values with commas. "(none)" means the setting is empty by default. If a value is invalid, GoblinFTP stops at startup and tells you which setting to fix.
 
 ### Server
 
 <!-- confgen:begin env-table "Server" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_PORT` | `8080` | Listen port of the Go backend, for from-source installs. Fixed at 8080 inside the container. |
-| `GFTP_DATA_DIR` | `/app/data` | Writable data directory: SFTP known_hosts, local chunk staging, themes. For local dev use a relative path like data (just dev-be resolves it from the repo root). |
+| `GFTP_BIND_ADDRESS` | (none) | IP address to listen on. Empty allows all addresses. Docker sets this to 127.0.0.1. |
+| `GFTP_PORT` | `8080` | Backend port for installations without Docker. In Docker, the backend uses 8081 and the app uses 8080. |
+| `GFTP_DATA_DIR` | `/app/data` | Folder for trusted SFTP keys, temporary uploads, and themes. Use data for local development. |
 <!-- confgen:end -->
 
 ### UI
@@ -24,10 +27,10 @@ Notation: "(none)" means unset by default; "fails startup" means `config.Load` r
 <!-- confgen:begin env-table "UI" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_LANGUAGE` | `en` | Default UI language. Users can override it locally; the SPA gates the actual set. |
-| `GFTP_UI_PAGE_TITLE` | (none) | Browser tab title. Empty follows the branding app name. |
-| `GFTP_UI_SHOW_DOT_FILES` | `false` | Show dotfiles by default (users can override). |
-| `GFTP_UI_SHOW_NAVIGATION_HISTORY` | `true` | Show the recent-paths navigation history. |
+| `GFTP_LANGUAGE` | `en` | Default language. Users can choose another language in settings. |
+| `GFTP_UI_PAGE_TITLE` | (none) | Browser tab title. Empty uses the app name. |
+| `GFTP_UI_SHOW_DOT_FILES` | `false` | Show files whose names start with a dot. Users can change this in settings. |
+| `GFTP_UI_SHOW_NAVIGATION_HISTORY` | `true` | Show recently visited folders. |
 <!-- confgen:end -->
 
 ### Editor
@@ -35,9 +38,9 @@ Notation: "(none)" means unset by default; "fails startup" means `config.Load` r
 <!-- confgen:begin env-table "Editor" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_EDITOR_ALLOWED_EXTENSIONS` | `html,htm,xhtml,css,scss,sass,less,js,mjs,cjs,jsx,ts,tsx,vue,svelte,php,phtml,py,rb,go,rs,java,c,h,cpp,hpp,sh,bash,zsh,pl,lua,json,json5,xml,svg,yaml,yml,toml,ini,conf,cfg,env,properties,sql,csv,tsv,txt,md,markdown,rst,log,htaccess,htpasswd,gitignore,editorconfig,twig,ejs,hbs,mustache,liquid,erb,j2` | Editable file extensions, without the dot. |
-| `GFTP_EDITOR_DISABLED` | `false` | Disable the file editor entirely. |
-| `GFTP_EDITOR_VIEW_ONLY` | `false` | Open files read-only. |
+| `GFTP_EDITOR_ALLOWED_EXTENSIONS` | `html,htm,xhtml,css,scss,sass,less,js,mjs,cjs,jsx,ts,tsx,vue,svelte,php,phtml,py,rb,go,rs,java,c,h,cpp,hpp,sh,bash,zsh,pl,lua,json,json5,xml,svg,yaml,yml,toml,ini,conf,cfg,env,properties,sql,csv,tsv,txt,md,markdown,rst,log,htaccess,htpasswd,gitignore,editorconfig,twig,ejs,hbs,mustache,liquid,erb,j2` | File types users can edit. List extensions without the leading dot. |
+| `GFTP_EDITOR_DISABLED` | `false` | Turn off the file editor. |
+| `GFTP_EDITOR_VIEW_ONLY` | `false` | Allow users to view files in the editor, but not save changes. |
 <!-- confgen:end -->
 
 ### Access
@@ -45,8 +48,8 @@ Notation: "(none)" means unset by default; "fails startup" means `config.Load` r
 <!-- confgen:begin env-table "Access" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES` | (none) | Client IP or CIDR allowlist; empty allows all. |
-| `GFTP_ACCESS_TRUSTED_PROXIES` | (none) | CIDR ranges whose X-Forwarded-For and X-Forwarded-Proto are trusted. Set this when a reverse proxy sits in front, otherwise every client is seen as the proxy and the client allowlist cannot work. Empty trusts none. |
+| `GFTP_ACCESS_ALLOWED_CLIENT_ADDRESSES` | (none) | IP addresses or network ranges allowed to use GoblinFTP. Empty allows everyone. |
+| `GFTP_ACCESS_TRUSTED_PROXIES` | (none) | Proxy IP addresses or network ranges to trust for client addresses and HTTPS detection. In Docker, list only your external proxies; Caddy is already trusted. Empty trusts none for installations without Docker. |
 <!-- confgen:end -->
 
 ### Secrets
@@ -54,32 +57,32 @@ Notation: "(none)" means unset by default; "fails startup" means `config.Load` r
 <!-- confgen:begin env-table "Secrets" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SESSION_SECRET` | (auto-generated) | Session cookie signing key, used verbatim as bytes. |
-| `GFTP_DOWNLOAD_TOKEN_SECRET` | (auto-generated) | HMAC key for signed download tokens. |
+| `GFTP_SESSION_SECRET` | (none) | Unused. Setting this does not keep users signed in after a restart. |
+| `GFTP_DOWNLOAD_TOKEN_SECRET` | (auto-generated) | Secret used to sign download links. Generated automatically when empty. |
 <!-- confgen:end -->
 
-Generate a stable value with `openssl rand -hex 32`.
+To create your own download-link secret, run `openssl rand -hex 32`. Restarting GoblinFTP still invalidates existing download links.
 
 ### Login and sessions
 
 <!-- confgen:begin env-table "Login and sessions" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SESSION_TTL_SECONDS` | `7200` | Session lifetime in seconds. |
-| `GFTP_LOGIN_MAX_ATTEMPTS` | `5` | Failed connect attempts tolerated per host:username before the cooldown rejects further attempts. |
-| `GFTP_LOGIN_COOLDOWN_SECONDS` | `300` | Sliding login cooldown in seconds, keyed on host:username. |
-| `GFTP_LOGIN_FORM_DISABLED` | `false` | Disable manual logins for SSO-only deployments: the form is hidden and POST /api/auth/connect is rejected. SSO logins are unaffected. |
+| `GFTP_SESSION_TTL_SECONDS` | `7200` | How long a login session lasts, in seconds. |
+| `GFTP_LOGIN_MAX_ATTEMPTS` | `5` | Failed logins allowed for each server and username before further attempts are temporarily blocked. |
+| `GFTP_LOGIN_COOLDOWN_SECONDS` | `300` | Seconds to wait after a failed login before the block expires. Each failure restarts this timer. |
+| `GFTP_LOGIN_FORM_DISABLED` | `false` | Require SSO links to log in. Hides the login form and blocks manual login requests. |
 <!-- confgen:end -->
 
-The login throttle state is in-memory and reset on restart; each failed attempt extends the cooldown window, a successful connect clears the counter.
+Each failed login restarts the waiting period. A successful login clears the failure count. Restarting GoblinFTP clears all login blocks.
 
 ### Uploads and chunking
 
 <!-- confgen:begin env-table "Uploads and chunking" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_UPLOAD_CHUNK_SIZE` | `5242880` | Upload chunk size in bytes. |
-| `GFTP_UPLOAD_MAX_CONCURRENT` | `1` | Maximum parallel chunk uploads per session. A single control connection serializes transfers, so values above 1 mostly queue. |
+| `GFTP_UPLOAD_CHUNK_SIZE` | `5242880` | Size of each upload part, in bytes. |
+| `GFTP_UPLOAD_MAX_CONCURRENT` | `1` | Upload parts sent at once per session. Keep at 1 in most setups; the remote connection handles transfers one at a time. |
 <!-- confgen:end -->
 
 ### Connections and TLS
@@ -87,69 +90,60 @@ The login throttle state is in-memory and reset on restart; each failed attempt 
 <!-- confgen:begin env-table "Connections and TLS" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_CONNECTION_ALLOWED_TYPES` | `ftp,ftps,sftp` | Protocols offered on the login form; any subset of ftp, ftps, sftp. |
-| `GFTP_CONNECTION_DISABLE_CHMOD` | `false` | Hide the chmod UI. |
-| `GFTP_CONNECTION_PRESET_HOST` | (none) | Prefill the login form host. |
-| `GFTP_CONNECTION_PRESET_PORT` | (none) | Prefill the login form port. |
-| `GFTP_CONNECTION_LOCK_HOST` | `false` | Make host and port read-only on the login form; requires a preset host. |
-| `GFTP_CONNECTION_PASSIVE_MODE` | `true` | Default for the FTP passive-mode toggle. |
-| `GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY` | `false` | Skip FTPS (explicit TLS) certificate verification, for self-signed or internal servers only. Does not affect SFTP. |
+| `GFTP_CONNECTION_ALLOWED_TYPES` | `ftp,ftps,sftp` | Connection types available on the login form: ftp, ftps, and sftp. |
+| `GFTP_CONNECTION_DISABLE_CHMOD` | `false` | Hide the option to change file permissions. |
+| `GFTP_CONNECTION_PRESET_HOST` | (none) | Default server address on the login form. |
+| `GFTP_CONNECTION_PRESET_PORT` | (none) | Default server port on the login form. |
+| `GFTP_CONNECTION_LOCK_HOST` | `false` | Prevent changes to the server address and port. Requires a default server address. |
+| `GFTP_CONNECTION_PASSIVE_MODE` | `true` | Use passive mode for FTP connections by default. |
+| `GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY` | `false` | Allow FTPS connections without checking the certificate. Use only for trusted servers with self-signed certificates. Does not affect SFTP. |
 <!-- confgen:end -->
 
-SFTP host keys are verified separately against `<GFTP_DATA_DIR>/known_hosts` on a trust-on-first-use basis: the first connection to a host pins its key, and later key changes are rejected as a mismatch.
+On your first SFTP connection, GoblinFTP asks you to trust the server key and saves it in `<GFTP_DATA_DIR>/known_hosts`. Later connections must use the same key. A changed key is rejected.
 
 ### White-label branding
 
 <!-- confgen:begin env-table "White-label branding" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_BRANDING_APP_NAME` | `GoblinFTP` | App name in header, login card, title, and footer. Falls back to GoblinFTP when empty. |
-| `GFTP_BRANDING_LOGO_URL` | (none) | Logo image URL. A set logo hides the app-name text. |
-| `GFTP_BRANDING_LOGO_DARK_URL` | (none) | Dark-mode logo (a light wordmark), swapped in client-side under dark mode. |
-| `GFTP_BRANDING_FAVICON_URL` | (none) | Favicon image URL; falls back to the logo. |
-| `GFTP_BRANDING_PRIMARY_COLOR` | (none) | Accent color as #RGB or #RRGGBB; recolors the theme at runtime. |
-| `GFTP_BRANDING_PRIMARY_TEXT_COLOR` | (none) | Button/primary text color as hex; pair a light accent with dark text. |
-| `GFTP_BRANDING_HIDE_ATTRIBUTION` | `false` | Hide the app-name/version footer attribution. |
+| `GFTP_BRANDING_APP_NAME` | `GoblinFTP` | App name shown in the interface. Empty uses GoblinFTP. |
+| `GFTP_BRANDING_LOGO_URL` | (none) | Logo image URL. The logo replaces the app name in the header and login screen. |
+| `GFTP_BRANDING_LOGO_DARK_URL` | (none) | Logo image URL to use in dark mode. |
+| `GFTP_BRANDING_FAVICON_URL` | (none) | Browser tab icon URL. Empty uses the logo. |
+| `GFTP_BRANDING_PRIMARY_COLOR` | (none) | Main accent color, such as #2563eb. Accepts #RGB or #RRGGBB. |
+| `GFTP_BRANDING_PRIMARY_TEXT_COLOR` | (none) | Text color on primary buttons, as a hex color. Use dark text with a light accent. |
+| `GFTP_BRANDING_HIDE_ATTRIBUTION` | `false` | Hide the GoblinFTP name and version in the footer. |
 <!-- confgen:end -->
 
-For per-tenant themes, see [Theming](theming.md).
+To use a different look for each customer, see [Branding and themes](theming.md).
 
 ### Iframe embedding
 
-Drops GoblinFTP into a hosting control panel as a pre-authenticated iframe. Combine with
-[SSO login links](#sso-login-links) so the panel establishes the session. Full guide:
-[Iframe embedding](embedding.md).
+Show GoblinFTP inside your app or hosting panel. Use [SSO login links](sso.md) to sign users in automatically.
 
 <!-- confgen:begin env-table "Iframe embedding" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_FRAME_ANCESTORS` | (none) | Space-separated origins allowed to embed GoblinFTP in an iframe. Unset denies framing. Also read by Caddy. |
-| `GFTP_EMBED_CHROMELESS` | `auto` | auto hides branding chrome only when framed, on always, off never. |
+| `GFTP_FRAME_ANCESTORS` | (none) | Website addresses allowed to embed GoblinFTP. Separate them with spaces. Empty blocks embedding. |
+| `GFTP_EMBED_CHROMELESS` | `auto` | Hide extra branding: auto when embedded, on always, off never. |
 <!-- confgen:end -->
 
-Two points decide whether an embed works at all. **Unconfigured means denied:** with no allowlist
-GoblinFTP sends `frame-ancestors 'none'` plus `X-Frame-Options: DENY`, a change from versions before
-0.25.0, which shipped no framing restriction. **The session cookie changes instance-wide:** setting
-an allowlist switches `gftp_session` to `SameSite=None; Secure; Partitioned` for every user, framed
-or not, so GoblinFTP must be served over HTTPS.
-
-`GFTP_FRAME_ANCESTORS` is read by both the Go backend and Caddy, which serves the framed document.
-Full setup, accepted values, browser support, and troubleshooting: [Iframe embedding](embedding.md).
+Embedding is disabled until you set the allowed origins. When enabled, serve GoblinFTP over HTTPS. See [Iframe embedding](embedding.md) for setup and browser compatibility.
 
 ### SSO login links
 
 <!-- confgen:begin env-table "SSO login links" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_SSO_ENABLED` | `false` | Enable one-time SSO login links. |
-| `GFTP_SSO_SECRET` | (none) | Shared secret for SSO token validation. Required when SSO is enabled. |
+| `GFTP_SSO_ENABLED` | `false` | Allow users to log in through one-time links. |
+| `GFTP_SSO_SECRET` | (none) | Secret shared with your login-link generator. Required when SSO is enabled. |
 <!-- confgen:end -->
 
-Tokens are AES-256-GCM sealed under an `HKDF-SHA256(secret, info="gftp-sso")` key, carry an `exp` timestamp, and are single-use. Replay protection is in-memory: a token becomes replayable if the backend restarts before it expires, so keep TTLs short (minutes). Generate links with `just sso-link` or the generators in [`examples/sso/`](../examples/sso/). The `-tenant <name>` flag selects a per-tenant theme (see [Theming](theming.md)).
+Generate one-time login links with `just sso-link` or the Node.js and PHP examples. See [SSO login links](sso.md) for setup, options, and token details.
 
 ### Logging, metrics, error tracking, and S3
 
-Dedicated pages own these variable groups:
+These settings have their own guides:
 
 - `GFTP_LOG_*`: [Logging](logging.md).
 - `GFTP_METRICS_*`: [Metrics](metrics.md).
