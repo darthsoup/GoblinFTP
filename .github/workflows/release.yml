@@ -1,7 +1,7 @@
 name: Release
 
-# Releasing: git tag v0.2.0 && git push --tags. Runs the shared gates, then publishes
-# a multi-arch image (semver tags + latest) and a Release with commit-grouped notes.
+# New v* tags, including tags created on the release page, publish the image.
+# Existing GitHub releases keep their author-written notes and status.
 on:
   push:
     tags: ["v*"]
@@ -20,6 +20,7 @@ jobs:
   publish:
     name: Publish image
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [checks]
     permissions:
       contents: read
@@ -65,12 +66,13 @@ jobs:
             VERSION=${{ github.ref_name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=release-image
+          cache-to: type=gha,scope=release-image,mode=max
 
   release:
     name: GitHub Release
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [publish]
     permissions:
       contents: write
@@ -91,16 +93,22 @@ jobs:
 
           emit_group() { # $1 heading, $2 prefix regex
             local body
+            # shellcheck disable=SC2016 # Backticks delimit Markdown code spans.
             body="$(printf '%s\n' "$LOG" | grep -E "$2" \
               | sed -E 's/^([0-9a-f]+) (feat|fix|chore)(\([^)]*\))?(!)?: */\1 /' \
               | sed -E 's/^([0-9a-f]+) (.*)$/- \2 (`\1`)/' || true)"
-            [ -n "$body" ] && printf '### %s\n\n%s\n\n' "$1" "$body" || true
+            if [ -n "$body" ]; then
+              printf '### %s\n\n%s\n\n' "$1" "$body"
+            fi
           }
           emit_other() {
             local body
+            # shellcheck disable=SC2016 # Backticks delimit Markdown code spans.
             body="$(printf '%s\n' "$LOG" | grep -Ev '^[0-9a-f]+ (feat|fix|chore)(\([^)]*\))?(!)?: ' \
               | sed -E 's/^([0-9a-f]+) (.*)$/- \2 (`\1`)/' || true)"
-            [ -n "$body" ] && printf '### Other\n\n%s\n\n' "$body" || true
+            if [ -n "$body" ]; then
+              printf '### Other\n\n%s\n\n' "$body"
+            fi
           }
 
           {
@@ -114,17 +122,32 @@ jobs:
 
       # --generate-notes appends GitHub's PR-based section after the file body
       # (shaped by .github/release.yml once PRs are used).
-      - name: Create release
+      - name: Ensure release exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
-          PRERELEASE=""
-          case "$TAG" in *-*) PRERELEASE="--prerelease";; esac
-          gh release create "$TAG" \
-            --verify-tag \
-            --title "$TAG" \
-            --notes-file notes.md \
-            --generate-notes \
-            $PRERELEASE
+          RELEASE_TAGS="$(gh api --paginate 'repos/{owner}/{repo}/releases?per_page=100' --jq '.[].tag_name')"
+          if grep -Fxq -- "$TAG" <<< "$RELEASE_TAGS"; then
+            echo "Release $TAG already exists; keeping its title, notes, and status."
+            exit 0
+          fi
+
+          FLAGS=(--verify-tag --title "$TAG" --notes-file notes.md --generate-notes)
+          VERSION="${TAG%%+*}"
+          if [[ "$VERSION" == *-* ]]; then
+            FLAGS+=(--prerelease --latest=false)
+          fi
+          if gh release create "$TAG" "${FLAGS[@]}"; then
+            exit 0
+          fi
+
+          # Another publisher may have created the release after the lookup.
+          RELEASE_TAGS="$(gh api --paginate 'repos/{owner}/{repo}/releases?per_page=100' --jq '.[].tag_name')"
+          if grep -Fxq -- "$TAG" <<< "$RELEASE_TAGS"; then
+            echo "Release $TAG was created concurrently; keeping it unchanged."
+          else
+            exit 1
+          fi
