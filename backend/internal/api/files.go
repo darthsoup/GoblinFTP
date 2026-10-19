@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -133,11 +132,13 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	}
 	// "/" reaches RemoveDirRecur and wipes the whole account. Refuse the batch
 	// outright rather than reporting it afterwards as one failed path.
-	for _, p := range req.Paths {
-		if isRootPath(p) {
+	for i, p := range req.Paths {
+		cleaned, err := transfer.CleanDeletePath(p)
+		if err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest,
-				"the remote root cannot be deleted"))
+				"deletion requires an absolute path below the remote root"))
 		}
+		req.Paths[i] = cleaned
 	}
 	// Initialize non-nil so the JSON always carries arrays, never null: the SPA
 	// reads result.failed.length unconditionally and would throw.
@@ -332,11 +333,4 @@ func (h *Handler) SetPermissions(c echo.Context) error {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
-}
-
-// isRootPath guards destructive operations against the remote root. The adapters
-// refuse it too; this stops the request before it reaches them.
-func isRootPath(p string) bool {
-	cleaned := path.Clean(strings.TrimSpace(p))
-	return cleaned == "/" || cleaned == "." || cleaned == ""
 }

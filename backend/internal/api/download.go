@@ -81,6 +81,14 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	// connection for the whole streamed download.
 	sess.LockTransfer()
 	defer sess.UnlockTransfer()
+	// FTP metadata commands cannot share the control socket with an open RETR.
+	fi, statErr := client.Stat(filePath)
+	if statErr == nil && fi.IsDir {
+		return Fail(c, gftperrors.New(gftperrors.ErrInvalidType, "cannot download a directory"))
+	}
+	if statErr != nil && isConnLost(statErr) {
+		return failClient(c, gftperrors.ErrOperationFailed, statErr)
+	}
 	// A failed open is not evidence of absence: it can equally be a denial, a
 	// directory, or a dead data connection, so let classify decide.
 	r, err := client.Download(filePath)
@@ -101,7 +109,7 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	// With a Content-Length the browser rejects a short body by itself. Without
 	// one a truncated chunked stream still terminates cleanly and saves as whole.
 	lengthKnown := false
-	if fi, statErr := client.Stat(filePath); statErr == nil && fi.Size > 0 && !fi.IsDir {
+	if statErr == nil && fi.Size > 0 {
 		c.Response().Header().Set("Content-Length", strconv.FormatInt(fi.Size, 10))
 		lengthKnown = true
 	}

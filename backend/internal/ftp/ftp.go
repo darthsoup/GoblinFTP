@@ -52,6 +52,13 @@ func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client
 			if err != nil {
 				return nil, err
 			}
+			// jftp also uses this callback for data sockets, bypassing its TLS wrapper.
+			if control != nil {
+				if tlsConfig != nil {
+					return tls.Client(conn, tlsConfig), nil
+				}
+				return conn, nil
+			}
 			// Tight during the handshake so a server that accepts and never
 			// sends its greeting fails fast, relaxed afterwards for real work.
 			wrapped := &deadlineConn{Conn: conn}
@@ -218,14 +225,16 @@ func (c *Client) MakeDir(p string) error {
 // Delete removes a file, recursing only for real directories: retrying every DELE
 // failure as RemoveDirRecur masked denials as ERR_DIR_NOT_EMPTY and hid conn loss.
 func (c *Client) Delete(p string) error {
-	if isRootPath(p) {
-		return fmt.Errorf("%w: refusing to delete the remote root", transfer.ErrInvalidType)
+	cleaned, err := transfer.CleanDeletePath(p)
+	if err != nil {
+		return err
 	}
+	p = cleaned
 	fi, statErr := c.Stat(p)
 	if statErr == nil && fi.IsDir {
 		return wrapErr(c.conn.RemoveDirRecur(p))
 	}
-	err := c.conn.Delete(p)
+	err = c.conn.Delete(p)
 	if err != nil && statErr != nil {
 		// Stat could not classify the target (some servers refuse LIST on a
 		// directory), so the old fallback gets one attempt; the DELE error still wins.

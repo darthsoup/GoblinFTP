@@ -208,9 +208,8 @@ async function load() {
       textContent.value = data.content
     }
     else {
-      // The download endpoint serves octet-stream, so media needs a typed blob to
-      // render reliably (e.g. SVG in an <img> fails in some browsers otherwise).
-      const url = await filesStore.fetchObjectUrl(path, previewMime(props.file.name))
+      // The download endpoint serves octet-stream, so media needs a permitted MIME.
+      const url = await filesStore.fetchObjectUrl(path)
       if (id !== reqId) {
         URL.revokeObjectURL(url) // a newer request superseded us, don't leak
         return

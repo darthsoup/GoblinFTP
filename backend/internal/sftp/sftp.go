@@ -1,9 +1,12 @@
 package sftp
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"path"
 	"strings"
 	"time"
@@ -16,13 +19,21 @@ import (
 
 // Client wraps pkg/sftp and implements transfer.Client.
 type Client struct {
-	ssh  *ssh.Client
-	sftp *sftp.Client
+	ssh        *ssh.Client
+	sftp       *sftp.Client
+	initialDir string
 }
 
 // Dial opens an SSH/SFTP session, verifying the host key against knownHostsPath. An
 // unknown or changed key returns a *HostKeyPrompt and no client; re-Dial with acceptFingerprint to pin it.
 func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, *HostKeyPrompt, error) {
+	return DialContext(context.Background(), addr, user, pass, acceptFingerprint, knownHostsPath)
+}
+
+// DialContext bounds all setup round trips, including the initial directory lookup.
+func DialContext(ctx context.Context, addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, *HostKeyPrompt, error) {
+	ctx, cancel := context.WithTimeout(ctx, dialTimeout)
+	defer cancel()
 	var res hostKeyResult
 	cb, err := buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint, &res)
 	if err != nil {
@@ -36,7 +47,23 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 		HostKeyCallback: cb,
 		Timeout:         dialTimeout,
 	}
-	sshConn, err := ssh.Dial("tcp", addr, cfg)
+	raw, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, nil, setupError(ctx, err, transfer.ErrConnectionFailed)
+	}
+	connected := false
+	defer func() {
+		if !connected {
+			_ = raw.Close()
+		}
+	}()
+	deadline, _ := ctx.Deadline()
+	if err := raw.SetDeadline(deadline); err != nil {
+		return nil, nil, setupError(ctx, err, transfer.ErrConnectionFailed)
+	}
+	stop := context.AfterFunc(ctx, func() { _ = raw.Close() })
+	defer stop()
+	conn, channels, requests, err := ssh.NewClientConn(raw, addr, cfg)
 	if err != nil {
 		// Order matters: a failed known_hosts write reports "permission denied",
 		// which isAuthErr would otherwise read as bad credentials and throttle
@@ -49,28 +76,57 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 				transfer.ErrHostKeyMismatch)
 		case res.prompt != nil:
 			return nil, res.prompt, nil // unknown or changed host key, needs confirmation
-		case isTimeout(err):
-			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrConnectionTimeout, err)
+		case ctx.Err() != nil || isTimeout(err):
+			return nil, nil, setupError(ctx, err, transfer.ErrConnectionFailed)
 		case isAuthErr(err.Error()):
 			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrAuthFailed, err)
 		default:
 			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrConnectionFailed, err)
 		}
 	}
+	sshConn := ssh.NewClient(conn, channels, requests)
 	sftpClient, err := sftp.NewClient(sshConn)
 	if err != nil {
 		_ = sshConn.Close()
 		// The login worked, the server just does not offer the subsystem. Telling
 		// the user "could not connect" sends them to check the wrong thing.
-		return nil, nil, fmt.Errorf("%w: %w", transfer.ErrSubsystemUnavailable, err)
+		return nil, nil, setupError(ctx, err, transfer.ErrSubsystemUnavailable)
 	}
-	return &Client{ssh: sshConn, sftp: sftpClient}, nil, nil
+	initialDir, err := sftpClient.Getwd()
+	if err != nil {
+		_ = sshConn.Close()
+		return nil, nil, setupError(ctx, err, transfer.ErrConnectionFailed)
+	}
+	if !stop() || ctx.Err() != nil {
+		_ = sshConn.Close()
+		return nil, nil, setupError(ctx, ctx.Err(), transfer.ErrConnectionFailed)
+	}
+	if err := raw.SetDeadline(time.Time{}); err != nil {
+		_ = sshConn.Close()
+		return nil, nil, setupError(ctx, err, transfer.ErrConnectionFailed)
+	}
+	connected = true
+	return &Client{ssh: sshConn, sftp: sftpClient, initialDir: initialDir}, nil, nil
+}
+
+func setupError(ctx context.Context, err, fallback error) error {
+	if cause := ctx.Err(); cause != nil {
+		err = cause
+	} else if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+		// The socket deadline can fire before the context timer publishes its error.
+		err = context.DeadlineExceeded
+	}
+	if errors.Is(err, context.DeadlineExceeded) || isTimeout(err) {
+		fallback = transfer.ErrConnectionTimeout
+	}
+	return fmt.Errorf("%w: %w", fallback, err)
 }
 
 const dialTimeout = 10 * time.Second
 
 func (c *Client) WorkingDir() (string, error) {
-	return c.sftp.Getwd()
+	// The adapter never changes directories; setup already validated this lookup.
+	return c.initialDir, nil
 }
 
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
@@ -98,17 +154,38 @@ func (c *Client) MakeDir(p string) error {
 }
 
 func (c *Client) Delete(p string) error {
-	if isRootPath(p) {
-		return fmt.Errorf("%w: refusing to delete the remote root", transfer.ErrInvalidType)
+	cleaned, err := transfer.CleanDeletePath(p)
+	if err != nil {
+		return err
 	}
-	fi, err := c.sftp.Stat(p)
+	return c.deleteDepth(cleaned, 0)
+}
+
+func (c *Client) deleteDepth(p string, depth int) error {
+	if depth > 64 {
+		return fmt.Errorf("%w: directory tree is nested too deeply", transfer.ErrInvalidType)
+	}
+	fi, err := c.sftp.Lstat(p)
 	if err != nil {
 		return wrapErr(err)
 	}
-	if fi.IsDir() {
-		return wrapErr(c.sftp.RemoveAll(p))
+	if !fi.IsDir() || fi.Mode()&fs.ModeSymlink != 0 {
+		return wrapErr(c.sftp.Remove(p))
 	}
-	return wrapErr(c.sftp.Remove(p))
+	entries, err := c.sftp.ReadDir(p)
+	if err != nil {
+		return wrapErr(err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\\x00\r\n") {
+			return fmt.Errorf("%w: invalid remote directory entry", transfer.ErrInvalidType)
+		}
+		if err := c.deleteDepth(path.Join(p, name), depth+1); err != nil {
+			return err
+		}
+	}
+	return wrapErr(c.sftp.RemoveDirectory(p))
 }
 
 func (c *Client) Rename(src, dst string) error {
@@ -186,11 +263,4 @@ func isAuthErr(msg string) bool {
 	return strings.Contains(msg, "unable to authenticate") ||
 		strings.Contains(msg, "permission denied") ||
 		strings.Contains(msg, "auth fail")
-}
-
-// isRootPath guards the recursive delete: "/" reaches RemoveAll and would wipe
-// the account. Handlers check too; this is the defensive half.
-func isRootPath(p string) bool {
-	cleaned := path.Clean(p)
-	return cleaned == "/" || cleaned == "." || cleaned == ""
 }

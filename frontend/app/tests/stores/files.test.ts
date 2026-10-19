@@ -1,10 +1,10 @@
 import type { FileInfo } from '~/types/api'
 import { createTestingPinia } from '@pinia/testing'
 import { setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '~/types/api'
 
-const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() }
+const mockApi = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn(), getBlob: vi.fn() }
 vi.mock('~/composables/useApi', () => ({ useApi: () => mockApi }))
 
 describe('useFilesStore', () => {
@@ -12,6 +12,8 @@ describe('useFilesStore', () => {
     setActivePinia(createTestingPinia({ createSpy: vi.fn, stubActions: false }))
     vi.clearAllMocks()
   })
+
+  afterEach(() => vi.restoreAllMocks())
 
   it('lists files and updates state', async () => {
     const files: FileInfo[] = [{ name: 'a.txt', size: 10, isDir: false, modified: '2024-01-01T00:00:00Z', mode: '-rw-r--r--' }]
@@ -125,5 +127,93 @@ describe('useFilesStore', () => {
     expect(res.failures).toEqual([
       { path: '/dst/b.txt', code: 'ERR_FILE_PERMISSION', message: 'Permission denied by the server' },
     ])
+  })
+
+  it.each(['payload.svg', 'payload.SVG', 'payload.html'])('refuses an active preview blob for %s before fetching', async (name) => {
+    const store = useFilesStore()
+
+    await expect(store.fetchObjectUrl(`/remote/${name}`)).rejects.toMatchObject({ code: 'ERR_INVALID_TYPE' })
+
+    expect(mockApi.post).not.toHaveBeenCalled()
+    expect(mockApi.getBlob).not.toHaveBeenCalled()
+  })
+
+  it('creates raster preview blobs using the permitted extension MIME', async () => {
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:raster-preview')
+    mockApi.post.mockResolvedValue({ token: 'download-token' })
+    mockApi.getBlob.mockResolvedValue(new Blob(['image bytes'], { type: 'application/octet-stream' }))
+    const store = useFilesStore()
+
+    await expect(store.fetchObjectUrl('/remote/photo.PNG')).resolves.toBe('blob:raster-preview')
+
+    expect(mockApi.getBlob).toHaveBeenCalledWith('/api/files/download?path=%2Fremote%2Fphoto.PNG&token=download-token')
+    const blob = createUrl.mock.calls[0]![0] as Blob
+    expect(blob.type).toBe('image/png')
+    expect(await blob.text()).toBe('image bytes')
+  })
+
+  it.each<[string, string, string[]]>([
+    ['/reports', '/', ['reports']],
+    ['/reports/./nested/..//', '//', ['reports']],
+    ['/reports', '/', ['a.txt', 'reports']],
+  ])('rejects the entire cut batch from %s to %s before any remote mutation', async (source, destination, names) => {
+    mockApi.get.mockResolvedValue([])
+    const store = useFilesStore()
+    await store.list(source)
+    store.cutToClipboard(names)
+    await store.list(destination)
+    store.files = [{ name: 'reports', size: 0, isDir: true, modified: '', mode: '' }]
+    vi.spyOn(useModalStore(), 'pasteConflict').mockResolvedValue('overwrite')
+
+    await expect(store.paste()).rejects.toMatchObject({ code: 'ERR_INVALID_TYPE' })
+
+    expect(mockApi.del).not.toHaveBeenCalled()
+    expect(mockApi.patch).not.toHaveBeenCalled()
+    expect(store.clipboard?.names).toEqual(names)
+  })
+
+  it('refuses to move a directory into its own descendant', async () => {
+    mockApi.get.mockResolvedValue([])
+    const store = useFilesStore()
+    await store.list('/')
+    store.cutToClipboard(['reports'])
+    await store.list('/reports/child')
+
+    await expect(store.paste()).rejects.toMatchObject({ code: 'ERR_INVALID_TYPE' })
+
+    expect(mockApi.del).not.toHaveBeenCalled()
+    expect(mockApi.patch).not.toHaveBeenCalled()
+  })
+
+  it('normalizes a cut onto itself as a no-op', async () => {
+    mockApi.get.mockResolvedValue([])
+    const store = useFilesStore()
+    await store.list('/reports/./')
+    store.cutToClipboard(['a.txt'])
+    await store.list('/reports/nested/..//')
+
+    const result = await store.paste()
+
+    expect(result).toMatchObject({ ok: 0, failed: 0 })
+    expect(mockApi.del).not.toHaveBeenCalled()
+    expect(mockApi.patch).not.toHaveBeenCalled()
+  })
+
+  it('allows an overwrite between paths sharing only a name prefix', async () => {
+    mockApi.get.mockResolvedValue([])
+    mockApi.del.mockResolvedValue({ deleted: ['/reports/report'], failed: [] })
+    mockApi.patch.mockResolvedValue(undefined)
+    const store = useFilesStore()
+    await store.list('/report')
+    store.cutToClipboard(['report'])
+    await store.list('/reports')
+    store.files = [{ name: 'report', size: 0, isDir: true, modified: '', mode: '' }]
+    vi.spyOn(useModalStore(), 'pasteConflict').mockResolvedValue('overwrite')
+
+    const result = await store.paste()
+
+    expect(result).toMatchObject({ ok: 1, failed: 0 })
+    expect(mockApi.del).toHaveBeenCalledWith('/api/files', { paths: ['/reports/report'] })
+    expect(mockApi.patch).toHaveBeenCalledWith('/api/files/rename', { from: '/report/report', to: '/reports/report' })
   })
 })
