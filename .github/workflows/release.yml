@@ -97,14 +97,18 @@ jobs:
             body="$(printf '%s\n' "$LOG" | grep -E "$2" \
               | sed -E 's/^([0-9a-f]+) (feat|fix|chore)(\([^)]*\))?(!)?: */\1 /' \
               | sed -E 's/^([0-9a-f]+) (.*)$/- \2 (`\1`)/' || true)"
-            [ -n "$body" ] && printf '### %s\n\n%s\n\n' "$1" "$body" || true
+            if [ -n "$body" ]; then
+              printf '### %s\n\n%s\n\n' "$1" "$body"
+            fi
           }
           emit_other() {
             local body
             # shellcheck disable=SC2016 # Backticks delimit Markdown code spans.
             body="$(printf '%s\n' "$LOG" | grep -Ev '^[0-9a-f]+ (feat|fix|chore)(\([^)]*\))?(!)?: ' \
               | sed -E 's/^([0-9a-f]+) (.*)$/- \2 (`\1`)/' || true)"
-            [ -n "$body" ] && printf '### Other\n\n%s\n\n' "$body" || true
+            if [ -n "$body" ]; then
+              printf '### Other\n\n%s\n\n' "$body"
+            fi
           }
 
           {
