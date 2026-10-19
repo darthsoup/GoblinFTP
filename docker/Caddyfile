@@ -1,13 +1,14 @@
 {
-	# Must agree with GFTP_ACCESS_TRUSTED_PROXIES on the Go side. Empty (the default)
-	# trusts nothing. entrypoint.sh turns that comma list into the space form Caddy wants.
+	admin off
+	persist_config off
+	# Only external proxies belong here; the internal hop is trusted separately by Go.
 	servers {
 		trusted_proxies static {$GFTP_CADDY_TRUSTED_PROXIES:}
 		trusted_proxies_strict
 	}
 }
 
-:80 {
+:8080 {
 	encode zstd gzip
 
 	@sso {
@@ -16,21 +17,29 @@
 	}
 
 	handle /api/* {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8081 {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	handle /healthz {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8081 {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	# Theme assets: the Go side validates the tenant and serves them from the data dir.
 	handle /themes/* {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8081 {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	# SSO entry point: must intercept before the SPA fallback below.
 	handle @sso {
-		reverse_proxy localhost:8080
+		reverse_proxy 127.0.0.1:8081 {
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	# Content-hashed build output: the filename changes whenever the bytes do,

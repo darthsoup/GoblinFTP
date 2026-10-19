@@ -35,7 +35,7 @@ func TestLoadDefaults(t *testing.T) {
 
 	assert.Equal(t, "8080", cfg.Port)
 	assert.Equal(t, "info", cfg.LogLevel)
-	assert.NotEmpty(t, cfg.SessionSecret)
+	assert.Empty(t, cfg.SessionSecret)
 	assert.NotEmpty(t, cfg.DownloadTokenSecret)
 	assert.Equal(t, int64(5*1024*1024), cfg.ChunkSize)
 	assert.Equal(t, 1, cfg.MaxConcurrentUploads)
@@ -162,8 +162,23 @@ func TestLoadAutoGeneratesUniqueSecrets(t *testing.T) {
 	cfg2, err := config.Load(nil)
 	require.NoError(t, err)
 
-	assert.NotEqual(t, cfg1.SessionSecret, cfg2.SessionSecret)
 	assert.NotEqual(t, cfg1.DownloadTokenSecret, cfg2.DownloadTokenSecret)
+}
+
+func TestBindAddress(t *testing.T) {
+	for _, address := range []string{"", "127.0.0.1", "::1", "0.0.0.0", "localhost", "127.0.0.1:8080"} {
+		t.Run(address, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("GFTP_BIND_ADDRESS", address)
+			cfg, err := config.Load(nil)
+			if address == "localhost" || address == "127.0.0.1:8080" {
+				require.ErrorContains(t, err, "GFTP_BIND_ADDRESS")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, address, cfg.BindAddress)
+		})
+	}
 }
 
 func TestLoadSSOEnabledWithoutSecretIsError(t *testing.T) {

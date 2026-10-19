@@ -76,10 +76,8 @@ func liveUploadIDs(store *auth.Store) func(string) bool {
 	}
 }
 
-// newS3Store builds the optional S3 chunk-staging backend and probes the
-// bucket. An unreachable bucket logs a warning but does not block startup.
-func newS3Store(cfg *config.Config, logger *slog.Logger) *staging.S3Store {
-	s3store := staging.NewS3Store(staging.S3Options{
+func newS3Store(cfg *config.Config) *staging.S3Store {
+	return staging.NewS3Store(staging.S3Options{
 		Endpoint:     cfg.S3Endpoint,
 		Bucket:       cfg.S3Bucket,
 		Region:       cfg.S3Region,
@@ -89,13 +87,6 @@ func newS3Store(cfg *config.Config, logger *slog.Logger) *staging.S3Store {
 		Prefix:       cfg.S3Prefix,
 		Timeout:      time.Duration(cfg.S3TimeoutSeconds) * time.Second,
 	})
-	if err := s3store.Ping(context.Background()); err != nil {
-		logger.Warn("S3 chunk staging enabled but bucket is not reachable - uploads will fail until it is",
-			"endpoint", cfg.S3Endpoint, "bucket", cfg.S3Bucket, "error", err.Error())
-	} else {
-		logger.Info("S3 chunk staging enabled", "endpoint", cfg.S3Endpoint, "bucket", cfg.S3Bucket)
-	}
-	return s3store
 }
 
 func main() {
@@ -138,7 +129,7 @@ func run() int {
 	// Probed at boot, not on the first SFTP connect: an unwritable data dir
 	// otherwise surfaced as a confusing per-connection failure much later.
 	if dirErr := ensureDataDir(cfg.DataDir); dirErr != nil {
-		logger.Error("data directory is not usable, set GFTP_DATA_DIR to a writable path",
+		logger.Error("data directory is not usable, check GFTP_DATA_DIR and ownership for the current UID",
 			"path", cfg.DataDir, "error", dirErr.Error())
 		return 1
 	}
@@ -172,9 +163,30 @@ func run() int {
 	}
 	defer gftpsentry.Flush()
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	opts := []api.HandlerOption{api.WithLogger(logger), api.WithVersion(version)}
 	if cfg.S3Enabled {
-		opts = append(opts, api.WithChunkStore(newS3Store(cfg, logger)))
+		s3store := newS3Store(cfg)
+		opts = append(opts, api.WithChunkStore(s3store))
+		probeDone := make(chan struct{})
+		go func() {
+			defer close(probeDone)
+			defer gftpsentry.Recover()
+			if err := s3store.Ping(ctx); err != nil {
+				if ctx.Err() == nil {
+					logger.Warn("S3 bucket is not reachable; uploads will fail until it is",
+						"endpoint", cfg.S3Endpoint, "bucket", cfg.S3Bucket, "error", err.Error())
+				}
+			} else {
+				logger.Info("S3 chunk staging enabled", "endpoint", cfg.S3Endpoint, "bucket", cfg.S3Bucket)
+			}
+		}()
+		defer func() {
+			stop()
+			<-probeDone
+		}()
 	}
 
 	// Optional Prometheus metrics on a dedicated listener, never on the main server
@@ -193,9 +205,6 @@ func run() int {
 	if !cfg.S3Enabled {
 		sweeper = staging.NewSweeper(cfg.DataDir, logger, liveUploadIDs(store))
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	var metricsSrv *http.Server
 	if cfg.MetricsEnabled {
@@ -228,7 +237,7 @@ func run() int {
 	serveErr := make(chan error, 1)
 	go func() {
 		defer gftpsentry.Recover()
-		if err := e.Start(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := e.Start(net.JoinHostPort(cfg.BindAddress, cfg.Port)); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serveErr <- err
 			return
 		}

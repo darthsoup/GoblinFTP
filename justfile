@@ -86,7 +86,13 @@ docker-build:
 # Run Docker image (:8080)
 [group('docker')]
 docker-run:
-    docker run -p 8080:80 ghcr.io/darthsoup/goblinftp
+    docker run -p 8080:8080 ghcr.io/darthsoup/goblinftp
+
+# Build and exercise the container with production runtime restrictions
+[group('test')]
+docker-test:
+    docker build -f docker/Dockerfile -t goblinftp:smoke .
+    python3 docker/smoke_test.py goblinftp:smoke
 
 # Push Docker image (docker login ghcr.io first; releases normally come from CI on v* tags)
 [group('docker')]

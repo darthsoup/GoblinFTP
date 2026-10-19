@@ -4,11 +4,13 @@ services:
   gftp:
     image: "ghcr.io/darthsoup/goblinftp:${GFTP_VERSION:-latest}"
     pull_policy: always
-    environment:
-      # Without these the server generates ephemeral keys on each start, invalidating
-      # sessions and download links; the `:?` form fails fast when they are unset.
-      GFTP_SESSION_SECRET: "${GFTP_SESSION_SECRET:?set GFTP_SESSION_SECRET (openssl rand -hex 32)}"
-      GFTP_DOWNLOAD_TOKEN_SECRET: "${GFTP_DOWNLOAD_TOKEN_SECRET:?set GFTP_DOWNLOAD_TOKEN_SECRET (openssl rand -hex 32)}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
     volumes:
       - gftp-data:/app/data
 
