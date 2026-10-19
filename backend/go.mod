@@ -2,6 +2,10 @@ module github.com/darthsoup/goblinftp
 
 go 1.26.9
 
+replace github.com/jlaffaye/ftp => ./third_party/ftp
+
+replace github.com/pkg/sftp => ./third_party/sftp
+
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.9

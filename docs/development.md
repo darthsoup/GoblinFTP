@@ -74,6 +74,27 @@ This needs Python 3 and Docker. It tests startup, routing, headers, proxy handli
 
 ## Testing with a local FTP server
 
+The `just` recipes start Docker test containers, so a separate FTP or SFTP server installation is unnecessary. For behavior shared by both protocols, start both servers and run both integration suites:
+
+```bash
+just ftp-up sftp-up
+GFTP_TEST_FTP_HOST=localhost:21 GFTP_TEST_SFTP_HOST=localhost:2222 go -C backend test ./internal/ftp/... ./internal/sftp/...
+```
+
+These tests include recursive directory-size calculation. Use the app's Properties dialog to calculate a directory size manually. Totals include hidden files and show when inaccessible entries or scan limits make the result partial.
+
+Scans exclude symbolic links identified by the listing metadata and do not follow their targets. Empty-directory labels use the presence of entries independently of the recursive byte and file counts, so a directory containing only links is not labelled empty.
+
+Scans use limits of 64 levels, 50,000 entries, and a 30-second traversal budget. Each directory read receives the remaining entry budget, and the walker reserves that budget before descending. FTP root metadata uses MLST when supported, otherwise a streaming parent lookup capped at 50,000 entries. Scan extensions to the pinned protocol libraries live in [backend/third_party](../backend/third_party/README.md).
+
+Cancellation interrupts active control, data, and metadata I/O. Cancelling during I/O closes the connection when its protocol state cannot safely be reused; the app then offers reconnection. Cancelling while waiting for the transfer lock leaves the connection usable. FTP completion recovery is bounded to one second before an uncertain connection is closed.
+
+Calculated totals remain visible until refresh, file changes, or disconnect. Recalculation preserves the previous total and counts while loading, after a failed request, or after cancellation while the connection remains active. File mutations invalidate totals through `useFileOperations`, with connection-generation checks isolating old requests from a new session.
+
+The [directory-size implementation checklist](directory-size-follow-up.md) records the review fixes and their acceptance criteria.
+
+Reuse already-running test containers and preserve their volumes. Integration tests create unique fixture directories and remove only those fixtures. Stop a server with its matching `just *-down` recipe when it is no longer needed.
+
 ```bash
 just ftp-up
 GFTP_TEST_FTP_HOST=localhost:21 go -C backend test ./internal/ftp/...

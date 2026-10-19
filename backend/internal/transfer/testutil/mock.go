@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -10,18 +11,22 @@ import (
 // MockClient is a transfer.Client where each method is a swappable function field.
 // An unset field panics when called, intentionally, to catch missed test setup.
 type MockClient struct {
-	WorkingDirFn    func() (string, error)
-	ListFn          func(path string) ([]transfer.FileInfo, error)
-	StatFn          func(path string) (transfer.FileInfo, error)
-	MakeDirFn       func(path string) error
-	DeleteFn        func(path string) error
-	RenameFn        func(src, dst string) error
-	ChmodFn         func(path string, mode uint32) error
-	SupportsChmodFn func() bool
-	DownloadFn      func(path string) (io.ReadCloser, error)
-	UploadFn        func(path string, r io.Reader) error
-	PingFn          func() error
-	CloseFn         func() error
+	WorkingDirFn     func() (string, error)
+	ListFn           func(path string) ([]transfer.FileInfo, error)
+	StatFn           func(path string) (transfer.FileInfo, error)
+	LstatFn          func(path string) (transfer.FileInfo, error)
+	ListContextFn    func(context.Context, string) ([]transfer.FileInfo, error)
+	LstatContextFn   func(context.Context, string) (transfer.FileInfo, error)
+	ReadDirContextFn func(context.Context, string, int) ([]transfer.FileInfo, bool, error)
+	MakeDirFn        func(path string) error
+	DeleteFn         func(path string) error
+	RenameFn         func(src, dst string) error
+	ChmodFn          func(path string, mode uint32) error
+	SupportsChmodFn  func() bool
+	DownloadFn       func(path string) (io.ReadCloser, error)
+	UploadFn         func(path string, r io.Reader) error
+	PingFn           func() error
+	CloseFn          func() error
 
 	// closed may be written by an eviction goroutine, not just the test's own.
 	// Read it through IsClosed.
@@ -32,12 +37,48 @@ type MockClient struct {
 func (m *MockClient) WorkingDir() (string, error)                   { return m.WorkingDirFn() }
 func (m *MockClient) List(path string) ([]transfer.FileInfo, error) { return m.ListFn(path) }
 func (m *MockClient) Stat(path string) (transfer.FileInfo, error)   { return m.StatFn(path) }
-func (m *MockClient) MakeDir(path string) error                     { return m.MakeDirFn(path) }
-func (m *MockClient) Delete(path string) error                      { return m.DeleteFn(path) }
-func (m *MockClient) Rename(src, dst string) error                  { return m.RenameFn(src, dst) }
-func (m *MockClient) Chmod(path string, mode uint32) error          { return m.ChmodFn(path, mode) }
-func (m *MockClient) Download(path string) (io.ReadCloser, error)   { return m.DownloadFn(path) }
-func (m *MockClient) Upload(path string, r io.Reader) error         { return m.UploadFn(path, r) }
+
+func (m *MockClient) Lstat(path string) (transfer.FileInfo, error) {
+	if m.LstatFn != nil {
+		return m.LstatFn(path)
+	}
+	return m.Stat(path)
+}
+
+func (m *MockClient) ListContext(ctx context.Context, path string) ([]transfer.FileInfo, error) {
+	if m.ListContextFn != nil {
+		return m.ListContextFn(ctx, path)
+	}
+	return m.List(path)
+}
+
+func (m *MockClient) LstatContext(ctx context.Context, path string) (transfer.FileInfo, error) {
+	if m.LstatContextFn != nil {
+		return m.LstatContextFn(ctx, path)
+	}
+	if err := ctx.Err(); err != nil {
+		return transfer.FileInfo{}, err
+	}
+	return m.Lstat(path)
+}
+
+func (m *MockClient) ReadDirContext(ctx context.Context, path string, limit int) ([]transfer.FileInfo, bool, error) {
+	if m.ReadDirContextFn != nil {
+		return m.ReadDirContextFn(ctx, path, limit)
+	}
+	entries, err := m.ListContext(ctx, path)
+	if len(entries) > limit {
+		return entries[:limit], true, err
+	}
+	return entries, false, err
+}
+
+func (m *MockClient) MakeDir(path string) error                   { return m.MakeDirFn(path) }
+func (m *MockClient) Delete(path string) error                    { return m.DeleteFn(path) }
+func (m *MockClient) Rename(src, dst string) error                { return m.RenameFn(src, dst) }
+func (m *MockClient) Chmod(path string, mode uint32) error        { return m.ChmodFn(path, mode) }
+func (m *MockClient) Download(path string) (io.ReadCloser, error) { return m.DownloadFn(path) }
+func (m *MockClient) Upload(path string, r io.Reader) error       { return m.UploadFn(path, r) }
 
 // SupportsChmod defaults to true when SupportsChmodFn is unset, so tests that
 // don't care about the capability keep working.

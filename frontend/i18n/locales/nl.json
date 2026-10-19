@@ -56,7 +56,7 @@
     "gridThumbnails": "Miniaturen van afbeeldingen",
     "gridThumbnailsHint": "Voorbeelden van afbeeldingen tonen in de kaartweergave.",
     "density": "Dichtheid",
-    "densityComfortable": "Comfortabel",
+    "densityStandard": "Standaard",
     "densityCompact": "Compact",
     "close": "Klaar"
   },
@@ -78,6 +78,11 @@
     "name": "Naam",
     "size": "Grootte",
     "modified": "Gewijzigd",
+    "sortBy": "Sorteren op",
+    "ascending": "Oplopend",
+    "descending": "Aflopend",
+    "serverOrder": "Servervolgorde",
+    "sortStatus": "Gesorteerd op {field}: {direction}",
     "permissions": "Rechten",
     "loading": "Laden...",
     "empty": "Deze map is leeg",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Er is iets misgegaan op de server",
     "ERR_OVERWRITE_LOST_DESTINATION": "Het bestaande bestand is verwijderd, maar de vervanging kon niet worden verplaatst",
     "ERR_NETWORK": "Kan de server niet bereiken",
-    "ERR_UNKNOWN": "Er is iets misgegaan"
+    "ERR_UNKNOWN": "Er is iets misgegaan",
+    "ERR_OPERATION_IN_PROGRESS": "Er loopt nog een andere grootteberekening. Probeer het zo opnieuw."
   },
   "toast": {
     "folderCreated": "Map aangemaakt",
@@ -316,5 +322,22 @@
     "errorDisabled": "SSO-aanmelden is niet ingeschakeld op deze server.",
     "errorInternal": "SSO-aanmelden is mislukt door een serverfout. Probeer het opnieuw.",
     "errorGeneric": "SSO-aanmelden mislukt. Vraag een nieuwe link aan."
+  },
+  "directorySize": {
+    "calculate": "Grootte berekenen",
+    "recalculate": "Grootte opnieuw berekenen",
+    "cancel": "Grootteberekening annuleren",
+    "retry": "Grootteberekening opnieuw proberen",
+    "calculating": "Berekenen...",
+    "empty": "Leeg",
+    "partial": "Gedeeltelijk",
+    "failed": "Grootte kon niet worden berekend",
+    "counts": "{files} bestanden, {directories} mappen",
+    "skipped": "Overgeslagen items: {count}",
+    "reason": {
+      "unreadable": "Sommige items konden niet worden gelezen. Het totaal is een ondergrens.",
+      "limit": "De scanlimiet is bereikt. Het totaal is een ondergrens.",
+      "timeout": "De scan heeft de tijdslimiet bereikt. Het totaal is een ondergrens."
+    }
   }
 }

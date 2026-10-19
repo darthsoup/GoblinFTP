@@ -56,7 +56,7 @@
     "gridThumbnails": "Kuvien pikkukuvat",
     "gridThumbnailsHint": "Näytä kuvien esikatselut korttinäkymässä.",
     "density": "Tiheys",
-    "densityComfortable": "Väljä",
+    "densityStandard": "Vakio",
     "densityCompact": "Tiivis",
     "close": "Valmis"
   },
@@ -78,6 +78,11 @@
     "name": "Nimi",
     "size": "Koko",
     "modified": "Muokattu",
+    "sortBy": "Lajitteluperuste",
+    "ascending": "Nouseva",
+    "descending": "Laskeva",
+    "serverOrder": "Palvelimen järjestys",
+    "sortStatus": "Lajitteluperuste {field}: {direction}",
     "permissions": "Oikeudet",
     "loading": "Ladataan...",
     "empty": "Tämä hakemisto on tyhjä",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Palvelimella tapahtui virhe",
     "ERR_OVERWRITE_LOST_DESTINATION": "Aiempi tiedosto poistettiin, mutta korvaavaa ei voitu siirtää tilalle",
     "ERR_NETWORK": "Palvelimeen ei saada yhteyttä",
-    "ERR_UNKNOWN": "Jokin meni vikaan"
+    "ERR_UNKNOWN": "Jokin meni vikaan",
+    "ERR_OPERATION_IN_PROGRESS": "Toinen koon laskenta on yhä käynnissä. Yritä hetken kuluttua uudelleen."
   },
   "toast": {
     "folderCreated": "Kansio luotu",
@@ -316,5 +322,22 @@
     "errorDisabled": "SSO-kirjautuminen ei ole käytössä tällä palvelimella.",
     "errorInternal": "SSO-kirjautuminen epäonnistui palvelinvirheen vuoksi. Yritä uudelleen.",
     "errorGeneric": "SSO-kirjautuminen epäonnistui. Pyydä uusi linkki."
+  },
+  "directorySize": {
+    "calculate": "Laske koko",
+    "recalculate": "Laske koko uudelleen",
+    "cancel": "Peru koon laskenta",
+    "retry": "Yritä koon laskentaa uudelleen",
+    "calculating": "Lasketaan...",
+    "empty": "Tyhjä",
+    "partial": "Osittainen",
+    "failed": "Kokoa ei voitu laskea",
+    "counts": "{files} tiedostoa, {directories} kansiota",
+    "skipped": "Ohitetut kohteet: {count}",
+    "reason": {
+      "unreadable": "Joitakin kohteita ei voitu lukea. Kokonaismäärä on alaraja.",
+      "limit": "Skannauksen raja saavutettiin. Kokonaismäärä on alaraja.",
+      "timeout": "Skannaus aikakatkaistiin. Kokonaismäärä on alaraja."
+    }
   }
 }

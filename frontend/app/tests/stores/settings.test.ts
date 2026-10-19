@@ -86,12 +86,44 @@ describe('useSettingsStore', () => {
     expect(JSON.parse(localStorage.getItem('gftp_settings')!).gridThumbnails).toBe(false)
   })
 
+  it('defaults to standard density', () => {
+    expect(useSettingsStore().density).toBe('standard')
+  })
+
+  it('restores legacy comfortable density as standard without losing other preferences', async () => {
+    localStorage.setItem('gftp_settings', JSON.stringify({ density: 'comfortable', sizeFormat: 'bytes' }))
+    const store = useSettingsStore()
+    expect(store.density).toBe('standard')
+    expect(store.sizeFormat).toBe('bytes')
+
+    store.gridThumbnails = true
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('gftp_settings')!).density).toBe('standard')
+  })
+
+  it.each(['standard', 'compact'] as const)('restores %s density', (density) => {
+    localStorage.setItem('gftp_settings', JSON.stringify({ density }))
+    expect(useSettingsStore().density).toBe(density)
+  })
+
+  it('persists both density options', async () => {
+    const store = useSettingsStore()
+    store.density = 'compact'
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('gftp_settings')!).density).toBe('compact')
+
+    store.density = 'standard'
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('gftp_settings')!).density).toBe('standard')
+  })
+
   it('ignores corrupt or invalid persisted data', () => {
-    localStorage.setItem('gftp_settings', JSON.stringify({ sizeFormat: 'bogus', language: 'xx' }))
+    localStorage.setItem('gftp_settings', JSON.stringify({ sizeFormat: 'bogus', language: 'xx', density: 'bogus' }))
     setActivePinia(createPinia())
     const store = useSettingsStore()
     expect(store.sizeFormat).toBe('binary')
     expect(store.language).toBeNull()
+    expect(store.density).toBe('standard')
 
     localStorage.setItem('gftp_settings', 'not-json{')
     setActivePinia(createPinia())

@@ -50,16 +50,18 @@
         @update:model-value="emit('select', file.name)"
       />
 
-      <UButton
-        v-if="!file.isDir"
-        size="xs"
-        color="neutral"
-        variant="solid"
-        icon="i-ph-download-simple"
-        class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        :aria-label="t('context.download')"
-        @click.stop="handleDownload"
-      />
+      <div class="absolute top-1 right-1" @click.stop>
+        <UDropdownMenu v-model:open="menuOpen" :items="menuItems" :content="{ align: 'end', onEscapeKeyDown: closeMenu }">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-ph-dots-three-vertical"
+            class="card-actions bg-default/90 transition-opacity"
+            :aria-label="t('context.actions')"
+          />
+        </UDropdownMenu>
+      </div>
     </div>
 
     <input
@@ -75,7 +77,7 @@
     >
     <div
       v-else
-      class="text-center truncate"
+      class="text-left truncate"
       :class="[
         compact ? 'text-xs' : 'text-sm',
         file.isDir ? 'font-semibold text-highlighted' : 'text-default',
@@ -86,13 +88,17 @@
       {{ file.name }}
     </div>
 
-    <div class="text-xs text-muted text-center truncate">
-      {{ meta }}
+    <div class="min-h-4 text-xs text-muted text-left truncate">
+      <template v-if="!file.isDir">
+        {{ formatFileSize(file.size, settingsStore.sizeFormat, locale) }}
+      </template>
+      <DirectorySize v-else :path="fullPath" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
 
 const props = defineProps<{
@@ -104,12 +110,12 @@ const props = defineProps<{
   active: boolean
   compact: boolean
   index: number
+  menuItems: DropdownMenuItem[][]
 }>()
 
 const emit = defineEmits<{
   select: [name: string]
   navigate: [path: string]
-  download: [path: string]
   commitRename: [newName: string]
   cancelRename: []
   requestRename: []
@@ -120,6 +126,12 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 const filesStore = useFilesStore()
 const settingsStore = useSettingsStore()
+const menuOpen = ref(false)
+
+function closeMenu() {
+  // Browser shortcuts prevent Escape before Reka's dismiss listener sees it.
+  menuOpen.value = false
+}
 
 const iconDef = computed(() => getFileIcon(props.file))
 const fullPath = computed(() => `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`)
@@ -135,15 +147,6 @@ function onNameDblClick() {
   if (!props.file.isDir)
     emit('requestRename')
 }
-
-// Secondary line: "size · date" (date-only for directories).
-const meta = computed(() => {
-  const parts: string[] = []
-  if (!props.file.isDir)
-    parts.push(formatFileSize(props.file.size, settingsStore.sizeFormat, locale.value))
-  parts.push(formatFileDate(props.file.modified, settingsStore.dateFormat, locale.value))
-  return parts.join(' · ')
-})
 
 const thumbEl = ref<HTMLElement | null>(null)
 const thumbUrl = ref<string | null>(null)
@@ -185,13 +188,12 @@ function handleClick() {
     emit('preview')
 }
 
-function handleDownload() {
-  emit('download', fullPath.value)
-}
-
 // Mirrors FileRow: cards are a roving tabindex so the grid view is operable
 // without a mouse.
 function onKeydown(e: KeyboardEvent) {
+  if (e.target !== e.currentTarget)
+    return
+
   switch (e.key) {
     case 'Enter':
       e.preventDefault()
@@ -234,6 +236,16 @@ function onKeydown(e: KeyboardEvent) {
 .file-card {
   animation: card-in 0.26s ease backwards;
   animation-delay: min(calc(var(--card-i) * 12ms), 280ms);
+}
+@media (hover: hover) {
+  .card-actions {
+    opacity: 0;
+  }
+  .file-card:hover .card-actions,
+  .file-card:focus-within .card-actions,
+  .card-actions[data-state='open'] {
+    opacity: 1;
+  }
 }
 @keyframes card-in {
   from {

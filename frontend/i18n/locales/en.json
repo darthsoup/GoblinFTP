@@ -56,7 +56,7 @@
     "gridThumbnails": "Image thumbnails",
     "gridThumbnailsHint": "Show image previews in the card grid.",
     "density": "Density",
-    "densityComfortable": "Comfortable",
+    "densityStandard": "Standard",
     "densityCompact": "Compact",
     "close": "Done"
   },
@@ -78,6 +78,11 @@
     "name": "Name",
     "size": "Size",
     "modified": "Modified",
+    "sortBy": "Sort by",
+    "ascending": "Ascending",
+    "descending": "Descending",
+    "serverOrder": "Server order",
+    "sortStatus": "Sorted by {field}: {direction}",
     "permissions": "Permissions",
     "loading": "Loading...",
     "empty": "This directory is empty",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Something went wrong on the server",
     "ERR_OVERWRITE_LOST_DESTINATION": "The existing file was removed but the replacement could not be moved into place",
     "ERR_NETWORK": "Could not reach the server",
-    "ERR_UNKNOWN": "Something went wrong"
+    "ERR_UNKNOWN": "Something went wrong",
+    "ERR_OPERATION_IN_PROGRESS": "Another size calculation is still running. Try again shortly."
   },
   "toast": {
     "folderCreated": "Folder created",
@@ -316,5 +322,22 @@
     "errorDisabled": "SSO login is not enabled on this server.",
     "errorInternal": "SSO login failed due to a server error. Please try again.",
     "errorGeneric": "SSO login failed. Please request a new link."
+  },
+  "directorySize": {
+    "calculate": "Calculate size",
+    "recalculate": "Recalculate size",
+    "cancel": "Cancel size calculation",
+    "retry": "Retry size calculation",
+    "calculating": "Calculating...",
+    "empty": "Empty",
+    "partial": "Partial",
+    "failed": "Couldn't calculate size",
+    "counts": "{files} files, {directories} folders",
+    "skipped": "Skipped entries: {count}",
+    "reason": {
+      "unreadable": "Some entries could not be read. The total is a lower bound.",
+      "limit": "The scan limit was reached. The total is a lower bound.",
+      "timeout": "The scan timed out. The total is a lower bound."
+    }
   }
 }

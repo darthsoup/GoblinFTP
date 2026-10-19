@@ -28,6 +28,7 @@ ARG TARGETARCH
 # VERSION is the release tag (e.g. v0.2.0); "dev" outside release builds.
 ARG VERSION=dev
 COPY backend/go.mod backend/go.sum ./
+COPY backend/third_party/ ./third_party/
 RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \

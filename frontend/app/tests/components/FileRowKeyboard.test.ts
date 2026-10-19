@@ -91,4 +91,15 @@ describe('fileRow keyboard operability', () => {
     expect(checkboxLabel).toBeTruthy()
     expect(checkboxLabel).not.toBe('report.pdf')
   })
+
+  it('keeps action-menu keys separate from folder navigation and selection', async () => {
+    const row = await mountRow({ name: 'docs', isDir: true })
+    const trigger = row.get('button[aria-label="Actions"]')
+    await trigger.trigger('keydown', { key: 'Enter' })
+    await trigger.trigger('keydown', { key: 'ArrowDown' })
+    await trigger.trigger('keydown', { key: ' ' })
+    expect(row.emitted('navigate')).toBeUndefined()
+    expect(row.emitted('select')).toBeUndefined()
+    expect(row.emitted('focusMove')).toBeUndefined()
+  })
 })

@@ -56,7 +56,7 @@
     "gridThumbnails": "Anteprime immagini",
     "gridThumbnailsHint": "Mostra le anteprime delle immagini nella vista a schede.",
     "density": "Densità",
-    "densityComfortable": "Comoda",
+    "densityStandard": "Standard",
     "densityCompact": "Compatta",
     "close": "Fatto"
   },
@@ -78,6 +78,11 @@
     "name": "Nome",
     "size": "Dimensione",
     "modified": "Modificato",
+    "sortBy": "Ordina per",
+    "ascending": "Crescente",
+    "descending": "Decrescente",
+    "serverOrder": "Ordine del server",
+    "sortStatus": "Ordinato per {field}: {direction}",
     "permissions": "Permessi",
     "loading": "Caricamento...",
     "empty": "Questa cartella è vuota",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Si è verificato un errore sul server",
     "ERR_OVERWRITE_LOST_DESTINATION": "Il file esistente è stato rimosso ma non è stato possibile spostare il sostituto",
     "ERR_NETWORK": "Impossibile raggiungere il server",
-    "ERR_UNKNOWN": "Si è verificato un errore"
+    "ERR_UNKNOWN": "Si è verificato un errore",
+    "ERR_OPERATION_IN_PROGRESS": "È già in corso un altro calcolo della dimensione. Riprova tra poco."
   },
   "toast": {
     "folderCreated": "Cartella creata",
@@ -316,5 +322,22 @@
     "errorDisabled": "L'accesso SSO non è abilitato su questo server.",
     "errorInternal": "Accesso SSO non riuscito a causa di un errore del server. Riprova.",
     "errorGeneric": "Accesso SSO non riuscito. Richiedi un nuovo link."
+  },
+  "directorySize": {
+    "calculate": "Calcola dimensione",
+    "recalculate": "Ricalcola dimensione",
+    "cancel": "Annulla il calcolo della dimensione",
+    "retry": "Riprova il calcolo della dimensione",
+    "calculating": "Calcolo in corso...",
+    "empty": "Vuota",
+    "partial": "Parziale",
+    "failed": "Impossibile calcolare la dimensione",
+    "counts": "{files} file, {directories} cartelle",
+    "skipped": "Elementi ignorati: {count}",
+    "reason": {
+      "unreadable": "Impossibile leggere alcuni elementi. Il totale è un limite inferiore.",
+      "limit": "È stato raggiunto il limite di scansione. Il totale è un limite inferiore.",
+      "timeout": "La scansione ha superato il tempo massimo. Il totale è un limite inferiore."
+    }
   }
 }

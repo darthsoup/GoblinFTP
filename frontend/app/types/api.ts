@@ -54,6 +54,18 @@ export interface FileInfo {
   mode: string // e.g., "drwxr-xr-x"
 }
 
+export interface DirectorySizeResult {
+  path: string
+  bytes: number
+  hasEntries: boolean
+  fileCount: number
+  directoryCount: number
+  complete: boolean
+  skippedCount: number
+  calculatedAt: string
+  reason?: 'unreadable' | 'limit' | 'timeout'
+}
+
 // A single per-item failure in a batch operation. `code` is a stable classifier
 // (localizable via errorCode.*); `message` is the server's friendly fallback.
 export interface OperationFailure {

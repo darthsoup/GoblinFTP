@@ -112,7 +112,7 @@ const dateFormatItems = computed(() => [
   { label: t('settings.dateRelative'), value: 'relative' },
 ])
 const densityItems = computed(() => [
-  { label: t('settings.densityComfortable'), value: 'comfortable' },
+  { label: t('settings.densityStandard'), value: 'standard' },
   { label: t('settings.densityCompact'), value: 'compact' },
 ])
 </script>

@@ -204,7 +204,7 @@ export const useUploadStore = defineStore('upload', () => {
   // the backend still raises conflicts, they just surface one file at a time.
   async function _checkConflicts(paths: string[]): Promise<UploadConflict[]> {
     try {
-      const res = await useApi().post<{ conflicts: UploadConflict[] }>('/api/files/upload/check', { paths })
+      const res = await useFileOperations().post<{ conflicts: UploadConflict[] }>('/api/files/upload/check', { paths })
       return res.conflicts ?? []
     }
     catch {
@@ -328,7 +328,7 @@ export const useUploadStore = defineStore('upload', () => {
     const uploadId = item.uploadId
     item.uploadId = undefined
     try {
-      await useApi().post('/api/files/upload/abort', { uploadId })
+      await useFileOperations().post('/api/files/upload/abort', { uploadId })
     }
     catch {
       // Best effort: a failed abort must not mask the user's decision.
@@ -339,7 +339,7 @@ export const useUploadStore = defineStore('upload', () => {
     await _withRetry(async () => {
       if (item.status === 'cancelled')
         throw new Error('Cancelled')
-      const api = useApi()
+      const api = useFileOperations()
       const form = new FormData()
       form.append('path', item.destPath)
       form.append('file', item.file, item.file.name)
@@ -365,7 +365,7 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   async function _uploadChunked(item: UploadItem) {
-    const api = useApi()
+    const api = useFileOperations()
 
     // Already staged (a conflict was resolved after the bytes went up): commit
     // the existing chunks instead of sending the file again.

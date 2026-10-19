@@ -58,8 +58,10 @@ export const useFilesStore = defineStore('files', () => {
   let _listSeq = 0
 
   async function list(path?: string) {
-    const api = useApi()
+    const api = useFileOperations()
     const target = path ?? currentPath.value
+    if (target !== currentPath.value)
+      useDirectorySizesStore().cancel()
     const seq = ++_listSeq
     loading.value = true
     error.value = null
@@ -87,6 +89,11 @@ export const useFilesStore = defineStore('files', () => {
       if (seq === _listSeq)
         loading.value = false
     }
+  }
+
+  async function refresh() {
+    useDirectorySizesStore().invalidate()
+    await list()
   }
 
   async function navigate(path: string) {
@@ -127,7 +134,7 @@ export const useFilesStore = defineStore('files', () => {
 
   // Build an authenticated, short-lived download URL (token in the query string).
   async function downloadUrl(path: string): Promise<string> {
-    const api = useApi()
+    const api = useFileOperations()
     const data = await api.post<{ token: string }>('/api/files/download-token', { path })
     return `/api/files/download?path=${encodeURIComponent(path)}&token=${data.token}`
   }
@@ -135,7 +142,7 @@ export const useFilesStore = defineStore('files', () => {
   // window.open rendered a failure as raw JSON in a blank tab and never reached
   // markSessionLost, so the download goes through useApi like everything else.
   async function downloadFile(filePath: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     const blob = await api.getBlob(await downloadUrl(filePath))
     api.saveBlob(blob, filePath.split('/').pop() || 'download')
   }
@@ -143,7 +150,7 @@ export const useFilesStore = defineStore('files', () => {
   // The download endpoint serves application/octet-stream, so re-wrap the bytes
   // with the real MIME type. Caller owns the URL and must revokeObjectURL() it.
   async function fetchObjectUrl(path: string, mime: string): Promise<string> {
-    const api = useApi()
+    const api = useFileOperations()
     const raw = await api.getBlob(await downloadUrl(path))
     return URL.createObjectURL(new Blob([raw], { type: mime }))
   }
@@ -173,7 +180,7 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   async function rename(from: string, to: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     await api.patch('/api/files/rename', { from, to })
     await list()
   }
@@ -195,14 +202,14 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   async function copy(from: string, to: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     await api.patch('/api/files/copy', { from, to })
   }
 
   // Move reuses the rename endpoint: native Rename is a cross-directory move on
   // both FTP and SFTP. No list refresh here.
   async function move(from: string, to: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     await api.patch('/api/files/rename', { from, to })
   }
 
@@ -212,7 +219,7 @@ export const useFilesStore = defineStore('files', () => {
     const cb = clipboard.value
     if (!cb)
       return { mode: 'copy', ok: 0, failed: 0, failures: [] }
-    const api = useApi()
+    const api = useFileOperations()
     const dir = currentPath.value.replace(/\/$/, '')
     const existing = new Set(files.value.map(f => f.name))
     const sameDirCopy = cb.mode === 'copy' && cb.sourcePath === dir
@@ -298,14 +305,14 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   async function deleteFiles(paths: string[]): Promise<DeleteResult> {
-    const api = useApi()
+    const api = useFileOperations()
     const res = await api.del<DeleteResult>('/api/files', { paths })
     await list()
     return res
   }
 
   async function mkdir(path: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     await api.post('/api/files/directory', { path })
     await list()
   }
@@ -313,18 +320,18 @@ export const useFilesStore = defineStore('files', () => {
   // No listing refresh: folder uploads materialize empty subdirs here and their
   // own debounced refresh reveals them. Idempotent on the backend (mkdir -p).
   async function ensureDir(path: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     await api.post('/api/files/directory', { path })
   }
 
   async function chmod(path: string, mode: number): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     await api.patch('/api/files/permissions', { path, mode })
     await list()
   }
 
   async function createFile(path: string): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     const form = new FormData()
     form.append('path', path)
     form.append('file', new Blob([]), 'empty')
@@ -333,12 +340,14 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   async function downloadZip(paths: string[]): Promise<void> {
-    const api = useApi()
+    const api = useFileOperations()
     const blob = await api.postBlob('/api/files/download-zip', { paths })
     api.saveBlob(blob, 'archive.zip')
   }
 
   function $reset() {
+    _listSeq++
+    useDirectorySizesStore().$reset()
     currentPath.value = '/'
     files.value = []
     loading.value = false
@@ -375,6 +384,7 @@ export const useFilesStore = defineStore('files', () => {
     canGoBack,
     canGoForward,
     list,
+    refresh,
     navigate,
     navigateUp,
     goBack,

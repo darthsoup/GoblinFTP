@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,7 +24,8 @@ type Session struct {
 
 	// Serializes the one transfer.Client: a single control connection cannot
 	// service two transfers at once. Lock order is transferMu before mu.
-	transferMu sync.Mutex
+	transferMu    sync.Mutex
+	directoryScan atomic.Bool
 }
 
 // Get returns the value stored under key, and whether it was present.
@@ -102,6 +105,29 @@ func (s *Session) UnlockTransfer() { s.transferMu.Unlock() }
 // TryLockTransfer reports whether the transfer lock was acquired without blocking.
 // The liveness ping skips rather than queue behind (and corrupt) a live transfer.
 func (s *Session) TryLockTransfer() bool { return s.transferMu.TryLock() }
+
+// LockTransferContext leaves canceled scans out of the transfer queue.
+func (s *Session) LockTransferContext(ctx context.Context) error {
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if s.TryLockTransfer() {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
+func (s *Session) BeginDirectoryScan() bool { return s.directoryScan.CompareAndSwap(false, true) }
+
+func (s *Session) EndDirectoryScan() { s.directoryScan.Store(false) }
 
 // Store is a thread-safe in-memory session store with TTL-based expiry.
 type Store struct {

@@ -52,6 +52,8 @@ export const useAuthStore = defineStore('auth', () => {
       const statusRes = await $fetch<{ success: boolean, data?: AuthStatus }>('/api/auth/status')
       if (statusRes.success && statusRes.data) {
         const data = statusRes.data
+        if (!data.connected || (data.csrfToken && data.csrfToken !== csrfToken.value))
+          useDirectorySizesStore().$reset()
         connected.value = data.connected
         ssoAutoConnect.value = data.ssoAutoConnect
         if (data.csrfToken)
@@ -94,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
         pendingHostKey.value = { ...data.hostKeyPrompt, sso: true }
         return
       }
+      useDirectorySizesStore().$reset()
       csrfToken.value = data.csrfToken
       connected.value = true
       ssoAutoConnect.value = false
@@ -131,6 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
         pendingReq = req
         return
       }
+      useDirectorySizesStore().$reset()
       csrfToken.value = data.csrfToken
       connected.value = true
       serverHost.value = req.host
@@ -179,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function disconnect() {
+    useDirectorySizesStore().$reset()
     const api = useApi()
     disconnecting = true
     try {
@@ -203,6 +208,7 @@ export const useAuthStore = defineStore('auth', () => {
   function markSessionLost() {
     if (!connected.value || sessionLost.value || disconnecting)
       return
+    useDirectorySizesStore().$reset()
     sessionLost.value = true
   }
 
@@ -221,6 +227,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Acknowledge the lost session (reconnect button): back to the login form.
   function acknowledgeSessionLost() {
+    useDirectorySizesStore().$reset()
     sessionLost.value = false
     csrfToken.value = ''
     connected.value = false

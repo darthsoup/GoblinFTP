@@ -86,7 +86,7 @@ export const useEditorStore = defineStore('editor', () => {
     tab.error = undefined
     const content = tab.content
     try {
-      const api = useApi()
+      const api = useFileOperations()
       // A null version means the server offers no conflict detection for this
       // file, so there is nothing to precondition on.
       const meta = await api.post<FileVersion>('/api/files/write', force || tab.version === null
@@ -147,7 +147,7 @@ export const useEditorStore = defineStore('editor', () => {
       return
     tab.loading = true
     try {
-      const api = useApi()
+      const api = useFileOperations()
       const data = await api.get<ReadFileResult>(`/api/files/read?path=${encodeURIComponent(tab.path)}`)
       const t = tabs.value.find(t => t.id === id)
       if (!t)
@@ -207,7 +207,7 @@ export const useEditorStore = defineStore('editor', () => {
     activeId.value = id
 
     try {
-      const api = useApi()
+      const api = useFileOperations()
       const data = await api.get<ReadFileResult>(`/api/files/read?path=${encodeURIComponent(path)}`)
       const t = tabs.value.find(t => t.id === id)
       if (t) {

@@ -56,7 +56,7 @@
     "gridThumbnails": "Miniatures d'images",
     "gridThumbnailsHint": "Afficher les aperçus d'images dans la grille de cartes.",
     "density": "Densité",
-    "densityComfortable": "Confortable",
+    "densityStandard": "Standard",
     "densityCompact": "Compact",
     "close": "Terminé"
   },
@@ -78,6 +78,11 @@
     "name": "Nom",
     "size": "Taille",
     "modified": "Modifié",
+    "sortBy": "Trier par",
+    "ascending": "Croissant",
+    "descending": "Décroissant",
+    "serverOrder": "Ordre du serveur",
+    "sortStatus": "Trié par {field} : {direction}",
     "permissions": "Permissions",
     "loading": "Chargement...",
     "empty": "Ce répertoire est vide",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Une erreur est survenue sur le serveur",
     "ERR_OVERWRITE_LOST_DESTINATION": "Le fichier existant a été supprimé mais son remplacement n'a pas pu être déplacé",
     "ERR_NETWORK": "Impossible de joindre le serveur",
-    "ERR_UNKNOWN": "Une erreur est survenue"
+    "ERR_UNKNOWN": "Une erreur est survenue",
+    "ERR_OPERATION_IN_PROGRESS": "Un autre calcul de taille est en cours. Réessayez dans un instant."
   },
   "toast": {
     "folderCreated": "Dossier créé",
@@ -316,5 +322,22 @@
     "errorDisabled": "La connexion SSO n'est pas activée sur ce serveur.",
     "errorInternal": "La connexion SSO a échoué en raison d'une erreur du serveur. Veuillez réessayer.",
     "errorGeneric": "La connexion SSO a échoué. Veuillez demander un nouveau lien."
+  },
+  "directorySize": {
+    "calculate": "Calculer la taille",
+    "recalculate": "Recalculer la taille",
+    "cancel": "Annuler le calcul de taille",
+    "retry": "Réessayer le calcul de taille",
+    "calculating": "Calcul en cours...",
+    "empty": "Vide",
+    "partial": "Partiel",
+    "failed": "Impossible de calculer la taille",
+    "counts": "{files} fichiers, {directories} dossiers",
+    "skipped": "Éléments ignorés : {count}",
+    "reason": {
+      "unreadable": "Certains éléments sont illisibles. Le total est une limite inférieure.",
+      "limit": "La limite d’analyse a été atteinte. Le total est une limite inférieure.",
+      "timeout": "Le délai d’analyse a expiré. Le total est une limite inférieure."
+    }
   }
 }

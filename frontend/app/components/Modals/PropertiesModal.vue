@@ -35,7 +35,8 @@
         <div class="grid grid-cols-2 gap-y-3 gap-x-4 bg-elevated/40 p-3 rounded border border-default">
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.size') }}</span>
-            <span class="text-sm text-default">{{ formatSize(file.size) }}</span>
+            <DirectorySize v-if="file.isDir" :path="fullPath" details class="text-sm text-default" />
+            <span v-else class="text-sm text-default">{{ formatSize(file.size) }}</span>
           </div>
           <div>
             <span class="block label-caps text-muted mb-1">{{ t('modal.properties.type') }}</span>
@@ -121,6 +122,7 @@ import { ApiError } from '~/types/api'
 const modalStore = useModalStore()
 const filesStore = useFilesStore()
 const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
 const notify = useNotify()
 const { t, locale } = useI18n()
 const { localizeError } = useErrorMessage()
@@ -251,17 +253,7 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
 }
 
 function formatSize(bytes: number): string {
-  if (file.value?.isDir)
-    return '--'
-  if (bytes < 1024)
-    return `${bytes} B`
-  let value: string
-  if (bytes < 1048576)
-    value = `${(bytes / 1024).toFixed(1)} KB`
-  else if (bytes < 1073741824)
-    value = `${(bytes / 1048576).toFixed(1)} MB`
-  else value = `${(bytes / 1073741824).toFixed(2)} GB`
-  return `${value} (${bytes.toLocaleString(locale.value)} B)`
+  return formatFileSize(bytes, settingsStore.sizeFormat, locale.value)
 }
 
 function formatDate(iso: string): string {

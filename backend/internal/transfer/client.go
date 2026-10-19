@@ -10,6 +10,7 @@ type FileInfo struct {
 	Name        string
 	Size        int64
 	IsDir       bool
+	IsSymlink   bool
 	ModTime     int64  // Unix timestamp
 	Permissions string // e.g. "drwxr-xr-x"
 }
@@ -17,6 +18,7 @@ type FileInfo struct {
 // Client is the unified interface that both FTP and SFTP adapters implement.
 // All methods that accept a path expect an absolute path on the remote server.
 type Client interface {
+	DirectorySizeReader
 	// WorkingDir returns the current working directory.
 	WorkingDir() (string, error)
 	// List returns the contents of the given directory.
