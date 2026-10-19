@@ -5,8 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/darthsoup/goblinftp/internal/config"
 
 	"github.com/labstack/echo/v4"
 
@@ -36,80 +41,124 @@ func (h *Handler) ssoReject(c echo.Context, reason string, cause error) error {
 	return c.Redirect(http.StatusFound, "/login?sso_error="+reason)
 }
 
-// SSOLogin handles GET /?sso=<token>. Any token rejection redirects to
-// /login?sso_error=<reason> so the SPA can show a message.
+func pendingCookie(c echo.Context, cfg *config.Config, value string, maxAge int) *http.Cookie {
+	ck := sessionCookie(c, cfg, value, maxAge) //nolint:gosec // G124: pending cookies use the same security policy as active cookies.
+	ck.Name = strings.Replace(ck.Name, "_session", "_sso", 1)
+	return ck
+}
+
+func (h *Handler) pendingSession(c echo.Context) (*auth.Session, bool) {
+	sess, ok := lookupNamedSession(c, h.store, pendingCookie(c, h.cfg, "", 0).Name)
+	if !ok {
+		return nil, false
+	}
+	_, ok = sess.Get(ssoPendingKey)
+	return sess, ok
+}
+
 func (h *Handler) SSOLogin(c echo.Context) error {
 	raw := c.QueryParam("sso")
 	if raw == "" {
-		return c.String(http.StatusOK, "GoblinFTP")
+		return c.String(http.StatusOK, h.cfg.Settings.Branding.AppName)
 	}
-
 	if !h.cfg.SSOEnabled {
 		return h.ssoReject(c, "disabled", nil)
 	}
-
 	payload, err := sso.Decrypt(raw, h.cfg.SSOSecret)
 	if err != nil {
+		reason := "invalid"
 		if errors.Is(err, sso.ErrTokenExpired) {
-			return h.ssoReject(c, "expired", nil)
+			reason = "expired"
 		}
-		return h.ssoReject(c, "invalid", err)
+		return h.ssoReject(c, reason, err)
 	}
-
-	// The allowlist is the operator's policy, not necessarily the token minter's
-	// (white-label), so it is enforced here rather than trusted from the payload.
-	if !isAllowedType(payload.Type, h.cfg.Settings.Connection.AllowedTypes) {
-		return h.ssoReject(c, "invalid", fmt.Errorf("connection type %q is not allowed", payload.Type))
+	if !isAllowedType(payload.Type, h.cfg.Settings.Connection.AllowedTypes) || payload.Host == "" || len(payload.Host) > 255 || len(payload.Username) > 1024 || payload.Port < 1 || payload.Port > 65535 {
+		return h.ssoReject(c, "invalid", nil)
 	}
-	if gftperr := h.checkHostLock(payload.Host, payload.Port); gftperr != nil {
-		return h.ssoReject(c, "invalid", gftperr)
+	if gerr := h.checkHostLock(payload.Host, payload.Port); gerr != nil {
+		return h.ssoReject(c, "invalid", gerr)
 	}
-
-	// Atomic: IsUsed-then-Mark let two concurrent requests with the same
-	// one-time token both mint a session.
+	if gerr := h.checkIPAllowlist(c); gerr != nil {
+		return h.ssoReject(c, "invalid", gerr)
+	}
 	if !h.ssoUsed.MarkIfUnused(tokenHash(raw), time.Unix(payload.Exp, 0)) {
 		return h.ssoReject(c, "used", nil)
 	}
-
-	csrfToken, csrfErr := auth.GenerateCSRFToken()
-	if csrfErr != nil {
-		return h.ssoReject(c, "internal", csrfErr)
+	free, allowed := h.store.Reserve(c.RealIP(), h.cfg.MaxSessions, h.cfg.MaxSessionsPerIP, h.cfg.MaxConnecting, h.cfg.MaxConnectingPerIP)
+	if !allowed {
+		return h.ssoReject(c, "capacity", nil)
 	}
-
-	sess, sessErr := h.store.New()
-	if sessErr != nil {
-		return h.ssoReject(c, "internal", sessErr)
+	defer free()
+	settle, allowed := h.throttle.Reserve("sso:"+c.RealIP(), "ip:"+c.RealIP(), h.cfg.LoginMaxAttempts, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
+	if !allowed {
+		return h.ssoReject(c, "capacity", nil)
 	}
-	sess.Set(auth.CSRFSessionKey, csrfToken)
-	sess.Set(ssoPendingKey, ConnectRequest{
-		Protocol: payload.Type,
-		Host:     payload.Host,
-		Port:     payload.Port,
-		Username: payload.Username,
-		Password: payload.Password,
-		// sso.Payload carries no passive flag, so this defaulted to false and
-		// every SSO FTP login dialed in active mode, failing behind NAT.
-		Passive: h.cfg.Settings.Connection.PassiveMode,
-	})
-	// Carry the validated tenant on the session so it survives the pending to
-	// connected transition. An unknown tenant is dropped silently, login still works.
-	if tenant := sanitizeTenant(payload.Tenant); tenant != "" {
-		sess.Set(tenantSessionKey, tenant)
+	defer settle(false)
+
+	csrf, err := auth.GenerateCSRFToken()
+	if err != nil {
+		return h.ssoReject(c, "internal", err)
 	}
+	sess, err := h.store.New()
+	if err != nil {
+		return h.ssoReject(c, "internal", err)
+	}
+	expiry := time.Now().Add(5 * time.Minute)
+	if tokenExpiry := time.Unix(payload.Exp, 0); tokenExpiry.Before(expiry) {
+		expiry = tokenExpiry
+	}
+	h.store.SetExpiry(sess.ID, expiry)
+	sess.Set("clientIP", c.RealIP())
+	sess.Set(auth.CSRFSessionKey, csrf)
+	sess.Set(ssoPendingKey, *payload)
+	if old, ok := h.pendingSession(c); ok {
+		h.store.Delete(old.ID)
+	}
+	writeSessionCookie(c, pendingCookie(c, h.cfg, sess.ID, 0))
+	return c.Redirect(http.StatusFound, "/login?sso_pending=1")
+}
 
-	// Set on the cross-site iframe navigation itself, so it must carry the embed
-	// policy or the frame never establishes a session.
-	c.SetCookie(sessionCookie(c, h.cfg, sess.ID, 0))
+func (h *Handler) SSOPending(c echo.Context) error {
+	sess, ok := h.pendingSession(c)
+	if !ok {
+		return OK(c, map[string]bool{"pending": false})
+	}
+	value, _ := sess.Get(ssoPendingKey)
+	payload, ok := value.(sso.Payload)
+	if !ok {
+		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "invalid pending login"))
+	}
+	return OK(c, map[string]any{"pending": true, "protocol": payload.Type, "host": payload.Host, "port": payload.Port, "username": payload.Username, "language": payload.Language, "csrfToken": sess.GetString(auth.CSRFSessionKey)})
+}
 
-	// Land on the SPA login route, which finalizes the connection via
-	// /api/auth/sso-connect (ssoAutoConnect) and then routes to the workspace.
-	return c.Redirect(http.StatusFound, "/login")
+func (h *Handler) requirePending(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		sess, ok := h.pendingSession(c)
+		if !ok || !auth.ValidateCSRFToken(sess.GetString(auth.CSRFSessionKey), c.Request().Header.Get(auth.CSRFHeaderName)) {
+			return Fail(c, gftperrors.New(gftperrors.ErrCSRFInvalid, "invalid pending login"))
+		}
+		c.Set("session", sess)
+		return next(c)
+	}
+}
+
+func (h *Handler) SSOCancel(c echo.Context) error {
+	sess, _ := c.Get("session").(*auth.Session)
+	if !sess.TryLockTransfer() {
+		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "login is already being finalized"))
+	}
+	defer sess.UnlockTransfer()
+	h.store.Delete(sess.ID)
+	writeSessionCookie(c, pendingCookie(c, h.cfg, "", -1))
+	return OK(c, nil)
 }
 
 // AuthStatus handles GET /api/auth/status. Public: it reads the session cookie
 // itself. With ?ping=1 a dead connection is closed and reported as connected=false.
 func (h *Handler) AuthStatus(c echo.Context) error {
 	type statusData struct {
+		ConnectionID     string        `json:"connectionId,omitempty"`
+		Language         string        `json:"language,omitempty"`
 		Connected        bool          `json:"connected"`
 		SSOAutoConnect   bool          `json:"ssoAutoConnect"`
 		CSRFToken        string        `json:"csrfToken"`
@@ -144,11 +193,13 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 				}
 			}
 		}
-		_, result.SSOAutoConnect = sess.Get(ssoPendingKey)
+		result.SSOAutoConnect = false
 		result.CSRFToken = sess.GetString(auth.CSRFSessionKey)
 
 		// Connection context for SPA state restoration after a reload.
 		if result.Connected {
+			result.ConnectionID = sess.ConnectionID
+			result.Language = sess.GetString("language")
 			result.Host = sess.GetString("host")
 			result.InitialDirectory = sess.GetString("initialDir")
 			disableChmodVal, _ := sess.Get("disableChmod")
@@ -160,83 +211,101 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 	return OK(c, result)
 }
 
-// SSOConnect handles POST /api/auth/sso-connect: reads the pending SSO
-// ConnectRequest from the session, dials, and returns ConnectData.
 func (h *Handler) SSOConnect(c echo.Context) error {
-	sess, ok := c.Get("session").(*auth.Session)
-	if !ok {
-		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active session"))
+	pendingSession, _ := c.Get("session").(*auth.Session)
+	if !pendingSession.TryLockTransfer() {
+		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "login is already being finalized"))
 	}
-
-	pendingVal, ok := sess.Get(ssoPendingKey)
-	if !ok {
-		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no pending SSO connection"))
+	defer pendingSession.UnlockTransfer()
+	value, ok := pendingSession.Get(ssoPendingKey)
+	payload, valid := value.(sso.Payload)
+	if !ok || !valid || time.Now().Unix() >= payload.Exp {
+		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "pending login expired"))
 	}
-	pending, ok := pendingVal.(ConnectRequest)
-	if !ok {
-		return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no pending SSO connection"))
-	}
-
-	// Optional body: the SHA256 fingerprint the user agreed to trust when the
-	// first attempt returned an unknown SFTP host key (empty on first attempt).
 	var body struct {
 		AcceptHostKey string `json:"acceptHostKey"`
 	}
 	if gerr := bindJSON(c, &body); gerr != nil {
 		return Fail(c, gerr)
 	}
-
-	if gftperr := h.checkIPAllowlist(c); gftperr != nil {
-		return Fail(c, gftperr)
+	if gerr := h.checkIPAllowlist(c); gerr != nil {
+		return Fail(c, gerr)
 	}
-
-	addr := fmt.Sprintf("%s:%d", pending.Host, pending.Port)
-	client, hostKey, dialErr := h.dial(DialRequest{
-		Context:       c.Request().Context(),
-		Protocol:      pending.Protocol,
-		Addr:          addr,
-		Host:          pending.Host,
-		User:          pending.Username,
-		Pass:          pending.Password,
-		Passive:       pending.Passive,
-		AcceptHostKey: body.AcceptHostKey,
-	})
+	settle, allowed := h.throttle.Reserve(accountThrottleKey(payload.Host, payload.Username), "ip:"+c.RealIP(), h.cfg.LoginMaxAttempts, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
+	if !allowed {
+		return Fail(c, gftperrors.New(gftperrors.ErrLoginThrottled, "too many connection attempts"))
+	}
+	defer settle(false)
+	free, allowed := h.store.Reserve(c.RealIP(), h.cfg.MaxSessions, h.cfg.MaxSessionsPerIP, h.cfg.MaxConnecting, h.cfg.MaxConnectingPerIP, pendingSession.ID)
+	if !allowed {
+		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "connection capacity reached"))
+	}
+	defer free()
+	addr := net.JoinHostPort(payload.Host, strconv.Itoa(payload.Port))
+	client, hostKey, err := h.dial(DialRequest{Context: c.Request().Context(), Protocol: payload.Type, Addr: addr, Host: payload.Host, User: payload.Username, Pass: payload.Password, Passive: h.cfg.Settings.Connection.PassiveMode, AcceptHostKey: body.AcceptHostKey})
 	if hostKey != nil {
-		// Keep the pending SSO request so the SPA can retry with the trusted key.
-		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, hostKeyLabel(hostKey)).Inc()
-		noteHostKeyChange(c, h.logger, pending.Host, hostKey)
+		noteHostKeyChange(c, h.logger, payload.Host, hostKey)
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
 	}
-	if dialErr != nil {
-		failure := classifyDial(dialErr)
-		h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, failure.metricLabel).Inc()
+	if err != nil {
+		failure := classifyDial(err)
+		settle(failure.credentialAttempt)
 		return Fail(c, failure.err)
 	}
-
-	initialDir, wdErr := client.WorkingDir()
-	if wdErr != nil {
-		_ = client.Close()
-		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
+	success := false
+	defer func() {
+		if !success {
+			_ = client.Close()
+		}
+	}()
+	initialDir, err := client.WorkingDir()
+	if err != nil {
+		return failClient(c, gftperrors.ErrConnectionFailed, err)
 	}
-
-	disableChmod := !client.SupportsChmod()
-
+	if payload.InitialDirectory != "" {
+		if err := transfer.ValidateRemotePath(payload.InitialDirectory, payload.Type != "sftp", true); err != nil {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid initial directory"))
+		}
+		info, err := client.Stat(payload.InitialDirectory)
+		if err != nil {
+			return failClient(c, gftperrors.ErrOperationFailed, err)
+		}
+		if !info.IsDir {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "initial directory is not a directory"))
+		}
+		initialDir = payload.InitialDirectory
+	}
+	csrf, err := auth.GenerateCSRFToken()
+	if err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not generate CSRF token"))
+	}
+	sess, err := h.store.New()
+	if err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session"))
+	}
+	sess.Set("clientIP", c.RealIP())
 	sess.Set("client", client)
+	sess.Set(auth.CSRFSessionKey, csrf)
 	sess.Set("initialDir", initialDir)
-	sess.Set("disableChmod", disableChmod)
-	// For access-log and metrics enrichment only, never the password.
-	sess.Set("username", pending.Username)
+	sess.Set("disableChmod", !client.SupportsChmod())
+	sess.Set("username", payload.Username)
 	sess.Set("host", addr)
-	sess.Set("protocol", pending.Protocol)
-	sess.Delete(ssoPendingKey)
-
-	h.metrics.ConnectAttempts.WithLabelValues(pending.Protocol, "success").Inc()
-
-	csrfToken := sess.GetString(auth.CSRFSessionKey)
-
-	return OK(c, ConnectData{
-		Capabilities:     Capabilities{DisableChmod: disableChmod},
-		InitialDirectory: initialDir,
-		CSRFToken:        csrfToken,
-	})
+	sess.Set("protocol", payload.Type)
+	sess.Set("language", payload.Language)
+	if tenant := sanitizeTenant(payload.Tenant); tenant != "" {
+		sess.Set(tenantSessionKey, tenant)
+	}
+	if old, ok := lookupSession(c, h.store); ok {
+		old.LockTransfer()
+		h.evictSession(old)
+		old.UnlockTransfer()
+		h.store.Delete(old.ID)
+	}
+	pendingSession.Delete(ssoPendingKey)
+	h.store.Delete(pendingSession.ID)
+	writeSessionCookie(c, pendingCookie(c, h.cfg, "", -1))
+	setSessionCookie(c, h.cfg, sess.ID, 0)
+	success = true
+	h.metrics.ConnectAttempts.WithLabelValues(payload.Type, "success").Inc()
+	return OK(c, ConnectData{ConnectionID: sess.ConnectionID, Host: addr, Language: payload.Language, InitialDirectory: initialDir, CSRFToken: csrf, Capabilities: Capabilities{DisableChmod: !client.SupportsChmod()}})
 }

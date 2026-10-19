@@ -38,16 +38,15 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   await authStore.init()
 
-  // Accent color (white-label): override the goblin scale at runtime. Skipped for
-  // tenant themes, whose :root rules the inline --color-goblin-* would otherwise beat.
-  const branding = authStore.systemVars?.branding
-  if (!branding?.themeCssUrl) {
-    applyBrandColor(branding?.primaryColor)
-    // Only primary solid surfaces read --gftp-primary-text (not --ui-text-inverted),
-    // so a light accent pairs with dark button text without breaking tooltips.
-    if (branding?.primaryTextColor)
-      document.documentElement.style.setProperty('--gftp-primary-text', branding.primaryTextColor)
-  }
+  // A confirmed SSO connection can switch tenants after the initial bootstrap.
+  watch(() => authStore.systemVars?.branding, (branding) => {
+    clearBrandColor()
+    if (!branding?.themeCssUrl) {
+      applyBrandColor(branding?.primaryColor)
+      if (branding?.primaryTextColor)
+        document.documentElement.style.setProperty('--gftp-primary-text', branding.primaryTextColor)
+    }
+  }, { immediate: true })
 
   // Precedence: explicit user choice > admin default > en. Applied here so a session
   // restored straight onto the workspace still gets the right locale.
@@ -57,9 +56,17 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   } | undefined
   const adminLang = authStore.systemVars?.language
   const preferred = settingsStore.language
+    ?? (isAppLanguage(authStore.sessionLanguage) ? authStore.sessionLanguage : undefined)
     ?? (isAppLanguage(adminLang) ? adminLang : undefined)
   if (i18n && preferred && i18n.locale.value !== preferred)
     await i18n.setLocale(preferred)
+
+  watch(() => authStore.sessionLanguage, async (language) => {
+    if (i18n && settingsStore.language === null) {
+      const preferred = isAppLanguage(language) ? language : (isAppLanguage(authStore.systemVars?.language) ? authStore.systemVars.language : 'en')
+      await i18n.setLocale(preferred)
+    }
+  })
 
   // Reopen editor tabs from a previous session (fire-and-forget; re-fetches
   // content, so only while the cookie session is still connected).

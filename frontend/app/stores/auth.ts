@@ -1,6 +1,7 @@
 import type { AuthStatus, ConnectData, ConnectRequest, HostKeyPrompt, SystemVars } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError, ERR_NETWORK } from '~/types/api'
+import { assertConnection, connectionEpoch, connectionRequest, invalidateConnection } from '~/utils/connection'
 
 // A pending SFTP host-key confirmation (trust-on-first-use). `sso` distinguishes
 // which connect endpoint to retry once the user trusts the key.
@@ -11,6 +12,9 @@ interface PendingHostKey extends HostKeyPrompt {
 export const useAuthStore = defineStore('auth', () => {
   const csrfToken = ref('')
   const connected = ref(false)
+  const connectionId = ref('')
+  const sessionLanguage = ref('')
+  const ssoPending = ref<{ pending: boolean, protocol: string, host: string, port: number, username: string, language?: string, csrfToken: string } | null>(null)
   const ssoAutoConnect = ref(false)
   const serverHost = ref('') // set on manual connect; restored from /status on reload (host:port). Empty for a fresh SSO connect.
   const initialDirectory = ref('/')
@@ -59,6 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
         // Restore the connection context after a page reload (in-memory state
         // is otherwise lost while the cookie session keeps us connected).
         if (data.connected) {
+          adoptConnection(data)
           if (data.host)
             serverHost.value = data.host
           if (data.initialDirectory)
@@ -94,11 +99,14 @@ export const useAuthStore = defineStore('auth', () => {
         pendingHostKey.value = { ...data.hostKeyPrompt, sso: true }
         return
       }
+      adoptConnection(data)
       csrfToken.value = data.csrfToken
       connected.value = true
       ssoAutoConnect.value = false
+      ssoPending.value = null
       initialDirectory.value = data.initialDirectory
       capabilities.value = data.capabilities
+      await init()
     }
     catch (e) {
       const apiErr = toApiError(e)
@@ -107,6 +115,8 @@ export const useAuthStore = defineStore('auth', () => {
       // Don't leave the client poised to auto-retry a failed finalization on
       // the next /login load. Fall back to the manual form.
       ssoAutoConnect.value = false
+      if (apiErr.code === 'ERR_CSRF_INVALID' || apiErr.code === 'ERR_UNAUTHORIZED')
+        ssoPending.value = null
     }
     finally {
       loading.value = false
@@ -114,6 +124,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function connect(req: ConnectRequest) {
+    const epoch = connectionEpoch()
+    const request = connectionRequest()
     loading.value = true
     error.value = null
     errorCode.value = null
@@ -121,9 +133,10 @@ export const useAuthStore = defineStore('auth', () => {
       // POST /api/auth/connect is public (no CSRF), use $fetch directly
       const res = await $fetch<{ success: boolean, data?: ConnectData, errors?: Array<{ code: string, message: string }> }>(
         '/api/auth/connect',
-        { method: 'POST', body: req },
+        { method: 'POST', body: req, signal: request.controller.signal },
       )
       const data = res.data!
+      assertConnection(epoch)
       if (data.hostKeyPrompt) {
         // Unknown SFTP host key: confirm with the user before marking the
         // session connected. The modal resumes via confirmHostKey().
@@ -131,9 +144,10 @@ export const useAuthStore = defineStore('auth', () => {
         pendingReq = req
         return
       }
+      adoptConnection(data)
       csrfToken.value = data.csrfToken
       connected.value = true
-      serverHost.value = req.host
+      serverHost.value = data.host ?? req.host
       initialDirectory.value = data.initialDirectory
       capabilities.value = data.capabilities
     }
@@ -147,6 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
       throw apiErr
     }
     finally {
+      request.release()
       loading.value = false
     }
   }
@@ -179,6 +194,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function disconnect() {
+    retireConnection()
     const api = useApi()
     disconnecting = true
     try {
@@ -189,6 +205,7 @@ export const useAuthStore = defineStore('auth', () => {
       disconnecting = false
     }
     csrfToken.value = ''
+    connectionId.value = ''
     connected.value = false
     ssoAutoConnect.value = false
     serverHost.value = ''
@@ -200,20 +217,49 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Flags the session as lost, which raises the blocking reconnect dialog.
   // Ignored while a user-initiated disconnect is in flight.
+  function retireConnection() {
+    cancelHostKey()
+    invalidateConnection()
+    useModalStore().cancelAll()
+    useEditorStore().detach()
+    useUploadStore().cancelAll(true)
+    useFilesStore().$reset()
+  }
+  function adoptConnection(data: { connectionId?: string, host?: string, language?: string }) {
+    if (data.connectionId && connectionId.value !== data.connectionId) {
+      retireConnection()
+      connectionId.value = data.connectionId
+      sessionLanguage.value = ''
+    }
+    if (data.host)
+      serverHost.value = data.host
+    if (data.language)
+      sessionLanguage.value = data.language
+  }
+  async function loadSSOPending() {
+    const data = await useApi().get<NonNullable<typeof ssoPending.value>>('/api/auth/sso-pending')
+    ssoPending.value = data.pending ? data : null
+  }
+  async function cancelSSO() {
+    await useApi().del('/api/auth/sso-pending')
+    ssoPending.value = null
+  }
   function markSessionLost() {
     if (!connected.value || sessionLost.value || disconnecting)
       return
+    retireConnection()
     sessionLost.value = true
   }
 
   // ?ping=1 makes the backend verify the connection with a real round trip.
   // Network errors are ignored: only a definitive connected=false counts.
   async function checkSession() {
+    const expectedConnection = connectionId.value
     if (!connected.value || sessionLost.value)
       return
     try {
       const res = await $fetch<{ success: boolean, data?: AuthStatus }>('/api/auth/status?ping=1')
-      if (res.success && res.data && !res.data.connected)
+      if (connectionId.value === expectedConnection && res.success && res.data && !res.data.connected)
         markSessionLost()
     }
     catch {}
@@ -223,6 +269,7 @@ export const useAuthStore = defineStore('auth', () => {
   function acknowledgeSessionLost() {
     sessionLost.value = false
     csrfToken.value = ''
+    connectionId.value = ''
     connected.value = false
     ssoAutoConnect.value = false
     serverHost.value = ''
@@ -248,6 +295,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     csrfToken,
+    connectionId,
+    sessionLanguage,
+    ssoPending,
+    loadSSOPending,
+    cancelSSO,
     connected,
     ssoAutoConnect,
     serverHost,

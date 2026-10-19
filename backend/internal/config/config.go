@@ -81,21 +81,30 @@ type Settings struct {
 
 // Config holds all runtime configuration for GoblinFTP.
 type Config struct {
-	Port                string
-	BindAddress         string
-	LogLevel            string
-	LogFormat           string
-	LogFile             string
-	LogFileMaxSizeMB    int
-	LogFileMaxBackups   int
-	LogFileMaxAgeDays   int
-	FrontendLogEnabled  bool
-	MetricsEnabled      bool
-	MetricsPort         string
-	SessionSecret       []byte // Deprecated; retained for environment compatibility.
-	DownloadTokenSecret []byte
-	SSOEnabled          bool
-	SSOSecret           []byte
+	MaxSessions            int
+	MaxSessionsPerIP       int
+	MaxConnecting          int
+	MaxConnectingPerIP     int
+	StagingMaxBytes        int64
+	StagingMaxSessionBytes int64
+	UploadMaxPending       int
+	MetricsBindAddress     string
+	ExposePreset           bool
+	Port                   string
+	BindAddress            string
+	LogLevel               string
+	LogFormat              string
+	LogFile                string
+	LogFileMaxSizeMB       int
+	LogFileMaxBackups      int
+	LogFileMaxAgeDays      int
+	FrontendLogEnabled     bool
+	MetricsEnabled         bool
+	MetricsPort            string
+	SessionSecret          []byte // Deprecated; retained for environment compatibility.
+	DownloadTokenSecret    []byte
+	SSOEnabled             bool
+	SSOSecret              []byte
 	// FrameAncestors is the validated CSP frame-ancestors allowlist. Empty means
 	// framing is denied. Env-only (GFTP_FRAME_ANCESTORS); see EmbedSettings.
 	FrameAncestors       []string

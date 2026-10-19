@@ -17,7 +17,7 @@ Use `true` or `false` to turn options on or off. Separate list values with comma
 <!-- confgen:begin env-table "Server" -->
 | Variable | Default | Description |
 |---|---|---|
-| `GFTP_BIND_ADDRESS` | (none) | IP address to listen on. Empty allows all addresses. Docker sets this to 127.0.0.1. |
+| `GFTP_BIND_ADDRESS` | (none) | IP address to listen on. Defaults to loopback. Set 0.0.0.0 explicitly for all IPv4 interfaces. |
 | `GFTP_PORT` | `8080` | Backend port for installations without Docker. In Docker, the backend uses 8081 and the app uses 8080. |
 | `GFTP_DATA_DIR` | `/app/data` | Folder for trusted SFTP keys, temporary uploads, and themes. Use data for local development. |
 <!-- confgen:end -->
@@ -119,7 +119,7 @@ To use a different look for each customer, see [Branding and themes](theming.md)
 
 ### Iframe embedding
 
-Show GoblinFTP inside your app or hosting panel. Use [SSO login links](sso.md) to sign users in automatically.
+Show GoblinFTP inside your app or hosting panel. Use [SSO login links](sso.md) to offer users one-time login links.
 
 <!-- confgen:begin env-table "Iframe embedding" -->
 | Variable | Default | Description |
@@ -155,3 +155,19 @@ These settings have their own guides:
 - [Installation](installation.md) for Docker and manual setup.
 - [System requirements](system-requirements.md).
 - [Development](development.md) for the local workflow.
+
+## Resource protection
+
+<!-- confgen:begin env-table "Resource protection" -->
+| Variable | Default | Description |
+|---|---|---|
+| `GFTP_MAX_SESSIONS` | `100` | Maximum sessions, including pending logins. |
+| `GFTP_MAX_SESSIONS_PER_IP` | `10` | Maximum sessions per client IP. |
+| `GFTP_MAX_CONNECTING` | `32` | Maximum simultaneous remote connection attempts. |
+| `GFTP_MAX_CONNECTING_PER_IP` | `4` | Maximum simultaneous connection attempts per client IP. |
+| `GFTP_STAGING_MAX_BYTES` | `4294967296` | Maximum temporary storage bytes across uploads and spooled operations. |
+| `GFTP_STAGING_MAX_SESSION_BYTES` | `1073741824` | Maximum temporary storage bytes per session. |
+| `GFTP_UPLOAD_MAX_PENDING` | `16` | Maximum pending uploads per session. |
+| `GFTP_CONNECTION_EXPOSE_PRESET` | `false` | Expose configured server addresses in the anonymous login form. |
+| `GFTP_METRICS_BIND_ADDRESS` | (none) | Metrics listener IP address. Defaults to loopback. |
+<!-- confgen:end -->

@@ -47,7 +47,7 @@ func TestSSOLoginRejectsAlternateTokenEncodings(t *testing.T) {
 		assert.Empty(t, rec.Result().Cookies())
 	}
 	rec := login(token)
-	require.Equal(t, "/login", rec.Header().Get("Location"))
+	require.Equal(t, "/login?sso_pending=1", rec.Header().Get("Location"))
 	require.NotEmpty(t, rec.Result().Cookies())
 	for _, raw := range variants {
 		rec := login(raw)
@@ -73,7 +73,7 @@ func TestSSOLoginConcurrentReplayMintsOneSession(t *testing.T) {
 			rec := httptest.NewRecorder()
 			app.ServeHTTP(rec, req)
 			switch rec.Header().Get("Location") {
-			case "/login":
+			case "/login?sso_pending=1":
 				successes.Add(1)
 			case "/login?sso_error=used":
 				reused.Add(1)

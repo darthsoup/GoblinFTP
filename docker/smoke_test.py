@@ -4,12 +4,14 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import socket
 import sys
 import tempfile
 import time
 import unittest
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
 import uuid
 
 
@@ -133,6 +135,24 @@ class ContainerTests(unittest.TestCase):
                    'http://127.0.0.1:8080/healthz')
             docker('stop', '--time', '12', name)
             self.assertEqual(state(name)['ExitCode'], 0)
+
+    def test_http1_only_and_embedding_headers(self):
+        with container() as (name, base):
+            ready(name, base)
+            self.assertEqual(request(base, '/')[1]['X-Frame-Options'], 'DENY')
+            target = urlsplit(base)
+            with socket.create_connection((target.hostname, target.port), timeout=2) as connection:
+                connection.sendall(b'PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n')
+                try:
+                    response = connection.recv(24)
+                except ConnectionResetError:
+                    response = b''
+                self.assertTrue(not response or response.startswith(b'HTTP/1.'), response)
+        with container('-e', 'GFTP_FRAME_ANCESTORS=https://portal.example.com') as (name, base):
+            ready(name, base)
+            headers = request(base, '/')[1]
+            self.assertIsNone(headers.get('X-Frame-Options'))
+            self.assertEqual(headers['Content-Security-Policy'], 'frame-ancestors https://portal.example.com')
 
     def test_child_failure_stops_container(self):
         for process in ['gftp', 'caddy']:

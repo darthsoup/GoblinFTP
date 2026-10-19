@@ -10,7 +10,7 @@
       @click="editorStore.setActive(tab.id)"
       @mousedown.middle.prevent="requestClose(tab)"
     >
-      <span class="max-w-24 sm:max-w-32 truncate">{{ tab.name }}</span>
+      <span class="max-w-24 sm:max-w-32 truncate"><bdi>{{ displayName(tab.name) }}</bdi></span>
       <span
         v-if="tab.content !== tab.savedContent"
         class="size-2 rounded-full bg-warning shrink-0"
@@ -30,7 +30,11 @@
 
     <div class="flex-1 min-w-4" />
 
-    <div v-if="!viewOnly" class="px-3 flex items-center gap-3 shrink-0">
+    <UButton v-if="editorStore.activeTab?.detached" size="sm" variant="ghost" icon="i-ph-download" @click="editorStore.exportDraft(editorStore.activeId!)">
+      {{ t('editor.exportDraft') }}
+    </UButton>
+    <span v-if="editorStore.activeTab?.detached" class="text-xs text-muted px-2">{{ t('editor.detachedDraft', { host: editorStore.activeTab.originHost ?? '' }) }}</span>
+    <div v-if="!viewOnly && !editorStore.activeTab?.detached" class="px-3 flex items-center gap-3 shrink-0">
       <USwitch
         v-model="settingsStore.editorAutoSave"
         size="xs"
@@ -71,8 +75,8 @@ async function requestClose(tab: EditorTab) {
   if (tab.content !== tab.savedContent) {
     const result = await modalStore.confirm({
       title: t('editor.unsavedTitle'),
-      message: t('editor.confirmCloseMessage', { name: tab.name }),
-      saveLabel: viewOnly.value ? undefined : t('editor.save'),
+      message: t('editor.confirmCloseMessage', { name: displayName(tab.name) }),
+      saveLabel: (viewOnly.value || tab.detached) ? undefined : t('editor.save'),
       confirmLabel: t('editor.discard'),
       cancelLabel: t('editor.keepEditing'),
       confirmColor: 'error',

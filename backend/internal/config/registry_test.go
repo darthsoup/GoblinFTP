@@ -124,7 +124,7 @@ func matrixFor(t *testing.T, k *Key, def *Config) (matrixCase, bool) {
 // companionEnv satisfies cross-key validation while the matrix exercises a
 // single key (an enabled toggle needs its required counterparts).
 var companionEnv = map[string]map[string]string{
-	"GFTP_SSO_ENABLED": {"GFTP_SSO_SECRET": "matrix-secret"},
+	"GFTP_SSO_ENABLED": {"GFTP_SSO_SECRET": "matrix-secret-0123456789abcdefghij"},
 	"GFTP_S3_ENABLED": {
 		"GFTP_S3_ENDPOINT":   "http://localhost:9000",
 		"GFTP_S3_BUCKET":     "matrix-bucket",

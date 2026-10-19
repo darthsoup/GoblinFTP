@@ -10,7 +10,8 @@
     "connect": "Se connecter",
     "passive": "Mode passif",
     "errorRequired": "Requis",
-    "errorPort": "Port invalide"
+    "errorPort": "Port invalide",
+    "fixedServer": "Serveur fixe"
   },
   "hostKey": {
     "title": "Vérifier la clé d'hôte",
@@ -169,7 +170,9 @@
       "reload": "Abandonner et recharger",
       "banner": "Ce fichier a changé sur le serveur. L’enregistrement automatique est en pause.",
       "bannerDeleted": "Ce fichier n’est plus sur le serveur. L’enregistrement automatique est en pause."
-    }
+    },
+    "exportDraft": "Exporter le brouillon",
+    "detachedDraft": "Brouillon déconnecté de {host}"
   },
   "modal": {
     "delete": {
@@ -277,7 +280,10 @@
     "ERR_INTERNAL": "Une erreur est survenue sur le serveur",
     "ERR_OVERWRITE_LOST_DESTINATION": "Le fichier existant a été supprimé mais son remplacement n'a pas pu être déplacé",
     "ERR_NETWORK": "Impossible de joindre le serveur",
-    "ERR_UNKNOWN": "Une erreur est survenue"
+    "ERR_UNKNOWN": "Une erreur est survenue",
+    "ERR_CAPACITY_EXCEEDED": "Cette opération dépasse la capacité disponible. Réessayez plus tard.",
+    "ERR_LISTING_LIMIT": "Ce dossier dépasse la limite de liste des répertoires.",
+    "ERR_STALE_CONNECTION": "Votre session a expiré ou la connexion au serveur a été perdue. Veuillez vous reconnecter."
   },
   "toast": {
     "folderCreated": "Dossier créé",
@@ -315,6 +321,7 @@
     "errorUsed": "Ce lien de connexion SSO a déjà été utilisé. Veuillez en demander un nouveau.",
     "errorDisabled": "La connexion SSO n'est pas activée sur ce serveur.",
     "errorInternal": "La connexion SSO a échoué en raison d'une erreur du serveur. Veuillez réessayer.",
-    "errorGeneric": "La connexion SSO a échoué. Veuillez demander un nouveau lien."
+    "errorGeneric": "La connexion SSO a échoué. Veuillez demander un nouveau lien.",
+    "confirmTitle": "Confirmer la connexion au serveur"
   }
 }

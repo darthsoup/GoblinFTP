@@ -10,7 +10,8 @@
     "connect": "Connect",
     "passive": "Passive mode",
     "errorRequired": "Required",
-    "errorPort": "Invalid port"
+    "errorPort": "Invalid port",
+    "fixedServer": "Fixed server"
   },
   "hostKey": {
     "title": "Verify host key",
@@ -169,7 +170,9 @@
       "reload": "Discard mine, reload",
       "banner": "This file changed on the server. Auto-save is paused.",
       "bannerDeleted": "This file is gone from the server. Auto-save is paused."
-    }
+    },
+    "exportDraft": "Export draft",
+    "detachedDraft": "Detached draft from {host}"
   },
   "modal": {
     "delete": {
@@ -277,7 +280,10 @@
     "ERR_INTERNAL": "Something went wrong on the server",
     "ERR_OVERWRITE_LOST_DESTINATION": "The existing file was removed but the replacement could not be moved into place",
     "ERR_NETWORK": "Could not reach the server",
-    "ERR_UNKNOWN": "Something went wrong"
+    "ERR_UNKNOWN": "Something went wrong",
+    "ERR_CAPACITY_EXCEEDED": "This operation exceeds the available resource capacity. Try again later.",
+    "ERR_LISTING_LIMIT": "This folder exceeds the directory listing limit.",
+    "ERR_STALE_CONNECTION": "Your session has expired or the connection to the server was lost. Please sign in again."
   },
   "toast": {
     "folderCreated": "Folder created",
@@ -315,6 +321,7 @@
     "errorUsed": "This SSO login link has already been used. Please request a new one.",
     "errorDisabled": "SSO login is not enabled on this server.",
     "errorInternal": "SSO login failed due to a server error. Please try again.",
-    "errorGeneric": "SSO login failed. Please request a new link."
+    "errorGeneric": "SSO login failed. Please request a new link.",
+    "confirmTitle": "Confirm server connection"
   }
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"path"
 	"time"
 
@@ -98,6 +97,9 @@ func (h *Handler) CreateDirectory(c echo.Context) error {
 	if req.Path == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
+	if !validPath(c, req.Path, false) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid remote path"))
+	}
 	if err := ensureDirAll(client, req.Path); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
@@ -133,12 +135,12 @@ func (h *Handler) DeleteFiles(c echo.Context) error {
 	// "/" reaches RemoveDirRecur and wipes the whole account. Refuse the batch
 	// outright rather than reporting it afterwards as one failed path.
 	for i, p := range req.Paths {
-		cleaned, err := transfer.CleanDeletePath(p)
+		err := transfer.ValidateRemotePath(p, windowsPaths(c), false)
 		if err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest,
 				"deletion requires an absolute path below the remote root"))
 		}
-		req.Paths[i] = cleaned
+		req.Paths[i] = p
 	}
 	// Initialize non-nil so the JSON always carries arrays, never null: the SPA
 	// reads result.failed.length unconditionally and would throw.
@@ -183,6 +185,9 @@ func (h *Handler) RenameFile(c echo.Context) error {
 	if req.From == "" || req.To == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
+	if !validPath(c, req.From, false) || !validPath(c, req.To, false) || transfer.PathsOverlap(req.From, req.To, windowsPaths(c)) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "source and destination must be distinct non-overlapping paths"))
+	}
 	if err := client.Rename(req.From, req.To); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
@@ -205,7 +210,10 @@ func (h *Handler) CopyFile(c echo.Context) error {
 	if req.From == "" || req.To == "" {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "from and to are required"))
 	}
-	if err := copyTree(client, h.cfg.DataDir, req.From, req.To); err != nil {
+	if !validPath(c, req.From, false) || !validPath(c, req.To, false) || transfer.PathsOverlap(req.From, req.To, windowsPaths(c)) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "source and destination must be distinct non-overlapping paths"))
+	}
+	if err := copyTree(client, h.cfg.DataDir, req.From, req.To, h.quota(c)); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
 	return OK(c, nil)
@@ -230,6 +238,8 @@ func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 			return false, nil
 		}
 		return false, errors.New("destination parent exists and is not a directory")
+	} else if !errors.Is(err, transfer.ErrNotFound) {
+		return false, err
 	}
 	if parent := path.Dir(dir); parent != dir {
 		if _, err := ensureDirAllCreated(client, parent); err != nil {
@@ -249,11 +259,19 @@ func ensureDirAllCreated(client transfer.Client, dir string) (bool, error) {
 
 // copyTree copies src to dst recursively. MakeDir runs only when dst is missing,
 // so an overwrite merges into the existing directory rather than failing.
-func copyTree(client transfer.Client, dataDir, src, dst string) error {
-	return copyTreeDepth(client, dataDir, src, dst, 0)
+func copyTree(client transfer.Client, dataDir, src, dst string, quotas ...*diskQuota) error {
+	if len(quotas) == 0 {
+		quotas = []*diskQuota{{remaining: 100000}}
+	}
+	return copyTreeDepth(client, dataDir, src, dst, 0, quotas...)
 }
 
-func copyTreeDepth(client transfer.Client, dataDir, src, dst string, depth int) error {
+func copyTreeDepth(client transfer.Client, dataDir, src, dst string, depth int, quotas ...*diskQuota) error {
+	if len(quotas) > 0 {
+		if err := quotas[0].visit(); err != nil {
+			return err
+		}
+	}
 	if depth > maxTreeDepth {
 		return errTreeTooDeep
 	}
@@ -272,30 +290,35 @@ func copyTreeDepth(client transfer.Client, dataDir, src, dst string, depth int) 
 			return err
 		}
 		for _, e := range entries {
-			if err := copyTreeDepth(client, dataDir, path.Join(src, e.Name), path.Join(dst, e.Name), depth+1); err != nil {
+			if err := transfer.ValidateChildName(e.Name, true); err != nil {
+				return err
+			}
+		}
+		for _, e := range entries {
+			if err := copyTreeDepth(client, dataDir, path.Join(src, e.Name), path.Join(dst, e.Name), depth+1, quotas...); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	return copyFile(client, dataDir, src, dst)
+	return copyFile(client, dataDir, src, dst, quotas...)
 }
 
 // copyFile stages the download to a temp file and closes it before uploading:
 // FTP allows one data transfer per control connection, so streaming desyncs it.
-func copyFile(client transfer.Client, dataDir, src, dst string) error {
+func copyFile(client transfer.Client, dataDir, src, dst string, quotas ...*diskQuota) error {
 	r, err := client.Download(src)
 	if err != nil {
 		return err
 	}
-	tmp, err := os.CreateTemp(dataDir, "gftp-copy-*")
+	tmp, err := newQuotaTemp(dataDir, "gftp-copy-*", quotas...)
 	if err != nil {
 		_ = r.Close()
 		return err
 	}
 	defer func() {
 		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
+		tmp.dispose()
 	}()
 	_, copyErr := io.Copy(tmp, r)
 	// Close completes RETR before the upload's STOR and carries the server's
@@ -325,6 +348,9 @@ func (h *Handler) SetPermissions(c echo.Context) error {
 	}
 	if req.Path == "" || req.Mode == nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path and mode are required"))
+	}
+	if !validPath(c, req.Path, false) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid remote path"))
 	}
 	if err := client.Chmod(req.Path, *req.Mode); err != nil {
 		if errors.Is(err, transfer.ErrPermissionsNotSupported) {

@@ -68,6 +68,16 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 		},
 	}))
 	e.Use(securityHeadersMiddleware(cfg))
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("sessionCookieName", sessionCookie(c, cfg, "", 0).Name)
+			if strings.HasPrefix(c.Request().URL.Path, "/api/") || c.Request().URL.Path == "/" {
+				c.Response().Header().Set("Cache-Control", "private, no-store")
+				c.Response().Header().Add("Vary", "Cookie")
+			}
+			return next(c)
+		}
+	})
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "version": h.version})
@@ -76,6 +86,9 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	// SSO entry point and auth status (public, no CSRF required)
 	e.GET("/", h.SSOLogin)
 	e.GET("/api/auth/status", h.AuthStatus)
+	e.GET("/api/auth/sso-pending", h.SSOPending)
+	e.POST("/api/auth/sso-connect", h.requirePending(h.SSOConnect), middleware.BodyLimit(jsonBodyLimit))
+	e.DELETE("/api/auth/sso-pending", h.requirePending(h.SSOCancel), middleware.BodyLimit(jsonBodyLimit))
 
 	// Public routes (no auth required)
 	e.GET("/api/system/vars", h.SystemVars)
@@ -92,10 +105,10 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	// INVARIANT: no CORS middleware here (TestNoCORSHeadersEver guards it). Under
 	// embed the cookie is SameSite=None, so only a missing ACAO hides the CSRF token.
 	apiGroup.Use(csrfMiddleware(store))
+	apiGroup.Use(h.resourceMiddleware)
 
 	apiGroup.POST("/auth/connect", h.Connect, middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.POST("/auth/disconnect", requireSession(store)(h.Disconnect), middleware.BodyLimit(jsonBodyLimit))
-	apiGroup.POST("/auth/sso-connect", requireSession(store)(h.SSOConnect), middleware.BodyLimit(jsonBodyLimit))
 
 	apiGroup.GET("/files", requireSession(store)(h.ListFiles))
 	apiGroup.POST("/files/directory", requireSession(store)(h.CreateDirectory), middleware.BodyLimit(jsonBodyLimit))

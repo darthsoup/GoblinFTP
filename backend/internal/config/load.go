@@ -43,6 +43,10 @@ func RemovedEnv() map[string]string { return removedEnv }
 
 func defaultConfig() *Config {
 	return &Config{
+		BindAddress: "127.0.0.1",
+		MaxSessions: 100, MaxSessionsPerIP: 10, MaxConnecting: 32, MaxConnectingPerIP: 4,
+		StagingMaxBytes: 4 << 30, StagingMaxSessionBytes: 1 << 30, UploadMaxPending: 16,
+		MetricsBindAddress: "127.0.0.1",
 		Port:               "8080",
 		LogLevel:           "info",
 		LogFormat:          "json",
@@ -77,6 +81,16 @@ func Load(logger *slog.Logger) (*Config, error) {
 		return nil, err
 	}
 
+	known := map[string]bool{"GFTP_VERSION": true, "GFTP_SSO_PASSWORD": true, "GFTP_DEV_PROXY": true, "GFTP_CADDY_TRUSTED_PROXIES": true, "GFTP_CADDY_FRAME_POLICY": true}
+	for _, key := range Registry {
+		known[key.Env] = true
+	}
+	for _, entry := range os.Environ() {
+		name, _, _ := strings.Cut(entry, "=")
+		if strings.HasPrefix(name, "GFTP_") && !strings.HasPrefix(name, "GFTP_TEST_") && !known[name] {
+			return nil, fmt.Errorf("unknown configuration variable %s", name)
+		}
+	}
 	cfg := defaultConfig()
 
 	for i := range Registry {
@@ -118,6 +132,9 @@ func warn(cfg *Config, logger *slog.Logger) {
 	if logger == nil {
 		return
 	}
+	if cfg.BindAddress != "127.0.0.1" && cfg.BindAddress != "::1" {
+		logger.Warn("cleartext backend is bound outside loopback; restrict access to your TLS proxy")
+	}
 	// Behind a proxy every request reports the proxy's address, so an allowlist
 	// rejects all of them. Directly exposed, the peer is the real client and
 	// this is correct, which is why it cannot be a hard failure.
@@ -155,6 +172,12 @@ func checkStaleSettingsFile(dataDir string) error {
 
 // validate holds the cross-key checks that need the fully merged config.
 func validate(cfg *Config) error {
+	if cfg.SSOEnabled && len(cfg.SSOSecret) < 32 {
+		return fmt.Errorf("GFTP_SSO_SECRET must contain at least 32 bytes")
+	}
+	if len(cfg.DownloadTokenSecret) < 32 {
+		return fmt.Errorf("GFTP_DOWNLOAD_TOKEN_SECRET must contain at least 32 bytes")
+	}
 	if cfg.SSOEnabled && len(cfg.SSOSecret) == 0 {
 		return fmt.Errorf("GFTP_SSO_SECRET must be set when GFTP_SSO_ENABLED is true")
 	}
