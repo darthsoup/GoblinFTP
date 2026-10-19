@@ -118,5 +118,3 @@ Replace the domain and file path with your own. Caddy enables HTTPS for your dom
 - [Configuration](configuration.md): customize your setup.
 - [Theming](theming.md): add your branding.
 - [SSO login links](sso.md): connect users directly from another application.
-
-For changed security defaults and SSO confirmation, see [Audit remediation and upgrade notes](audit-remediation.md).
