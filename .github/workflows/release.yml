@@ -122,4 +122,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: python3 .github/scripts/ensure_release.py "$GITHUB_REF_NAME" notes.md
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          RELEASE_TAGS="$(gh api --paginate 'repos/{owner}/{repo}/releases?per_page=100' --jq '.[].tag_name')"
+          if grep -Fxq -- "$TAG" <<< "$RELEASE_TAGS"; then
+            echo "Release $TAG already exists; keeping its title, notes, and status."
+            exit 0
+          fi
+
+          FLAGS=(--verify-tag --title "$TAG" --notes-file notes.md --generate-notes)
+          VERSION="${TAG%%+*}"
+          if [[ "$VERSION" == *-* ]]; then
+            FLAGS+=(--prerelease --latest=false)
+          fi
+          if gh release create "$TAG" "${FLAGS[@]}"; then
+            exit 0
+          fi
+
+          # Another publisher may have created the release after the lookup.
+          RELEASE_TAGS="$(gh api --paginate 'repos/{owner}/{repo}/releases?per_page=100' --jq '.[].tag_name')"
+          if grep -Fxq -- "$TAG" <<< "$RELEASE_TAGS"; then
+            echo "Release $TAG was created concurrently; keeping it unchanged."
+          else
+            exit 1
+          fi

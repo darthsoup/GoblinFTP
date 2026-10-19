@@ -1,5 +1,4 @@
 .DS_Store
-.github/scripts/__pycache__/
 .worktrees/
 .env
 .env.local

@@ -20,8 +20,6 @@ jobs:
           cache-dependency-path: backend/go.sum
       - name: Lint workflows
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
-      - name: Test release handling
-        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 
   docker-smoke:
     name: Container smoke tests
