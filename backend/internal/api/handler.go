@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/darthsoup/goblinftp/internal/auth"
@@ -13,6 +14,7 @@ import (
 
 // DialRequest carries the per-connection inputs for a dial attempt.
 type DialRequest struct {
+	Context  context.Context
 	Protocol string
 	Addr     string // host:port
 	Host     string // bare host (TLS SNI for FTPS)

@@ -17,7 +17,7 @@ import (
 // Stat("/") short-circuits to a directory, so Delete("/") routed straight into
 // RemoveDirRecur("/") and wiped the account, then reported one failed path.
 func TestDeleteRefusesRemoteRoot(t *testing.T) {
-	for _, target := range []string{"/", "//", "/.", " / "} {
+	for _, target := range []string{"/", "//", "/.", " / ", ".", "..", "../..", "a/../..", "/a/..", "relative/file"} {
 		t.Run(target, func(t *testing.T) {
 			var deleted []string
 			mock := &testutil.MockClient{

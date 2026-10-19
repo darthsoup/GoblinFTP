@@ -93,7 +93,6 @@ const PREVIEW_MIME: Record<string, string> = {
   webp: 'image/webp',
   bmp: 'image/bmp',
   ico: 'image/x-icon',
-  svg: 'image/svg+xml',
   avif: 'image/avif',
   // video
   mp4: 'video/mp4',
@@ -114,7 +113,7 @@ const PREVIEW_MIME: Record<string, string> = {
   pdf: 'application/pdf',
 }
 
-const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'avif']
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif']
 const VIDEO_EXTS = ['mp4', 'm4v', 'webm', 'ogv', 'mov']
 const AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus']
 
@@ -128,6 +127,9 @@ export function getPreviewKind(file: Pick<FileInfo, 'name' | 'isDir'>, textExts:
   if (file.isDir)
     return 'none'
   const ext = extOf(file.name)
+  // An SVG blob becomes an active same-origin document when opened in a tab.
+  if (ext === 'svg')
+    return 'none'
   if (IMAGE_EXTS.includes(ext))
     return 'image'
   if (VIDEO_EXTS.includes(ext))

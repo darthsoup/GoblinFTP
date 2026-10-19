@@ -2,6 +2,7 @@ import type { PasteChoice } from '~/stores/modal'
 import type { DeleteResult, FileInfo, OperationFailure } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
+import { previewMime } from '~/utils/files'
 
 export interface ClipboardState {
   mode: 'copy' | 'cut'
@@ -32,6 +33,21 @@ function uniqueName(name: string, existing: Set<string>): string {
     i++
   }
   return candidate
+}
+
+function normalizeRemotePath(path: string): string {
+  const parts: string[] = []
+  for (const part of path.split('/')) {
+    if (part === '..')
+      parts.pop()
+    else if (part && part !== '.')
+      parts.push(part)
+  }
+  return `/${parts.join('/')}`
+}
+
+function containsPath(parent: string, child: string): boolean {
+  return parent === child || child.startsWith(parent === '/' ? '/' : `${parent}/`)
 }
 
 export const useFilesStore = defineStore('files', () => {
@@ -142,7 +158,10 @@ export const useFilesStore = defineStore('files', () => {
 
   // The download endpoint serves application/octet-stream, so re-wrap the bytes
   // with the real MIME type. Caller owns the URL and must revokeObjectURL() it.
-  async function fetchObjectUrl(path: string, mime: string): Promise<string> {
+  async function fetchObjectUrl(path: string): Promise<string> {
+    const mime = previewMime(path)
+    if (!mime)
+      throw new ApiError('ERR_INVALID_TYPE', 'This file type cannot be previewed')
     const api = useApi()
     const raw = await api.getBlob(await downloadUrl(path))
     return URL.createObjectURL(new Blob([raw], { type: mime }))
@@ -213,9 +232,10 @@ export const useFilesStore = defineStore('files', () => {
     if (!cb)
       return { mode: 'copy', ok: 0, failed: 0, failures: [] }
     const api = useApi()
-    const dir = currentPath.value.replace(/\/$/, '')
+    const dir = normalizeRemotePath(currentPath.value).replace(/\/$/, '')
+    const sourceDir = normalizeRemotePath(cb.sourcePath).replace(/\/$/, '')
     const existing = new Set(files.value.map(f => f.name))
-    const sameDirCopy = cb.mode === 'copy' && cb.sourcePath === dir
+    const sameDirCopy = cb.mode === 'copy' && sourceDir === dir
     const conflicts = cb.names.filter(n => existing.has(n) || sameDirCopy)
 
     let choice: PasteChoice = 'overwrite'
@@ -228,23 +248,34 @@ export const useFilesStore = defineStore('files', () => {
     // `taken` grows as we append copies so generated names don't collide with
     // each other within the same paste.
     const taken = new Set(existing)
-    const failures: OperationFailure[] = []
-    let ok = 0
-    let failed = 0
-    for (const name of cb.names) {
-      const from = `${cb.sourcePath}/${name}`
+    const operations = cb.names.map((name) => {
+      const from = normalizeRemotePath(`${sourceDir}/${name}`)
       const conflict = existing.has(name) || sameDirCopy
       let toName = name
       if (conflict && choice === 'append')
         toName = uniqueName(name, taken)
-      let to = `${dir}/${toName}`
+      let to = normalizeRemotePath(`${dir}/${toName}`)
+      if (cb.mode === 'copy' && to === from) {
+        toName = uniqueName(name, taken)
+        to = normalizeRemotePath(`${dir}/${toName}`)
+      }
+      taken.add(toName)
+      return { from, to, conflict }
+    })
+    // Check the entire batch before an overwrite can delete another source.
+    for (const { from, to } of operations) {
+      if (cb.mode === 'cut' && from === to)
+        continue
+      if (containsPath(from, to) || operations.some(source => containsPath(to, source.from)))
+        throw new ApiError('ERR_INVALID_TYPE', 'The paste destination overlaps a source path')
+    }
+
+    const failures: OperationFailure[] = []
+    let ok = 0
+    let failed = 0
+    for (const { from, to, conflict } of operations) {
       try {
         if (cb.mode === 'copy') {
-          // Never stream a file onto itself: it truncates the source.
-          if (to === from) {
-            toName = uniqueName(name, taken)
-            to = `${dir}/${toName}`
-          }
           await copy(from, to)
         }
         else {
@@ -279,7 +310,6 @@ export const useFilesStore = defineStore('files', () => {
             continue
           }
         }
-        taken.add(toName)
         ok++
       }
       catch (e) {

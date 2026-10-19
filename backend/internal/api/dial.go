@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"path/filepath"
@@ -35,7 +36,11 @@ func newDefaultDial(cfg *config.Config) DialFunc {
 			}
 			return c, nil, nil
 		case "sftp":
-			c, prompt, err := sftpadapter.Dial(req.Addr, req.User, req.Pass, req.AcceptHostKey, knownHostsPath)
+			ctx := req.Context
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			c, prompt, err := sftpadapter.DialContext(ctx, req.Addr, req.User, req.Pass, req.AcceptHostKey, knownHostsPath)
 			if prompt != nil {
 				return nil, &HostKeyPrompt{
 					Host:           req.Host,

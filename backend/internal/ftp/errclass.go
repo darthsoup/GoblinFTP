@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/textproto"
 	"os"
-	"path"
 	"strings"
 	"syscall"
 
@@ -121,10 +120,4 @@ func isDataConnFailure(err error) bool {
 	m := strings.ToLower(err.Error())
 	return contains(m, "invalid epsv response format", "invalid pasv response format",
 		"invalid port response format", "cannot open data connection")
-}
-
-// isRootPath guards the recursive delete: RemoveDirRecur("/") wipes the account.
-func isRootPath(p string) bool {
-	cleaned := path.Clean(p)
-	return cleaned == "/" || cleaned == "." || cleaned == ""
 }

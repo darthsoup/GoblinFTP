@@ -88,8 +88,9 @@ func Encrypt(p *Payload, secret []byte) (string, error) {
 
 // Decrypt decrypts a base64url-encoded token into a Payload
 func Decrypt(raw string, secret []byte) (*Payload, error) {
-	wire, err := base64.RawURLEncoding.DecodeString(raw)
-	if err != nil {
+	wire, err := base64.RawURLEncoding.Strict().DecodeString(raw)
+	// The replay key hashes token text, so every accepted wire value needs one spelling.
+	if err != nil || base64.RawURLEncoding.EncodeToString(wire) != raw {
 		return nil, fmt.Errorf("%w: invalid base64 encoding", ErrTokenInvalid)
 	}
 

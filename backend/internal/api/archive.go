@@ -107,10 +107,18 @@ func tagCorrupt(err error) error {
 
 // safeJoin joins destination and name, returning an error if the result escapes destination.
 func safeJoin(destination, name string) (string, error) {
+	if name == "" || path.IsAbs(name) || strings.ContainsAny(name, "\\:\x00\r\n") {
+		return "", fmt.Errorf("%w: %q", errArchiveEscape, name)
+	}
+	for _, segment := range strings.Split(name, "/") {
+		if segment == ".." {
+			return "", fmt.Errorf("%w: %q", errArchiveEscape, name)
+		}
+	}
 	outPath := path.Clean(path.Join(destination, name))
 	cleanDest := path.Clean(destination)
-	// Trailing slash so "/dir" cannot prefix-match "/dir2".
-	if outPath != cleanDest && !strings.HasPrefix(outPath, cleanDest+"/") {
+	prefix := strings.TrimSuffix(cleanDest, "/") + "/"
+	if outPath != cleanDest && !strings.HasPrefix(outPath, prefix) {
 		return "", fmt.Errorf("%w: %q", errArchiveEscape, name)
 	}
 	return outPath, nil

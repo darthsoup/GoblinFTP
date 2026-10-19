@@ -19,8 +19,9 @@ describe('getPreviewKind', () => {
     expect(getPreviewKind({ name: 'noext', isDir: false }, textExts)).toBe('none')
   })
 
-  it('renders SVG as an image even when it is also an editable extension', () => {
-    expect(getPreviewKind({ name: 'logo.svg', isDir: false }, [...textExts, 'svg'])).toBe('image')
+  it('never previews SVG, including when editing SVG is enabled', () => {
+    expect(getPreviewKind({ name: 'logo.svg', isDir: false }, textExts)).toBe('none')
+    expect(getPreviewKind({ name: 'LOGO.SVG', isDir: false }, [...textExts, 'svg'])).toBe('none')
   })
 
   it('never previews directories', () => {
@@ -32,7 +33,7 @@ describe('isImageFile', () => {
   it('detects image extensions case-insensitively', () => {
     expect(isImageFile('photo.png')).toBe(true)
     expect(isImageFile('PHOTO.JPG')).toBe(true)
-    expect(isImageFile('icon.svg')).toBe(true)
+    expect(isImageFile('icon.svg')).toBe(false)
     expect(isImageFile('clip.mp4')).toBe(false)
     expect(isImageFile('readme.md')).toBe(false)
     expect(isImageFile('noext')).toBe(false)
@@ -50,6 +51,7 @@ describe('previewMime', () => {
   it('returns an empty string for unknown extensions', () => {
     expect(previewMime('a.bin')).toBe('')
     expect(previewMime('noext')).toBe('')
+    expect(previewMime('payload.SVG')).toBe('')
   })
 })
 

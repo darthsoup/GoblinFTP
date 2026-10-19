@@ -192,6 +192,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 
 	addr := fmt.Sprintf("%s:%d", pending.Host, pending.Port)
 	client, hostKey, dialErr := h.dial(DialRequest{
+		Context:       c.Request().Context(),
 		Protocol:      pending.Protocol,
 		Addr:          addr,
 		Host:          pending.Host,

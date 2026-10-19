@@ -96,6 +96,7 @@ func (h *Handler) Connect(c echo.Context) error {
 
 	addr := fmt.Sprintf("%s:%d", req.Host, req.Port)
 	client, hostKey, dialErr := h.dial(DialRequest{
+		Context:       c.Request().Context(),
 		Protocol:      req.Protocol,
 		Addr:          addr,
 		Host:          req.Host,
