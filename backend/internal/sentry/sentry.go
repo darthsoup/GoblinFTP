@@ -41,7 +41,6 @@ func Init(o Options) error {
 		Dsn:              o.DSN,
 		Environment:      o.Environment,
 		Release:          o.Release,
-		SendDefaultPII:   false,
 		SampleRate:       o.ErrorSampleRate,
 		EnableTracing:    o.TracesSampleRate > 0,
 		TracesSampleRate: o.TracesSampleRate,

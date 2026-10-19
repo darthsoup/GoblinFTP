@@ -1,114 +1,140 @@
+---
+description: Run GoblinFTP locally, test your changes, and edit the docs.
+---
+
 # Development
 
-**Requirements:** Go 1.26+, Node 24, [pnpm](https://pnpm.io), Docker, [just](https://just.systems)
+Install Go 1.26 or newer, Node 24, pnpm, and [just](https://just.systems). You also need Docker to run the test servers. See [System requirements](system-requirements.md#building-from-source) for the tool versions.
+
+From the repository root:
 
 ```bash
-cp .env.example .env   # if available, or create .env
-just dev               # start frontend (port 3000) + backend (port 8080) with hot reload
+pnpm install
+cp .env.example .env
+just dev
 ```
+
+Open `http://localhost:3000`. The backend runs on port 8080.
 
 ## Common commands
 
+| Task | Command |
+|---|---|
+| Start only the frontend or backend | `just dev-fe` or `just dev-be` |
+| Run all tests | `just test` |
+| Run frontend or backend tests | `just test-fe` or `just test-be` |
+| Build the app | `just build` |
+| Format code | `just fmt` |
+| Run lint and type checks | `just lint` |
+| Check translations | `just i18n-check` |
+| Build the Docker image | `just docker-build` |
+| Start the development Docker setup | `just docker-up` |
+
+Run `just --list` to see all commands.
+
+## Documentation site
+
+Edit the Markdown files in `docs/`. The site uses VitePress 2 and publishes changes from `main` to [GitHub Pages](https://darthsoup.github.io/GoblinFTP/).
+
 ```bash
-just dev-fe       # frontend only
-just dev-be       # backend only
-
-just test         # run all tests
-just test-fe      # Vitest (frontend)
-just test-be      # Go tests (backend)
-
-just build        # build frontend SPA + Go binary
-just docker-build # build Docker image
-just docker-up    # start via docker compose
-
-just lint         # eslint + nuxt typecheck + golangci-lint
-just fmt          # eslint --fix + gofmt
-just i18n-check   # verify every locale file matches en.json (keys + placeholders)
-
-just ftp-up       # start local FTP test server (garethflowers/ftp-server)
-just ftp-down     # stop local FTP test server
-just ftps-up      # start local FTPS test server (bfren/ftps, explicit TLS)
-just ftps-down    # stop local FTPS test server
-just sftp-up      # start local SFTP test server (jmcombs/sftp)
-just sftp-down    # stop local SFTP test server
-just s3-up        # start local S3 server for chunk staging (MinIO)
-just s3-down      # stop local S3 server
+just docs-dev
 ```
+
+Open `http://localhost:5173/GoblinFTP/`. Changes appear as you save. The docs do not need the app backend.
+
+Before committing, build the site to check for broken page links:
+
+```bash
+just docs-build
+```
+
+Use `just docs-preview` to view the built site at `http://localhost:4173/GoblinFTP/`. The equivalent pnpm commands are `pnpm docs:dev`, `pnpm docs:build`, and `pnpm docs:preview`.
+
+Link to other guides with relative paths such as `configuration.md`. Use full GitHub URLs for files outside `docs/`. Add new guides to the sidebar in `.vitepress/config.ts` and give each page a description in frontmatter.
+
+Settings tables are generated from `backend/internal/config/registry.go`. Edit descriptions there, then run `just confgen`. Check the generated files without changing them:
+
+```bash
+go -C backend test ./internal/config/gen
+```
+
+::: details GitHub Pages setup
+
+In repository settings, choose **Pages > Build and deployment > Source: GitHub Actions**. Pull requests build the docs without publishing them. Successful `main` builds publish the site at `/GoblinFTP/`. Manual workflow runs publish only when run against `main`.
+
+:::
+
+## Test the Docker container
+
+```bash
+just docker-test
+```
+
+This needs Python 3 and Docker. It tests startup, routing, headers, proxy handling, shutdown, S3 startup, and data-folder permissions. It creates temporary containers, a network, and a volume, then removes them. CI and release checks run the same tests.
 
 ## Testing with a local FTP server
 
 ```bash
 just ftp-up
-# Connect with: localhost:21, ftpuser / ftppass
-
-# FTP integration tests:
-cd backend && GFTP_TEST_FTP_HOST=localhost:21 go test ./internal/ftp/...
-
+GFTP_TEST_FTP_HOST=localhost:21 go -C backend test ./internal/ftp/...
 just ftp-down
 ```
+
+Connect with `localhost:21`, username `ftpuser`, and password `ftppass`.
 
 ## Testing with a local FTPS server
 
 ```bash
 just ftps-up
-# Connect with: localhost:2121, ftpuser / ftppass, protocol "ftps"
-# The cert is self-signed - set GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY=true when testing via the app.
-
-# FTPS integration tests:
-cd backend && GFTP_TEST_FTPS_HOST=localhost:2121 go test ./internal/ftp/...
-
+GFTP_TEST_FTPS_HOST=localhost:2121 go -C backend test ./internal/ftp/...
 just ftps-down
 ```
+
+Connect with `localhost:2121`, username `ftpuser`, password `ftppass`, and protocol `ftps`.
+
+The test certificate is self-signed. When connecting through the app, set `GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY=true` for this local test.
 
 ## Testing with a local SFTP server
 
 ```bash
 just sftp-up
-# Connect with: localhost:2222, ftpuser / ftppass, protocol "sftp"
-# The user is chrooted: / is read-only - upload files under /upload.
-
-# SFTP integration tests:
-cd backend && GFTP_TEST_SFTP_HOST=localhost:2222 go test ./internal/sftp/...
-
+GFTP_TEST_SFTP_HOST=localhost:2222 go -C backend test ./internal/sftp/...
 just sftp-down
 ```
 
-SSH host keys persist in the `sftp-ssh` volume, so the fingerprint survives
-`just sftp-down` + `just sftp-up`. If you reset that volume
-(`docker volume rm goblinftp_sftp-ssh`), the next start generates new keys and
-a previously trusted connection fails with a host-key mismatch - delete the
-`[localhost]:2222` line from `$GFTP_DATA_DIR/known_hosts` (dev:
-`data/known_hosts` in the repo root, container: `/app/data/known_hosts`) and
-re-trust.
+Connect with `localhost:2222`, username `ftpuser`, and password `ftppass`. Upload into `/upload`; the root folder is read-only.
 
-The backend needs a writable `GFTP_DATA_DIR` for SFTP host-key pinning and
-local upload staging. `just dev-be` defaults it to `data` and resolves a
-relative value against the repo root, so the dev data dir is `<repo>/data`. If
-your `.env` still sets the container path `/app/data`, change it to `data` (see
-`.env.example`).
+Server keys are saved in the `sftp-ssh` Docker volume. If you intentionally delete that volume, the server gets a new key. Remove the old `[localhost]:2222` entry from `data/known_hosts` before trusting the new one.
+
+The backend needs a writable data folder to save SFTP keys and temporary uploads. `just dev-be` uses `data/` in the repository root by default. If your `.env` sets the container path `/app/data`, change it to `data` for local development.
 
 ## Testing with a local S3 server (MinIO)
 
 ```bash
-just s3-up   # MinIO on localhost:9000 (console: localhost:9001, minioadmin/minioadmin)
-             # the gftp-chunks bucket is created automatically
-             # (override the test server's root creds with MINIO_ROOT_USER /
-             #  MINIO_ROOT_PASSWORD / MINIO_TEST_BUCKET; they are deliberately
-             #  separate from the app-side GFTP_S3_* variables)
+just s3-up
+```
 
+MinIO runs on `http://localhost:9000`, with its console on port 9001. The username and password are both `minioadmin`. The setup creates a `gftp-chunks` bucket.
+
+Start the backend with S3 storage enabled:
+
+```bash
 GFTP_S3_ENABLED=true GFTP_S3_ENDPOINT=http://localhost:9000 \
 GFTP_S3_BUCKET=gftp-chunks GFTP_S3_ACCESS_KEY=minioadmin \
 GFTP_S3_SECRET_KEY=minioadmin just dev-be
+```
 
-# S3 integration tests:
-cd backend && GFTP_TEST_S3_ENDPOINT=http://localhost:9000 go test ./internal/staging/...
+Run the tests in another terminal, then stop MinIO when finished:
 
+```bash
+GFTP_TEST_S3_ENDPOINT=http://localhost:9000 go -C backend test ./internal/staging/...
 just s3-down
 ```
 
+To change the test server's login or bucket, set `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, or `MINIO_TEST_BUCKET`. These are separate from GoblinFTP's `GFTP_S3_*` settings.
+
 ## See also
 
-- [Installation](installation.md) for Docker and manual (from-source) setup.
-- [Configuration](configuration.md) for the environment-variable reference.
-- [Translations (i18n)](i18n.md) for adding or improving a language.
-
+- [Installation](installation.md) to run GoblinFTP outside development.
+- [Configuration](configuration.md) for app settings.
+- [Translations](i18n.md) to improve or add a language.

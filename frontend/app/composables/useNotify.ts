@@ -5,7 +5,7 @@ export function useNotify() {
   // render with line breaks.
   const ui = { description: 'whitespace-pre-line' }
   return {
-    success: (title: string, description?: string) => toast.add({ title, description, color: 'success', icon: 'i-lucide-check', ui }),
-    error: (title: string, description?: string) => toast.add({ title, description, color: 'error', icon: 'i-lucide-triangle-alert', ui }),
+    success: (title: string, description?: string) => toast.add({ title, description, color: 'success', icon: 'i-ph-check', ui }),
+    error: (title: string, description?: string) => toast.add({ title, description, color: 'error', icon: 'i-ph-warning', ui }),
   }
 }

@@ -1,7 +1,7 @@
 <template>
   <UModal v-model:open="open" :title="t('shortcuts.title')">
     <template #title>
-      <UIcon name="i-lucide-keyboard" class="size-5 text-muted" />
+      <UIcon name="i-ph-keyboard-duotone" class="size-5 text-muted" />
       {{ t('shortcuts.title') }}
     </template>
 

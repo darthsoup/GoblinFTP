@@ -4,12 +4,12 @@ services:
   gftp:
     image: ghcr.io/darthsoup/goblinftp
     ports:
-      - "8080:80"
+      - "8080:8080"
       # Prometheus metrics listener. Uncomment together with
       # GFTP_METRICS_ENABLED=true in .env; see docs/metrics.md.
       # - "9091:9091"
     # Every GFTP_* variable in .env reaches the container (optional form needs
-    # Compose v2.24+). The healthcheck lives in the image (port 80 via Caddy).
+    # Compose v2.24+). The healthcheck lives in the image (port 8080 via Caddy).
     env_file:
       - path: .env
         required: false

@@ -273,7 +273,7 @@ func TestSessionContextIsOptIn(t *testing.T) {
 		{"opted in", true, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			tr := newCapturingHub(t, sentry.ClientOptions{SendDefaultPII: false})
+			tr := newCapturingHub(t, sentry.ClientOptions{})
 			cfg := failWith(gftperrors.New(gftperrors.ErrInternal, "boom"))
 			cfg.Session = session
 			cfg.SendSessionContext = tc.optIn

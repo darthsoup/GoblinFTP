@@ -1,7 +1,14 @@
 packages:
   - frontend
+  - docs
 
 shellEmulator: true
+
+# Use patched transitive releases until upstream constraints include them.
+overrides:
+  'fontless>esbuild': ^0.28.2
+  'micromark-extension-math>katex': ^0.18.2
+  'oxfmt>tinypool': ^2.2.0
 
 trustPolicy: no-downgrade
 trustPolicyExclude:

@@ -24,24 +24,26 @@ shutdown() {
 trap shutdown INT TERM
 trap cleanup EXIT
 
-# The in-container backend port is fixed: Caddy's reverse_proxy targets and the
-# health polls all assume 8080. The host-facing knob is the port mapping to 80.
-if [ -n "${GFTP_PORT:-}" ] && [ "${GFTP_PORT}" != "8080" ]; then
-    echo "GFTP_PORT is fixed to 8080 inside this container (Caddy proxies it); ignoring ${GFTP_PORT}" >&2
+# The backend is reachable only through the local Caddy process.
+if [ -n "${GFTP_PORT:-}" ] && [ "${GFTP_PORT}" != "8081" ]; then
+    echo "GFTP_PORT is fixed to 8081 inside this container; ignoring ${GFTP_PORT}" >&2
 fi
-export GFTP_PORT=8080
+export GFTP_PORT=8081
+export GFTP_BIND_ADDRESS=127.0.0.1
 
-# Caddy's trusted_proxies takes space-separated ranges, while GFTP_ACCESS_TRUSTED_PROXIES
-# is comma-separated like every other GFTP_* list. Translate instead of diverging.
+# Caddy validates external hops; Go also trusts the loopback hop from Caddy.
 GFTP_CADDY_TRUSTED_PROXIES="$(printf '%s' "${GFTP_ACCESS_TRUSTED_PROXIES:-}" | tr ',' ' ')"
 export GFTP_CADDY_TRUSTED_PROXIES
+GFTP_ACCESS_TRUSTED_PROXIES="${GFTP_ACCESS_TRUSTED_PROXIES:+${GFTP_ACCESS_TRUSTED_PROXIES},}127.0.0.1/32"
+export GFTP_ACCESS_TRUSTED_PROXIES
 
 /app/gftp &
 backend_pid=$!
 
 healthy=false
-for i in $(seq 1 10); do
-    if wget -q -O /dev/null http://localhost:8080/healthz 2>/dev/null; then
+deadline=$(($(date +%s) + 15))
+while [ "$(date +%s)" -lt "$deadline" ]; do
+    if wget -T 1 -q -O /dev/null http://127.0.0.1:8081/healthz 2>/dev/null; then
         healthy=true
         break
     fi
@@ -53,7 +55,7 @@ for i in $(seq 1 10); do
 done
 
 if [ "$healthy" != "true" ]; then
-    echo "GoblinFTP backend did not become healthy within 5 seconds" >&2
+    echo "GoblinFTP backend did not become healthy within 15 seconds" >&2
     exit 1
 fi
 

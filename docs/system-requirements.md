@@ -1,46 +1,49 @@
+---
+description: Check what you need to run GoblinFTP with Docker or build it from source.
+---
+
 # System requirements
 
-The image is a static `CGO_ENABLED=0` Go binary plus Caddy on `caddy:2-alpine`. GoblinFTP is a client to your existing FTP/SFTP servers and holds little state of its own, so the runtime footprint is small.
+You need Docker, a web browser, and an FTP, FTPS, or SFTP server to connect to.
 
 ## Running with Docker (recommended)
 
-| Requirement | Notes |
+| Requirement | Recommendation |
 |---|---|
-| Docker | Any currently supported Docker Engine. Compose is optional. |
-| CPU | 1 core suffices for typical use. |
-| Memory | Small and roughly flat. In-flight upload chunks are staged to disk or S3, not held in RAM, so memory does not scale with file size. A 128 MB container is comfortable for light use. |
-| Disk | The image is small. Size the `/app/data` volume for local upload staging (below). |
-| Architecture | `linux/amd64` and `linux/arm64` are both published. |
+| Docker | Docker with Linux containers. Docker Compose is optional. |
+| CPU | 1 core for typical use. |
+| Memory | Start with 128 MB for light use; allow more for heavier workloads. |
+| Storage | Enough free space for files being uploaded. See below. |
+| Processor | 64-bit Intel/AMD or ARM64. |
 
 ### Storage
 
-Mount a persistent volume at `/app/data`. It holds:
+Keep a Docker volume at `/app/data` so trusted SFTP keys and [custom themes](theming.md) survive restarts. Uploads also use this folder temporarily.
 
-- `known_hosts` for SFTP host-key pinning, so trusted keys survive restarts.
-- Local upload staging: chunks buffered on disk before transfer, roughly one file's worth of chunks per concurrent upload, deleted after commit. Move this off local disk with [S3 chunk staging](s3-staging.md).
-- Per-tenant [theme](theming.md) assets.
+Allow enough free space for each file being uploaded at the same time. You can use [S3 storage](s3-staging.md) for temporary uploads instead.
 
 ### Networking
 
-- **Inbound:** only the host port you map to the container's port 80 (for example `8080:80`). Serve it over HTTPS in production, typically by terminating TLS at a reverse proxy in front of GoblinFTP.
-- **Outbound:** to the FTP/SFTP servers users log in to, and to the S3 endpoint if S3 staging is enabled.
+- Users need access to the port you publish, such as `8080`. For public access, put a web server in front of GoblinFTP that handles HTTPS.
+- GoblinFTP needs outgoing access to your FTP, FTPS, or SFTP servers, and to S3 if enabled.
 
-GoblinFTP is the FTP client, not a server. Passive-mode data connections are opened outbound to the remote server, so no inbound passive port range is required on GoblinFTP itself.
+With passive FTP, you do not need to open an incoming FTP port range on the GoblinFTP host.
 
 ## Browser
 
-A current evergreen browser (recent Chrome, Edge, Firefox, or Safari) with JavaScript enabled. The interface is a Nuxt 4 single-page app served as static ES-module output.
+A recent version of Chrome, Edge, Firefox, or Safari with JavaScript enabled.
 
 ## Building from source
 
-Required only for a [manual install](installation.md#manual-install-from-source) or [development](development.md). Building the Docker image needs none of these on the host, only Docker (the toolchains run inside build stages).
+You only need these tools for [manual installation](installation.md#manual-install-from-source) or [development](development.md). With Docker, they are installed for you.
 
-| Tool | Version | Purpose |
-|---|---|---|
-| Go | 1.26 or newer (repo builds on 1.26.x) | Backend binary. |
-| Node.js | 24 (see `.nvmrc`) | Nuxt SPA build. |
-| pnpm | 11.x (pinned via `packageManager`; enable with `corepack enable`) | Frontend package manager. |
-| [just](https://just.systems) | any | Optional. Runs the project task recipes. |
+| Tool | Version |
+|---|---|
+| Go | 1.26 or newer |
+| Node.js | 24 |
+| pnpm | The version pinned in `package.json`; enable with `corepack enable` |
+
+[just](https://just.systems) is optional and provides shortcuts for common commands.
 
 ## See also
 

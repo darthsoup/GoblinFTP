@@ -1,14 +1,14 @@
 <template>
   <ClientOnly>
     <UButton
-      :icon="isDark ? 'i-lucide-moon' : 'i-lucide-sun'"
+      :icon="isDark ? 'i-ph-moon' : 'i-ph-sun'"
       color="neutral"
       variant="ghost"
       :aria-label="t('settings.theme')"
       @click="toggle"
     />
     <template #fallback>
-      <UButton icon="i-lucide-sun" color="neutral" variant="ghost" aria-hidden="true" />
+      <UButton icon="i-ph-sun" color="neutral" variant="ghost" aria-hidden="true" />
     </template>
   </ClientOnly>
 </template>

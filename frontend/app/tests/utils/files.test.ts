@@ -55,7 +55,7 @@ describe('previewMime', () => {
 
 describe('getFileIcon', () => {
   it('renders folders as the primary (Goblin Green) folder icon', () => {
-    expect(getFileIcon({ name: 'photos', isDir: true })).toEqual({ icon: 'i-lucide-folder', primary: true })
+    expect(getFileIcon({ name: 'photos', isDir: true })).toEqual({ icon: 'i-ph-folder-duotone', primary: true })
   })
 
   it('maps known types to a distinct brand icon (incl. pdf / exe / office)', () => {
@@ -70,12 +70,12 @@ describe('getFileIcon', () => {
   })
 
   it('falls back to a plain, uncolored file icon for unknown / extensionless names', () => {
-    expect(getFileIcon({ name: 'thing.zzz', isDir: false })).toEqual({ icon: 'i-lucide-file', color: undefined, primary: false })
-    expect(getFileIcon({ name: 'README', isDir: false })).toEqual({ icon: 'i-lucide-file', color: undefined, primary: false })
+    expect(getFileIcon({ name: 'thing.zzz', isDir: false })).toEqual({ icon: 'i-ph-file-duotone', color: undefined, primary: false })
+    expect(getFileIcon({ name: 'README', isDir: false })).toEqual({ icon: 'i-ph-file-duotone', color: undefined, primary: false })
   })
 
   it('only references the two offline-installed icon sets', () => {
     for (const entry of FILE_ICONS)
-      expect(entry.icon).toMatch(/^i-(lucide|simple-icons)-/)
+      expect(entry.icon).toMatch(/^i-(ph|simple-icons)-/)
   })
 })

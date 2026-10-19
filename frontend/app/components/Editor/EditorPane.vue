@@ -8,7 +8,7 @@
       v-if="conflictTab"
       class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 border-b border-default bg-warning/10"
     >
-      <UIcon name="i-lucide-triangle-alert" class="size-4 shrink-0 text-warning" />
+      <UIcon name="i-ph-warning" class="size-4 shrink-0 text-warning" />
       <span class="text-sm text-default">
         {{ conflictTab.conflict === 'deleted' ? t('editor.conflict.bannerDeleted') : t('editor.conflict.banner') }}
       </span>
@@ -35,12 +35,12 @@
       <div v-show="showEditor" ref="containerRef" class="absolute inset-0 overflow-auto" />
 
       <div v-if="editorStore.activeTab?.loading" class="absolute inset-0 flex items-center justify-center text-muted text-sm">
-        <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin mr-2 text-primary" />
+        <UIcon name="i-ph-spinner-gap" class="size-5 animate-spin mr-2 text-primary" />
         {{ t('editor.loading') }}
       </div>
 
       <div v-else-if="editorStore.activeTab?.error" class="absolute inset-0 flex items-center justify-center text-error text-sm">
-        <UIcon name="i-lucide-circle-x" class="size-5 mr-2" />
+        <UIcon name="i-ph-x-circle" class="size-5 mr-2" />
         {{ editorStore.activeTab.error }}
       </div>
 

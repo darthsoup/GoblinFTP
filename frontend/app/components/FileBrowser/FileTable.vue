@@ -12,7 +12,7 @@
         class="absolute inset-0 z-10 m-3 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-default/90 backdrop-blur-sm pointer-events-none"
       >
         <div class="flex flex-col items-center gap-2 text-primary">
-          <UIcon name="i-lucide-cloud-upload" class="size-12" />
+          <UIcon name="i-ph-cloud-arrow-up-duotone" class="size-12" />
           <span class="text-lg font-semibold">{{ t('files.dropToUpload') }}</span>
         </div>
       </div>
@@ -25,20 +25,20 @@
         <div class="flex-1 min-w-0 overflow-auto" @contextmenu.capture="onAreaContextMenu">
           <!-- Loading, error and empty states, shared by both views -->
           <div v-if="filesStore.loading" class="py-12 text-center text-muted text-sm">
-            <UIcon name="i-lucide-loader-circle" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
+            <UIcon name="i-ph-spinner-gap" class="size-5 animate-spin inline-block mr-2 align-middle text-primary" />
             {{ t('files.loading') }}
           </div>
 
           <div v-else-if="filesStore.error" class="py-8 flex flex-col items-center gap-3">
             <p class="text-error text-sm text-center px-4">
-              <UIcon name="i-lucide-triangle-alert" class="size-5 inline-block mr-2 align-middle" />
+              <UIcon name="i-ph-warning" class="size-5 inline-block mr-2 align-middle" />
               {{ filesStore.error }}
             </p>
             <UButton
               size="sm"
               color="neutral"
               variant="subtle"
-              icon="i-lucide-refresh-cw"
+              icon="i-ph-arrows-clockwise"
               :loading="filesStore.loading"
               @click="filesStore.list()"
             >
@@ -50,7 +50,7 @@
             <div class="relative flex items-center justify-center">
               <div class="absolute size-20 rounded-full bg-primary/10 blur-xl" aria-hidden="true" />
               <div class="relative flex size-16 items-center justify-center rounded-2xl border border-default bg-elevated/60 text-primary">
-                <UIcon :name="filter ? 'i-lucide-search-x' : 'i-lucide-folder-open'" class="size-8" />
+                <UIcon :name="filter ? 'i-ph-magnifying-glass-duotone' : 'i-ph-folder-open-duotone'" class="size-8" />
               </div>
             </div>
             <div class="space-y-1">
@@ -287,8 +287,8 @@ function toggleSort(key: SortKey) {
 
 function sortIcon(key: SortKey): string {
   if (sortKey.value !== key)
-    return 'i-lucide-chevrons-up-down'
-  return sortAsc.value ? 'i-lucide-arrow-up-narrow-wide' : 'i-lucide-arrow-down-wide-narrow'
+    return 'i-ph-caret-up-down'
+  return sortAsc.value ? 'i-ph-sort-ascending' : 'i-ph-sort-descending'
 }
 
 function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
@@ -335,7 +335,7 @@ const emptyActions = computed<ButtonProps[]>(() => {
   if (filter.value) {
     return [{
       label: t('files.clearFilter'),
-      icon: 'i-lucide-x',
+      icon: 'i-ph-x',
       color: 'neutral',
       variant: 'subtle',
       onClick: () => {
@@ -344,8 +344,8 @@ const emptyActions = computed<ButtonProps[]>(() => {
     }]
   }
   return [
-    { label: t('toolbar.newFolder'), icon: 'i-lucide-folder-plus', onClick: () => modalStore.open('newFolder') },
-    { label: t('toolbar.newFile'), icon: 'i-lucide-file-plus', color: 'neutral', variant: 'subtle', onClick: () => modalStore.open('newFile') },
+    { label: t('toolbar.newFolder'), icon: 'i-ph-folder-plus', onClick: () => modalStore.open('newFolder') },
+    { label: t('toolbar.newFile'), icon: 'i-ph-file-plus', color: 'neutral', variant: 'subtle', onClick: () => modalStore.open('newFile') },
   ]
 })
 
@@ -410,29 +410,29 @@ function buildFileMenu(file: FileInfo): DropdownMenuItem[][] {
   // Directories can't be downloaded, so the group is dropped below when empty.
   const primary: DropdownMenuItem[] = []
   if (!file.isDir)
-    primary.push({ label: t('context.download'), icon: 'i-lucide-download', onSelect: () => onDownload(path) })
+    primary.push({ label: t('context.download'), icon: 'i-ph-download-simple', onSelect: () => onDownload(path) })
 
   const middle: DropdownMenuItem[] = [
-    { label: t('context.rename'), icon: 'i-lucide-pencil-line', onSelect: () => filesStore.startRename(file.name) },
+    { label: t('context.rename'), icon: 'i-ph-pencil-line', onSelect: () => filesStore.startRename(file.name) },
   ]
   if (editEnabled.value(file)) {
     middle.push({
       label: authStore.systemVars?.editor?.viewOnly ? t('context.view') : t('context.edit'),
-      icon: 'i-lucide-pencil',
+      icon: 'i-ph-pencil',
       onSelect: () => navigateTo({ path: '/edit', query: { path } }),
     })
   }
-  middle.push({ label: t('context.properties'), icon: 'i-lucide-info', onSelect: () => modalStore.open('properties', { file }) })
+  middle.push({ label: t('context.properties'), icon: 'i-ph-info', onSelect: () => modalStore.open('properties', { file }) })
 
   const clipboard: DropdownMenuItem[] = [
-    { label: t('context.copy'), icon: 'i-lucide-copy', onSelect: () => filesStore.copyToClipboard(clipboardNames(file)) },
-    { label: t('context.cut'), icon: 'i-lucide-scissors', onSelect: () => filesStore.cutToClipboard(clipboardNames(file)) },
+    { label: t('context.copy'), icon: 'i-ph-copy', onSelect: () => filesStore.copyToClipboard(clipboardNames(file)) },
+    { label: t('context.cut'), icon: 'i-ph-scissors', onSelect: () => filesStore.cutToClipboard(clipboardNames(file)) },
   ]
   if (filesStore.clipboard)
-    clipboard.push({ label: t('context.paste'), icon: 'i-lucide-clipboard-paste', onSelect: runPaste })
+    clipboard.push({ label: t('context.paste'), icon: 'i-ph-clipboard-text', onSelect: runPaste })
 
   const del: DropdownMenuItem[] = [
-    { label: t('context.delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => modalStore.open('delete', { file }) },
+    { label: t('context.delete'), icon: 'i-ph-trash', color: 'error', onSelect: () => modalStore.open('delete', { file }) },
   ]
 
   return [primary, middle, clipboard, del].filter(group => group.length > 0)

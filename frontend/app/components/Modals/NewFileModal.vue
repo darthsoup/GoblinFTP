@@ -1,7 +1,7 @@
 <template>
   <UModal v-model:open="open" :title="t('modal.newFile.title')">
     <template #title>
-      <UIcon name="i-lucide-file-plus" class="size-5 text-primary" />
+      <UIcon name="i-ph-file-plus-duotone" class="size-5 text-primary" />
       {{ t('modal.newFile.title') }}
     </template>
 

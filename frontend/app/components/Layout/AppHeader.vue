@@ -15,7 +15,7 @@
       <div v-else class="flex items-center gap-2 select-none">
         <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="h-7 w-auto max-w-[200px] object-contain">
         <template v-else>
-          <UIcon name="i-lucide-server" class="size-5 text-primary" />
+          <UIcon name="i-ph-hard-drives" class="size-5 text-primary" />
           <span class="text-lg sm:text-xl font-bold tracking-tight text-primary truncate max-w-[40vw] sm:max-w-none">{{ appName }}</span>
         </template>
       </div>
@@ -37,7 +37,7 @@
         <UButton
           color="neutral"
           variant="ghost"
-          icon="i-lucide-keyboard"
+          icon="i-ph-keyboard"
           :aria-label="t('shortcuts.title')"
           class="hidden sm:inline-flex"
           @click="modalStore.open('shortcuts')"
@@ -48,7 +48,7 @@
         <UButton
           color="neutral"
           variant="ghost"
-          icon="i-lucide-settings"
+          icon="i-ph-gear"
           :aria-label="t('header.settings')"
           @click="modalStore.open('settings')"
         />
@@ -62,7 +62,7 @@
         <UButton
           color="error"
           variant="ghost"
-          icon="i-lucide-log-out"
+          icon="i-ph-sign-out"
           :aria-label="t('header.disconnect')"
           @click="handleDisconnect"
         >
@@ -90,13 +90,13 @@ const { embedded } = useEmbed()
 const navItems = computed<NavigationMenuItem[]>(() => [
   {
     label: t('header.files'),
-    icon: 'i-lucide-folder',
+    icon: 'i-ph-folder',
     to: { path: '/', query: { path: filesStore.currentPath } },
     active: route.path === '/',
   },
   {
     label: t('header.editor'),
-    icon: 'i-lucide-file-pen',
+    icon: 'i-ph-file-code',
     to: '/edit',
     active: route.path === '/edit',
     badge: editorStore.tabs.length,

@@ -22,7 +22,7 @@
           <UButton
             color="neutral"
             variant="ghost"
-            icon="i-lucide-settings"
+            icon="i-ph-gear"
             :aria-label="t('header.settings')"
             @click="modalStore.open('settings')"
           />

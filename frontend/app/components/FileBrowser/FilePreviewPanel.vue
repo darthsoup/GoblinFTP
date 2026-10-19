@@ -12,7 +12,7 @@
         size="sm"
         color="neutral"
         variant="ghost"
-        icon="i-lucide-x"
+        icon="i-ph-x"
         :aria-label="t('preview.close')"
         @click="emit('close')"
       />
@@ -24,14 +24,14 @@
           v-if="status === 'loading'"
           class="flex items-center justify-center min-h-40 rounded border border-default bg-muted/30 text-muted"
         >
-          <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin text-primary" />
+          <UIcon name="i-ph-spinner-gap" class="size-6 animate-spin text-primary" />
         </div>
 
         <div
           v-else-if="status === 'error'"
           class="flex flex-col items-center justify-center gap-2 min-h-40 rounded border border-default bg-muted/30 text-muted text-sm"
         >
-          <UIcon name="i-lucide-triangle-alert" class="size-7 text-error" />
+          <UIcon name="i-ph-warning-duotone" class="size-7 text-error" />
           {{ t('preview.error') }}
         </div>
 
@@ -39,9 +39,9 @@
           v-else-if="status === 'tooLarge' || status === 'none'"
           class="flex flex-col items-center justify-center gap-3 min-h-40 rounded border border-default bg-muted/30 text-muted text-sm"
         >
-          <UIcon :name="status === 'tooLarge' ? 'i-lucide-weight' : 'i-lucide-eye-off'" class="size-7 text-dimmed" />
+          <UIcon :name="status === 'tooLarge' ? 'i-ph-file-x-duotone' : 'i-ph-eye-slash-duotone'" class="size-7 text-dimmed" />
           {{ status === 'tooLarge' ? t('preview.tooLarge') : t('preview.noPreview') }}
-          <UButton size="xs" color="neutral" variant="subtle" icon="i-lucide-download" @click="download">
+          <UButton size="xs" color="neutral" variant="subtle" icon="i-ph-download-simple" @click="download">
             {{ t('context.download') }}
           </UButton>
         </div>
@@ -63,7 +63,7 @@
             v-else-if="kind === 'audio' && mediaUrl"
             class="flex flex-col items-center gap-3 p-4 rounded border border-default bg-muted/30"
           >
-            <UIcon name="i-lucide-music" class="size-10 text-dimmed" />
+            <UIcon name="i-ph-music-notes-duotone" class="size-10 text-dimmed" />
             <audio :src="mediaUrl" controls class="w-full" />
           </div>
           <iframe
@@ -102,7 +102,7 @@
     </div>
 
     <div class="flex items-center gap-2 px-3 py-2 border-t border-default shrink-0">
-      <UButton size="sm" color="primary" variant="subtle" icon="i-lucide-download" @click="download">
+      <UButton size="sm" color="primary" variant="subtle" icon="i-ph-download-simple" @click="download">
         {{ t('context.download') }}
       </UButton>
       <UButton
@@ -110,7 +110,7 @@
         size="sm"
         color="neutral"
         variant="subtle"
-        icon="i-lucide-pencil"
+        icon="i-ph-pencil"
         @click="edit"
       >
         {{ authStore.systemVars?.editor?.viewOnly ? t('context.view') : t('context.edit') }}
@@ -121,7 +121,7 @@
           size="sm"
           color="neutral"
           variant="ghost"
-          icon="i-lucide-info"
+          icon="i-ph-info"
           :aria-label="t('context.properties')"
           @click="openProperties"
         />

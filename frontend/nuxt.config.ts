@@ -34,6 +34,17 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
   ],
 
+  icon: {
+    provider: 'none',
+    fallbackToApi: false,
+    clientBundle: {
+      scan: {
+        globInclude: ['app/**/*.{vue,ts}'],
+        globExclude: ['app/tests/**'],
+      },
+    },
+  },
+
   // All four are baked into the static SPA at `nuxt generate`, unlike the GFTP_*
   // vars the backend reads at process start.
   runtimeConfig: {

@@ -20,7 +20,7 @@
             size="sm"
             color="neutral"
             variant="ghost"
-            icon="i-lucide-x"
+            icon="i-ph-x"
             :aria-label="t('toolbar.deselectAll')"
             @click="filesStore.clearSelection()"
           />
@@ -29,17 +29,17 @@
         <USeparator orientation="vertical" class="h-5" />
 
         <UFieldGroup size="sm">
-          <UButton color="neutral" variant="subtle" icon="i-lucide-copy" :aria-label="t('toolbar.copy')" @click="copySelected">
+          <UButton color="neutral" variant="subtle" icon="i-ph-copy" :aria-label="t('toolbar.copy')" @click="copySelected">
             <span class="hidden md:inline">{{ t('toolbar.copy') }}</span>
           </UButton>
-          <UButton color="neutral" variant="subtle" icon="i-lucide-scissors" :aria-label="t('toolbar.cut')" @click="cutSelected">
+          <UButton color="neutral" variant="subtle" icon="i-ph-scissors" :aria-label="t('toolbar.cut')" @click="cutSelected">
             <span class="hidden md:inline">{{ t('toolbar.cut') }}</span>
           </UButton>
           <UButton
             v-if="selectedCount >= 2"
             color="neutral"
             variant="subtle"
-            icon="i-lucide-file-archive"
+            icon="i-ph-file-zip"
             :aria-label="t('toolbar.downloadZip')"
             @click="downloadZip"
           >
@@ -47,7 +47,7 @@
           </UButton>
         </UFieldGroup>
 
-        <UButton size="sm" color="error" variant="soft" icon="i-lucide-trash-2" @click="deleteSelected">
+        <UButton size="sm" color="error" variant="soft" icon="i-ph-trash" @click="deleteSelected">
           {{ t('toolbar.delete') }}
         </UButton>
       </div>
@@ -56,7 +56,7 @@
         <UButton
           size="sm"
           color="primary"
-          icon="i-lucide-folder-plus"
+          icon="i-ph-folder-plus"
           class="active:translate-y-px"
           @click="openNewFolder"
         >
@@ -66,7 +66,7 @@
           size="sm"
           color="neutral"
           variant="subtle"
-          icon="i-lucide-file-plus"
+          icon="i-ph-file-plus"
           class="active:translate-y-px"
           @click="openNewFile"
         >
@@ -80,7 +80,7 @@
             <UButton
               color="neutral"
               variant="subtle"
-              icon="i-lucide-refresh-cw"
+              icon="i-ph-arrows-clockwise"
               :aria-label="t('toolbar.refresh')"
               :loading="filesStore.loading"
               @click="filesStore.list()"
@@ -90,7 +90,7 @@
             <UButton
               color="neutral"
               variant="subtle"
-              icon="i-lucide-upload"
+              icon="i-ph-upload-simple"
               :aria-label="t('toolbar.upload')"
               @click="triggerUpload"
             />
@@ -99,7 +99,7 @@
             <UButton
               color="neutral"
               variant="subtle"
-              :icon="settingsStore.fileViewMode === 'table' ? 'i-lucide-layout-grid' : 'i-lucide-table'"
+              :icon="settingsStore.fileViewMode === 'table' ? 'i-ph-squares-four' : 'i-ph-table'"
               :aria-label="t('toolbar.viewToggle')"
               @click="toggleView"
             />
@@ -111,7 +111,7 @@
           size="sm"
           color="primary"
           variant="subtle"
-          icon="i-lucide-clipboard-paste"
+          icon="i-ph-clipboard-text"
           @click="paste"
         >
           {{ t('toolbar.paste', { n: filesStore.clipboard.names.length }) }}
@@ -124,7 +124,7 @@
     <UInput
       v-model="filter"
       size="sm"
-      icon="i-lucide-search"
+      icon="i-ph-magnifying-glass"
       :placeholder="t('toolbar.filter')"
       class="w-full sm:w-44 md:w-56"
     >
@@ -133,7 +133,7 @@
           color="neutral"
           variant="link"
           size="xs"
-          icon="i-lucide-x"
+          icon="i-ph-x"
           :aria-label="t('files.clearFilter')"
           @click="clearFilter"
         />

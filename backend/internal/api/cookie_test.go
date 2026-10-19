@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +12,37 @@ import (
 
 	"github.com/darthsoup/goblinftp/internal/config"
 )
+
+func TestSessionCookieSchemeTrustsOnlyConfiguredPeers(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		peer   string
+		tls    bool
+		secure bool
+	}{
+		{"trusted Caddy", "127.0.0.1:1234", false, true},
+		{"untrusted peer", "198.51.100.20:1234", false, false},
+		{"direct TLS", "198.51.100.20:1234", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := defaultTestConfig()
+			cfg.Settings.Access.TrustedProxies = []string{"127.0.0.1/32"}
+			app, _, _ := newTestApp(t, cfg, staticDialOption())
+			req := httptest.NewRequest(http.MethodPost, "/api/auth/connect",
+				strings.NewReader(`{"protocol":"ftp","host":"h","port":21,"username":"u","password":"p"}`))
+			req.RemoteAddr = tc.peer
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Forwarded-Proto", "https")
+			if tc.tls {
+				req.TLS = &tls.ConnectionState{}
+			}
+			rec := httptest.NewRecorder()
+			app.ServeHTTP(rec, req)
+			require.Equal(t, http.StatusOK, rec.Code)
+			assert.Equal(t, tc.secure, strings.Contains(rawSetCookie(t, rec), "; Secure"))
+		})
+	}
+}
 
 // rawSetCookie returns the Set-Cookie header verbatim: net/http's parser drops
 // attributes it does not model, and Partitioned would silently vanish.

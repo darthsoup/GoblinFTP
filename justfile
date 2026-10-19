@@ -86,7 +86,13 @@ docker-build:
 # Run Docker image (:8080)
 [group('docker')]
 docker-run:
-    docker run -p 8080:80 ghcr.io/darthsoup/goblinftp
+    docker run -p 8080:8080 ghcr.io/darthsoup/goblinftp
+
+# Build and exercise the container with production runtime restrictions
+[group('test')]
+docker-test:
+    docker build -f docker/Dockerfile -t goblinftp:smoke .
+    python3 docker/smoke_test.py goblinftp:smoke
 
 # Push Docker image (docker login ghcr.io first; releases normally come from CI on v* tags)
 [group('docker')]
@@ -168,7 +174,22 @@ i18n-check:
 confgen:
     cd backend && go run ./cmd/gftp-confgen -root "{{ justfile_directory() }}"
 
+# Preview documentation with hot reload
+[group('docs')]
+docs-dev:
+    pnpm run docs:dev
+
+# Build the documentation site
+[group('docs')]
+docs-build:
+    pnpm run docs:build
+
+# Serve the built documentation site
+[group('docs')]
+docs-preview:
+    pnpm run docs:preview
+
 # Remove build artifacts
 [group('utils')]
 clean:
-    rm -rf frontend/.output frontend/.nuxt node_modules frontend/node_modules bin/
+    rm -rf frontend/.output frontend/.nuxt node_modules frontend/node_modules docs/node_modules docs/.vitepress/cache docs/.vitepress/dist bin/

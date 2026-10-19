@@ -1,7 +1,7 @@
 <template>
   <UModal v-model:open="open" :title="t('modal.newFolder.title')">
     <template #title>
-      <UIcon name="i-lucide-folder-plus" class="size-5 text-primary" />
+      <UIcon name="i-ph-folder-plus-duotone" class="size-5 text-primary" />
       {{ t('modal.newFolder.title') }}
     </template>
 

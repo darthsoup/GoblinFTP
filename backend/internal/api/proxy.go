@@ -51,11 +51,20 @@ func singleHostNet(ip net.IP) *net.IPNet {
 // clientScheme reports the scheme the browser used: X-Forwarded-Proto is spoofable
 // without a trusted proxy, but the only signal behind one (Caddy serves plain HTTP).
 func clientScheme(c echo.Context, cfg *config.Config) string {
-	if cfg.TrustProxies() {
-		return c.Scheme()
-	}
 	if c.Request().TLS != nil {
 		return "https"
+	}
+	host, _, err := net.SplitHostPort(c.Request().RemoteAddr)
+	if err == nil {
+		ip := net.ParseIP(host)
+		for _, entry := range cfg.Settings.Access.TrustedProxies {
+			if _, subnet, err := net.ParseCIDR(entry); err == nil && subnet.Contains(ip) {
+				return c.Scheme()
+			}
+			if trusted := net.ParseIP(entry); trusted != nil && trusted.Equal(ip) {
+				return c.Scheme()
+			}
+		}
 	}
 	return "http"
 }

@@ -5,7 +5,7 @@
     @update:open="(v: boolean) => { if (!v) modalStore.resolveEditorConflict('cancel') }"
   >
     <template #title>
-      <UIcon name="i-lucide-triangle-alert" class="size-5 text-warning" />
+      <UIcon name="i-ph-warning-duotone" class="size-5 text-warning" />
       {{ deleted ? t('editor.conflict.deletedTitle') : t('editor.conflict.title') }}
     </template>
 

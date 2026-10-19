@@ -82,6 +82,7 @@ type Settings struct {
 // Config holds all runtime configuration for GoblinFTP.
 type Config struct {
 	Port                string
+	BindAddress         string
 	LogLevel            string
 	LogFormat           string
 	LogFile             string
@@ -91,7 +92,7 @@ type Config struct {
 	FrontendLogEnabled  bool
 	MetricsEnabled      bool
 	MetricsPort         string
-	SessionSecret       []byte
+	SessionSecret       []byte // Deprecated; retained for environment compatibility.
 	DownloadTokenSecret []byte
 	SSOEnabled          bool
 	SSOSecret           []byte

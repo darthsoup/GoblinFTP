@@ -1,0 +1,42 @@
+:root {
+  --vp-font-family-base: 'Plus Jakarta Sans Variable', sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono Variable', monospace;
+  --vp-c-brand-1: #006e16;
+  --vp-c-brand-2: #00530e;
+  --vp-c-brand-3: #006e16;
+  --vp-c-brand-soft: rgb(0 110 22 / 10%);
+  --vp-button-brand-text: #fff;
+  --vp-button-brand-hover-text: #fff;
+  --vp-button-brand-active-text: #fff;
+}
+
+.dark {
+  --vp-c-brand-1: #67df70;
+  --vp-c-brand-2: #83fc89;
+  --vp-c-brand-3: #67df70;
+  --vp-c-brand-soft: rgb(103 223 112 / 12%);
+  --vp-button-brand-text: #002203;
+  --vp-button-brand-hover-text: #002203;
+  --vp-button-brand-active-text: #002203;
+}
+
+.home-preview {
+  max-width: 1152px;
+  margin: 48px auto;
+  padding: 0 24px;
+}
+
+.home-preview img {
+  width: 100%;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+}
+
+.home-preview .screenshot-dark,
+.dark .home-preview .screenshot-light {
+  display: none;
+}
+
+.dark .home-preview .screenshot-dark {
+  display: block;
+}
