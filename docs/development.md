@@ -64,29 +64,6 @@ In repository settings, choose **Pages > Build and deployment > Source: GitHub A
 
 :::
 
-## Releases
-
-Create a new `v*` tag either from GitHub's release page or from the command line:
-
-```bash
-git tag v1.2.3
-git push origin v1.2.3
-```
-
-The tag starts the Release workflow. It runs the shared checks and publishes the multi-architecture image. If you already created the GitHub release, the workflow preserves its title, notes, draft status, and prerelease status. Otherwise, it creates a release with commit-grouped and GitHub-generated notes. Tags such as `v1.2.3-rc.1` create prereleases and do not update the image's `latest` tag.
-
-Image tags follow the version tag. Use a prerelease suffix for preview images; selecting GitHub's prerelease checkbox alone does not prevent a stable version tag from updating `latest`.
-
-Publishing a GitHub release for an existing tag does not start another build. Check the Release run associated with that tag. After these workflow changes, the release step can be rerun without replacing an existing release. Historical runs retain the workflow from their original commit.
-
-Run the release-handling tests locally with Python 3:
-
-```bash
-python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
-```
-
-CI also checks every workflow with actionlint before an image can be published.
-
 ## Test the Docker container
 
 ```bash
