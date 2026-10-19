@@ -3,7 +3,7 @@
 # Runs on the build platform: the generated SPA is static and arch-independent.
 FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-builder
 WORKDIR /build
-RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
+RUN corepack enable
 # Workspace root + the frontend manifest first (layer-cached install)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json frontend/

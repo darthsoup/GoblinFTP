@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: backend/go.sum
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.12.2 # keep in sync with the local install (brew install golangci-lint)
+          version: v2.15.0 # keep in sync with the local install (brew install golangci-lint)
           working-directory: backend
 
   backend-vuln:

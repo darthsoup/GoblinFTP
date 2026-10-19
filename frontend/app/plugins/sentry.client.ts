@@ -16,7 +16,18 @@ export default defineNuxtPlugin(async () => {
     // version, and source maps can never be matched to it either.
     release: (pub.sentryRelease as string) || undefined,
     tracesSampleRate: Number(pub.sentryTracesSampleRate ?? 0),
-    sendDefaultPii: false,
+    // Preserve the v10 collection limits; v11 enables these categories by default.
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      httpBodies: [],
+      urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      graphQL: { document: false, variables: false },
+    },
     // GlobalHandlers dropped on purpose: error-reporter.client.ts is the single
     // funnel for browser errors, so the same throw cannot be filed twice (once by
     // the SDK, once by the reporter) and the reporter's dedupe and per-page cap
