@@ -49,7 +49,7 @@ func TestSessionCookieSchemeTrustsOnlyConfiguredPeers(t *testing.T) {
 func rawSetCookie(t *testing.T, rec *httptest.ResponseRecorder) string {
 	t.Helper()
 	for _, v := range rec.Result().Header.Values("Set-Cookie") {
-		if strings.HasPrefix(v, "gftp_session=") {
+		if strings.HasPrefix(v, "gftp_session=") || strings.HasPrefix(v, "__Host-gftp_session=") {
 			return v
 		}
 	}
@@ -112,9 +112,8 @@ func TestDisconnectClearsCookieWithMatchingAttributes(t *testing.T) {
 	assert.Contains(t, raw, "Max-Age=0")
 }
 
-// Chrome keeps a Partitioned cookie as a distinct entry, so enabling framing on a
-// live deployment sends both. Reading only the first would 401 every request.
-func TestStaleDuplicateSessionCookieIsIgnored(t *testing.T) {
+// HTTPS must ignore legacy cookies even when they accompany a valid prefixed cookie.
+func TestHTTPSIgnoresLegacyCookieBesidePrefixedSession(t *testing.T) {
 	cfg := defaultTestConfig()
 	cfg.FrameAncestors = []string{"https://panel.example.com"}
 	app, _, _ := newTestApp(t, cfg, staticDialOption())
@@ -141,8 +140,7 @@ func TestStaleDuplicateSessionCookieIsIgnored(t *testing.T) {
 	}
 }
 
-// The multi-cookie tolerance must not become "accept anything": only unresolvable
-// session cookies is still a rejection.
+// Stale or duplicate cookies never establish a session.
 func TestOnlyStaleSessionCookiesStillRejected(t *testing.T) {
 	app, _, _ := newTestApp(t, defaultTestConfig(), staticDialOption())
 

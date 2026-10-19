@@ -10,7 +10,8 @@
     "connect": "Ligar",
     "passive": "Modo passivo",
     "errorRequired": "Obrigatório",
-    "errorPort": "Porta inválida"
+    "errorPort": "Porta inválida",
+    "fixedServer": "Servidor fixo"
   },
   "hostKey": {
     "title": "Verificar chave do servidor",
@@ -169,7 +170,9 @@
       "reload": "Descartar a minha e recarregar",
       "banner": "Este ficheiro mudou no servidor. A gravação automática está em pausa.",
       "bannerDeleted": "Este ficheiro já não está no servidor. A gravação automática está em pausa."
-    }
+    },
+    "exportDraft": "Exportar rascunho",
+    "detachedDraft": "Rascunho desligado de {host}"
   },
   "modal": {
     "delete": {
@@ -277,7 +280,10 @@
     "ERR_INTERNAL": "Ocorreu um erro no servidor",
     "ERR_OVERWRITE_LOST_DESTINATION": "O ficheiro existente foi removido mas não foi possível mover o substituto",
     "ERR_NETWORK": "Não é possível contactar o servidor",
-    "ERR_UNKNOWN": "Ocorreu um erro"
+    "ERR_UNKNOWN": "Ocorreu um erro",
+    "ERR_CAPACITY_EXCEEDED": "Esta operação excede a capacidade disponível. Tente novamente mais tarde.",
+    "ERR_LISTING_LIMIT": "Esta pasta excede o limite de listagem de diretórios.",
+    "ERR_STALE_CONNECTION": "A sua sessão expirou ou a ligação ao servidor foi perdida. Inicie sessão novamente."
   },
   "toast": {
     "folderCreated": "Pasta criada",
@@ -315,6 +321,7 @@
     "errorUsed": "Esta hiperligação de início de sessão SSO já foi utilizada. Solicite uma nova.",
     "errorDisabled": "O início de sessão SSO não está ativado neste servidor.",
     "errorInternal": "O início de sessão SSO falhou devido a um erro do servidor. Tente novamente.",
-    "errorGeneric": "O início de sessão SSO falhou. Solicite uma nova hiperligação."
+    "errorGeneric": "O início de sessão SSO falhou. Solicite uma nova hiperligação.",
+    "confirmTitle": "Confirmar ligação ao servidor"
   }
 }

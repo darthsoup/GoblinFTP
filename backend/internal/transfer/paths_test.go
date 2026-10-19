@@ -10,24 +10,26 @@ import (
 )
 
 func TestCleanDeletePath(t *testing.T) {
-	for _, p := range []string{"", ".", "..", "../..", "a/../..", "file", "/", "//", "/a/..", " / ", `\folder`, `/folder\..`, "/file\x00", "/file\r\n"} {
+	for _, p := range []string{"", ".", "..", "file", "/", "//", "/a/..", "/a/../file", "/.. ", "/. ", "/...", "/sub/.. ", `\\server/share`, `C:/file`, "/file\t", "/file\x7f", "/file\u0085", "/file\x00", "/file\r\n"} {
 		t.Run(p, func(t *testing.T) {
 			_, err := transfer.CleanDeletePath(p)
 			assert.ErrorIs(t, err, transfer.ErrInvalidType)
 		})
 	}
-	for _, p := range []string{"/file", "/a/../file", "/a//file", "/ file "} {
+	for _, p := range []string{"/file", "/a//file", "/ file ", `\/file`, `\folder`} {
 		t.Run(p, func(t *testing.T) {
 			got, err := transfer.CleanDeletePath(p)
 			require.NoError(t, err)
-			want := "/file"
-			switch p {
-			case "/a//file":
-				want = "/a/file"
-			case "/ file ":
-				want = p
-			}
-			assert.Equal(t, want, got)
+			assert.Equal(t, p, got)
 		})
+	}
+	require.NoError(t, transfer.ValidateRemotePath(`/dir\..`, false, false))
+}
+
+func TestChildNamesRejectControlCharacters(t *testing.T) {
+	for _, windows := range []bool{false, true} {
+		for _, name := range []string{"file\t", "file\x7f", "file\u0085"} {
+			require.Error(t, transfer.ValidateChildName(name, windows))
+		}
 	}
 }

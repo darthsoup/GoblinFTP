@@ -11,6 +11,7 @@ const maxThrottleEntries = 10000
 
 type throttleEntry struct {
 	attempts  int
+	inFlight  int
 	expiresAt time.Time
 }
 
@@ -98,7 +99,7 @@ func (t *Throttle) Close() {
 func (t *Throttle) evictLocked() {
 	now := time.Now()
 	for k, e := range t.entries {
-		if now.After(e.expiresAt) {
+		if now.After(e.expiresAt) && e.inFlight == 0 {
 			delete(t.entries, k)
 		}
 	}
@@ -134,7 +135,7 @@ func (t *Throttle) cleanup() {
 			now := time.Now()
 			t.mu.Lock()
 			for k, e := range t.entries {
-				if now.After(e.expiresAt) {
+				if now.After(e.expiresAt) && e.inFlight == 0 {
 					delete(t.entries, k)
 				}
 			}

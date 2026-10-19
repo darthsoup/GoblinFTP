@@ -154,14 +154,19 @@ func (c *Client) MakeDir(p string) error {
 }
 
 func (c *Client) Delete(p string) error {
-	cleaned, err := transfer.CleanDeletePath(p)
+	err := transfer.ValidateRemotePath(p, false, false)
 	if err != nil {
 		return err
 	}
-	return c.deleteDepth(cleaned, 0)
+	budget := 100000
+	return c.deleteBudget(p, 0, &budget)
 }
 
-func (c *Client) deleteDepth(p string, depth int) error {
+func (c *Client) deleteBudget(p string, depth int, budget *int) error {
+	*budget--
+	if *budget < 0 {
+		return transfer.ErrInvalidType
+	}
 	if depth > 64 {
 		return fmt.Errorf("%w: directory tree is nested too deeply", transfer.ErrInvalidType)
 	}
@@ -178,10 +183,13 @@ func (c *Client) deleteDepth(p string, depth int) error {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\\x00\r\n") {
+		if name == "." || name == ".." {
+			continue
+		}
+		if transfer.ValidateChildName(name, false) != nil {
 			return fmt.Errorf("%w: invalid remote directory entry", transfer.ErrInvalidType)
 		}
-		if err := c.deleteDepth(path.Join(p, name), depth+1); err != nil {
+		if err := c.deleteBudget(path.Join(p, name), depth+1, budget); err != nil {
 			return err
 		}
 	}

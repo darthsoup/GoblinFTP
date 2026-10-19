@@ -6,6 +6,9 @@ import "net/http"
 type Code string
 
 const (
+	ErrCapacity                Code = "ERR_CAPACITY_EXCEEDED"
+	ErrListingLimit            Code = "ERR_LISTING_LIMIT"
+	ErrStaleConnection         Code = "ERR_STALE_CONNECTION"
 	ErrConnectionFailed        Code = "ERR_CONNECTION_FAILED"
 	ErrAuthFailed              Code = "ERR_AUTH_FAILED"
 	ErrLoginThrottled          Code = "ERR_LOGIN_THROTTLED"
@@ -101,6 +104,12 @@ func (e *GFTPError) HTTPStatus() int {
 	}
 
 	switch e.code {
+	case ErrCapacity:
+		return http.StatusTooManyRequests
+	case ErrListingLimit:
+		return http.StatusUnprocessableEntity
+	case ErrStaleConnection:
+		return http.StatusConflict
 	case ErrBadRequest, ErrInvalidType:
 		return http.StatusBadRequest
 	case ErrUnauthorized, ErrAuthFailed, ErrSessionNotFound, ErrCSRFInvalid:

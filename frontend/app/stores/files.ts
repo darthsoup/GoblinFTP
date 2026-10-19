@@ -2,6 +2,7 @@ import type { PasteChoice } from '~/stores/modal'
 import type { DeleteResult, FileInfo, OperationFailure } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
+import { assertConnection, connectionEpoch, rememberObjectUrl } from '~/utils/connection'
 import { previewMime } from '~/utils/files'
 
 export interface ClipboardState {
@@ -158,13 +159,13 @@ export const useFilesStore = defineStore('files', () => {
 
   // The download endpoint serves application/octet-stream, so re-wrap the bytes
   // with the real MIME type. Caller owns the URL and must revokeObjectURL() it.
-  async function fetchObjectUrl(path: string): Promise<string> {
+  async function fetchObjectUrl(path: string, maxBytes = 5 * 1024 * 1024): Promise<string> {
     const mime = previewMime(path)
     if (!mime)
       throw new ApiError('ERR_INVALID_TYPE', 'This file type cannot be previewed')
     const api = useApi()
-    const raw = await api.getBlob(await downloadUrl(path))
-    return URL.createObjectURL(new Blob([raw], { type: mime }))
+    const raw = await api.getBlob(await downloadUrl(path), maxBytes)
+    return rememberObjectUrl(URL.createObjectURL(new Blob([raw], { type: mime })))
   }
 
   function toggleSelection(name: string) {
@@ -228,6 +229,7 @@ export const useFilesStore = defineStore('files', () => {
   // On a name collision the user picks overwrite/append/cancel once for the
   // whole batch. Copy keeps the clipboard (repeat paste); cut clears it.
   async function paste(): Promise<PasteResult> {
+    const epoch = connectionEpoch()
     const cb = clipboard.value
     if (!cb)
       return { mode: 'copy', ok: 0, failed: 0, failures: [] }
@@ -249,15 +251,15 @@ export const useFilesStore = defineStore('files', () => {
     // each other within the same paste.
     const taken = new Set(existing)
     const operations = cb.names.map((name) => {
-      const from = normalizeRemotePath(`${sourceDir}/${name}`)
+      const from = normalizeRemotePath(joinRemotePath(sourceDir, name))
       const conflict = existing.has(name) || sameDirCopy
       let toName = name
       if (conflict && choice === 'append')
         toName = uniqueName(name, taken)
-      let to = normalizeRemotePath(`${dir}/${toName}`)
+      let to = normalizeRemotePath(joinRemotePath(dir, toName))
       if (cb.mode === 'copy' && to === from) {
         toName = uniqueName(name, taken)
-        to = normalizeRemotePath(`${dir}/${toName}`)
+        to = normalizeRemotePath(joinRemotePath(dir, toName))
       }
       taken.add(toName)
       return { from, to, conflict }
@@ -274,6 +276,7 @@ export const useFilesStore = defineStore('files', () => {
     let ok = 0
     let failed = 0
     for (const { from, to, conflict } of operations) {
+      assertConnection(epoch)
       try {
         if (cb.mode === 'copy') {
           await copy(from, to)
@@ -369,6 +372,7 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   function $reset() {
+    _listSeq++
     currentPath.value = '/'
     files.value = []
     loading.value = false
@@ -385,7 +389,7 @@ export const useFilesStore = defineStore('files', () => {
     const parts = currentPath.value.split('/').filter(Boolean)
     return parts.reduce(
       (acc, part, i) => {
-        acc.push({ label: part, path: `/${parts.slice(0, i + 1).join('/')}` })
+        acc.push({ label: displayName(part), path: `/${parts.slice(0, i + 1).join('/')}` })
         return acc
       },
       [] as Array<{ label: string, path: string }>,

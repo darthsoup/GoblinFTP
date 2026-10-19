@@ -18,6 +18,9 @@ import (
 // *StatusError (different types, neither implements Is), so FxCode is the only
 // reliable comparison.
 func wrapErr(err error) error {
+	if errors.Is(err, sftp.ErrListingLimit) {
+		return transfer.ErrListingLimit
+	}
 	if err == nil {
 		return nil
 	}

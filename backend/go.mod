@@ -47,3 +47,7 @@ require (
 	golang.org/x/time v0.16.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
+
+replace github.com/jlaffaye/ftp => ./third_party/ftp
+
+replace github.com/pkg/sftp => ./third_party/sftp

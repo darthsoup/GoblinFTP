@@ -69,6 +69,12 @@ type systemEditorVars struct {
 }
 
 func (h *Handler) SystemVars(c echo.Context) error {
+	var presetHost *string
+	var presetPort *int
+	if h.cfg.ExposePreset && !h.cfg.LoginFormDisabled {
+		presetHost = h.cfg.Settings.Connection.PresetHost
+		presetPort = h.cfg.Settings.Connection.PresetPort
+	}
 	branding := systemBrandingVars{
 		AppName:          h.cfg.Settings.Branding.AppName,
 		LogoURL:          h.cfg.Settings.Branding.LogoURL,
@@ -116,8 +122,8 @@ func (h *Handler) SystemVars(c echo.Context) error {
 		Connection: systemConnVars{
 			AllowedTypes: h.cfg.Settings.Connection.AllowedTypes,
 			DisableChmod: h.cfg.Settings.Connection.DisableChmod,
-			PresetHost:   h.cfg.Settings.Connection.PresetHost,
-			PresetPort:   h.cfg.Settings.Connection.PresetPort,
+			PresetHost:   presetHost,
+			PresetPort:   presetPort,
 			LockHost:     h.cfg.Settings.Connection.LockHost,
 			PassiveMode:  h.cfg.Settings.Connection.PassiveMode,
 		},

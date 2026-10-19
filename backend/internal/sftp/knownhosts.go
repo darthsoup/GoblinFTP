@@ -47,11 +47,18 @@ type hostKeyResult struct {
 // buildHostKeyCallback verifies the server key against knownHostsPath with trust-on-first-use:
 // a pinned match accepts, an acceptFingerprint match pins or re-pins, anything else halts with res.prompt.
 func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *hostKeyResult) (ssh.HostKeyCallback, error) {
-	verify, err := loadKnownHosts(knownHostsPath)
+	_, err := loadKnownHosts(knownHostsPath)
 	if err != nil {
 		return nil, err
 	}
 	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		knownHostsMu.Lock()
+		defer knownHostsMu.Unlock()
+		verify, loadErr := loadKnownHostsLocked(knownHostsPath)
+		if loadErr != nil {
+			res.writeErr = loadErr
+			return errHostKeyHalt
+		}
 		err := verify(hostname, remote, key)
 		if err == nil {
 			return nil // pinned key matches
@@ -75,11 +82,11 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 			// A different key is pinned (server reinstalled, or MITM). Replacing it
 			// needs explicit confirmation against the new key's fingerprint.
 			if acceptFingerprint != "" && acceptFingerprint == fp {
-				if err := replaceKnownHost(knownHostsPath, addr, key); err != nil {
+				if err := replaceKnownHostLocked(knownHostsPath, addr, key, remote.String()); err != nil {
 					res.writeErr = err
 					return errHostKeyHalt
 				}
-				return nil // re-trusted → proceed to auth
+				return reverifyPin(knownHostsPath, hostname, remote, key, res)
 			}
 			res.prompt = &HostKeyPrompt{
 				Fingerprint:    fp,
@@ -91,11 +98,11 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 		}
 		// Unknown host.
 		if acceptFingerprint != "" && acceptFingerprint == fp {
-			if err := appendKnownHost(knownHostsPath, addr, key); err != nil {
+			if err := appendKnownHostLocked(knownHostsPath, addr, key); err != nil {
 				res.writeErr = err
 				return errHostKeyHalt
 			}
-			return nil // trusted now → proceed to auth
+			return reverifyPin(knownHostsPath, hostname, remote, key, res)
 		}
 		res.prompt = &HostKeyPrompt{Fingerprint: fp, KeyType: key.Type()}
 		return errHostKeyHalt
@@ -119,6 +126,10 @@ func sameAlgorithm(want []knownhosts.KnownKey, keyType string) []knownhosts.Know
 func loadKnownHosts(path string) (ssh.HostKeyCallback, error) {
 	knownHostsMu.Lock()
 	defer knownHostsMu.Unlock()
+	return loadKnownHostsLocked(path)
+}
+
+func loadKnownHostsLocked(path string) (ssh.HostKeyCallback, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return nil, err
 	}
@@ -134,6 +145,10 @@ func loadKnownHosts(path string) (ssh.HostKeyCallback, error) {
 func appendKnownHost(path, addr string, key ssh.PublicKey) error {
 	knownHostsMu.Lock()
 	defer knownHostsMu.Unlock()
+	return appendKnownHostLocked(path, addr, key)
+}
+
+func appendKnownHostLocked(path, addr string, key ssh.PublicKey) error {
 	line := knownhosts.Line([]string{knownhosts.Normalize(addr)}, key)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o600)
 	if err != nil {
@@ -150,11 +165,19 @@ func appendKnownHost(path, addr string, key ssh.PublicKey) error {
 func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 	knownHostsMu.Lock()
 	defer knownHostsMu.Unlock()
+	return replaceKnownHostLocked(path, addr, key)
+}
+
+func replaceKnownHostLocked(path, addr string, key ssh.PublicKey, aliases ...string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	norm := knownhosts.Normalize(addr)
+	norms := []string{norm}
+	for _, alias := range aliases {
+		norms = append(norms, knownhosts.Normalize(alias))
+	}
 	var out []string
 	stale := 0
 	for line := range strings.Lines(string(data)) {
@@ -166,6 +189,9 @@ func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 			}
 			continue
 		}
+		if strings.ContainsAny(fields[0], "*?!") {
+			return fmt.Errorf("%w: wildcard known_hosts rules require manual re-pinning", transfer.ErrHostKeyStoreUnavailable)
+		}
 		switch {
 		case strings.HasPrefix(fields[0], "@"):
 			// @cert-authority and @revoked are deliberate operator statements and
@@ -176,12 +202,12 @@ func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
 			}
 			out = append(out, line)
 		case strings.HasPrefix(fields[0], "|"):
-			if hashedHostMatches(fields[0], norm) {
+			if slices.ContainsFunc(norms, func(n string) bool { return hashedHostMatches(fields[0], n) }) {
 				continue
 			}
 			out = append(out, line)
 		default:
-			hosts := slices.DeleteFunc(strings.Split(fields[0], ","), func(h string) bool { return h == norm })
+			hosts := slices.DeleteFunc(strings.Split(fields[0], ","), func(h string) bool { return slices.Contains(norms, h) })
 			if len(hosts) == 0 {
 				continue
 			}
@@ -256,4 +282,16 @@ func writeFileAtomic(path string, data []byte) error {
 		return err
 	}
 	return os.Rename(tmpName, path)
+}
+
+func reverifyPin(path, hostname string, remote net.Addr, key ssh.PublicKey, res *hostKeyResult) error {
+	verify, err := loadKnownHostsLocked(path)
+	if err == nil {
+		err = verify(hostname, remote, key)
+	}
+	if err != nil {
+		res.writeErr = err
+		return errHostKeyHalt
+	}
+	return nil
 }

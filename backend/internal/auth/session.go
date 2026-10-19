@@ -10,11 +10,13 @@ import (
 // Session holds per-connection state. Reach its maps only through the accessor
 // methods: a concurrent read+write on a bare Go map is an unrecoverable fatal.
 type Session struct {
-	ID string
+	ID           string
+	ConnectionID string
 	// A separate identifier for signed download URLs: those links leak into
 	// history, Referer and proxy logs, where a session ID would be a takeover.
 	DownloadKey string
 	ExpiresAt   time.Time
+	hardExpiry  time.Time
 
 	mu      sync.RWMutex
 	data    map[string]any
@@ -105,8 +107,9 @@ func (s *Session) TryLockTransfer() bool { return s.transferMu.TryLock() }
 
 // Store is a thread-safe in-memory session store with TTL-based expiry.
 type Store struct {
-	mu       sync.RWMutex
-	sessions map[string]*Session
+	mu         sync.RWMutex
+	sessions   map[string]*Session
+	connecting map[string]int
 	// byDownloadKey indexes the same sessions by DownloadKey. Kept in step with
 	// sessions on every insert and delete.
 	byDownloadKey map[string]*Session
@@ -143,11 +146,16 @@ func (s *Store) New() (*Session, error) {
 		return nil, err
 	}
 
+	connectionID, err := newSessionID()
+	if err != nil {
+		return nil, err
+	}
 	sess := &Session{
-		ID:          id,
-		DownloadKey: downloadKey,
-		data:        make(map[string]any),
-		ExpiresAt:   time.Now().Add(s.ttl),
+		ConnectionID: connectionID,
+		ID:           id,
+		DownloadKey:  downloadKey,
+		data:         make(map[string]any),
+		ExpiresAt:    time.Now().Add(s.ttl),
 	}
 
 	s.mu.Lock()
@@ -192,6 +200,9 @@ func (s *Store) Touch(id string) {
 	s.mu.Lock()
 	if sess, ok := s.sessions[id]; ok && !time.Now().After(sess.ExpiresAt) {
 		sess.ExpiresAt = time.Now().Add(s.ttl)
+		if !sess.hardExpiry.IsZero() && sess.hardExpiry.Before(sess.ExpiresAt) {
+			sess.ExpiresAt = sess.hardExpiry
+		}
 	}
 	s.mu.Unlock()
 }

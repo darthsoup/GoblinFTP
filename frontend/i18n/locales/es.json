@@ -10,7 +10,8 @@
     "connect": "Conectar",
     "passive": "Modo pasivo",
     "errorRequired": "Obligatorio",
-    "errorPort": "Puerto no válido"
+    "errorPort": "Puerto no válido",
+    "fixedServer": "Servidor fijo"
   },
   "hostKey": {
     "title": "Verificar clave del host",
@@ -169,7 +170,9 @@
       "reload": "Descartar la mía y recargar",
       "banner": "Este archivo cambió en el servidor. El guardado automático está en pausa.",
       "bannerDeleted": "Este archivo ya no está en el servidor. El guardado automático está en pausa."
-    }
+    },
+    "exportDraft": "Exportar borrador",
+    "detachedDraft": "Borrador desconectado de {host}"
   },
   "modal": {
     "delete": {
@@ -277,7 +280,10 @@
     "ERR_INTERNAL": "Se produjo un error en el servidor",
     "ERR_OVERWRITE_LOST_DESTINATION": "El archivo existente se eliminó pero no se pudo mover el reemplazo a su lugar",
     "ERR_NETWORK": "No se puede conectar con el servidor",
-    "ERR_UNKNOWN": "Se produjo un error"
+    "ERR_UNKNOWN": "Se produjo un error",
+    "ERR_CAPACITY_EXCEEDED": "Esta operación supera la capacidad disponible. Inténtalo más tarde.",
+    "ERR_LISTING_LIMIT": "Esta carpeta supera el límite de listado de directorios.",
+    "ERR_STALE_CONNECTION": "Tu sesión ha caducado o se perdió la conexión con el servidor. Inicia sesión de nuevo."
   },
   "toast": {
     "folderCreated": "Carpeta creada",
@@ -315,6 +321,7 @@
     "errorUsed": "Este enlace de inicio de sesión SSO ya se ha utilizado. Solicita uno nuevo.",
     "errorDisabled": "El inicio de sesión SSO no está habilitado en este servidor.",
     "errorInternal": "El inicio de sesión SSO falló debido a un error del servidor. Inténtalo de nuevo.",
-    "errorGeneric": "El inicio de sesión SSO falló. Solicita un nuevo enlace."
+    "errorGeneric": "El inicio de sesión SSO falló. Solicita un nuevo enlace.",
+    "confirmTitle": "Confirmar conexión al servidor"
   }
 }

@@ -5,10 +5,10 @@ import (
 	"archive/zip"
 	"compress/bzip2"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path"
 	"strings"
 
@@ -62,9 +62,29 @@ func archiveError(err error) *gftperrors.GFTPError {
 
 // extractBudget caps the total DECOMPRESSED bytes an extraction may write to the
 // remote. maxZipSize bounds only the compressed upload: 1 MB of bz2 expands to GBs.
-type extractBudget struct{ remaining int64 }
+type extractBudget struct {
+	remaining int64
+	entries   int
+	ctx       context.Context
+}
 
-func newExtractBudget() *extractBudget { return &extractBudget{remaining: maxZipSize} }
+func newExtractBudget(contexts ...context.Context) *extractBudget {
+	ctx := context.Background()
+	if len(contexts) > 0 {
+		ctx = contexts[0]
+	}
+	return &extractBudget{remaining: maxZipSize, ctx: ctx}
+}
+func (b *extractBudget) next() error {
+	if err := b.ctx.Err(); err != nil {
+		return err
+	}
+	b.entries++
+	if b.entries > maxArchiveEntries {
+		return errArchiveCorrupt
+	}
+	return nil
+}
 
 // wrap returns r limited to the budget still available, decrementing as it is
 // consumed. Reading past the budget fails the whole extraction.
@@ -76,6 +96,9 @@ type budgetReader struct {
 }
 
 func (br *budgetReader) Read(p []byte) (int, error) {
+	if err := br.b.ctx.Err(); err != nil {
+		return 0, err
+	}
 	if br.b.remaining <= 0 {
 		return 0, errArchiveTooLarge
 	}
@@ -107,8 +130,11 @@ func tagCorrupt(err error) error {
 
 // safeJoin joins destination and name, returning an error if the result escapes destination.
 func safeJoin(destination, name string) (string, error) {
-	if name == "" || path.IsAbs(name) || strings.ContainsAny(name, "\\:\x00\r\n") {
+	if name == "" || path.IsAbs(name) || strings.ContainsAny(name, "\\\x00\r\n") || transfer.HasDrivePrefix(name) {
 		return "", fmt.Errorf("%w: %q", errArchiveEscape, name)
+	}
+	if len(strings.Split(name, "/")) > 64 {
+		return "", errArchiveEscape
 	}
 	for _, segment := range strings.Split(name, "/") {
 		if segment == ".." {
@@ -132,7 +158,7 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 	}
 	defer release()
 	destination := c.FormValue("destination")
-	if destination == "" {
+	if !validPath(c, destination, true) {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "destination is required"))
 	}
 	fh, err := c.FormFile("archive")
@@ -153,11 +179,14 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 		}
 		// multipart.File is an io.ReaderAt, all zip.NewReader wants, so the archive
 		// is never held in memory (net/http already spooled it past its threshold).
+		if err := preflightZip(f, fh.Size); err != nil {
+			return Fail(c, archiveError(err))
+		}
 		zr, zipErr := zip.NewReader(f, fh.Size)
 		if zipErr != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid zip archive").WithCause(zipErr))
 		}
-		written, skipped, err := extractZip(client, zr, destination, newExtractBudget())
+		written, skipped, err := extractZip(client, zr, destination, newExtractBudget(c.Request().Context()))
 		if err != nil {
 			if gerr := archiveError(err); gerr != nil {
 				return Fail(c, gerr)
@@ -171,7 +200,7 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrArchiveFormat, "invalid gzip archive").WithCause(gzErr))
 		}
 		defer gr.Close()
-		written, skipped, err := extractTar(client, tar.NewReader(gr), destination, newExtractBudget())
+		written, skipped, err := extractTar(client, tar.NewReader(&archiveInput{r: gr, remaining: maxZipSize, ctx: c.Request().Context()}), destination, newExtractBudget(c.Request().Context()))
 		if err != nil {
 			if gerr := archiveError(err); gerr != nil {
 				return Fail(c, gerr)
@@ -180,7 +209,7 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 		}
 		return OK(c, extractResult{Written: written, Skipped: skipped})
 	case strings.HasSuffix(filename, ".tar.bz2"):
-		written, skipped, err := extractTar(client, tar.NewReader(bzip2.NewReader(f)), destination, newExtractBudget())
+		written, skipped, err := extractTar(client, tar.NewReader(&archiveInput{r: bzip2.NewReader(f), remaining: maxZipSize, ctx: c.Request().Context()}), destination, newExtractBudget(c.Request().Context()))
 		if err != nil {
 			if gerr := archiveError(err); gerr != nil {
 				return Fail(c, gerr)
@@ -189,7 +218,7 @@ func (h *Handler) ExtractArchive(c echo.Context) error {
 		}
 		return OK(c, extractResult{Written: written, Skipped: skipped})
 	case strings.HasSuffix(filename, ".tar"):
-		written, skipped, err := extractTar(client, tar.NewReader(f), destination, newExtractBudget())
+		written, skipped, err := extractTar(client, tar.NewReader(&archiveInput{r: f, remaining: maxZipSize, ctx: c.Request().Context()}), destination, newExtractBudget(c.Request().Context()))
 		if err != nil {
 			if gerr := archiveError(err); gerr != nil {
 				return Fail(c, gerr)
@@ -219,9 +248,15 @@ func extractZip(client transfer.Client, zr *zip.Reader, destination string, budg
 	written := 0
 	skipped := []skippedEntry{}
 	for _, entry := range zr.File {
+		if err := budget.next(); err != nil {
+			return written, skipped, err
+		}
 		outPath, err := safeJoin(destination, entry.Name)
 		if err != nil {
 			return written, skipped, err
+		}
+		if budget.remaining < 0 || entry.UncompressedSize64 > uint64(budget.remaining) {
+			return written, skipped, errArchiveTooLarge
 		}
 		if entry.FileInfo().IsDir() {
 			if err := ensureDirAll(client, outPath); err != nil {
@@ -254,6 +289,9 @@ func extractTar(client transfer.Client, tr *tar.Reader, destination string, budg
 	written := 0
 	skipped := []skippedEntry{}
 	for {
+		if err := budget.next(); err != nil {
+			return written, skipped, err
+		}
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
 			break
@@ -271,6 +309,9 @@ func extractTar(client transfer.Client, tr *tar.Reader, destination string, budg
 				return written, skipped, err
 			}
 		case tar.TypeReg:
+			if hdr.Size > budget.remaining {
+				return written, skipped, errArchiveTooLarge
+			}
 			if err := ensureDirAll(client, path.Dir(outPath)); err != nil {
 				return written, skipped, err
 			}
@@ -325,9 +366,18 @@ func (h *Handler) CreateZip(c echo.Context) error {
 
 	// Bounded before anything is written: the archive is spooled to the data
 	// dir, so an unbounded input would fill the volume.
+	if !validPath(c, req.Destination, false) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid archive destination"))
+	}
+	for _, p := range req.Paths {
+		if !validPath(c, p, false) {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid archive source"))
+		}
+	}
+	walk := h.quota(c)
 	var totalSize int64
 	for _, p := range req.Paths {
-		size, err := zipInputSize(client, p)
+		size, err := zipInputSizeDepth(client, p, 0, walk)
 		if err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
@@ -339,18 +389,19 @@ func (h *Handler) CreateZip(c echo.Context) error {
 
 	// Spooled to disk, not piped into the upload: FTP allows one data transfer per
 	// control connection, so a pipe desynced RETR against STOR and could deadlock.
-	tmp, err := os.CreateTemp(h.cfg.DataDir, "gftp-zip-*")
+	tmp, err := newQuotaTemp(h.cfg.DataDir, "gftp-zip-*", h.quota(c))
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))
 	}
 	defer func() {
 		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
+		tmp.dispose()
 	}()
 
 	zw := zip.NewWriter(tmp)
+	walk = h.quota(c)
 	for _, p := range req.Paths {
-		if err := addToZip(zw, client, p, "", nil); err != nil {
+		if err := addToZipDepth(zw, client, p, "", nil, 0, walk); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	}
@@ -370,16 +421,21 @@ func (h *Handler) CreateZip(c echo.Context) error {
 
 // addToZip recursively adds a file or directory to the zip writer. counter takes
 // the source bytes read; CreateZip passes nil, remote-to-remote being no transfer.
-func addToZip(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter) error {
-	return addToZipDepth(zw, client, remotePath, base, counter, 0)
-}
-
-func addToZipDepth(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter, depth int) error {
+func addToZipDepth(zw *zip.Writer, client transfer.Client, remotePath, base string, counter prometheus.Counter, depth int, walks ...*diskQuota) error {
+	if len(walks) == 0 {
+		walks = []*diskQuota{{remaining: 100000, bytesLeft: maxZipSize}}
+	}
+	if err := walks[0].visit(); err != nil {
+		return err
+	}
 	if depth > maxTreeDepth {
 		return errTreeTooDeep
 	}
 	fi, err := client.Stat(remotePath)
 	if err != nil {
+		return err
+	}
+	if err := transfer.ValidateChildName(fi.Name, true); err != nil {
 		return err
 	}
 	entryName := base + fi.Name
@@ -390,8 +446,13 @@ func addToZipDepth(zw *zip.Writer, client transfer.Client, remotePath, base stri
 			return err
 		}
 		for _, e := range entries {
+			if err := transfer.ValidateChildName(e.Name, true); err != nil {
+				return err
+			}
+		}
+		for _, e := range entries {
 			childPath := remotePath + "/" + e.Name
-			if err := addToZipDepth(zw, client, childPath, entryName, counter, depth+1); err != nil {
+			if err := addToZipDepth(zw, client, childPath, entryName, counter, depth+1, walks...); err != nil {
 				return err
 			}
 		}
@@ -405,11 +466,43 @@ func addToZipDepth(zw *zip.Writer, client transfer.Client, remotePath, base stri
 	if err != nil {
 		return err
 	}
-	_, copyErr := io.Copy(w, metrics.CountingReader(r, counter))
+	n, copyErr := io.Copy(w, io.LimitReader(metrics.CountingReader(&contextReader{ctx: walkContext(walks[0]), r: r}, counter), walks[0].bytesLeft+1))
+	if n > walks[0].bytesLeft {
+		copyErr = errArchiveTooLarge
+	}
 	// A short member would otherwise be zipped up and served as complete.
+	walks[0].bytesLeft -= n
 	closeErr := r.Close()
 	if err := errors.Join(copyErr, closeErr); err != nil {
 		return fmt.Errorf("%w: %w", transfer.ErrTransferIncomplete, err)
 	}
 	return nil
+}
+
+type archiveInput struct {
+	r         io.Reader
+	remaining int64
+	ctx       context.Context
+}
+
+func (r *archiveInput) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	if r.remaining <= 0 {
+		return 0, errArchiveTooLarge
+	}
+	if int64(len(p)) > r.remaining {
+		p = p[:r.remaining]
+	}
+	n, err := r.r.Read(p)
+	r.remaining -= int64(n)
+	return n, err
+}
+
+func walkContext(q *diskQuota) context.Context {
+	if q.ctx != nil {
+		return q.ctx
+	}
+	return context.Background()
 }

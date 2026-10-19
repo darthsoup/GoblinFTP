@@ -48,15 +48,18 @@ export type ConfirmResult = 'confirm' | 'save' | 'cancel'
 
 export const useModalStore = defineStore('modal', () => {
   const active = ref<ModalType>(null)
+  const origin = ref('')
   const context = ref<ModalContext>({})
 
   function open(type: Exclude<ModalType, null>, ctx: ModalContext = {}) {
+    origin.value = useAuthStore().connectionId
     active.value = type
     context.value = ctx
   }
 
   function close() {
     active.value = null
+    origin.value = ''
     context.value = {}
   }
 
@@ -148,7 +151,20 @@ export const useModalStore = defineStore('modal', () => {
     resolve?.(choice)
   }
 
+  function isCurrent() {
+    return active.value !== null && origin.value === useAuthStore().connectionId
+  }
+  function cancelAll() {
+    resolveConfirm('cancel')
+    resolvePaste('cancel')
+    resolveUploadConflict({ kind: 'cancel' })
+    resolveEditorConflict('cancel')
+    close()
+  }
   return {
+    cancelAll,
+    isCurrent,
+    origin,
     active,
     context,
     open,

@@ -10,7 +10,8 @@
     "connect": "Connetti",
     "passive": "Modalità passiva",
     "errorRequired": "Obbligatorio",
-    "errorPort": "Porta non valida"
+    "errorPort": "Porta non valida",
+    "fixedServer": "Server predefinito"
   },
   "hostKey": {
     "title": "Verifica chiave host",
@@ -169,7 +170,9 @@
       "reload": "Scarta le mie e ricarica",
       "banner": "Questo file è cambiato sul server. Il salvataggio automatico è in pausa.",
       "bannerDeleted": "Questo file non è più sul server. Il salvataggio automatico è in pausa."
-    }
+    },
+    "exportDraft": "Esporta bozza",
+    "detachedDraft": "Bozza scollegata da {host}"
   },
   "modal": {
     "delete": {
@@ -277,7 +280,10 @@
     "ERR_INTERNAL": "Si è verificato un errore sul server",
     "ERR_OVERWRITE_LOST_DESTINATION": "Il file esistente è stato rimosso ma non è stato possibile spostare il sostituto",
     "ERR_NETWORK": "Impossibile raggiungere il server",
-    "ERR_UNKNOWN": "Si è verificato un errore"
+    "ERR_UNKNOWN": "Si è verificato un errore",
+    "ERR_CAPACITY_EXCEEDED": "Questa operazione supera la capacità disponibile. Riprova più tardi.",
+    "ERR_LISTING_LIMIT": "Questa cartella supera il limite di elenco delle directory.",
+    "ERR_STALE_CONNECTION": "La tua sessione è scaduta o la connessione al server è stata persa. Effettua nuovamente l'accesso."
   },
   "toast": {
     "folderCreated": "Cartella creata",
@@ -315,6 +321,7 @@
     "errorUsed": "Questo link di accesso SSO è già stato utilizzato. Richiedine uno nuovo.",
     "errorDisabled": "L'accesso SSO non è abilitato su questo server.",
     "errorInternal": "Accesso SSO non riuscito a causa di un errore del server. Riprova.",
-    "errorGeneric": "Accesso SSO non riuscito. Richiedi un nuovo link."
+    "errorGeneric": "Accesso SSO non riuscito. Richiedi un nuovo link.",
+    "confirmTitle": "Conferma connessione al server"
   }
 }

@@ -126,7 +126,7 @@ func TestConnectThrottled(t *testing.T) {
 	e, store, throttle := newTestApp(t, cfg)
 	defer store.Close()
 
-	key := "ftp.example.com:user"
+	key := `account:"ftp.example.com":"user"`
 	throttle.Record(key, 1*time.Minute)
 	throttle.Record(key, 1*time.Minute)
 

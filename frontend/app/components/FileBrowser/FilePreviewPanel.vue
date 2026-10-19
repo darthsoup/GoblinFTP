@@ -7,7 +7,7 @@
         :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
         :style="iconDef.color ? { color: iconDef.color } : undefined"
       />
-      <span class="flex-1 min-w-0 truncate text-sm text-highlighted" :title="fullPath">{{ file.name }}</span>
+      <span class="flex-1 min-w-0 truncate text-sm text-highlighted" :title="displayName(fullPath)"><bdi>{{ displayName(file.name) }}</bdi></span>
       <UButton
         size="sm"
         color="neutral"
@@ -50,7 +50,7 @@
           <img
             v-if="kind === 'image' && mediaUrl"
             :src="mediaUrl"
-            :alt="file.name"
+            :alt="displayName(file.name)"
             class="block w-full max-h-80 object-contain rounded border border-default bg-muted/30"
           >
           <video
@@ -69,7 +69,7 @@
           <iframe
             v-else-if="kind === 'pdf' && mediaUrl"
             :src="mediaUrl"
-            :title="file.name"
+            :title="displayName(file.name)"
             class="block w-full h-96 rounded border border-default bg-muted/30"
           />
           <pre
@@ -155,7 +155,7 @@ const { localizeError } = useErrorMessage()
 // still gates on the server's allowed list, so this is just for classification).
 const FALLBACK_TEXT_EXTS = ['txt', 'md', 'markdown', 'log', 'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'conf', 'cfg', 'env', 'csv', 'sql', 'sh', 'js', 'ts', 'css', 'html', 'htm', 'py', 'go', 'rb', 'php']
 
-const fullPath = computed(() => `${props.dir.replace(/\/$/, '')}/${props.file.name}`)
+const fullPath = computed(() => joinRemotePath(props.dir, props.file.name))
 const iconDef = computed(() => getFileIcon(props.file))
 const textExts = computed(() => authStore.systemVars?.editor.allowedExtensions ?? FALLBACK_TEXT_EXTS)
 const kind = computed(() => getPreviewKind(props.file, textExts.value))
@@ -177,7 +177,7 @@ let reqId = 0
 
 function revoke() {
   if (urlIsBlob && mediaUrl.value)
-    URL.revokeObjectURL(mediaUrl.value)
+    forgetObjectUrl(mediaUrl.value)
   urlIsBlob = false
 }
 
@@ -211,7 +211,7 @@ async function load() {
       // The download endpoint serves octet-stream, so media needs a permitted MIME.
       const url = await filesStore.fetchObjectUrl(path)
       if (id !== reqId) {
-        URL.revokeObjectURL(url) // a newer request superseded us, don't leak
+        forgetObjectUrl(url) // a newer request superseded us, don't leak
         return
       }
       mediaUrl.value = url

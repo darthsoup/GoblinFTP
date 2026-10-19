@@ -38,7 +38,7 @@ useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {
 // Single source of truth for connected → route. The global auth middleware
 // covers navigations; this covers in-place flips, which it cannot see.
 watch(() => authStore.connected, (connected) => {
-  if (connected && route.path === '/login')
+  if (connected && route.path === '/login' && !authStore.ssoPending && !route.query.sso_pending)
     navigateTo('/')
   else if (!connected && route.path !== '/login')
     navigateTo('/login')

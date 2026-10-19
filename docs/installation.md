@@ -85,7 +85,7 @@ pnpm install --frozen-lockfile
 pnpm --filter goblinftp-frontend run generate
 mkdir -p bin
 go -C backend build -o ../bin/gftp ./cmd/gftp
-GFTP_DATA_DIR=./data ./bin/gftp
+GFTP_BIND_ADDRESS=127.0.0.1 GFTP_DATA_DIR=./data ./bin/gftp
 ```
 
 The backend runs on port 8080. A web server must serve the interface from `frontend/.output/public` and send API requests to the backend. Here is an example using Caddy:
@@ -118,3 +118,5 @@ Replace the domain and file path with your own. Caddy enables HTTPS for your dom
 - [Configuration](configuration.md): customize your setup.
 - [Theming](theming.md): add your branding.
 - [SSO login links](sso.md): connect users directly from another application.
+
+For changed security defaults and SSO confirmation, see [Audit remediation and upgrade notes](audit-remediation.md).
