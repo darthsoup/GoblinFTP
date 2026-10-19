@@ -31,7 +31,7 @@
         >
           <div class="flex items-center gap-2 mb-1.5">
             <UIcon
-              :name="entry.isDir ? 'i-lucide-folder' : 'i-lucide-file'"
+              :name="entry.isDir ? 'i-ph-folder-duotone' : 'i-ph-file-duotone'"
               class="size-4 shrink-0 text-dimmed"
             />
             <span class="text-sm text-highlighted truncate">{{ entry.name }}</span>

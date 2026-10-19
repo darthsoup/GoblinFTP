@@ -69,7 +69,7 @@
           size="xs"
           color="neutral"
           variant="ghost"
-          icon="i-lucide-ellipsis-vertical"
+          icon="i-ph-dots-three-vertical"
           :aria-label="t('context.actions')"
           class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
           @click.stop

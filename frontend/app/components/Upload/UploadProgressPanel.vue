@@ -13,14 +13,14 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            icon="i-lucide-chevron-down"
+            icon="i-ph-caret-down"
             :aria-label="t('upload.toggle')"
             :aria-expanded="!collapsed"
             :ui="{ leadingIcon: ['transition-transform', collapsed ? '-rotate-90' : ''] }"
             @click="toggle"
           />
         </UTooltip>
-        <UIcon name="i-lucide-arrow-up-down" class="size-4 text-primary shrink-0 hidden sm:block" />
+        <UIcon name="i-ph-arrows-down-up" class="size-4 text-primary shrink-0 hidden sm:block" />
         <span class="label-caps text-highlighted truncate">{{ t('upload.queue') }}</span>
         <UBadge color="primary" variant="soft" size="sm" class="font-bold rounded-full shrink-0">
           {{ uploadStore.items.length }}
@@ -44,7 +44,7 @@
           size="xs"
           variant="ghost"
           color="error"
-          icon="i-lucide-circle-pause"
+          icon="i-ph-pause-circle"
           @click="uploadStore.cancelAll()"
         >
           <span class="hidden sm:inline">{{ t('upload.cancelAll') }}</span>
@@ -54,7 +54,7 @@
           size="xs"
           variant="ghost"
           color="neutral"
-          icon="i-lucide-list-x"
+          icon="i-ph-broom"
           @click="uploadStore.clearDone()"
         >
           <span class="hidden sm:inline">{{ t('upload.clear') }}</span>

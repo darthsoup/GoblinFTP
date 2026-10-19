@@ -7,12 +7,12 @@ export interface FileIconDef {
 }
 
 // First .find() match wins, so keep extensions non-overlapping. Only the two offline
-// sets render (lucide, simple-icons); avoid hexes that vanish on light or dark.
+// sets render (ph, simple-icons); avoid hexes that vanish on light or dark.
 export const FILE_ICONS: Array<{ exts: string[], icon: string, color?: string }> = [
   // Web / markup
   { exts: ['html', 'htm'], icon: 'i-simple-icons-html5', color: '#e34f26' },
   { exts: ['css', 'scss', 'sass', 'less'], icon: 'i-simple-icons-css', color: '#2965f1' },
-  { exts: ['xml', 'xsl', 'xsd'], icon: 'i-lucide-file-code', color: '#e3b341' },
+  { exts: ['xml', 'xsl', 'xsd'], icon: 'i-ph-file-code-duotone', color: '#e3b341' },
   // JS / TS / Vue
   { exts: ['js', 'mjs', 'cjs', 'jsx'], icon: 'i-simple-icons-javascript', color: '#f0db4f' },
   { exts: ['ts', 'tsx', 'mts'], icon: 'i-simple-icons-typescript', color: '#3178c6' },
@@ -34,46 +34,46 @@ export const FILE_ICONS: Array<{ exts: string[], icon: string, color?: string }>
   { exts: ['graphql', 'gql'], icon: 'i-simple-icons-graphql', color: '#e535ab' },
   { exts: ['wasm'], icon: 'i-simple-icons-webassembly', color: '#654ff0' },
   // Shell / scripts
-  { exts: ['sh', 'bash', 'zsh', 'fish', 'bat', 'cmd', 'ps1'], icon: 'i-lucide-terminal', color: '#67df70' },
+  { exts: ['sh', 'bash', 'zsh', 'fish', 'bat', 'cmd', 'ps1'], icon: 'i-ph-terminal-duotone', color: '#67df70' },
   // Data / config
-  { exts: ['json', 'yml', 'yaml', 'toml'], icon: 'i-lucide-braces', color: '#e3b341' },
-  { exts: ['sql', 'db', 'sqlite'], icon: 'i-lucide-database', color: '#aac7ff' },
+  { exts: ['json', 'yml', 'yaml', 'toml'], icon: 'i-ph-brackets-curly-duotone', color: '#e3b341' },
+  { exts: ['sql', 'db', 'sqlite'], icon: 'i-ph-database-duotone', color: '#aac7ff' },
   // Documents
   { exts: ['pdf'], icon: 'i-simple-icons-adobeacrobatreader', color: '#ec1c24' },
   { exts: ['doc', 'docx', 'rtf', 'odt'], icon: 'i-simple-icons-microsoftword', color: '#2b579a' },
   { exts: ['xls', 'xlsx', 'ods'], icon: 'i-simple-icons-microsoftexcel', color: '#217346' },
   { exts: ['ppt', 'pptx', 'odp'], icon: 'i-simple-icons-microsoftpowerpoint', color: '#d24726' },
-  { exts: ['csv', 'tsv'], icon: 'i-lucide-file-spreadsheet', color: '#21a366' },
-  { exts: ['epub', 'mobi', 'azw3'], icon: 'i-lucide-book', color: '#c297ff' },
+  { exts: ['csv', 'tsv'], icon: 'i-ph-file-csv-duotone', color: '#21a366' },
+  { exts: ['epub', 'mobi', 'azw3'], icon: 'i-ph-book-duotone', color: '#c297ff' },
   // Media
-  { exts: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'], icon: 'i-lucide-image', color: '#c297ff' },
-  { exts: ['mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v'], icon: 'i-lucide-film', color: '#c297ff' },
-  { exts: ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus'], icon: 'i-lucide-music', color: '#f778ba' },
+  { exts: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp', 'avif'], icon: 'i-ph-image-duotone', color: '#c297ff' },
+  { exts: ['mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v'], icon: 'i-ph-film-strip-duotone', color: '#c297ff' },
+  { exts: ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus'], icon: 'i-ph-music-notes-duotone', color: '#f778ba' },
   // Fonts
-  { exts: ['ttf', 'otf', 'woff', 'woff2', 'eot'], icon: 'i-lucide-type', color: '#c297ff' },
+  { exts: ['ttf', 'otf', 'woff', 'woff2', 'eot'], icon: 'i-ph-text-aa-duotone', color: '#c297ff' },
   // Archives / disk images / packages
-  { exts: ['zip', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'rar', '7z'], icon: 'i-lucide-file-archive', color: '#e3b341' },
-  { exts: ['iso'], icon: 'i-lucide-disc', color: '#aac7ff' },
+  { exts: ['zip', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'rar', '7z'], icon: 'i-ph-file-zip-duotone', color: '#e3b341' },
+  { exts: ['iso'], icon: 'i-ph-disc-duotone', color: '#aac7ff' },
   { exts: ['deb', 'rpm', 'appimage', 'snap', 'flatpak'], icon: 'i-simple-icons-linux', color: '#fcc624' },
   // Executables / installers
   { exts: ['exe', 'msi'], icon: 'i-simple-icons-windows', color: '#0078d6' },
   { exts: ['dmg', 'pkg', 'app'], icon: 'i-simple-icons-apple', color: '#b0b8c1' }, // brand is black → gray
-  { exts: ['bin', 'dat'], icon: 'i-lucide-binary', color: '#9aa3b2' },
+  { exts: ['bin', 'dat'], icon: 'i-ph-binary-duotone', color: '#9aa3b2' },
   // Keys / certs
-  { exts: ['pem', 'crt', 'cer', 'key', 'pub', 'p12', 'pfx'], icon: 'i-lucide-file-key', color: '#aac7ff' },
+  { exts: ['pem', 'crt', 'cer', 'key', 'pub', 'p12', 'pfx'], icon: 'i-ph-file-lock-duotone', color: '#aac7ff' },
   // Docker / git (extensionless names resolve via .split('.').pop())
   { exts: ['dockerfile'], icon: 'i-simple-icons-docker', color: '#2496ed' },
   { exts: ['gitignore', 'gitattributes', 'gitmodules'], icon: 'i-simple-icons-git', color: '#f05032' },
   // Plain text / misc (no color → dimmed)
-  { exts: ['md', 'markdown', 'txt', 'log', 'conf', 'ini', 'env', 'cfg'], icon: 'i-lucide-file-text' },
+  { exts: ['md', 'markdown', 'txt', 'log', 'conf', 'ini', 'env', 'cfg'], icon: 'i-ph-file-text-duotone' },
 ]
 
 export function getFileIcon(file: Pick<FileInfo, 'name' | 'isDir'>): FileIconDef {
   if (file.isDir)
-    return { icon: 'i-lucide-folder', primary: true }
+    return { icon: 'i-ph-folder-duotone', primary: true }
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   const match = FILE_ICONS.find(d => d.exts.includes(ext))
-  return { icon: match?.icon ?? 'i-lucide-file', color: match?.color, primary: false }
+  return { icon: match?.icon ?? 'i-ph-file-duotone', color: match?.color, primary: false }
 }
 
 // Largest file we'll pull over FTP for an inline preview; above this the panel offers

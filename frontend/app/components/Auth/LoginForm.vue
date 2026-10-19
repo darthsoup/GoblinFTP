@@ -4,7 +4,7 @@
       <div class="flex flex-col items-center mb-8 select-none">
         <img v-if="logoUrl" :src="logoUrl" :alt="appName" class="h-11 w-auto max-w-[240px] object-contain">
         <div v-else class="flex items-center gap-2">
-          <UIcon name="i-lucide-server" class="size-7 text-primary" />
+          <UIcon name="i-ph-hard-drives-duotone" class="size-7 text-primary" />
           <h1 class="text-2xl font-bold tracking-tight text-highlighted">
             {{ appName }}
           </h1>
@@ -15,7 +15,7 @@
         v-if="displayError"
         color="error"
         variant="soft"
-        icon="i-lucide-triangle-alert"
+        icon="i-ph-warning"
         :description="displayError"
         class="mb-4"
       />
@@ -79,7 +79,7 @@
 
         <UButton
           type="submit"
-          icon="i-lucide-plug"
+          icon="i-ph-plugs-connected"
           :loading="loading"
           class="mt-6 justify-center"
           block

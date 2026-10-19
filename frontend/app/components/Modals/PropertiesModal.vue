@@ -1,7 +1,7 @@
 <template>
   <UModal v-model:open="open" :title="t('modal.properties.title')">
     <template #title>
-      <UIcon name="i-lucide-info" class="size-5 text-muted" />
+      <UIcon name="i-ph-info-duotone" class="size-5 text-muted" />
       {{ t('modal.properties.title') }}
     </template>
 

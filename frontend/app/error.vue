@@ -26,5 +26,5 @@ const authStore = useAuthStore()
 // `clear` (UError default) renders a "back to home" button that calls
 // clearError({ redirect: '/' }). Without a way in, that would bounce right back.
 const canReturn = computed(() => authStore.connected || !authStore.systemVars?.loginFormDisabled)
-const icon = computed(() => props.error?.statusCode === 404 ? 'i-lucide-file-question-mark' : 'i-lucide-server-off')
+const icon = computed(() => props.error?.statusCode === 404 ? 'i-ph-file-x-duotone' : 'i-ph-cloud-slash-duotone')
 </script>

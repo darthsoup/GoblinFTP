@@ -2,7 +2,7 @@
   <AppHeader />
 
   <div class="flex items-center gap-2 px-4 py-2 bg-elevated border-b border-default shrink-0">
-    <UButton size="xs" color="neutral" variant="ghost" icon="i-lucide-arrow-left" @click="backToFiles">
+    <UButton size="xs" color="neutral" variant="ghost" icon="i-ph-arrow-left" @click="backToFiles">
       {{ t('editor.backToFiles') }}
     </UButton>
     <USeparator orientation="vertical" class="h-4" />

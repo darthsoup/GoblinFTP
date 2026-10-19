@@ -6,7 +6,7 @@
           <UButton
             color="neutral"
             variant="subtle"
-            icon="i-lucide-chevron-left"
+            icon="i-ph-caret-left"
             :disabled="!filesStore.canGoBack"
             :aria-label="t('breadcrumb.back')"
             @click="filesStore.goBack()"
@@ -16,7 +16,7 @@
           <UButton
             color="neutral"
             variant="subtle"
-            icon="i-lucide-chevron-right"
+            icon="i-ph-caret-right"
             :disabled="!filesStore.canGoForward"
             :aria-label="t('breadcrumb.forward')"
             @click="filesStore.goForward()"
@@ -58,7 +58,7 @@ const isNarrow = useMediaQuery('(max-width: 639px)')
 const items = computed<BreadcrumbItem[]>(() => {
   const root: BreadcrumbItem = {
     'label': '/',
-    'icon': 'i-lucide-server',
+    'icon': 'i-ph-hard-drives',
     'aria-label': t('breadcrumb.root'),
     'onClick': () => filesStore.navigate('/'),
   }
@@ -67,7 +67,7 @@ const items = computed<BreadcrumbItem[]>(() => {
   // renders it highlighted and semibold against the muted ancestors.
   let segItems: BreadcrumbItem[] = segs.map((seg, i) => ({
     label: seg.label,
-    ...(i === segs.length - 1 ? { icon: 'i-lucide-folder-open' } : {}),
+    ...(i === segs.length - 1 ? { icon: 'i-ph-folder-open' } : {}),
     onClick: () => filesStore.navigate(seg.path),
   }))
 

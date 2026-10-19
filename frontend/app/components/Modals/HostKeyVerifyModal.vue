@@ -2,7 +2,7 @@
   <UModal v-model:open="open" :title="t(changed ? 'hostKey.changedTitle' : 'hostKey.title')" :dismissible="false">
     <template #title>
       <UIcon
-        :name="changed ? 'i-lucide-shield-alert' : 'i-lucide-shield-question'"
+        :name="changed ? 'i-ph-shield-warning-duotone' : 'i-ph-shield-duotone'"
         class="size-5"
         :class="changed ? 'text-error' : 'text-warning'"
       />
@@ -35,7 +35,7 @@
         <UAlert
           :color="changed ? 'error' : 'warning'"
           variant="soft"
-          icon="i-lucide-triangle-alert"
+          icon="i-ph-warning"
           :description="t(changed ? 'hostKey.changedWarning' : 'hostKey.warning')"
         />
       </div>

@@ -55,7 +55,7 @@
         size="xs"
         color="neutral"
         variant="solid"
-        icon="i-lucide-download"
+        icon="i-ph-download-simple"
         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
         :aria-label="t('context.download')"
         @click.stop="handleDownload"

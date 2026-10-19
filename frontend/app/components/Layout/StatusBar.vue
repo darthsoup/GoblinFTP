@@ -10,7 +10,7 @@
       <template v-if="authStore.serverHost">
         <span class="text-dimmed hidden sm:inline">|</span>
         <span class="hidden sm:inline-flex gap-1.5 items-center min-w-0">
-          <UIcon name="i-lucide-plug" class="size-4 text-primary shrink-0" />
+          <UIcon name="i-ph-plugs-connected" class="size-4 text-primary shrink-0" />
           <span class="text-muted truncate">{{ authStore.serverHost }}</span>
         </span>
       </template>

@@ -43,7 +43,7 @@
           size="xs"
           variant="ghost"
           color="neutral"
-          icon="i-lucide-x"
+          icon="i-ph-x"
           :aria-label="t('upload.cancel')"
           @click="emit('cancel', item.id)"
         />
@@ -53,12 +53,12 @@
           size="xs"
           variant="ghost"
           color="neutral"
-          icon="i-lucide-rotate-cw"
+          icon="i-ph-arrow-clockwise"
           :aria-label="t('upload.retry')"
           @click="emit('retry', item.id)"
         />
       </UTooltip>
-      <UIcon v-else name="i-lucide-circle-check" class="size-4 text-primary" />
+      <UIcon v-else name="i-ph-check-circle" class="size-4 text-primary" />
     </div>
   </li>
 </template>

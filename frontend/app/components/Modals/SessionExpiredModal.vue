@@ -1,7 +1,7 @@
 <template>
   <UModal :open="open" :dismissible="false" :close="false" :title="t('session.lostTitle')">
     <template #title>
-      <UIcon name="i-lucide-unplug" class="size-5 text-error" />
+      <UIcon name="i-ph-plugs-duotone" class="size-5 text-error" />
       {{ t('session.lostTitle') }}
     </template>
 
@@ -12,7 +12,7 @@
     </template>
 
     <template #footer>
-      <UButton icon="i-lucide-plug" :label="t('session.reconnect')" @click="reconnect" />
+      <UButton icon="i-ph-plugs-connected" :label="t('session.reconnect')" @click="reconnect" />
     </template>
   </UModal>
 </template>
