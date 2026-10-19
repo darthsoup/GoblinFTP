@@ -65,6 +65,12 @@
     "lostMessage": "Tu sesión ha caducado o se perdió la conexión con el servidor. Inicia sesión de nuevo.",
     "reconnect": "Volver al inicio de sesión"
   },
+  "tree": {
+    "title": "Carpetas",
+    "toggle": "Mostrar u ocultar el árbol de carpetas",
+    "refresh": "Actualizar el árbol de carpetas",
+    "loadFailed": "No se pudieron cargar las carpetas"
+  },
   "breadcrumb": {
     "root": "Raíz",
     "back": "Atrás",

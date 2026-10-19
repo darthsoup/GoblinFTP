@@ -65,6 +65,12 @@
     "lostMessage": "Your session has expired or the connection to the server was lost. Please sign in again.",
     "reconnect": "Back to login"
   },
+  "tree": {
+    "title": "Folders",
+    "toggle": "Toggle folder tree",
+    "refresh": "Refresh folder tree",
+    "loadFailed": "Could not load folders"
+  },
   "breadcrumb": {
     "root": "Root",
     "back": "Back",

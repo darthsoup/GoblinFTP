@@ -65,6 +65,12 @@
     "lostMessage": "Je sessie is verlopen of de verbinding met de server is verbroken. Meld je opnieuw aan.",
     "reconnect": "Terug naar aanmelden"
   },
+  "tree": {
+    "title": "Mappen",
+    "toggle": "Mappenboom tonen of verbergen",
+    "refresh": "Mappenboom vernieuwen",
+    "loadFailed": "Mappen konden niet worden geladen"
+  },
   "breadcrumb": {
     "root": "Hoofdmap",
     "back": "Terug",

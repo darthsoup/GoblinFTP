@@ -65,6 +65,12 @@
     "lostMessage": "A sua sessão expirou ou a ligação ao servidor foi perdida. Inicie sessão novamente.",
     "reconnect": "Voltar ao início de sessão"
   },
+  "tree": {
+    "title": "Pastas",
+    "toggle": "Mostrar ou ocultar a árvore de pastas",
+    "refresh": "Atualizar a árvore de pastas",
+    "loadFailed": "Não foi possível carregar as pastas"
+  },
   "breadcrumb": {
     "root": "Raiz",
     "back": "Recuar",

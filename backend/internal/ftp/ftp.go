@@ -52,6 +52,13 @@ func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client
 			if err != nil {
 				return nil, err
 			}
+			if control != nil {
+				// jftp bypasses its data-channel TLS wrapper when using a custom dialer.
+				if tlsConfig != nil {
+					return tls.Client(conn, tlsConfig), nil
+				}
+				return conn, nil
+			}
 			// Tight during the handshake so a server that accepts and never
 			// sends its greeting fails fast, relaxed afterwards for real work.
 			wrapped := &deadlineConn{Conn: conn}

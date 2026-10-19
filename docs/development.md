@@ -108,6 +108,21 @@ Server keys are saved in the `sftp-ssh` Docker volume. If you intentionally dele
 
 The backend needs a writable data folder to save SFTP keys and temporary uploads. `just dev-be` uses `data/` in the repository root by default. If your `.env` sets the container path `/app/data`, change it to `data` for local development.
 
+## Testing the directory tree across protocols
+
+With the FTP, FTPS, and SFTP test servers running, exercise the shared directory API against all three adapters:
+
+```bash
+GFTP_TEST_FTP_HOST=localhost:21 \
+GFTP_TEST_FTPS_HOST=localhost:2121 \
+GFTP_TEST_SFTP_HOST=localhost:2222 \
+go -C backend test -run TestDirectoryTreeIntegration -v ./internal/api/...
+```
+
+The test creates and removes isolated folders. It checks nested and empty directories, direct dotfolder access, and permission errors on SFTP. An unset host skips that protocol. Set `GFTP_TEST_SFTP_DIR` if the writable SFTP directory differs from `/upload`.
+
+The folder tree loads after the main directory listing and fetches deeper branches on expansion. It can only show entries returned by the server; some FTP servers omit dotfolders from listings even when those folders can be opened directly.
+
 ## Testing with a local S3 server (MinIO)
 
 ```bash

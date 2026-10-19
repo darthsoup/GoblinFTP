@@ -22,6 +22,7 @@ interface PersistedSettings {
   fileViewMode?: FileViewMode
   gridThumbnails?: boolean
   density?: Density
+  directoryTreeVisible?: boolean
 }
 
 const SIZE_FORMATS: SizeFormat[] = ['binary', 'decimal', 'bytes']
@@ -53,6 +54,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const gridThumbnails = ref(false)
   // Row height in the file table: comfortable (default) or compact.
   const density = ref<Density>('comfortable')
+  const directoryTreeVisible = ref(true)
 
   const showDotfiles = computed({
     get: () => userShowDotfiles.value ?? authStore.systemVars?.ui.showDotFiles ?? false,
@@ -81,11 +83,13 @@ export const useSettingsStore = defineStore('settings', () => {
         gridThumbnails.value = parsed.gridThumbnails
       if (parsed.density && DENSITIES.includes(parsed.density))
         density.value = parsed.density
+      if (typeof parsed.directoryTreeVisible === 'boolean')
+        directoryTreeVisible.value = parsed.directoryTreeVisible
     }
   }
   catch {}
 
-  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails, density], () => {
+  watch([userShowDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails, density, directoryTreeVisible], () => {
     try {
       const persisted: PersistedSettings = {
         showDotfiles: userShowDotfiles.value,
@@ -96,11 +100,12 @@ export const useSettingsStore = defineStore('settings', () => {
         fileViewMode: fileViewMode.value,
         gridThumbnails: gridThumbnails.value,
         density: density.value,
+        directoryTreeVisible: directoryTreeVisible.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
     }
     catch {}
   })
 
-  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails, density }
+  return { showDotfiles, language, editorAutoSave, sizeFormat, dateFormat, fileViewMode, gridThumbnails, density, directoryTreeVisible }
 })

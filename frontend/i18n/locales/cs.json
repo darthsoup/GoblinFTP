@@ -65,6 +65,12 @@
     "lostMessage": "Vaše relace vypršela nebo bylo spojení se serverem ztraceno. Přihlaste se prosím znovu.",
     "reconnect": "Zpět na přihlášení"
   },
+  "tree": {
+    "title": "Složky",
+    "toggle": "Zobrazit nebo skrýt strom složek",
+    "refresh": "Obnovit strom složek",
+    "loadFailed": "Složky se nepodařilo načíst"
+  },
   "breadcrumb": {
     "root": "Kořen",
     "back": "Zpět",

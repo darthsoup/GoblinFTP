@@ -65,6 +65,12 @@
     "lostMessage": "La tua sessione è scaduta o la connessione al server è stata persa. Effettua nuovamente l'accesso.",
     "reconnect": "Torna all'accesso"
   },
+  "tree": {
+    "title": "Cartelle",
+    "toggle": "Mostra o nascondi l’albero delle cartelle",
+    "refresh": "Aggiorna l’albero delle cartelle",
+    "loadFailed": "Impossibile caricare le cartelle"
+  },
   "breadcrumb": {
     "root": "Radice",
     "back": "Indietro",

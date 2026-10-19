@@ -65,6 +65,12 @@
     "lostMessage": "Din session er udløbet, eller forbindelsen til serveren blev mistet. Log venligst ind igen.",
     "reconnect": "Tilbage til login"
   },
+  "tree": {
+    "title": "Mapper",
+    "toggle": "Vis eller skjul mappetræ",
+    "refresh": "Opdater mappetræ",
+    "loadFailed": "Mapperne kunne ikke indlæses"
+  },
   "breadcrumb": {
     "root": "Rod",
     "back": "Tilbage",

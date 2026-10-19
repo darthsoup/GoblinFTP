@@ -65,6 +65,12 @@
     "lostMessage": "Din session har gått ut eller anslutningen till servern bröts. Logga in igen.",
     "reconnect": "Tillbaka till inloggning"
   },
+  "tree": {
+    "title": "Mappar",
+    "toggle": "Visa eller dölj mappträdet",
+    "refresh": "Uppdatera mappträdet",
+    "loadFailed": "Det gick inte att läsa in mappar"
+  },
   "breadcrumb": {
     "root": "Rot",
     "back": "Bakåt",

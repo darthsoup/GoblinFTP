@@ -240,8 +240,10 @@ export const useUploadStore = defineStore('upload', () => {
       _active.value++
       _runUpload(next).finally(() => {
         _active.value--
-        if (next.status === 'done')
+        if (next.status === 'done') {
+          useDirectoriesStore().invalidate([next.destPath])
           scheduleRefresh()
+        }
         // The batch is over, so its "apply to all" should not leak into the next.
         if (!hasActive.value)
           _blanketPolicy.value = null

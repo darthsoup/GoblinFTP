@@ -65,6 +65,12 @@
     "lostMessage": "Vaša relácia vypršala alebo sa stratilo spojenie so serverom. Prihláste sa, prosím, znova.",
     "reconnect": "Späť na prihlásenie"
   },
+  "tree": {
+    "title": "Priečinky",
+    "toggle": "Zobraziť alebo skryť strom priečinkov",
+    "refresh": "Obnoviť strom priečinkov",
+    "loadFailed": "Priečinky sa nepodarilo načítať"
+  },
   "breadcrumb": {
     "root": "Koreň",
     "back": "Späť",

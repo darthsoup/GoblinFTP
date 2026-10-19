@@ -65,6 +65,12 @@
     "lostMessage": "Istuntosi on vanhentunut tai yhteys palvelimeen katkesi. Kirjaudu sisään uudelleen.",
     "reconnect": "Takaisin kirjautumiseen"
   },
+  "tree": {
+    "title": "Kansiot",
+    "toggle": "Näytä tai piilota kansiopuu",
+    "refresh": "Päivitä kansiopuu",
+    "loadFailed": "Kansioiden lataaminen epäonnistui"
+  },
   "breadcrumb": {
     "root": "Juuri",
     "back": "Takaisin",

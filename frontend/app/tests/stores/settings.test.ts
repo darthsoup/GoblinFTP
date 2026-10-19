@@ -97,4 +97,17 @@ describe('useSettingsStore', () => {
     setActivePinia(createPinia())
     expect(useSettingsStore().showDotfiles).toBe(false)
   })
+
+  it('defaults to a visible directory tree and persists only its visibility', async () => {
+    const settings = useSettingsStore()
+    expect(settings.directoryTreeVisible).toBe(true)
+    settings.directoryTreeVisible = false
+    await nextTick()
+    const saved = JSON.parse(localStorage.getItem('gftp_settings')!)
+    expect(saved.directoryTreeVisible).toBe(false)
+    expect(saved.expanded).toBeUndefined()
+    expect(saved.listings).toBeUndefined()
+    setActivePinia(createPinia())
+    expect(useSettingsStore().directoryTreeVisible).toBe(false)
+  })
 })

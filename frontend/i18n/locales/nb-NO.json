@@ -65,6 +65,12 @@
     "lostMessage": "Økten din har utløpt eller tilkoblingen til serveren ble brutt. Logg inn på nytt.",
     "reconnect": "Tilbake til innlogging"
   },
+  "tree": {
+    "title": "Mapper",
+    "toggle": "Vis eller skjul mappetre",
+    "refresh": "Oppdater mappetre",
+    "loadFailed": "Kunne ikke laste inn mapper"
+  },
   "breadcrumb": {
     "root": "Rot",
     "back": "Tilbake",

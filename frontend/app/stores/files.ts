@@ -2,6 +2,7 @@ import type { PasteChoice } from '~/stores/modal'
 import type { DeleteResult, FileInfo, OperationFailure } from '~/types/api'
 import { defineStore } from 'pinia'
 import { ApiError } from '~/types/api'
+import { remotePath } from '~/utils/remotePath'
 
 export interface ClipboardState {
   mode: 'copy' | 'cut'
@@ -35,6 +36,8 @@ function uniqueName(name: string, existing: Set<string>): string {
 }
 
 export const useFilesStore = defineStore('files', () => {
+  const directories = useDirectoriesStore()
+  const auth = useAuthStore()
   const currentPath = ref('/')
   const files = ref<FileInfo[]>([])
   const loading = ref(false)
@@ -58,17 +61,16 @@ export const useFilesStore = defineStore('files', () => {
   let _listSeq = 0
 
   async function list(path?: string) {
-    const api = useApi()
-    const target = path ?? currentPath.value
+    const target = remotePath(path ?? currentPath.value)
     const seq = ++_listSeq
     loading.value = true
     error.value = null
     errorCode.value = null
     editingName.value = null
     try {
-      const result = await api.get<FileInfo[]>(`/api/files?path=${encodeURIComponent(target)}`)
+      const result = await directories.load(target, true)
       if (seq !== _listSeq)
-        return
+        return false
       files.value = result
       currentPath.value = target
       selected.value = new Set()
@@ -76,12 +78,14 @@ export const useFilesStore = defineStore('files', () => {
         history.value = [target]
         historyIndex.value = 0
       }
+      return true
     }
     catch (e) {
       if (seq !== _listSeq)
-        return
+        return false
       errorCode.value = e instanceof ApiError ? e.code : null
       error.value = e instanceof ApiError ? e.message : 'Failed to list directory'
+      return false
     }
     finally {
       if (seq === _listSeq)
@@ -90,22 +94,23 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   async function navigate(path: string) {
-    await list(path)
+    path = remotePath(path)
+    const success = await list(path)
     // Record only successful navigations; skip refreshes of the current entry
-    if (error.value || currentPath.value !== path)
-      return
+    if (!success || currentPath.value !== path)
+      return false
     if (history.value[historyIndex.value] === path)
-      return
+      return true
     history.value = [...history.value.slice(0, historyIndex.value + 1), path]
     historyIndex.value = history.value.length - 1
+    return true
   }
 
   async function goBack() {
     if (!canGoBack.value)
       return
     const target = history.value[historyIndex.value - 1]!
-    await list(target)
-    if (!error.value && currentPath.value === target)
+    if (await list(target) && currentPath.value === target)
       historyIndex.value--
   }
 
@@ -113,8 +118,7 @@ export const useFilesStore = defineStore('files', () => {
     if (!canGoForward.value)
       return
     const target = history.value[historyIndex.value + 1]!
-    await list(target)
-    if (!error.value && currentPath.value === target)
+    if (await list(target) && currentPath.value === target)
       historyIndex.value++
   }
 
@@ -175,6 +179,7 @@ export const useFilesStore = defineStore('files', () => {
   async function rename(from: string, to: string): Promise<void> {
     const api = useApi()
     await api.patch('/api/files/rename', { from, to })
+    directories.invalidate([from, to])
     await list()
   }
 
@@ -196,7 +201,12 @@ export const useFilesStore = defineStore('files', () => {
 
   async function copy(from: string, to: string): Promise<void> {
     const api = useApi()
-    await api.patch('/api/files/copy', { from, to })
+    try {
+      await api.patch('/api/files/copy', { from, to })
+    }
+    finally {
+      directories.invalidate([to])
+    }
   }
 
   // Move reuses the rename endpoint: native Rename is a cross-directory move on
@@ -204,6 +214,7 @@ export const useFilesStore = defineStore('files', () => {
   async function move(from: string, to: string): Promise<void> {
     const api = useApi()
     await api.patch('/api/files/rename', { from, to })
+    directories.invalidate([from, to])
   }
 
   // On a name collision the user picks overwrite/append/cancel once for the
@@ -256,6 +267,7 @@ export const useFilesStore = defineStore('files', () => {
             // Moving on regardless meant a failed delete was reported only as a
             // generic "paste failed" after the move also failed.
             const del = await api.del<DeleteResult>('/api/files', { paths: [to] })
+            directories.invalidate(del.deleted)
             const denied = del.failed[0]
             if (denied) {
               failed++
@@ -300,6 +312,7 @@ export const useFilesStore = defineStore('files', () => {
   async function deleteFiles(paths: string[]): Promise<DeleteResult> {
     const api = useApi()
     const res = await api.del<DeleteResult>('/api/files', { paths })
+    directories.invalidate(paths)
     await list()
     return res
   }
@@ -307,6 +320,7 @@ export const useFilesStore = defineStore('files', () => {
   async function mkdir(path: string): Promise<void> {
     const api = useApi()
     await api.post('/api/files/directory', { path })
+    directories.invalidate([path])
     await list()
   }
 
@@ -315,6 +329,7 @@ export const useFilesStore = defineStore('files', () => {
   async function ensureDir(path: string): Promise<void> {
     const api = useApi()
     await api.post('/api/files/directory', { path })
+    directories.invalidate([path])
   }
 
   async function chmod(path: string, mode: number): Promise<void> {
@@ -339,6 +354,8 @@ export const useFilesStore = defineStore('files', () => {
   }
 
   function $reset() {
+    _listSeq++
+    directories.$reset()
     currentPath.value = '/'
     files.value = []
     loading.value = false
@@ -350,6 +367,8 @@ export const useFilesStore = defineStore('files', () => {
     history.value = []
     historyIndex.value = -1
   }
+
+  watch(() => [auth.csrfToken, auth.connected, auth.sessionLost], $reset, { flush: 'sync' })
 
   const pathSegments = computed(() => {
     const parts = currentPath.value.split('/').filter(Boolean)

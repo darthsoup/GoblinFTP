@@ -1,5 +1,17 @@
 <template>
   <nav class="flex items-center gap-2 px-4 h-11 bg-elevated border-b border-default overflow-x-auto whitespace-nowrap shrink-0">
+    <UTooltip v-if="treeToggle" :text="t('tree.toggle')">
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="subtle"
+        icon="i-ph-tree-structure"
+        :aria-label="t('tree.toggle')"
+        :aria-expanded="treeOpen"
+        aria-controls="directory-tree"
+        @click="$emit('toggleTree')"
+      />
+    </UTooltip>
     <template v-if="showHistory">
       <UFieldGroup size="sm" class="shrink-0">
         <UTooltip :text="t('breadcrumb.back')">
@@ -45,6 +57,9 @@
 
 <script setup lang="ts">
 import type { BreadcrumbItem } from '@nuxt/ui'
+
+defineProps<{ treeToggle?: boolean, treeOpen?: boolean }>()
+defineEmits<{ toggleTree: [] }>()
 
 const filesStore = useFilesStore()
 const authStore = useAuthStore()

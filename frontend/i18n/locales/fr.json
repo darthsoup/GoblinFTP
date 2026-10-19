@@ -65,6 +65,12 @@
     "lostMessage": "Votre session a expiré ou la connexion au serveur a été perdue. Veuillez vous reconnecter.",
     "reconnect": "Retour à la connexion"
   },
+  "tree": {
+    "title": "Dossiers",
+    "toggle": "Afficher ou masquer l’arborescence",
+    "refresh": "Actualiser l’arborescence",
+    "loadFailed": "Impossible de charger les dossiers"
+  },
   "breadcrumb": {
     "root": "Racine",
     "back": "Précédent",
