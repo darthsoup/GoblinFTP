@@ -83,7 +83,7 @@
               icon="i-ph-arrows-clockwise"
               :aria-label="t('toolbar.refresh')"
               :loading="filesStore.loading"
-              @click="filesStore.list()"
+              @click="filesStore.refresh()"
             />
           </UTooltip>
           <UTooltip :text="t('toolbar.upload')">

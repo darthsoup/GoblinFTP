@@ -11,7 +11,7 @@ export type SizeFormat = 'binary' | 'decimal' | 'bytes'
 export type DateFormat = 'auto' | 'absolute' | 'relative'
 export type AppLanguage = 'en' | 'de' | 'cs' | 'da' | 'es' | 'fi' | 'fr' | 'it' | 'nb-NO' | 'nl' | 'pt' | 'sk' | 'sv'
 export type FileViewMode = 'table' | 'cards'
-export type Density = 'comfortable' | 'compact'
+export type Density = 'standard' | 'compact'
 
 interface PersistedSettings {
   showDotfiles?: boolean | null
@@ -21,12 +21,12 @@ interface PersistedSettings {
   dateFormat?: DateFormat
   fileViewMode?: FileViewMode
   gridThumbnails?: boolean
-  density?: Density
+  density?: Density | 'comfortable'
 }
 
 const SIZE_FORMATS: SizeFormat[] = ['binary', 'decimal', 'bytes']
 const DATE_FORMATS: DateFormat[] = ['auto', 'absolute', 'relative']
-const DENSITIES: Density[] = ['comfortable', 'compact']
+const DENSITIES: Density[] = ['standard', 'compact']
 export const LANGUAGES: AppLanguage[] = ['en', 'de', 'cs', 'da', 'es', 'fi', 'fr', 'it', 'nb-NO', 'nl', 'pt', 'sk', 'sv']
 
 // Narrow the admin default (GFTP_LANGUAGE) to a supported language; shared with the auth plugin.
@@ -51,8 +51,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const dateFormat = ref<DateFormat>('auto')
   const fileViewMode = ref<FileViewMode>(defaultFileViewMode())
   const gridThumbnails = ref(false)
-  // Row height in the file table: comfortable (default) or compact.
-  const density = ref<Density>('comfortable')
+  const density = ref<Density>('standard')
 
   const showDotfiles = computed({
     get: () => userShowDotfiles.value ?? authStore.systemVars?.ui.showDotFiles ?? false,
@@ -79,8 +78,9 @@ export const useSettingsStore = defineStore('settings', () => {
         fileViewMode.value = parsed.fileViewMode
       if (typeof parsed.gridThumbnails === 'boolean')
         gridThumbnails.value = parsed.gridThumbnails
-      if (parsed.density && DENSITIES.includes(parsed.density))
-        density.value = parsed.density
+      const savedDensity = parsed.density === 'comfortable' ? 'standard' : parsed.density
+      if (savedDensity && DENSITIES.includes(savedDensity))
+        density.value = savedDensity
     }
   }
   catch {}

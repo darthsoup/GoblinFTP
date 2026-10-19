@@ -16,6 +16,7 @@ const (
 	ErrFilePermission          Code = "ERR_FILE_PERMISSION"
 	ErrListFailed              Code = "ERR_LIST_FAILED"
 	ErrOperationFailed         Code = "ERR_OPERATION_FAILED"
+	ErrOperationInProgress     Code = "ERR_OPERATION_IN_PROGRESS"
 	ErrBadRequest              Code = "ERR_BAD_REQUEST"
 	ErrUnauthorized            Code = "ERR_UNAUTHORIZED"
 	ErrForbidden               Code = "ERR_FORBIDDEN"
@@ -109,7 +110,7 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusForbidden
 	case ErrFileNotFound:
 		return http.StatusNotFound
-	case ErrFileExists, ErrDirNotEmpty, ErrFileModified:
+	case ErrFileExists, ErrDirNotEmpty, ErrFileModified, ErrOperationInProgress:
 		return http.StatusConflict
 	case ErrQuotaExceeded:
 		return http.StatusInsufficientStorage

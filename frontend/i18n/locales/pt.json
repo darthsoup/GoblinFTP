@@ -56,7 +56,7 @@
     "gridThumbnails": "Miniaturas de imagens",
     "gridThumbnailsHint": "Mostrar pré-visualizações de imagens na vista de cartões.",
     "density": "Densidade",
-    "densityComfortable": "Confortável",
+    "densityStandard": "Padrão",
     "densityCompact": "Compacta",
     "close": "Concluído"
   },
@@ -78,6 +78,11 @@
     "name": "Nome",
     "size": "Tamanho",
     "modified": "Modificado",
+    "sortBy": "Ordenar por",
+    "ascending": "Ascendente",
+    "descending": "Descendente",
+    "serverOrder": "Ordem do servidor",
+    "sortStatus": "Ordenado por {field}: {direction}",
     "permissions": "Permissões",
     "loading": "A carregar...",
     "empty": "Este diretório está vazio",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Ocorreu um erro no servidor",
     "ERR_OVERWRITE_LOST_DESTINATION": "O ficheiro existente foi removido mas não foi possível mover o substituto",
     "ERR_NETWORK": "Não é possível contactar o servidor",
-    "ERR_UNKNOWN": "Ocorreu um erro"
+    "ERR_UNKNOWN": "Ocorreu um erro",
+    "ERR_OPERATION_IN_PROGRESS": "Está em curso outro cálculo do tamanho. Tente novamente dentro de instantes."
   },
   "toast": {
     "folderCreated": "Pasta criada",
@@ -316,5 +322,22 @@
     "errorDisabled": "O início de sessão SSO não está ativado neste servidor.",
     "errorInternal": "O início de sessão SSO falhou devido a um erro do servidor. Tente novamente.",
     "errorGeneric": "O início de sessão SSO falhou. Solicite uma nova hiperligação."
+  },
+  "directorySize": {
+    "calculate": "Calcular tamanho",
+    "recalculate": "Recalcular tamanho",
+    "cancel": "Cancelar cálculo do tamanho",
+    "retry": "Tentar calcular o tamanho novamente",
+    "calculating": "A calcular...",
+    "empty": "Vazia",
+    "partial": "Parcial",
+    "failed": "Não foi possível calcular o tamanho",
+    "counts": "{files} ficheiros, {directories} pastas",
+    "skipped": "Itens ignorados: {count}",
+    "reason": {
+      "unreadable": "Não foi possível ler alguns itens. O total é um limite inferior.",
+      "limit": "Foi atingido o limite de análise. O total é um limite inferior.",
+      "timeout": "A análise excedeu o tempo limite. O total é um limite inferior."
+    }
   }
 }

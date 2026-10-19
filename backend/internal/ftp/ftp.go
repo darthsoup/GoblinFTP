@@ -1,6 +1,7 @@
 package ftp
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -51,6 +52,12 @@ func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client
 			conn, err := net.DialTimeout(network, address, dialTimeout)
 			if err != nil {
 				return nil, err
+			}
+			if control != nil {
+				if tlsConfig != nil {
+					return tls.Client(conn, tlsConfig), nil
+				}
+				return conn, nil
 			}
 			// Tight during the handshake so a server that accepts and never
 			// sends its greeting fails fast, relaxed afterwards for real work.
@@ -169,7 +176,7 @@ func (c *Client) WorkingDir() (string, error) {
 }
 
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
-	entries, err := c.conn.List(dir)
+	entries, err := c.listEntries(dir)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -179,13 +186,22 @@ func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 			continue
 		}
 		out = append(out, transfer.FileInfo{
-			Name:    e.Name,
-			Size:    clampSize(e.Size),
-			IsDir:   e.Type == jftp.EntryTypeFolder,
-			ModTime: modTime(e.Time),
+			Name:      e.Name,
+			Size:      clampSize(e.Size),
+			IsDir:     e.Type == jftp.EntryTypeFolder,
+			IsSymlink: e.Type == jftp.EntryTypeLink,
+			ModTime:   modTime(e.Time),
 		})
 	}
 	return out, nil
+}
+
+func (c *Client) listEntries(dir string) ([]*jftp.Entry, error) {
+	// MLSD includes dotfiles; legacy LIST needs -a or directory totals miss them.
+	if !c.conn.IsTimePreciseInList() {
+		dir = "-a " + dir
+	}
+	return c.conn.List(dir)
 }
 
 func (c *Client) Stat(p string) (transfer.FileInfo, error) {
@@ -194,21 +210,69 @@ func (c *Client) Stat(p string) (transfer.FileInfo, error) {
 	}
 	parent := path.Dir(p)
 	name := path.Base(p)
-	entries, err := c.conn.List(parent)
+	entries, err := c.listEntries(parent)
 	if err != nil {
 		return transfer.FileInfo{}, wrapErr(err)
 	}
 	for _, e := range entries {
 		if e.Name == name {
 			return transfer.FileInfo{
-				Name:    e.Name,
-				Size:    clampSize(e.Size),
-				IsDir:   e.Type == jftp.EntryTypeFolder,
-				ModTime: modTime(e.Time),
+				Name:      e.Name,
+				Size:      clampSize(e.Size),
+				IsDir:     e.Type == jftp.EntryTypeFolder,
+				IsSymlink: e.Type == jftp.EntryTypeLink,
+				ModTime:   modTime(e.Time),
 			}, nil
 		}
 	}
 	return transfer.FileInfo{}, transfer.ErrNotFound
+}
+
+func (c *Client) Lstat(p string) (transfer.FileInfo, error) {
+	return c.Stat(p)
+}
+
+func (c *Client) LstatContext(ctx context.Context, p string) (transfer.FileInfo, error) {
+	entry, err := c.conn.LstatContext(ctx, p, 50000)
+	if err != nil {
+		return transfer.FileInfo{}, wrapScanErr(err)
+	}
+	return scanFileInfo(entry), nil
+}
+
+func (c *Client) ReadDirContext(ctx context.Context, p string, limit int) ([]transfer.FileInfo, bool, error) {
+	entries, truncated, err := c.conn.ReadDirContext(ctx, p, limit)
+	out := make([]transfer.FileInfo, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Name != "." && entry.Name != ".." {
+			out = append(out, scanFileInfo(entry))
+		}
+	}
+	return out, truncated, wrapScanErr(err)
+}
+
+func scanFileInfo(entry *jftp.Entry) transfer.FileInfo {
+	size := int64(-1)
+	if entry.Size <= math.MaxInt64 {
+		size = int64(entry.Size)
+	}
+	return transfer.FileInfo{
+		Name:      entry.Name,
+		Size:      size,
+		IsDir:     entry.Type == jftp.EntryTypeFolder,
+		IsSymlink: entry.Type == jftp.EntryTypeLink,
+		ModTime:   modTime(entry.Time),
+	}
+}
+
+func wrapScanErr(err error) error {
+	if errors.Is(err, jftp.ErrScanConnectionClosed) {
+		return fmt.Errorf("%w: %w", transfer.ErrConnectionLost, err)
+	}
+	if errors.Is(err, jftp.ErrListLimit) {
+		return fmt.Errorf("%w: %w", transfer.ErrDirectorySizeLimit, err)
+	}
+	return wrapErr(err)
 }
 
 func (c *Client) MakeDir(p string) error {
@@ -282,6 +346,7 @@ func (c *Client) Close() error {
 }
 
 var _ transfer.Client = (*Client)(nil)
+var _ transfer.DirectorySizeReader = (*Client)(nil)
 
 // modTime returns 0 for an MLSD entry with no modify fact, so the API can emit an
 // empty timestamp instead of rendering year 1.

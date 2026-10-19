@@ -56,7 +56,7 @@
     "gridThumbnails": "Náhledy obrázků",
     "gridThumbnailsHint": "Zobrazit náhledy obrázků v mřížce karet.",
     "density": "Hustota",
-    "densityComfortable": "Pohodlné",
+    "densityStandard": "Standardní",
     "densityCompact": "Kompaktní",
     "close": "Hotovo"
   },
@@ -78,6 +78,11 @@
     "name": "Název",
     "size": "Velikost",
     "modified": "Změněno",
+    "sortBy": "Řadit podle",
+    "ascending": "Vzestupně",
+    "descending": "Sestupně",
+    "serverOrder": "Pořadí serveru",
+    "sortStatus": "Seřazeno podle {field}: {direction}",
     "permissions": "Oprávnění",
     "loading": "Načítání...",
     "empty": "Tento adresář je prázdný",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Na serveru došlo k chybě",
     "ERR_OVERWRITE_LOST_DESTINATION": "Původní soubor byl odstraněn, ale náhradu se nepodařilo přesunout na jeho místo",
     "ERR_NETWORK": "Server je nedostupný",
-    "ERR_UNKNOWN": "Došlo k chybě"
+    "ERR_UNKNOWN": "Došlo k chybě",
+    "ERR_OPERATION_IN_PROGRESS": "Jiný výpočet velikosti stále probíhá. Zkuste to za chvíli znovu."
   },
   "toast": {
     "folderCreated": "Složka vytvořena",
@@ -316,5 +322,22 @@
     "errorDisabled": "Přihlášení přes SSO není na tomto serveru povoleno.",
     "errorInternal": "Přihlášení přes SSO selhalo kvůli chybě serveru. Zkuste to prosím znovu.",
     "errorGeneric": "Přihlášení přes SSO selhalo. Vyžádejte si prosím nový odkaz."
+  },
+  "directorySize": {
+    "calculate": "Vypočítat velikost",
+    "recalculate": "Přepočítat velikost",
+    "cancel": "Zrušit výpočet velikosti",
+    "retry": "Opakovat výpočet velikosti",
+    "calculating": "Výpočet...",
+    "empty": "Prázdný",
+    "partial": "Neúplné",
+    "failed": "Velikost se nepodařilo vypočítat",
+    "counts": "{files} souborů, {directories} složek",
+    "skipped": "Přeskočené položky: {count}",
+    "reason": {
+      "unreadable": "Některé položky nelze přečíst. Celková velikost je dolní mez.",
+      "limit": "Byl dosažen limit procházení. Celková velikost je dolní mez.",
+      "timeout": "Vypršel čas procházení. Celková velikost je dolní mez."
+    }
   }
 }

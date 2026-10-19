@@ -56,7 +56,7 @@
     "gridThumbnails": "Miniaturebilleder",
     "gridThumbnailsHint": "Vis billedforhåndsvisninger i kortvisningen.",
     "density": "Tæthed",
-    "densityComfortable": "Komfortabel",
+    "densityStandard": "Standard",
     "densityCompact": "Kompakt",
     "close": "Færdig"
   },
@@ -78,6 +78,11 @@
     "name": "Navn",
     "size": "Størrelse",
     "modified": "Ændret",
+    "sortBy": "Sortér efter",
+    "ascending": "Stigende",
+    "descending": "Faldende",
+    "serverOrder": "Serverrækkefølge",
+    "sortStatus": "Sorteret efter {field}: {direction}",
     "permissions": "Tilladelser",
     "loading": "Indlæser...",
     "empty": "Denne mappe er tom",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Der opstod en fejl på serveren",
     "ERR_OVERWRITE_LOST_DESTINATION": "Den eksisterende fil blev fjernet, men erstatningen kunne ikke flyttes på plads",
     "ERR_NETWORK": "Kan ikke nå serveren",
-    "ERR_UNKNOWN": "Der opstod en fejl"
+    "ERR_UNKNOWN": "Der opstod en fejl",
+    "ERR_OPERATION_IN_PROGRESS": "En anden størrelsesberegning kører stadig. Prøv igen om lidt."
   },
   "toast": {
     "folderCreated": "Mappe oprettet",
@@ -316,5 +322,22 @@
     "errorDisabled": "SSO-login er ikke aktiveret på denne server.",
     "errorInternal": "SSO-login mislykkedes på grund af en serverfejl. Prøv venligst igen.",
     "errorGeneric": "SSO-login mislykkedes. Anmod venligst om et nyt link."
+  },
+  "directorySize": {
+    "calculate": "Beregn størrelse",
+    "recalculate": "Genberegn størrelse",
+    "cancel": "Annuller størrelsesberegning",
+    "retry": "Prøv størrelsesberegning igen",
+    "calculating": "Beregner...",
+    "empty": "Tom",
+    "partial": "Delvis",
+    "failed": "Kunne ikke beregne størrelsen",
+    "counts": "{files} filer, {directories} mapper",
+    "skipped": "Oversprungne elementer: {count}",
+    "reason": {
+      "unreadable": "Nogle elementer kunne ikke læses. Totalen er en nedre grænse.",
+      "limit": "Scanningsgrænsen blev nået. Totalen er en nedre grænse.",
+      "timeout": "Scanningen fik timeout. Totalen er en nedre grænse."
+    }
   }
 }

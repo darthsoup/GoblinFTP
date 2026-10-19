@@ -1,9 +1,11 @@
 package sftp
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"path"
 	"strings"
 	"time"
@@ -16,8 +18,9 @@ import (
 
 // Client wraps pkg/sftp and implements transfer.Client.
 type Client struct {
-	ssh  *ssh.Client
-	sftp *sftp.Client
+	ssh       *ssh.Client
+	sftp      *sftp.Client
+	transport net.Conn
 }
 
 // Dial opens an SSH/SFTP session, verifying the host key against knownHostsPath. An
@@ -36,7 +39,7 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 		HostKeyCallback: cb,
 		Timeout:         dialTimeout,
 	}
-	sshConn, err := ssh.Dial("tcp", addr, cfg)
+	sshConn, transport, err := dialSSH(addr, cfg)
 	if err != nil {
 		// Order matters: a failed known_hosts write reports "permission denied",
 		// which isAuthErr would otherwise read as bad credentials and throttle
@@ -64,17 +67,42 @@ func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, 
 		// the user "could not connect" sends them to check the wrong thing.
 		return nil, nil, fmt.Errorf("%w: %w", transfer.ErrSubsystemUnavailable, err)
 	}
-	return &Client{ssh: sshConn, sftp: sftpClient}, nil, nil
+	return &Client{ssh: sshConn, sftp: sftpClient, transport: transport}, nil, nil
 }
 
 const dialTimeout = 10 * time.Second
+
+func dialSSH(addr string, cfg *ssh.ClientConfig) (*ssh.Client, net.Conn, error) {
+	conn, err := net.DialTimeout("tcp", addr, dialTimeout) //nolint:gosec // G704: user-selected SFTP destination; SSH host keys are verified
+	if err != nil {
+		return nil, nil, err
+	}
+	if err = conn.SetDeadline(time.Now().Add(dialTimeout)); err != nil {
+		_ = conn.Close()
+		return nil, nil, err
+	}
+	sshConn, channels, requests, err := ssh.NewClientConn(conn, addr, cfg)
+	if err != nil {
+		_ = conn.Close()
+		return nil, nil, err
+	}
+	if err = conn.SetDeadline(time.Time{}); err != nil {
+		_ = sshConn.Close()
+		return nil, nil, err
+	}
+	return ssh.NewClient(sshConn, channels, requests), conn, nil
+}
 
 func (c *Client) WorkingDir() (string, error) {
 	return c.sftp.Getwd()
 }
 
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
-	entries, err := c.sftp.ReadDir(dir)
+	return c.ListContext(context.Background(), dir)
+}
+
+func (c *Client) ListContext(ctx context.Context, dir string) ([]transfer.FileInfo, error) {
+	entries, err := c.sftp.ReadDirContext(ctx, dir)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -83,6 +111,14 @@ func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 		out = append(out, infoFromFS(e))
 	}
 	return out, nil
+}
+
+func (c *Client) Lstat(p string) (transfer.FileInfo, error) {
+	fi, err := c.sftp.Lstat(p)
+	if err != nil {
+		return transfer.FileInfo{}, wrapErr(err)
+	}
+	return infoFromFS(fi), nil
 }
 
 func (c *Client) Stat(p string) (transfer.FileInfo, error) {
@@ -177,6 +213,7 @@ func infoFromFS(fi fs.FileInfo) transfer.FileInfo {
 		Name:        fi.Name(),
 		Size:        fi.Size(),
 		IsDir:       fi.IsDir(),
+		IsSymlink:   fi.Mode()&fs.ModeSymlink != 0,
 		ModTime:     fi.ModTime().Unix(),
 		Permissions: fi.Mode().String(),
 	}

@@ -40,7 +40,7 @@
               variant="subtle"
               icon="i-ph-arrows-clockwise"
               :loading="filesStore.loading"
-              @click="filesStore.list()"
+              @click="filesStore.refresh()"
             >
               {{ t('files.retry') }}
             </UButton>
@@ -78,17 +78,27 @@
                     @update:model-value="toggleSelectAll"
                   />
                 </th>
-                <th class="px-3 py-2.5 font-bold" :aria-sort="ariaSort('name')">
-                  <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('name')">
-                    {{ t('files.name') }}
-                    <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
-                  </button>
-                </th>
-                <th class="w-24 px-4 py-2 text-right whitespace-nowrap font-bold hidden sm:table-cell" :aria-sort="ariaSort('size')">
-                  <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('size')">
-                    {{ t('files.size') }}
-                    <UIcon :name="sortIcon('size')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'" />
-                  </button>
+                <th class="px-3 py-2.5 font-bold" :aria-sort="ariaSort(sortKey === 'size' ? 'size' : 'name')" :aria-describedby="sortStatusId">
+                  <div class="flex items-center gap-1">
+                    <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('name')">
+                      {{ t('files.name') }}
+                      <UIcon :name="sortIcon('name')" class="size-3 inline-block ml-1 align-middle" :class="sortKey === 'name' ? 'text-primary' : 'text-dimmed'" />
+                    </button>
+                    <UDropdownMenu v-model:open="sortMenuOpen" :items="sortItems" :content="{ align: 'start', onEscapeKeyDown: closeSortMenu }">
+                      <UButton
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        :icon="sortKey === 'size' ? sortIcon('size') : 'i-ph-funnel-simple'"
+                        :label="sortKey === 'size' ? t('files.size') : undefined"
+                        :class="sortKey === 'size' ? 'text-primary' : 'text-dimmed'"
+                        :aria-label="t('files.sortBy')"
+                        :aria-describedby="sortStatusId"
+                        :title="sortStatus"
+                      />
+                    </UDropdownMenu>
+                    <span :id="sortStatusId" class="sr-only" aria-live="polite">{{ sortStatus }}</span>
+                  </div>
                 </th>
                 <th class="w-40 px-4 py-2 text-right whitespace-nowrap font-bold hidden md:table-cell" :aria-sort="ariaSort('modified')">
                   <button type="button" class="inline-flex items-center cursor-pointer hover:text-primary transition-colors" @click="toggleSort('modified')">
@@ -165,9 +175,9 @@
                 :active="previewName === file.name"
                 :compact="compact"
                 :index="i"
+                :menu-items="buildFileMenu(file)"
                 @select="filesStore.toggleSelection"
                 @navigate="filesStore.navigate"
-                @download="onDownload"
                 @request-rename="filesStore.startRename(file.name)"
                 @cancel-rename="filesStore.cancelRename"
                 @commit-rename="(name: string) => onCommitRename(file, name)"
@@ -197,12 +207,14 @@
 <script setup lang="ts">
 import type { ButtonProps, DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
+import { directorySizePath } from '~/stores/directorySizes'
 import { ApiError } from '~/types/api'
 
 const filesStore = useFilesStore()
 const modalStore = useModalStore()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+const directorySizes = useDirectorySizesStore()
 const notify = useNotify()
 const { t } = useI18n()
 const { localizeError } = useErrorMessage()
@@ -248,6 +260,43 @@ type SortKey = 'name' | 'size' | 'modified'
 // Tri-state: ascending → descending → off (null = server order)
 const sortKey = ref<SortKey | null>('name')
 const sortAsc = ref(true)
+const sortMenuOpen = ref(false)
+const sortStatusId = useId()
+const sortStatus = computed(() => sortKey.value
+  ? t('files.sortStatus', {
+      field: t(`files.${sortKey.value}`),
+      direction: t(sortAsc.value ? 'files.ascending' : 'files.descending'),
+    })
+  : t('files.serverOrder'))
+
+function closeSortMenu() {
+  // Browser shortcuts prevent Escape before Reka's dismiss listener sees it.
+  sortMenuOpen.value = false
+}
+
+const sortItems = computed<DropdownMenuItem[][]>(() => {
+  const groups = (['name', 'size'] as const).map(key => [
+    { type: 'label' as const, label: t(`files.${key}`) },
+    ...[true, false].map(ascending => ({
+      label: t(ascending ? 'files.ascending' : 'files.descending'),
+      type: 'checkbox' as const,
+      checked: sortKey.value === key && sortAsc.value === ascending,
+      onSelect: () => {
+        sortKey.value = key
+        sortAsc.value = ascending
+      },
+    })),
+  ])
+  return [
+    ...groups,
+    [{
+      label: t('files.serverOrder'),
+      type: 'checkbox',
+      checked: sortKey.value === null,
+      onSelect: () => { sortKey.value = null },
+    }],
+  ]
+})
 
 const filter = ref('')
 watch(() => filesStore.currentPath, () => {
@@ -305,10 +354,25 @@ const sortedFiles = computed(() => {
   arr.sort((a, b) => {
     if (a.isDir !== b.isDir)
       return a.isDir ? -1 : 1
+    if (key === 'size' && a.isDir) {
+      const aEntry = directorySizes.get(directorySizePath(filesStore.currentPath, a.name))
+      const bEntry = directorySizes.get(directorySizePath(filesStore.currentPath, b.name))
+      const aBytes = aEntry.result?.complete ? aEntry.result.bytes : undefined
+      const bBytes = bEntry.result?.complete ? bEntry.result.bytes : undefined
+      if (aBytes === undefined || bBytes === undefined) {
+        if (aBytes !== undefined)
+          return -1
+        if (bBytes !== undefined)
+          return 1
+        return a.name.localeCompare(b.name)
+      }
+      const cmp = aBytes - bBytes
+      return cmp === 0 ? a.name.localeCompare(b.name) : (sortAsc.value ? cmp : -cmp)
+    }
     const av = a[key]
     const bv = b[key]
     const cmp = typeof av === 'string' ? av.localeCompare(bv as string) : (av as number) - (bv as number)
-    return sortAsc.value ? cmp : -cmp
+    return cmp === 0 ? a.name.localeCompare(b.name) : (sortAsc.value ? cmp : -cmp)
   })
   return arr
 })

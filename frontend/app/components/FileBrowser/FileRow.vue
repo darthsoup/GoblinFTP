@@ -2,7 +2,7 @@
   <tr
     class="file-row group border-b border-muted cursor-pointer hover:bg-accented/40 transition-colors text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     :class="[
-      compact ? 'h-9' : 'h-12',
+      compact ? 'h-12' : 'h-15',
       selected ? 'bg-primary/10' : (active ? 'bg-accented/50' : 'even:bg-elevated/40'),
       isCut ? 'opacity-50' : '',
     ]"
@@ -26,35 +26,44 @@
         @update:model-value="emit('select', file.name)"
       />
     </td>
-    <td class="px-4 truncate max-w-0">
-      <input
-        v-if="editing"
-        ref="inputRef"
-        v-model="draft"
-        class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
-        :aria-label="t('files.renameItem', { name: file.name })"
-        @click.stop
-        @keydown.enter.prevent="commit"
-        @keydown.escape.prevent="cancel"
-        @blur="commit"
-      >
-      <div v-else class="flex items-center gap-2.5 min-w-0">
-        <UIcon
-          :name="iconDef.icon"
-          class="size-5 shrink-0"
-          :class="iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed')"
-          :style="iconDef.color ? { color: iconDef.color } : undefined"
-        />
-        <span
-          class="truncate"
-          :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
-          @dblclick.stop="onNameDblClick"
-        >{{ file.name }}</span>
+    <td class="px-4 max-w-0">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div
+          class="shrink-0 flex items-center justify-center rounded-md border border-default bg-default"
+          :class="compact ? 'size-8' : 'size-10'"
+        >
+          <UIcon
+            :name="iconDef.icon"
+            :class="[
+              compact ? 'size-5' : 'size-6',
+              iconDef.primary ? 'text-primary' : (iconDef.color ? '' : 'text-dimmed'),
+            ]"
+            :style="iconDef.color ? { color: iconDef.color } : undefined"
+          />
+        </div>
+        <div class="min-w-0 flex-1">
+          <input
+            v-if="editing"
+            ref="inputRef"
+            v-model="draft"
+            class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
+            :aria-label="t('files.renameItem', { name: file.name })"
+            @click.stop
+            @keydown.enter.prevent="commit"
+            @keydown.escape.prevent="cancel"
+            @blur="commit"
+          >
+          <span
+            v-else
+            class="block truncate"
+            :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
+            :title="file.name"
+            @dblclick.stop="onNameDblClick"
+          >{{ file.name }}</span>
+          <span v-if="!file.isDir" class="block text-xs text-muted truncate">{{ formatSize(file.size) }}</span>
+          <DirectorySize v-else :path="directorySizePath(currentPath, file.name)" class="text-xs text-muted" />
+        </div>
       </div>
-    </td>
-    <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
-      <span v-if="file.isDir" class="text-dimmed/50">-</span>
-      <span v-else>{{ formatSize(file.size) }}</span>
     </td>
     <td class="w-40 px-4 text-right text-muted whitespace-nowrap hidden md:table-cell">
       {{ formatDate(file.modified) }}
@@ -64,7 +73,7 @@
       <span v-else class="text-dimmed/50">-</span>
     </td>
     <td class="w-14 px-2 text-center">
-      <UDropdownMenu :items="menuItems" :content="{ align: 'end' }">
+      <UDropdownMenu v-model:open="menuOpen" :items="menuItems" :content="{ align: 'end', onEscapeKeyDown: closeMenu }">
         <UButton
           size="xs"
           color="neutral"
@@ -82,6 +91,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { FileInfo } from '~/types/api'
+import { directorySizePath } from '~/stores/directorySizes'
 
 const props = defineProps<{
   file: FileInfo
@@ -110,6 +120,12 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
+const menuOpen = ref(false)
+
+function closeMenu() {
+  // Browser shortcuts prevent Escape before Reka's dismiss listener sees it.
+  menuOpen.value = false
+}
 
 const iconDef = computed(() => getFileIcon(props.file))
 
@@ -145,6 +161,9 @@ function formatDate(iso: string): string {
 // Roving tabindex: one row is in the tab order, arrows move focus between them.
 // A bare <tr @click> left the whole file manager keyboard-inoperable (WCAG 2.1.1).
 function onKeydown(e: KeyboardEvent) {
+  if (e.target !== e.currentTarget)
+    return
+
   switch (e.key) {
     case 'Enter':
       e.preventDefault()

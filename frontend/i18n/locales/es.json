@@ -56,7 +56,7 @@
     "gridThumbnails": "Miniaturas de imagen",
     "gridThumbnailsHint": "Mostrar vistas previas de imágenes en la cuadrícula de tarjetas.",
     "density": "Densidad",
-    "densityComfortable": "Cómoda",
+    "densityStandard": "Estándar",
     "densityCompact": "Compacta",
     "close": "Listo"
   },
@@ -78,6 +78,11 @@
     "name": "Nombre",
     "size": "Tamaño",
     "modified": "Modificado",
+    "sortBy": "Ordenar por",
+    "ascending": "Ascendente",
+    "descending": "Descendente",
+    "serverOrder": "Orden del servidor",
+    "sortStatus": "Ordenado por {field}: {direction}",
     "permissions": "Permisos",
     "loading": "Cargando...",
     "empty": "Este directorio está vacío",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Se produjo un error en el servidor",
     "ERR_OVERWRITE_LOST_DESTINATION": "El archivo existente se eliminó pero no se pudo mover el reemplazo a su lugar",
     "ERR_NETWORK": "No se puede conectar con el servidor",
-    "ERR_UNKNOWN": "Se produjo un error"
+    "ERR_UNKNOWN": "Se produjo un error",
+    "ERR_OPERATION_IN_PROGRESS": "Hay otro cálculo de tamaño en curso. Vuelve a intentarlo en unos instantes."
   },
   "toast": {
     "folderCreated": "Carpeta creada",
@@ -316,5 +322,22 @@
     "errorDisabled": "El inicio de sesión SSO no está habilitado en este servidor.",
     "errorInternal": "El inicio de sesión SSO falló debido a un error del servidor. Inténtalo de nuevo.",
     "errorGeneric": "El inicio de sesión SSO falló. Solicita un nuevo enlace."
+  },
+  "directorySize": {
+    "calculate": "Calcular tamaño",
+    "recalculate": "Recalcular tamaño",
+    "cancel": "Cancelar cálculo de tamaño",
+    "retry": "Reintentar cálculo de tamaño",
+    "calculating": "Calculando...",
+    "empty": "Vacío",
+    "partial": "Parcial",
+    "failed": "No se pudo calcular el tamaño",
+    "counts": "{files} archivos, {directories} carpetas",
+    "skipped": "Elementos omitidos: {count}",
+    "reason": {
+      "unreadable": "No se pudieron leer algunos elementos. El total es un límite inferior.",
+      "limit": "Se alcanzó el límite de exploración. El total es un límite inferior.",
+      "timeout": "Se agotó el tiempo de exploración. El total es un límite inferior."
+    }
   }
 }

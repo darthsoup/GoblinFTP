@@ -12,6 +12,10 @@ export interface UploadProgress {
   total: number
 }
 
+interface RequestOptions {
+  signal?: AbortSignal
+}
+
 export function useApi() {
   // Resolved per call to avoid a circular dep at module load.
   function getCsrfToken(): string {
@@ -25,7 +29,7 @@ export function useApi() {
     throw new ApiError(code, message)
   }
 
-  async function call<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  async function call<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown, options?: RequestOptions): Promise<T> {
     const headers: Record<string, string> = {}
     const upper = method.toUpperCase()
     if (upper !== 'GET' && upper !== 'HEAD') {
@@ -39,6 +43,7 @@ export function useApi() {
         method,
         headers,
         body: body !== undefined ? body : undefined,
+        signal: options?.signal,
       })
       if (!response.success) {
         const err = response.errors?.[0]
@@ -47,6 +52,8 @@ export function useApi() {
       return response.data as T
     }
     catch (e) {
+      if (options?.signal?.aborted)
+        throw new ApiError(ERR_ABORTED, 'Request aborted')
       throw await toApiError(e)
     }
   }
@@ -57,6 +64,10 @@ export function useApi() {
   async function toApiError(e: unknown): Promise<ApiError> {
     if (e instanceof ApiError)
       return e
+    if ((e as { name?: string, cause?: { name?: string } } | null)?.name === 'AbortError'
+      || (e as { cause?: { name?: string } } | null)?.cause?.name === 'AbortError') {
+      return new ApiError(ERR_ABORTED, 'Request aborted')
+    }
 
     const err = await envelopeErrorFrom(e)
     if (err) {
@@ -188,17 +199,21 @@ export function useApi() {
           reject(e)
         }
       }
-      xhr.onerror = () => reject(new ApiError(ERR_NETWORK, 'Network error'))
-      xhr.onabort = () => reject(new ApiError(ERR_ABORTED, 'Request aborted'))
+      xhr.onerror = () => {
+        reject(new ApiError(ERR_NETWORK, 'Network error'))
+      }
+      xhr.onabort = () => {
+        reject(new ApiError(ERR_ABORTED, 'Request aborted'))
+      }
       xhr.send(form)
     })
   }
 
   return {
-    get: <T>(path: string) => call<T>('GET', path),
-    post: <T>(path: string, body?: unknown) => call<T>('POST', path, body),
-    patch: <T>(path: string, body?: unknown) => call<T>('PATCH', path, body),
-    del: <T>(path: string, body?: unknown) => call<T>('DELETE', path, body),
+    get: <T>(path: string, options?: RequestOptions) => call<T>('GET', path, undefined, options),
+    post: <T>(path: string, body?: unknown, options?: RequestOptions) => call<T>('POST', path, body, options),
+    patch: <T>(path: string, body?: unknown, options?: RequestOptions) => call<T>('PATCH', path, body, options),
+    del: <T>(path: string, body?: unknown, options?: RequestOptions) => call<T>('DELETE', path, body, options),
     postForm,
     getBlob,
     postBlob,

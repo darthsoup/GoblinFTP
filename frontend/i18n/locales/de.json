@@ -56,7 +56,7 @@
     "gridThumbnails": "Bildvorschau",
     "gridThumbnailsHint": "Bildvorschau in der Kartenansicht anzeigen.",
     "density": "Dichte",
-    "densityComfortable": "Komfortabel",
+    "densityStandard": "Standard",
     "densityCompact": "Kompakt",
     "close": "Fertig"
   },
@@ -78,6 +78,11 @@
     "name": "Name",
     "size": "Größe",
     "modified": "Geändert",
+    "sortBy": "Sortieren nach",
+    "ascending": "Aufsteigend",
+    "descending": "Absteigend",
+    "serverOrder": "Serverreihenfolge",
+    "sortStatus": "Sortiert nach {field}: {direction}",
     "permissions": "Berechtigungen",
     "loading": "Laden...",
     "empty": "Dieses Verzeichnis ist leer",
@@ -277,7 +282,8 @@
     "ERR_INTERNAL": "Auf dem Server ist ein Fehler aufgetreten",
     "ERR_OVERWRITE_LOST_DESTINATION": "Die vorhandene Datei wurde entfernt, der Ersatz konnte aber nicht verschoben werden",
     "ERR_NETWORK": "Der Server ist nicht erreichbar",
-    "ERR_UNKNOWN": "Es ist ein Fehler aufgetreten"
+    "ERR_UNKNOWN": "Es ist ein Fehler aufgetreten",
+    "ERR_OPERATION_IN_PROGRESS": "Eine andere Größenberechnung läuft noch. Versuche es gleich erneut."
   },
   "toast": {
     "folderCreated": "Ordner erstellt",
@@ -316,5 +322,22 @@
     "errorDisabled": "SSO-Login ist auf diesem Server nicht aktiviert.",
     "errorInternal": "SSO-Login aufgrund eines Serverfehlers fehlgeschlagen. Bitte versuche es erneut.",
     "errorGeneric": "SSO-Login fehlgeschlagen. Bitte fordere einen neuen Link an."
+  },
+  "directorySize": {
+    "calculate": "Größe berechnen",
+    "recalculate": "Größe neu berechnen",
+    "cancel": "Größenberechnung abbrechen",
+    "retry": "Größenberechnung wiederholen",
+    "calculating": "Wird berechnet...",
+    "empty": "Leer",
+    "partial": "Unvollständig",
+    "failed": "Größe konnte nicht berechnet werden",
+    "counts": "{files} Dateien, {directories} Ordner",
+    "skipped": "Übersprungene Einträge: {count}",
+    "reason": {
+      "unreadable": "Einige Einträge konnten nicht gelesen werden. Die Gesamtgröße ist ein Mindestwert.",
+      "limit": "Das Scan-Limit wurde erreicht. Die Gesamtgröße ist ein Mindestwert.",
+      "timeout": "Zeitüberschreitung beim Scan. Die Gesamtgröße ist ein Mindestwert."
+    }
   }
 }

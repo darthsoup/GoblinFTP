@@ -98,6 +98,7 @@ func Register(e *echo.Echo, cfg *config.Config, store *auth.Store, thr *auth.Thr
 	apiGroup.POST("/auth/sso-connect", requireSession(store)(h.SSOConnect), middleware.BodyLimit(jsonBodyLimit))
 
 	apiGroup.GET("/files", requireSession(store)(h.ListFiles))
+	apiGroup.POST("/files/directory-size", requireSession(store)(h.DirectorySize), middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.POST("/files/directory", requireSession(store)(h.CreateDirectory), middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.DELETE("/files", requireSession(store)(h.DeleteFiles), middleware.BodyLimit(jsonBodyLimit))
 	apiGroup.PATCH("/files/rename", requireSession(store)(h.RenameFile), middleware.BodyLimit(jsonBodyLimit))
