@@ -41,7 +41,7 @@ describe('useEditorStore', () => {
   })
 
   it('restores tabs from a saved manifest', async () => {
-    localStorage.setItem('gftp_editor_tabs', JSON.stringify({ paths: ['/a.txt', '/b.txt'], activePath: '/b.txt' }))
+    localStorage.setItem('gftp_editor_tabs', JSON.stringify({ connectionId: '', paths: ['/a.txt', '/b.txt'], activePath: '/b.txt' }))
     mockApi.get.mockResolvedValue({ content: '', path: '/x' })
     const store = useEditorStore()
 
@@ -52,7 +52,7 @@ describe('useEditorStore', () => {
   })
 
   it('drops tabs that fail to reload during restore', async () => {
-    localStorage.setItem('gftp_editor_tabs', JSON.stringify({ paths: ['/gone.txt'], activePath: '/gone.txt' }))
+    localStorage.setItem('gftp_editor_tabs', JSON.stringify({ connectionId: '', paths: ['/gone.txt'], activePath: '/gone.txt' }))
     mockApi.get.mockRejectedValue(new Error('not found'))
     const store = useEditorStore()
 
@@ -221,5 +221,23 @@ describe('useEditorStore conflict detection', () => {
     await store.saveTab(store.tabs[0]!.id)
 
     expect(mockApi.post).not.toHaveBeenCalled()
+  })
+  it('keeps detached buffers but refuses saving or reloading them on another connection', async () => {
+    const auth = useAuthStore()
+    auth.connectionId = 'server-a'
+    mockApi.get.mockResolvedValue(readResult())
+    const store = useEditorStore()
+    await store.openFile('/a.txt')
+    const id = store.activeId!
+    store.updateContent(id, 'unsaved content')
+    store.detach()
+    auth.connectionId = 'server-b'
+    mockApi.get.mockClear()
+    await store.saveTab(id, { force: true })
+    await store.reloadTab(id)
+    expect(store.activeTab?.content).toBe('unsaved content')
+    expect(store.activeTab?.detached).toBe(true)
+    expect(mockApi.post).not.toHaveBeenCalled()
+    expect(mockApi.get).not.toHaveBeenCalled()
   })
 })

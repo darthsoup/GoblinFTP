@@ -4,7 +4,7 @@
 // Token format (must match backend/internal/sso/token.go): key = HKDF-SHA256(secret,
 // salt empty, info "gftp-sso", 32); token = base64url(iv(12) || tag(16) || AES-256-GCM).
 //
-// Usage: GFTP_SSO_SECRET=change-me node generate-sso-link.mjs --host ftp.example.com
+// Usage: node generate-sso-link.mjs --host ftp.example.com (set GFTP_SSO_SECRET first).
 //   --username alice --password s3cret --base-url https://files.example.com
 
 import { createCipheriv, hkdfSync, randomBytes } from 'node:crypto'
@@ -31,7 +31,7 @@ function fail(msg) {
   process.exit(2)
 }
 
-if (!opts.secret) fail('missing --secret (or set GFTP_SSO_SECRET)')
+if (Buffer.byteLength(opts.secret) < 32) fail('--secret (or GFTP_SSO_SECRET) must contain at least 32 bytes')
 if (!opts.host) fail('missing --host')
 if (!opts.username) fail('missing --username')
 if (!['ftp', 'sftp'].includes(opts.protocol)) fail('--protocol must be ftp or sftp')

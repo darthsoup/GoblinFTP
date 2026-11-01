@@ -39,11 +39,20 @@ func connectAndGetSession(t *testing.T, app *echo.Echo) sessionCtx {
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	return sessionCtx{cookies: rec.Result().Cookies(), csrfToken: resp.Data.CSRFToken}
+	cookies := []*http.Cookie{}
+	for _, cookie := range rec.Result().Cookies() {
+		if cookie.MaxAge >= 0 && cookie.Value != "" {
+			cookies = append(cookies, cookie)
+		}
+	}
+	return sessionCtx{cookies: cookies, csrfToken: resp.Data.CSRFToken}
 }
 
 func addSession(req *http.Request, sess sessionCtx) {
 	for _, c := range sess.cookies {
+		if c.MaxAge < 0 || c.Value == "" {
+			continue
+		}
 		req.AddCookie(c)
 	}
 	if sess.csrfToken != "" {

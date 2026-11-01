@@ -12,7 +12,7 @@ export function useFileBrowserShortcuts(visibleNames: () => string[]) {
     if (filesStore.selected.size === 0)
       return
     const dir = filesStore.currentPath.replace(/\/$/, '')
-    modalStore.open('delete', { files: [...filesStore.selected].map(name => `${dir}/${name}`) })
+    modalStore.open('delete', { files: [...filesStore.selected].map(name => joinRemotePath(dir, name)) })
   }
 
   defineShortcuts({

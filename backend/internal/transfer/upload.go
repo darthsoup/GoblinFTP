@@ -23,6 +23,10 @@ func ValidateUploadID(id string) error {
 
 // UploadMeta tracks the state of an in-progress chunked upload.
 type UploadMeta struct {
+	Closed         bool
+	Mu             sync.Mutex
+	Chunks         map[int]int64
+	Release        func()
 	ID             string
 	Destination    string
 	TotalChunks    int
@@ -130,37 +134,51 @@ func AssembleReader(dataDir, uploadID string, totalChunks int) (io.ReadCloser, e
 			return nil, fmt.Errorf("chunk %d missing: %w", i, err)
 		}
 	}
-	readers := make([]io.Reader, totalChunks)
-	closers := make([]io.Closer, totalChunks)
-	for i := range totalChunks {
-		name := filepath.Join(dataDir, uploadID, fmt.Sprintf("%04d", i))
-		f, err := os.Open(name)
-		if err != nil {
-			for j := range i {
-				_ = closers[j].Close()
+	return &sequentialReader{dataDir: dataDir, id: uploadID, total: totalChunks}, nil
+}
+
+type sequentialReader struct {
+	dataDir, id  string
+	total, index int
+	cur          *os.File
+	closed       bool
+}
+
+func (r *sequentialReader) Read(p []byte) (int, error) {
+	for !r.closed {
+		if r.cur == nil {
+			if r.index >= r.total {
+				return 0, io.EOF
 			}
-			return nil, err
+			f, err := os.Open(filepath.Join(r.dataDir, r.id, fmt.Sprintf("%04d", r.index)))
+			if err != nil {
+				return 0, err
+			}
+			r.cur = f
+			r.index++
 		}
-		readers[i] = f
-		closers[i] = f
-	}
-	multi := io.MultiReader(readers...)
-	return &multiReadCloser{Reader: multi, closers: closers}, nil
-}
-
-type multiReadCloser struct {
-	io.Reader
-	closers []io.Closer
-}
-
-func (m *multiReadCloser) Close() error {
-	var last error
-	for _, c := range m.closers {
-		if err := c.Close(); err != nil {
-			last = err
+		n, err := r.cur.Read(p)
+		if err == io.EOF {
+			closeErr := r.cur.Close()
+			r.cur = nil
+			if closeErr != nil {
+				return n, closeErr
+			}
+			if n > 0 {
+				return n, nil
+			}
+			continue
 		}
+		return n, err
 	}
-	return last
+	return 0, io.EOF
+}
+func (r *sequentialReader) Close() error {
+	r.closed = true
+	if r.cur != nil {
+		return r.cur.Close()
+	}
+	return nil
 }
 
 // Cleanup removes the upload directory.

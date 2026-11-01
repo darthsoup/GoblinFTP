@@ -33,7 +33,7 @@
           <UFormField name="host" :label="t('login.host')">
             <UInput
               v-model="form.host"
-              :placeholder="t('login.hostPlaceholder')"
+              :placeholder="hostLocked && !conn?.presetHost ? t('login.fixedServer') : t('login.hostPlaceholder')"
               :disabled="hostLocked"
               class="w-full"
             />
@@ -153,7 +153,7 @@ watch(() => form.protocol, (proto) => {
 
 function validate(state: Partial<typeof form>): FormError[] {
   const errors: FormError[] = []
-  if (!state.host?.trim())
+  if (!state.host?.trim() && !hostLocked.value)
     errors.push({ name: 'host', message: t('login.errorRequired') })
   if (!state.port || state.port < 1 || state.port > 65535)
     errors.push({ name: 'port', message: t('login.errorPort') })
@@ -169,7 +169,7 @@ async function onSubmit(_event: FormSubmitEvent<typeof form>) {
   try {
     // On success `connected` flips; the layout's connected-watcher routes to
     // the workspace, which loads the directory listing.
-    await authStore.connect({ ...form })
+    await authStore.connect({ ...form, host: hostLocked.value ? '' : form.host, port: hostLocked.value ? 0 : form.port })
   }
   catch (e) {
     errorCode.value = e instanceof ApiError ? e.code : null

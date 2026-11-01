@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"errors"
-	"log/slog"
+	"io"
 	"path"
 	"strconv"
 	"time"
@@ -48,18 +48,6 @@ func destinationTaken(client transfer.Client, p string) (taken, isDir bool, err 
 	return true, false, statErr
 }
 
-// probeDestination reports whether p is taken, taking and releasing the transfer
-// lock itself. Deferred release: an explicit one would strand it on a panic.
-func probeDestination(c echo.Context, p string) (taken, connected bool, err error) {
-	client, release, ok := lockedClient(c)
-	if !ok {
-		return false, false, nil
-	}
-	defer release()
-	taken, _, err = destinationTaken(client, p)
-	return taken, true, err
-}
-
 func (h *Handler) UploadSimple(c echo.Context) error {
 	client, release, ok := lockedClient(c)
 	if !ok {
@@ -67,7 +55,7 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 	}
 	defer release()
 	remotePath := c.FormValue("path")
-	if remotePath == "" {
+	if !validPath(c, remotePath, false) {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path is required"))
 	}
 	overwrite, _ := strconv.ParseBool(c.FormValue("overwrite"))
@@ -97,7 +85,7 @@ func (h *Handler) UploadSimple(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrFileExists, "destination already exists"))
 		}
 	}
-	src := metrics.CountingReader(f, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
+	src := metrics.CountingReader(&contextReader{ctx: c.Request().Context(), r: f}, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
 	if err := client.Upload(remotePath, src); err != nil {
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
@@ -119,7 +107,7 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 	if gerr := bindJSON(c, &req); gerr != nil {
 		return Fail(c, gerr)
 	}
-	if req.Path == "" || req.TotalChunks < 1 {
+	if !validPath(c, req.Path, false) || req.TotalChunks < 1 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "path and totalChunks are required"))
 	}
 	if req.TotalChunks > maxTotalChunks {
@@ -131,10 +119,23 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 	if req.TotalSize < 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "totalSize must not be negative"))
 	}
+	if req.TotalSize == 0 || req.ChunkSize > h.cfg.ChunkSize || (req.TotalSize-1)/req.ChunkSize+1 != int64(req.TotalChunks) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "upload size and chunk count are inconsistent"))
+	}
+	sess.LockTransfer()
+	defer sess.UnlockTransfer()
+	if len(sess.UploadIDs()) >= h.cfg.UploadMaxPending {
+		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "too many pending uploads"))
+	}
 	// Reject a conflict before the client stages a single chunk. The lock is
 	// required because a LIST issued mid-transfer desyncs the FTP control connection.
 	if !req.Overwrite {
-		taken, connected, err := probeDestination(c, req.Path)
+		client, _, connected := clientFromContext(c)
+		var taken bool
+		var err error
+		if connected {
+			taken, _, err = destinationTaken(client, req.Path)
+		}
 		if !connected {
 			return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 		}
@@ -145,12 +146,19 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrFileExists, "destination already exists"))
 		}
 	}
+	lease, err := h.resources.reserveUpload(sess.ID, req.TotalSize, req.TotalChunks)
+	if err != nil {
+		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "temporary storage quota exceeded"))
+	}
 	meta, err := h.chunks.NewUpload(c.Request().Context(), req.Path, req.TotalChunks, req.ChunkSize)
 	if err != nil {
+		lease()
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to reserve upload"))
 	}
 	meta.Overwrite = req.Overwrite
 	meta.TotalSize = req.TotalSize
+	meta.Release = h.resources.ownUpload(meta.ID, lease)
+	meta.Chunks = make(map[int]int64)
 	sess.PutUpload(meta.ID, meta)
 	return OK(c, map[string]string{"uploadId": meta.ID})
 }
@@ -196,12 +204,24 @@ func (h *Handler) UploadChunk(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
 	}
+	meta.Mu.Lock()
+	defer meta.Mu.Unlock()
+	if meta.Closed {
+		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload is no longer active"))
+	}
 	if chunkIndex < 0 || chunkIndex >= meta.TotalChunks {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "chunkIndex out of range"))
 	}
 	fh, err := c.FormFile("chunk")
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "chunk file is required"))
+	}
+	expected := meta.ChunkSize
+	if chunkIndex == meta.TotalChunks-1 {
+		expected = meta.TotalSize - int64(chunkIndex)*meta.ChunkSize
+	}
+	if fh.Size != expected {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "chunk length does not match reservation"))
 	}
 	if gerr := checkChunkSize(meta, chunkIndex, fh.Size); gerr != nil {
 		return Fail(c, gerr)
@@ -214,6 +234,10 @@ func (h *Handler) UploadChunk(c echo.Context) error {
 	if err := h.chunks.WriteChunk(c.Request().Context(), uploadID, chunkIndex, fh.Size, f); err != nil {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to write chunk"))
 	}
+	if meta.Chunks == nil {
+		meta.Chunks = make(map[int]int64)
+	}
+	meta.Chunks[chunkIndex] = fh.Size
 	return OK(c, nil)
 }
 
@@ -249,14 +273,19 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
 	}
+	meta.Mu.Lock()
+	defer meta.Mu.Unlock()
+	if meta.Closed {
+		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload is no longer active"))
+	}
 	destination := meta.Destination
 	if req.Destination != "" {
 		// Confining the rename to the reserved directory keeps an uploadId from
 		// being retargeted anywhere else on the server.
-		if path.Dir(path.Clean(req.Destination)) != path.Dir(destination) {
+		if !validPath(c, req.Destination, false) || !sameParent(c, req.Destination, destination) {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "destination must stay in the reserved directory"))
 		}
-		destination = path.Clean(req.Destination)
+		destination = req.Destination
 	}
 	overwrite := meta.Overwrite
 	if req.Overwrite != nil {
@@ -276,21 +305,41 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		}
 		createdHere = true
 	}
+	var actual int64
+	for index := range meta.TotalChunks {
+		size, exists := meta.Chunks[index]
+		if !exists {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "upload is missing chunks"))
+		}
+		actual += size
+	}
+	if actual != meta.TotalSize {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "upload size does not match reservation"))
+	}
 	r, err := h.chunks.AssembleReader(ctx, meta.ID, meta.TotalChunks)
 	if err != nil {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to assemble chunks"))
 	}
+	actualRead, readErr := io.Copy(io.Discard, io.LimitReader(r, meta.TotalSize+1))
+	closeErr := r.Close()
+	if readErr != nil || closeErr != nil || actualRead != meta.TotalSize {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "stored upload size does not match reservation"))
+	}
+	r, err = h.chunks.AssembleReader(ctx, meta.ID, meta.TotalChunks)
+	if err != nil {
+		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to reopen chunks"))
+	}
 	defer r.Close()
 	if err := ensureDirAll(client, path.Dir(destination)); err != nil {
-		h.cleanupChunks(meta.ID)
+		h.cleanupUpload(meta)
 		sess.DeleteUpload(req.UploadID)
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
-	src := metrics.CountingReader(r, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
+	src := metrics.CountingReader(&contextReader{ctx: c.Request().Context(), r: r}, h.metrics.TransferBytes.WithLabelValues("upload", protocolFromSession(sess)))
 	if err := client.Upload(destination, src); err != nil {
 		// The frontend never retries a failed commit, so the staged chunks are
 		// unreachable: clean them up instead of leaving them behind.
-		h.cleanupChunks(meta.ID)
+		h.cleanupUpload(meta)
 		sess.DeleteUpload(req.UploadID)
 		// A half-written file we created ourselves is pure litter. One we were
 		// overwriting is the user's data, so a partial write is reported, never
@@ -301,20 +350,9 @@ func (h *Handler) UploadCommit(c echo.Context) error {
 		}
 		return failClient(c, gftperrors.ErrOperationFailed, err)
 	}
-	h.cleanupChunks(meta.ID)
+	h.cleanupUpload(meta)
 	sess.DeleteUpload(req.UploadID)
 	return OK(c, nil)
-}
-
-// cleanupChunks reclaims staged chunks on a fresh context: the request context
-// is already canceled whenever the client hung up mid-commit.
-func (h *Handler) cleanupChunks(uploadID string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := h.chunks.Cleanup(ctx, uploadID); err != nil {
-		h.logger.Warn("failed to clean up staged chunks",
-			slog.String("upload_id", uploadID), slog.String("error", err.Error()))
-	}
 }
 
 // UploadAbort discards a reserved upload and its staged chunks. Worth calling:
@@ -348,9 +386,29 @@ func (h *Handler) UploadAbort(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrUploadNotFound, "upload not found"))
 	}
+	meta.Mu.Lock()
+	defer meta.Mu.Unlock()
 	if err := h.chunks.Cleanup(c.Request().Context(), meta.ID); err != nil {
 		return Fail(c, stagingError(err, gftperrors.ErrInternal, "failed to discard staged chunks"))
 	}
+	meta.Closed = true
+	if meta.Release != nil {
+		meta.Release()
+	}
 	sess.DeleteUpload(req.UploadID)
 	return OK(c, nil)
+}
+
+func (h *Handler) cleanupUpload(meta *transfer.UploadMeta) {
+	meta.Closed = true
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := h.chunks.Cleanup(ctx, meta.ID); err == nil {
+		if meta.Release != nil {
+			meta.Release()
+		}
+	} else {
+		h.pendingCleanup.Store(meta.ID, meta)
+		h.logger.Warn("failed to clean staged upload", "upload_id", meta.ID, "error", err)
+	}
 }

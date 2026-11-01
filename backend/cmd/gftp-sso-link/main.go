@@ -38,8 +38,8 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	if *secret == "" {
-		fail("missing -secret (or set GFTP_SSO_SECRET)")
+	if len(*secret) < 32 {
+		fail("-secret (or GFTP_SSO_SECRET) must contain at least 32 bytes")
 	}
 	if *host == "" {
 		fail("missing -host")

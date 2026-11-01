@@ -308,7 +308,16 @@ func bytesSecret(env string, target func(*Config) *[]byte, opts ...keyOpt) Key {
 	k := newKey(env, "secret", opts)
 	k.Secret = true
 	k.fromEnv = func(c *Config, raw string) error { *target(c) = []byte(raw); return nil }
-	k.render = func(*Config) string { return "" }
+	k.render = func(c *Config) string {
+		switch env {
+		case "GFTP_BIND_ADDRESS":
+			return c.BindAddress
+		case "GFTP_METRICS_BIND_ADDRESS":
+			return c.MetricsBindAddress
+		default:
+			return ""
+		}
+	}
 	if k.autogenLen > 0 {
 		n, warn := k.autogenLen, k.autogenWarn
 		k.applyAutogen = func(c *Config, logger *slog.Logger) error {
@@ -349,6 +358,7 @@ func group(section, docPage string, keys ...Key) []Key {
 // Registry is the single definition of every configuration knob, in the order
 // generated artifacts present them.
 var Registry = slices.Concat(
+	auditKeys(),
 	group("Server", "configuration",
 		custom("GFTP_BIND_ADDRESS", func(c *Config, raw string) error {
 			if net.ParseIP(raw) == nil {
@@ -356,7 +366,7 @@ var Registry = slices.Concat(
 			}
 			c.BindAddress = raw
 			return nil
-		}, doc("IP address to listen on. Empty allows all addresses. Docker sets this to 127.0.0.1.")),
+		}, doc("IP address to listen on. Defaults to loopback. Set 0.0.0.0 explicitly for all IPv4 interfaces.")),
 		portStr("GFTP_PORT", func(c *Config) *string { return &c.Port },
 			doc("Backend port for installations without Docker. In Docker, the backend uses 8081 and the app uses 8080.")),
 		str("GFTP_DATA_DIR", func(c *Config) *string { return &c.DataDir },

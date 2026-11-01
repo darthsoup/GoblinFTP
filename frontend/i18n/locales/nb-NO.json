@@ -10,7 +10,8 @@
     "connect": "Koble til",
     "passive": "Passiv modus",
     "errorRequired": "Påkrevd",
-    "errorPort": "Ugyldig port"
+    "errorPort": "Ugyldig port",
+    "fixedServer": "Fast server"
   },
   "hostKey": {
     "title": "Bekreft vertsnøkkel",
@@ -169,7 +170,9 @@
       "reload": "Forkast mine, last inn på nytt",
       "banner": "Denne filen ble endret på serveren. Automatisk lagring er satt på pause.",
       "bannerDeleted": "Denne filen finnes ikke lenger på serveren. Automatisk lagring er satt på pause."
-    }
+    },
+    "exportDraft": "Eksporter utkast",
+    "detachedDraft": "Frakoblet utkast fra {host}"
   },
   "modal": {
     "delete": {
@@ -271,13 +274,17 @@
     "ERR_ARCHIVE_FORMAT": "Arkivet er skadet eller i et format som ikke støttes",
     "ERR_INVALID_TOKEN": "Lenken er ugyldig eller utløpt",
     "ERR_UPLOAD_NOT_FOUND": "Opplastingen er ikke lenger tilgjengelig, last opp på nytt",
+    "ERR_UNSUPPORTED_SERVER": "Serverstier i Windows-format støttes ikke. Bruk en server med absolutte POSIX-stier.",
     "ERR_INVALID_TYPE": "Handlingen er ikke gyldig for dette elementet",
     "ERR_FORBIDDEN": "Du har ikke tilgang til dette",
     "ERR_BAD_REQUEST": "Forespørselen kunne ikke behandles",
     "ERR_INTERNAL": "Noe gikk galt på serveren",
     "ERR_OVERWRITE_LOST_DESTINATION": "Den eksisterende filen ble fjernet, men erstatningen kunne ikke flyttes på plass",
     "ERR_NETWORK": "Får ikke kontakt med serveren",
-    "ERR_UNKNOWN": "Noe gikk galt"
+    "ERR_UNKNOWN": "Noe gikk galt",
+    "ERR_CAPACITY_EXCEEDED": "Handlingen overskrider tilgjengelig kapasitet. Prøv igjen senere.",
+    "ERR_LISTING_LIMIT": "Denne mappen overskrider grensen for mappelister.",
+    "ERR_STALE_CONNECTION": "Økten din har utløpt eller tilkoblingen til serveren ble brutt. Logg inn på nytt."
   },
   "toast": {
     "folderCreated": "Mappe opprettet",
@@ -315,6 +322,7 @@
     "errorUsed": "Denne SSO-innloggingslenken er allerede brukt. Be om en ny.",
     "errorDisabled": "SSO-innlogging er ikke aktivert på denne serveren.",
     "errorInternal": "SSO-innlogging mislyktes på grunn av en serverfeil. Prøv igjen.",
-    "errorGeneric": "SSO-innlogging mislyktes. Be om en ny lenke."
+    "errorGeneric": "SSO-innlogging mislyktes. Be om en ny lenke.",
+    "confirmTitle": "Bekreft servertilkobling"
   }
 }

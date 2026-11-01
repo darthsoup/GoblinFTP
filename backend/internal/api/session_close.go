@@ -8,45 +8,65 @@ import (
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
-// closeSessionClient closes the transfer client a session holds, if any. The
-// caller must already hold the session's transfer lock.
+// Callers hold the transfer lock while closing a session's protocol client.
 func closeSessionClient(sess *auth.Session) {
-	clientVal, ok := sess.Get("client")
+	value, ok := sess.Get("client")
 	if !ok {
 		return
 	}
-	if client, ok := clientVal.(transfer.Client); ok {
+	if client, ok := value.(transfer.Client); ok {
 		_ = client.Close()
 	}
 	sess.Delete("client")
 }
 
-// evictSession is the store's eviction hook: an expired session frees its
-// connection and its staged upload chunks, not just its map entry.
 func (h *Handler) evictSession(sess *auth.Session) {
 	closeSessionClient(sess)
-
-	ids := sess.UploadIDs()
-	if len(ids) == 0 {
-		return
-	}
-	// Bounded: eviction runs on the janitor goroutine (and at shutdown), so a
-	// slow or unreachable chunk store must not stall it.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	for _, id := range ids {
-		metaVal, ok := sess.GetUpload(id)
+	for _, id := range sess.UploadIDs() {
+		value, ok := sess.GetUpload(id)
 		if !ok {
 			continue
 		}
-		meta, ok := metaVal.(*transfer.UploadMeta)
+		meta, ok := value.(*transfer.UploadMeta)
 		if !ok {
 			continue
 		}
+		meta.Mu.Lock()
+		meta.Closed = true
 		if err := h.chunks.Cleanup(ctx, meta.ID); err != nil {
-			h.logger.Warn("could not discard staged chunks for an evicted session",
-				"upload_id", meta.ID, "error", err.Error())
+			h.pendingCleanup.Store(meta.ID, meta)
+			h.logger.Warn("could not discard staged chunks for an evicted session", "upload_id", meta.ID, "error", err.Error())
+		} else if meta.Release != nil {
+			meta.Release()
 		}
+		meta.Mu.Unlock()
 		sess.DeleteUpload(id)
+	}
+}
+
+func (h *Handler) retryCleanup() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-h.cleanupContext.Done():
+			return
+		case <-ticker.C:
+			h.pendingCleanup.Range(func(key, value any) bool {
+				meta := value.(*transfer.UploadMeta)
+				ctx, cancel := context.WithTimeout(h.cleanupContext, 10*time.Second)
+				err := h.chunks.Cleanup(ctx, meta.ID)
+				cancel()
+				if err == nil {
+					if meta.Release != nil {
+						meta.Release()
+					}
+					h.pendingCleanup.Delete(key)
+				}
+				return h.cleanupContext.Err() == nil
+			})
+		}
 	}
 }

@@ -9,6 +9,7 @@
       <p class="text-muted">
         {{ t('session.lostMessage') }}
       </p>
+      <DetachedDrafts />
     </template>
 
     <template #footer>
@@ -29,9 +30,7 @@ const open = computed(() => authStore.sessionLost)
 function reconnect() {
   uploadStore.cancelAll()
   filesStore.$reset()
-  // The editor is deliberately NOT reset: this modal is not dismissible, so
-  // wiping it destroyed every unsaved buffer with no prompt (auto-save is off
-  // by default). The tabs survive the reconnect and stay saveable.
+  // Session loss already detached editor buffers and cancelled pending actions.
   authStore.acknowledgeSessionLost()
 }
 </script>

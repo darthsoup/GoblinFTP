@@ -3,7 +3,6 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -325,7 +324,7 @@ func TestUploadCheckMissingParentIsNoConflict(t *testing.T) {
 	mock := &testutil.MockClient{
 		WorkingDirFn: func() (string, error) { return "/", nil },
 		ChmodFn:      func(string, uint32) error { return nil },
-		ListFn:       func(string) ([]transfer.FileInfo, error) { return nil, errors.New("550 no such directory") },
+		ListFn:       func(string) ([]transfer.FileInfo, error) { return nil, transfer.ErrNotFound },
 	}
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
 	sess := connectAndGetSession(t, app)

@@ -20,7 +20,7 @@
         size="md"
         class="justify-center transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        :aria-label="t('files.selectItem', { name: file.name })"
+        :aria-label="t('files.selectItem', { name: displayName(file.name) })"
         tabindex="-1"
         @click.stop
         @update:model-value="emit('select', file.name)"
@@ -32,7 +32,7 @@
         ref="inputRef"
         v-model="draft"
         class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-default outline-none focus:ring-1 focus:ring-primary"
-        :aria-label="t('files.renameItem', { name: file.name })"
+        :aria-label="t('files.renameItem', { name: displayName(file.name) })"
         @click.stop
         @keydown.enter.prevent="commit"
         @keydown.escape.prevent="cancel"
@@ -49,7 +49,7 @@
           class="truncate"
           :class="file.isDir ? 'font-semibold text-highlighted' : 'text-default'"
           @dblclick.stop="onNameDblClick"
-        >{{ file.name }}</span>
+        ><bdi>{{ displayName(file.name) }}</bdi></span>
       </div>
     </td>
     <td class="w-24 px-4 text-right text-muted whitespace-nowrap hidden sm:table-cell">
@@ -117,8 +117,8 @@ const iconDef = computed(() => getFileIcon(props.file))
 // with no indication of what the row IS.
 const rowLabel = computed(() =>
   props.file.isDir
-    ? t('files.folderNamed', { name: props.file.name })
-    : t('files.fileNamed', { name: props.file.name }),
+    ? t('files.folderNamed', { name: displayName(props.file.name) })
+    : t('files.fileNamed', { name: displayName(props.file.name) }),
 )
 
 // Inline rename behaviour is shared with FileCard.
@@ -181,7 +181,7 @@ function onKeydown(e: KeyboardEvent) {
 
 function handleClick() {
   if (props.file.isDir) {
-    const path = `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`
+    const path = joinRemotePath(props.currentPath, props.file.name)
     emit('navigate', path)
   }
   else {

@@ -49,7 +49,7 @@ Read the **[full documentation](https://darthsoup.github.io/GoblinFTP/)**.
 - **[Configuration](https://darthsoup.github.io/GoblinFTP/configuration.html)**: every environment variable, with dedicated pages for [Logging](https://darthsoup.github.io/GoblinFTP/logging.html), [Metrics](https://darthsoup.github.io/GoblinFTP/metrics.html), [Error tracking](https://darthsoup.github.io/GoblinFTP/sentry.html), and [S3 upload storage](https://darthsoup.github.io/GoblinFTP/s3-staging.html).
 - **[Branding and themes](https://darthsoup.github.io/GoblinFTP/theming.html)**: add your logo and colors, or a theme for each customer.
 - **[SSO login links](https://darthsoup.github.io/GoblinFTP/sso.html)**: create one-time links with Go, Node.js, or PHP.
-- **[Iframe embedding](https://darthsoup.github.io/GoblinFTP/embedding.html)**: show GoblinFTP inside your app and sign users in automatically.
+- **[Iframe embedding](https://darthsoup.github.io/GoblinFTP/embedding.html)**: show GoblinFTP inside your app and offer users one-time login links.
 - **[Development](https://darthsoup.github.io/GoblinFTP/development.html)**: local setup, `just` commands, and testing against local FTP / SFTP / S3 servers.
 - **[Translations (i18n)](https://darthsoup.github.io/GoblinFTP/i18n.html)**: how to add or improve a language.
 

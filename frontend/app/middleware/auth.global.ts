@@ -7,7 +7,7 @@ export default defineNuxtRouteMiddleware((to) => {
   const authStore = useAuthStore()
 
   if (authStore.connected) {
-    if (to.path === '/login')
+    if (to.path === '/login' && !to.query.sso_pending)
       return navigateTo('/')
   }
   else if (to.path !== '/login') {

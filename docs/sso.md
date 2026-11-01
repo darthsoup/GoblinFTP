@@ -12,7 +12,7 @@ Enable SSO on the GoblinFTP server:
 
 ```bash
 GFTP_SSO_ENABLED=true
-GFTP_SSO_SECRET=replace-with-your-shared-secret
+GFTP_SSO_SECRET=replace-with-at-least-32-random-bytes
 ```
 
 Use a random secret of at least 32 bytes. You can generate one with `openssl rand -hex 32`. Your app and GoblinFTP must use the same secret. Keep it in backend code or server settings, never in browser code.
@@ -21,7 +21,8 @@ Use a random secret of at least 32 bytes. You can generate one with `openssl ran
 
 1. Your backend creates a link using the user's server address and login details.
 2. The user opens the link, or your app loads it inside an iframe.
-3. GoblinFTP checks the link, connects to the server, and opens the file manager.
+3. GoblinFTP validates the link and shows the server and account for confirmation.
+4. The user chooses Connect, confirms any unknown SFTP host key, and enters the file manager. Cancelling preserves an existing connection.
 
 Create a fresh link each time a user opens GoblinFTP. The default expiry is five minutes.
 

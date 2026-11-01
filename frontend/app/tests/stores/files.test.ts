@@ -146,7 +146,7 @@ describe('useFilesStore', () => {
 
     await expect(store.fetchObjectUrl('/remote/photo.PNG')).resolves.toBe('blob:raster-preview')
 
-    expect(mockApi.getBlob).toHaveBeenCalledWith('/api/files/download?path=%2Fremote%2Fphoto.PNG&token=download-token')
+    expect(mockApi.getBlob).toHaveBeenCalledWith('/api/files/download?path=%2Fremote%2Fphoto.PNG&token=download-token', 5 * 1024 * 1024)
     const blob = createUrl.mock.calls[0]![0] as Blob
     expect(blob.type).toBe('image/png')
     expect(await blob.text()).toBe('image bytes')

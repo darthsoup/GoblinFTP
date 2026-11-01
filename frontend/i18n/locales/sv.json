@@ -10,7 +10,8 @@
     "connect": "Anslut",
     "passive": "Passivt läge",
     "errorRequired": "Obligatoriskt",
-    "errorPort": "Ogiltig port"
+    "errorPort": "Ogiltig port",
+    "fixedServer": "Fast server"
   },
   "hostKey": {
     "title": "Verifiera värdnyckel",
@@ -169,7 +170,9 @@
       "reload": "Kasta mina, läs in igen",
       "banner": "Den här filen har ändrats på servern. Autospar är pausat.",
       "bannerDeleted": "Den här filen finns inte längre på servern. Autospar är pausat."
-    }
+    },
+    "exportDraft": "Exportera utkast",
+    "detachedDraft": "Frånkopplat utkast från {host}"
   },
   "modal": {
     "delete": {
@@ -271,13 +274,17 @@
     "ERR_ARCHIVE_FORMAT": "Arkivet är skadat eller i ett format som inte stöds",
     "ERR_INVALID_TOKEN": "Länken är ogiltig eller har upphört att gälla",
     "ERR_UPLOAD_NOT_FOUND": "Uppladdningen är inte längre tillgänglig, ladda upp igen",
+    "ERR_UNSUPPORTED_SERVER": "Serversökvägar i Windows-format stöds inte. Använd en server med absoluta POSIX-sökvägar.",
     "ERR_INVALID_TYPE": "Åtgärden är inte giltig för det här objektet",
     "ERR_FORBIDDEN": "Du har inte åtkomst till detta",
     "ERR_BAD_REQUEST": "Begäran kunde inte behandlas",
     "ERR_INTERNAL": "Något gick fel på servern",
     "ERR_OVERWRITE_LOST_DESTINATION": "Den befintliga filen togs bort men ersättningen kunde inte flyttas på plats",
     "ERR_NETWORK": "Kan inte nå servern",
-    "ERR_UNKNOWN": "Något gick fel"
+    "ERR_UNKNOWN": "Något gick fel",
+    "ERR_CAPACITY_EXCEEDED": "Åtgärden överskrider tillgänglig kapacitet. Försök igen senare.",
+    "ERR_LISTING_LIMIT": "Den här mappen överskrider gränsen för kataloglistor.",
+    "ERR_STALE_CONNECTION": "Din session har gått ut eller anslutningen till servern bröts. Logga in igen."
   },
   "toast": {
     "folderCreated": "Mapp skapad",
@@ -315,6 +322,7 @@
     "errorUsed": "Den här SSO-inloggningslänken har redan använts. Begär en ny.",
     "errorDisabled": "SSO-inloggning är inte aktiverad på den här servern.",
     "errorInternal": "SSO-inloggningen misslyckades på grund av ett serverfel. Försök igen.",
-    "errorGeneric": "SSO-inloggningen misslyckades. Begär en ny länk."
+    "errorGeneric": "SSO-inloggningen misslyckades. Begär en ny länk.",
+    "confirmTitle": "Bekräfta serveranslutning"
   }
 }

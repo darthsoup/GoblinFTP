@@ -68,14 +68,18 @@ function validate(s: Partial<typeof state>): FormError[] {
 }
 
 async function onSubmit(event: FormSubmitEvent<typeof state>) {
+  if (!modalStore.isCurrent())
+    return
+  const epoch = connectionEpoch()
   if (loading.value)
     return
   const dir = filesStore.currentPath.replace(/\/$/, '')
   loading.value = true
   apiError.value = null
   try {
-    await filesStore.mkdir(`${dir}/${event.data.name.trim()}`)
+    await filesStore.mkdir(joinRemotePath(dir, event.data.name.trim()))
     notify.success(t('toast.folderCreated'))
+    assertConnection(epoch)
     modalStore.close()
   }
   catch (e) {

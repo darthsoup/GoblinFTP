@@ -8,6 +8,7 @@ import { ApiError } from '~/types/api'
 export type UploadStatus = 'checking' | 'queued' | 'uploading' | 'done' | 'error' | 'cancelled' | 'skipped'
 
 export interface UploadItem {
+  connectionId?: string
   id: string
   file: File
   destPath: string
@@ -56,6 +57,8 @@ const NON_RETRYABLE = new Set([
   'ERR_EDITOR_DISABLED',
   'ERR_NOT_IMPLEMENTED',
   'ERR_LOGIN_DISABLED',
+  'ERR_STALE_CONNECTION',
+  'ERR_CAPACITY_EXCEEDED',
 ])
 
 export const useUploadStore = defineStore('upload', () => {
@@ -151,8 +154,9 @@ export const useUploadStore = defineStore('upload', () => {
     const base = destDir.replace(/\/$/, '')
     const newItems: UploadItem[] = entries.map(({ file, relativePath }) => ({
       id: uid(),
+      connectionId: authStore.connectionId,
       file,
-      destPath: `${base}/${relativePath}`,
+      destPath: joinRemotePath(base, relativePath),
       relativePath,
       status: 'checking' as UploadStatus,
       progress: 0,
@@ -273,6 +277,8 @@ export const useUploadStore = defineStore('upload', () => {
   }
 
   async function _transfer(item: UploadItem) {
+    if (item.connectionId !== undefined && item.connectionId !== authStore.connectionId)
+      throw new ApiError('ERR_STALE_CONNECTION', 'Upload belongs to a previous connection')
     try {
       if (item.file.size <= chunkSize.value)
         await _uploadSimple(item)
@@ -325,6 +331,10 @@ export const useUploadStore = defineStore('upload', () => {
   async function _discardStaged(item: UploadItem) {
     if (!item.uploadId)
       return
+    if (item.connectionId !== undefined && item.connectionId !== authStore.connectionId) {
+      item.uploadId = undefined
+      return
+    }
     const uploadId = item.uploadId
     item.uploadId = undefined
     try {
@@ -489,12 +499,14 @@ export const useUploadStore = defineStore('upload', () => {
     }
   }
 
-  function cancelAll() {
+  function cancelAll(detach = false) {
     items.value.forEach((item) => {
       if (CANCELLABLE.includes(item.status)) {
         item.status = 'cancelled'
         _abort(item)
-        if (!item.finalizing)
+        if (detach)
+          item.uploadId = undefined
+        else if (!item.finalizing)
           void _discardStaged(item)
       }
     })
@@ -504,6 +516,8 @@ export const useUploadStore = defineStore('upload', () => {
   // and re-prompts rather than silently overwriting.
   async function retryItem(id: string) {
     const item = items.value.find(i => i.id === id)
+    if (item && item.connectionId !== undefined && item.connectionId !== authStore.connectionId)
+      return
     if (item && (item.status === 'error' || item.status === 'cancelled' || item.status === 'skipped')) {
       // Leaving uploadId set makes _uploadChunked take its "already staged"
       // branch, so a retry would commit a partial set that can never succeed.

@@ -49,6 +49,7 @@ type Client interface {
 
 // Sentinel errors returned by adapters. Handlers check these with errors.Is.
 var (
+	ErrListingLimit            = errors.New("directory listing exceeds limit")
 	ErrAuthFailed              = errors.New("auth failed")
 	ErrConnectionFailed        = errors.New("connection failed")
 	ErrPermissionsNotSupported = errors.New("permissions not supported")

@@ -66,7 +66,7 @@
             </div>
           </div>
 
-          <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse" :aria-label="t('files.listOf', { path: filesStore.currentPath })">
+          <table v-else-if="viewMode === 'table'" class="w-full text-left border-collapse" :aria-label="t('files.listOf', { path: displayName(filesStore.currentPath) })">
             <thead class="sticky top-0 z-[5] bg-elevated/95 backdrop-blur label-caps text-muted">
               <tr class="border-b border-default shadow-sm">
                 <th class="w-10 px-4 py-2">
@@ -233,7 +233,7 @@ async function onCommitRename(file: FileInfo, newName: string) {
     return
   }
   try {
-    await filesStore.rename(`${dir}/${file.name}`, `${dir}/${trimmed}`)
+    await filesStore.rename(joinRemotePath(dir, file.name), joinRemotePath(dir, trimmed))
     notify.success(t('toast.renamed', { name: trimmed }))
   }
   catch (e) {
@@ -405,7 +405,7 @@ const editEnabled = computed(() => {
 // expose an identical action set. Grouped arrays render as separated sections.
 function buildFileMenu(file: FileInfo): DropdownMenuItem[][] {
   const dir = filesStore.currentPath.replace(/\/$/, '')
-  const path = `${dir}/${file.name}`
+  const path = joinRemotePath(dir, file.name)
 
   // Directories can't be downloaded, so the group is dropped below when empty.
   const primary: DropdownMenuItem[] = []
@@ -486,7 +486,7 @@ async function onDrop(e: DragEvent) {
     await uploadStore.addEntries(files, filesStore.currentPath)
   if (emptyDirs.length > 0) {
     // Non-empty dirs are created implicitly by the upload; create the empty ones.
-    const results = await Promise.allSettled(emptyDirs.map(d => filesStore.ensureDir(`${base}/${d}`)))
+    const results = await Promise.allSettled(emptyDirs.map(d => filesStore.ensureDir(joinRemotePath(base, d))))
     if (results.some(r => r.status === 'rejected'))
       notify.error(t('toast.folderCreateFailed'))
     if (files.length === 0)

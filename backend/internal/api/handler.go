@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"log/slog"
+	"sync"
 
 	"github.com/darthsoup/goblinftp/internal/auth"
 	"github.com/darthsoup/goblinftp/internal/config"
@@ -83,15 +84,20 @@ func WithVersion(v string) HandlerOption {
 
 // Handler holds shared dependencies for all API handlers.
 type Handler struct {
-	cfg      *config.Config
-	store    *auth.Store
-	throttle *auth.Throttle
-	chunks   staging.ChunkStore
-	dial     DialFunc
-	ssoUsed  *sso.UsedSet
-	logger   *slog.Logger
-	metrics  *metrics.Metrics
-	version  string
+	pendingCleanup sync.Map
+	cleanupCancel  context.CancelFunc
+	cleanupContext context.Context
+	cfg            *config.Config
+	store          *auth.Store
+	throttle       *auth.Throttle
+	chunks         staging.ChunkStore
+	dial           DialFunc
+	ssoUsed        *sso.UsedSet
+	logger         *slog.Logger
+	metrics        *metrics.Metrics
+	version        string
+	resources      *resourceBudget
+	expensive      chan struct{}
 	// frontendLog rate-limits /api/log/frontend per client IP, deliberately
 	// separate from the login throttle so report spam cannot lock out logins.
 	frontendLog *auth.Throttle
@@ -101,6 +107,27 @@ type Handler struct {
 }
 
 func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts []HandlerOption) *Handler {
+	if cfg.MaxSessions == 0 {
+		cfg.MaxSessions = 100
+	}
+	if cfg.MaxSessionsPerIP == 0 {
+		cfg.MaxSessionsPerIP = 10
+	}
+	if cfg.MaxConnecting == 0 {
+		cfg.MaxConnecting = 32
+	}
+	if cfg.MaxConnectingPerIP == 0 {
+		cfg.MaxConnectingPerIP = 4
+	}
+	if cfg.StagingMaxBytes == 0 {
+		cfg.StagingMaxBytes = 4 << 30
+	}
+	if cfg.StagingMaxSessionBytes == 0 {
+		cfg.StagingMaxSessionBytes = 1 << 30
+	}
+	if cfg.UploadMaxPending == 0 {
+		cfg.UploadMaxPending = 16
+	}
 	h := &Handler{
 		cfg:         cfg,
 		store:       store,
@@ -111,12 +138,21 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 		logger:      slog.New(slog.DiscardHandler),
 		metrics:     metrics.New(),
 		version:     "dev",
+		resources:   newResourceBudget(cfg.DataDir, cfg.StagingMaxBytes, cfg.StagingMaxSessionBytes),
+		expensive:   make(chan struct{}, 4),
 		frontendLog: auth.NewThrottle(),
 		themeHosts:  newThemeHostIndex(cfg.DataDir),
 	}
 	for _, opt := range opts {
 		opt(h)
 	}
+	if remote, ok := h.chunks.(interface {
+		StagedBytes(context.Context, map[string]bool) (int64, error)
+	}); ok {
+		h.resources.remote = remote
+	}
+	h.cleanupContext, h.cleanupCancel = context.WithCancel(context.Background())
+	go h.retryCleanup()
 	// Wire the scrape-time gauges into whichever instance is active (the default
 	// above, or one supplied via WithMetrics).
 	h.metrics.SetConnectionSnapshot(h.connectionSnapshot)
@@ -129,6 +165,7 @@ func newHandler(cfg *config.Config, store *auth.Store, thr *auth.Throttle, opts 
 // Close releases the handler's own background workers. The session store and
 // throttle are owned by the caller and closed separately.
 func (h *Handler) Close() {
+	h.cleanupCancel()
 	h.ssoUsed.Stop()
 	h.frontendLog.Close()
 }

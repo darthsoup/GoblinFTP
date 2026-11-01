@@ -10,6 +10,8 @@ import (
 	"strings"
 	"syscall"
 
+	jftp "github.com/jlaffaye/ftp"
+
 	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
@@ -33,6 +35,9 @@ const (
 // numeric reply beats substring matching, which false-positives on remote paths
 // that happen to contain "552" or "permission denied".
 func wrapErr(err error) error {
+	if errors.Is(err, jftp.ErrListingLimit) {
+		return transfer.ErrListingLimit
+	}
 	if err == nil {
 		return nil
 	}

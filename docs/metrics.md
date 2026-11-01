@@ -184,3 +184,5 @@ Disabling the endpoint does not stop internal counters from being updated.
 - [Logging](logging.md) to investigate individual requests.
 - [Error tracking](sentry.md) for application errors.
 - [S3 upload storage](s3-staging.md) for temporary uploads.
+
+The metrics listener defaults to loopback. For a separate Prometheus container, explicitly set `GFTP_METRICS_BIND_ADDRESS=0.0.0.0` and restrict access to the monitoring network.

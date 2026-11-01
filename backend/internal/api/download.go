@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -173,9 +172,15 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	if len(req.Paths) == 0 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths are required"))
 	}
+	for _, p := range req.Paths {
+		if !validPath(c, p, false) {
+			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid archive source"))
+		}
+	}
+	walk := h.quota(c)
 	var totalSize int64
 	for _, p := range req.Paths {
-		size, err := zipInputSize(client, p)
+		size, err := zipInputSizeDepth(client, p, 0, walk)
 		if err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
@@ -189,18 +194,19 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 
 	// Spooled to disk, not a bytes.Buffer: one buffer per concurrent request held
 	// the whole archive (up to maxZipSize), which a few users turned into an OOM.
-	tmp, err := os.CreateTemp(h.cfg.DataDir, "gftp-zip-*")
+	tmp, err := newQuotaTemp(h.cfg.DataDir, "gftp-zip-*", h.quota(c))
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))
 	}
 	defer func() {
 		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
+		tmp.dispose()
 	}()
 
 	zw := zip.NewWriter(tmp)
+	walk = h.quota(c)
 	for _, p := range req.Paths {
-		if err := addToZip(zw, client, p, "", counter); err != nil {
+		if err := addToZipDepth(zw, client, p, "", counter, 0, walk); err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
 	}
@@ -223,11 +229,13 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	return copyErr
 }
 
-func zipInputSize(client transfer.Client, remotePath string) (int64, error) {
-	return zipInputSizeDepth(client, remotePath, 0)
-}
-
-func zipInputSizeDepth(client transfer.Client, remotePath string, depth int) (int64, error) {
+func zipInputSizeDepth(client transfer.Client, remotePath string, depth int, walks ...*diskQuota) (int64, error) {
+	if len(walks) == 0 {
+		walks = []*diskQuota{{remaining: 100000}}
+	}
+	if err := walks[0].visit(); err != nil {
+		return 0, err
+	}
 	// The maxZipSize guard below counts file bytes only, so a loop of empty
 	// directories accumulates nothing and would recurse until the stack blows.
 	if depth > maxTreeDepth {
@@ -238,6 +246,9 @@ func zipInputSizeDepth(client transfer.Client, remotePath string, depth int) (in
 		return 0, err
 	}
 	if !fi.IsDir {
+		if fi.Size < 0 || fi.Size > maxZipSize {
+			return maxZipSize + 1, nil
+		}
 		return fi.Size, nil
 	}
 	entries, err := client.List(remotePath)
@@ -246,7 +257,10 @@ func zipInputSizeDepth(client transfer.Client, remotePath string, depth int) (in
 	}
 	var total int64
 	for _, entry := range entries {
-		size, err := zipInputSizeDepth(client, path.Join(remotePath, entry.Name), depth+1)
+		if err := transfer.ValidateChildName(entry.Name, true); err != nil {
+			return 0, err
+		}
+		size, err := zipInputSizeDepth(client, path.Join(remotePath, entry.Name), depth+1, walks...)
 		if err != nil {
 			return 0, err
 		}

@@ -34,7 +34,7 @@
               :name="entry.isDir ? 'i-ph-folder-duotone' : 'i-ph-file-duotone'"
               class="size-4 shrink-0 text-dimmed"
             />
-            <span class="text-sm text-highlighted truncate">{{ entry.name }}</span>
+            <span class="text-sm text-highlighted truncate"><bdi>{{ displayName(entry.name) }}</bdi></span>
             <span v-if="!entry.isDir" class="ml-auto shrink-0 text-xs text-dimmed">
               {{ formatSize(entry.size) }} · {{ formatDate(entry.modified) }}
             </span>
@@ -57,7 +57,7 @@
             {{ t('modal.uploadConflict.folderConflict') }}
           </p>
           <p v-else-if="decisions[entry.path] === 'rename'" class="mt-1.5 text-xs text-dimmed truncate">
-            {{ t('modal.uploadConflict.renameHint', { name: entry.suggestedName }) }}
+            {{ t('modal.uploadConflict.renameHint', { name: displayName(entry.suggestedName) }) }}
           </p>
         </li>
       </ul>

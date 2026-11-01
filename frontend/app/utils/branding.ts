@@ -61,3 +61,9 @@ export function applyBrandColor(hex: string | null | undefined): void {
   for (const key of Object.keys(ramp) as RampKey[])
     root.style.setProperty(`--color-goblin-${key}`, ramp[key])
 }
+
+export function clearBrandColor(): void {
+  for (const [key] of STOPS)
+    document.documentElement.style.removeProperty(`--color-goblin-${key}`)
+  document.documentElement.style.removeProperty('--gftp-primary-text')
+}

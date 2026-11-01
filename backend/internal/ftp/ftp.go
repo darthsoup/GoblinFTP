@@ -20,8 +20,10 @@ import (
 )
 
 const (
-	dialTimeout    = 10 * time.Second
-	controlTimeout = 60 * time.Second
+	dialTimeout       = 10 * time.Second
+	controlTimeout    = 60 * time.Second
+	dataTimeout       = 30 * time.Second
+	completionTimeout = 10 * time.Second
 )
 
 // Client wraps jlaffaye/ftp and implements transfer.Client.
@@ -41,10 +43,14 @@ func clampSize(v uint64) int64 {
 // Dial connects and authenticates. passive controls passive/active mode; a
 // non-nil tlsConfig upgrades the control connection to explicit TLS (FTPS, RFC 4217).
 func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client, error) {
+	if tlsConfig != nil {
+		tlsConfig = tlsConfig.Clone()
+		tlsConfig.ClientSessionCache = tls.NewLRUClientSessionCache(4)
+	}
 	var control *deadlineConn
 	opts := []jftp.DialOption{
 		jftp.DialWithTimeout(dialTimeout),
-		jftp.DialWithShutTimeout(controlTimeout),
+		jftp.DialWithShutTimeout(completionTimeout),
 		// jftp only bounds the TCP connect, so a server that accepts and then
 		// stays silent blocks every later read forever and wedges the session.
 		jftp.DialWithDialFunc(func(network, address string) (net.Conn, error) {
@@ -54,10 +60,12 @@ func Dial(addr, user, pass string, passive bool, tlsConfig *tls.Config) (*Client
 			}
 			// jftp also uses this callback for data sockets, bypassing its TLS wrapper.
 			if control != nil {
+				wrapped := &deadlineConn{Conn: conn}
+				wrapped.setTimeout(dataTimeout)
 				if tlsConfig != nil {
-					return tls.Client(conn, tlsConfig), nil
+					return tls.Client(wrapped, tlsConfig), nil
 				}
-				return conn, nil
+				return wrapped, nil
 			}
 			// Tight during the handshake so a server that accepts and never
 			// sends its greeting fails fast, relaxed afterwards for real work.
@@ -130,32 +138,52 @@ func isAuthText(msg string) bool {
 		"login or password incorrect", "invalid user")
 }
 
-// deadlineConn applies a rolling deadline to the control connection. The data
-// connections are dialed separately and stay unbounded, so a slow large
-// transfer is never killed by this.
+// Explicit completion deadlines take precedence over rolling inactivity limits.
 type deadlineConn struct {
 	net.Conn
-	timeout atomic.Int64
+	timeout  atomic.Int64
+	explicit atomic.Int64
 }
 
 func (d *deadlineConn) setTimeout(t time.Duration) { d.timeout.Store(int64(t)) }
 
 func (d *deadlineConn) deadline() time.Time {
-	return time.Now().Add(time.Duration(d.timeout.Load()))
+	deadline := time.Now().Add(time.Duration(d.timeout.Load()))
+	if n := d.explicit.Load(); n != 0 && time.Unix(0, n).Before(deadline) {
+		return time.Unix(0, n)
+	}
+	return deadline
+}
+
+func (d *deadlineConn) SetDeadline(t time.Time) error {
+	n := int64(0)
+	if !t.IsZero() {
+		n = t.UnixNano()
+	}
+	d.explicit.Store(n)
+	return d.Conn.SetDeadline(t)
 }
 
 func (d *deadlineConn) Read(b []byte) (int, error) {
 	if err := d.SetReadDeadline(d.deadline()); err != nil {
 		return 0, err
 	}
-	return d.Conn.Read(b)
+	n, err := d.Conn.Read(b)
+	if isTimeout(err) {
+		_ = d.Close()
+	}
+	return n, err
 }
 
 func (d *deadlineConn) Write(b []byte) (int, error) {
 	if err := d.SetWriteDeadline(d.deadline()); err != nil {
 		return 0, err
 	}
-	return d.Conn.Write(b)
+	n, err := d.Conn.Write(b)
+	if isTimeout(err) {
+		_ = d.Close()
+	}
+	return n, err
 }
 
 // isTLSError reports whether err is a TLS or certificate-verification failure, so
@@ -176,7 +204,7 @@ func (c *Client) WorkingDir() (string, error) {
 }
 
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
-	entries, err := c.conn.List(dir)
+	entries, err := c.conn.ListWithLimits(dir, 100000, 16<<20)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -196,25 +224,48 @@ func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 }
 
 func (c *Client) Stat(p string) (transfer.FileInfo, error) {
-	if p == "/" {
+	if transfer.ComparisonPath(p, true) == "/" {
 		return transfer.FileInfo{Name: "/", IsDir: true}, nil
 	}
-	parent := path.Dir(p)
-	name := path.Base(p)
-	entries, err := c.conn.List(parent)
-	if err != nil {
-		return transfer.FileInfo{}, wrapErr(err)
-	}
-	for _, e := range entries {
-		if e.Name == name {
-			return transfer.FileInfo{
-				Name:    e.Name,
-				Size:    clampSize(e.Size),
-				IsDir:   e.Type == jftp.EntryTypeFolder,
-				ModTime: modTime(e.Time),
-			}, nil
+	if entry, err := c.conn.GetEntry(p); err == nil {
+		return transfer.FileInfo{Name: entry.Name, Size: clampSize(entry.Size), IsDir: entry.Type == jftp.EntryTypeFolder, ModTime: modTime(entry.Time)}, nil
+	} else {
+		var reply *textproto.Error
+		if !errors.As(err, &reply) || (reply.Code != 500 && reply.Code != 502 && reply.Code != 504) {
+			return transfer.FileInfo{}, wrapErr(err)
 		}
 	}
+
+	candidates := []string{p}
+	if normalized := strings.ReplaceAll(p, `\`, "/"); normalized != p {
+		candidates = append(candidates, normalized)
+	}
+	for _, candidate := range candidates {
+		entries, err := c.conn.ListWithLimits(path.Dir(candidate), 100000, 16<<20)
+		if err != nil {
+			wrapped := wrapErr(err)
+			if errors.Is(wrapped, transfer.ErrNotFound) {
+				continue
+			}
+			return transfer.FileInfo{}, wrapped
+		}
+		var found *jftp.Entry
+		for _, e := range entries {
+			if e.Name == path.Base(candidate) {
+				return transfer.FileInfo{Name: e.Name, Size: clampSize(e.Size), IsDir: e.Type == jftp.EntryTypeFolder, ModTime: modTime(e.Time)}, nil
+			}
+			if strings.EqualFold(e.Name, path.Base(candidate)) {
+				if found != nil {
+					return transfer.FileInfo{}, transfer.ErrFileExists
+				}
+				found = e
+			}
+		}
+		if found != nil {
+			return transfer.FileInfo{Name: found.Name, Size: clampSize(found.Size), IsDir: found.Type == jftp.EntryTypeFolder, ModTime: modTime(found.Time)}, nil
+		}
+	}
+
 	return transfer.FileInfo{}, transfer.ErrNotFound
 }
 
@@ -222,27 +273,57 @@ func (c *Client) MakeDir(p string) error {
 	return wrapErr(c.conn.MakeDir(p))
 }
 
-// Delete removes a file, recursing only for real directories: retrying every DELE
-// failure as RemoveDirRecur masked denials as ERR_DIR_NOT_EMPTY and hid conn loss.
 func (c *Client) Delete(p string) error {
-	cleaned, err := transfer.CleanDeletePath(p)
+	if _, err := transfer.CleanDeletePath(p); err != nil {
+		return err
+	}
+	budget := 100000
+	return c.deleteDepth(p, 0, &budget)
+}
+
+func (c *Client) deleteDepth(p string, depth int, budget *int) error {
+	if depth > 64 || *budget <= 0 {
+		return fmt.Errorf("%w: remote tree exceeds limit", transfer.ErrInvalidType)
+	}
+	*budget--
+	fi, err := c.Stat(p)
 	if err != nil {
 		return err
 	}
-	p = cleaned
-	fi, statErr := c.Stat(p)
-	if statErr == nil && fi.IsDir {
-		return wrapErr(c.conn.RemoveDirRecur(p))
+	if !fi.IsDir {
+		return wrapErr(c.conn.Delete(p))
 	}
-	err = c.conn.Delete(p)
-	if err != nil && statErr != nil {
-		// Stat could not classify the target (some servers refuse LIST on a
-		// directory), so the old fallback gets one attempt; the DELE error still wins.
-		if rmErr := c.conn.RemoveDirRecur(p); rmErr == nil {
-			return nil
+	entries, err := c.conn.ListWithLimits(p, 100000, 16<<20)
+	if err != nil {
+		return wrapErr(err)
+	}
+	for _, e := range entries {
+		if e.Name == "." || e.Name == ".." {
+			continue
+		}
+		if err := transfer.ValidateChildName(e.Name, true); err != nil {
+			return err
 		}
 	}
-	return wrapErr(err)
+	for _, e := range entries {
+		if e.Name == "." || e.Name == ".." {
+			continue
+		}
+		child := strings.TrimRight(p, "/") + "/" + e.Name
+		if e.Type == jftp.EntryTypeFolder {
+			err = c.deleteDepth(child, depth+1, budget)
+		} else {
+			*budget--
+			if *budget < 0 {
+				return transfer.ErrInvalidType
+			}
+			err = wrapErr(c.conn.Delete(child))
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return wrapErr(c.conn.RemoveDir(p))
 }
 
 func (c *Client) Rename(src, dst string) error {

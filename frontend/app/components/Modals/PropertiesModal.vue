@@ -27,7 +27,7 @@
           <UFormField name="name" class="flex-1 min-w-0">
             <UInput v-model="state.name" class="w-full" />
             <template #help>
-              <span class="block text-xs text-dimmed truncate" :title="fullPath">{{ fullPath }}</span>
+              <span class="block text-xs text-dimmed truncate" :title="displayName(fullPath)"><bdi>{{ displayName(fullPath) }}</bdi></span>
             </template>
           </UFormField>
         </div>
@@ -154,7 +154,7 @@ const fullPath = computed(() => {
   if (!file.value)
     return ''
   const dir = filesStore.currentPath.replace(/\/$/, '')
-  return `${dir}/${file.value.name}`
+  return joinRemotePath(dir, file.value.name)
 })
 
 // Two gates: the admin kill-switch (GFTP_CONNECTION_DISABLE_CHMOD) and the
@@ -218,10 +218,13 @@ function validate(s: Partial<typeof state>): FormError[] {
 }
 
 async function onSubmit(event: FormSubmitEvent<typeof state>) {
+  if (!modalStore.isCurrent())
+    return
+  const epoch = connectionEpoch()
   if (!file.value || !canApply.value || loading.value)
     return
   const dir = filesStore.currentPath.replace(/\/$/, '')
-  const oldPath = `${dir}/${file.value.name}`
+  const oldPath = joinRemotePath(dir, file.value.name)
   loading.value = true
   apiError.value = null
   try {
@@ -230,12 +233,14 @@ async function onSubmit(event: FormSubmitEvent<typeof state>) {
     const didRename = nameChanged.value
     if (didChmod)
       await filesStore.chmod(oldPath, Number.parseInt(event.data.octal.trim(), 8))
+    assertConnection(epoch)
     if (didRename)
-      await filesStore.rename(oldPath, `${dir}/${event.data.name.trim()}`)
+      await filesStore.rename(oldPath, joinRemotePath(dir, event.data.name.trim()))
     if (didRename)
       notify.success(t('toast.renamed', { name: event.data.name.trim() }))
     if (didChmod)
       notify.success(t('toast.permissionsUpdated'))
+    assertConnection(epoch)
     modalStore.close()
   }
   catch (e) {

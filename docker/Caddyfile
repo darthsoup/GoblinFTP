@@ -3,9 +3,16 @@
 	persist_config off
 	# Only external proxies belong here; the internal hop is trusted separately by Go.
 	servers {
+		protocols h1
 		trusted_proxies static {$GFTP_CADDY_TRUSTED_PROXIES:}
 		trusted_proxies_strict
 	}
+}
+
+(deny-framing) {
+	header X-Frame-Options DENY
+}
+(allow-framing) {
 }
 
 :8080 {
@@ -57,6 +64,7 @@
 		header Content-Security-Policy "frame-ancestors {$GFTP_FRAME_ANCESTORS:'none'}"
 		# Mirrors the headers the Go binary sets on its own responses.
 		header X-Content-Type-Options "nosniff"
+		import {$GFTP_CADDY_FRAME_POLICY:deny-framing}
 		header Referrer-Policy "no-referrer"
 		header Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		# index.html names the hashed chunks: a cached copy points at files that are gone

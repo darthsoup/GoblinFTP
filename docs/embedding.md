@@ -1,10 +1,10 @@
 ---
-description: Show GoblinFTP inside your app or hosting panel and sign users in automatically.
+description: Show GoblinFTP inside your app or hosting panel and offer users one-time login links.
 ---
 
 # Iframe embedding
 
-You can show GoblinFTP inside your app or hosting panel using an iframe. A [one-time login link](sso.md) signs the user in automatically.
+You can show GoblinFTP inside your app or hosting panel using an iframe. A [one-time login link](sso.md) lets the user confirm the target before signing in.
 
 GoblinFTP blocks embedding by default. You must allow your panel's website address and serve GoblinFTP over HTTPS.
 
@@ -17,7 +17,7 @@ Add these settings to your `.env` file:
 ```bash
 GFTP_FRAME_ANCESTORS=https://panel.example.com
 GFTP_SSO_ENABLED=true
-GFTP_SSO_SECRET=replace-with-your-shared-secret
+GFTP_SSO_SECRET=replace-with-at-least-32-random-bytes
 GFTP_LOGIN_FORM_DISABLED=true
 ```
 

@@ -10,7 +10,8 @@
     "connect": "Pripojiť",
     "passive": "Pasívny režim",
     "errorRequired": "Povinné",
-    "errorPort": "Neplatný port"
+    "errorPort": "Neplatný port",
+    "fixedServer": "Pevne nastavený server"
   },
   "hostKey": {
     "title": "Overiť kľúč hostiteľa",
@@ -169,7 +170,9 @@
       "reload": "Zahodiť a načítať znova",
       "banner": "Tento súbor bol na serveri zmenený. Automatické ukladanie je pozastavené.",
       "bannerDeleted": "Tento súbor už na serveri nie je. Automatické ukladanie je pozastavené."
-    }
+    },
+    "exportDraft": "Exportovať koncept",
+    "detachedDraft": "Odpojený koncept zo servera {host}"
   },
   "modal": {
     "delete": {
@@ -271,13 +274,17 @@
     "ERR_ARCHIVE_FORMAT": "Archív je poškodený alebo v nepodporovanom formáte",
     "ERR_INVALID_TOKEN": "Odkaz je neplatný alebo vypršal",
     "ERR_UPLOAD_NOT_FOUND": "Nahrávanie už nie je dostupné, nahrajte súbor znova",
+    "ERR_UNSUPPORTED_SERVER": "Cesty servera v štýle Windows nie sú podporované. Použite server s absolútnymi cestami POSIX.",
     "ERR_INVALID_TYPE": "Táto operácia nie je pre túto položku platná",
     "ERR_FORBIDDEN": "K tomuto nemáte prístup",
     "ERR_BAD_REQUEST": "Požiadavku sa nepodarilo spracovať",
     "ERR_INTERNAL": "Na serveri došlo k chybe",
     "ERR_OVERWRITE_LOST_DESTINATION": "Pôvodný súbor bol odstránený, ale náhradu sa nepodarilo presunúť na jeho miesto",
     "ERR_NETWORK": "Server je nedostupný",
-    "ERR_UNKNOWN": "Došlo k chybe"
+    "ERR_UNKNOWN": "Došlo k chybe",
+    "ERR_CAPACITY_EXCEEDED": "Táto operácia prekračuje dostupnú kapacitu. Skúste to neskôr.",
+    "ERR_LISTING_LIMIT": "Tento priečinok prekračuje limit výpisu adresára.",
+    "ERR_STALE_CONNECTION": "Vaša relácia vypršala alebo sa stratilo spojenie so serverom. Prihláste sa, prosím, znova."
   },
   "toast": {
     "folderCreated": "Priečinok vytvorený",
@@ -315,6 +322,7 @@
     "errorUsed": "Tento prihlasovací odkaz SSO už bol použitý. Vyžiadajte si, prosím, nový.",
     "errorDisabled": "Prihlásenie cez SSO nie je na tomto serveri povolené.",
     "errorInternal": "Prihlásenie cez SSO zlyhalo kvôli chybe servera. Skúste to, prosím, znova.",
-    "errorGeneric": "Prihlásenie cez SSO zlyhalo. Vyžiadajte si, prosím, nový odkaz."
+    "errorGeneric": "Prihlásenie cez SSO zlyhalo. Vyžiadajte si, prosím, nový odkaz.",
+    "confirmTitle": "Potvrdiť pripojenie k serveru"
   }
 }

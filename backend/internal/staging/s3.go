@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -260,4 +262,42 @@ func wrapUnavailable(err error) error {
 		return err
 	}
 	return fmt.Errorf("%w: %w", ErrUnavailable, err)
+}
+
+// StagedBytes streams the inventory; active reservations are already charged.
+func (s *S3Store) StagedBytes(ctx context.Context, active map[string]bool) (int64, error) {
+	var total int64
+	var token *string
+	prefix := s.prefix
+	if prefix != "" {
+		prefix += "/"
+	}
+	for range 10000 {
+		out, err := s.api.ListObjectsV2(ctx, &s3.ListObjectsV2Input{Bucket: aws.String(s.bucket), Prefix: aws.String(prefix), ContinuationToken: token, MaxKeys: aws.Int32(1000)})
+		if err != nil {
+			return 0, wrapUnavailable(err)
+		}
+		for _, obj := range out.Contents {
+			if obj.Key == nil || obj.Size == nil || *obj.Size < 0 {
+				return 0, ErrUnavailable
+			}
+			relative := strings.TrimPrefix(*obj.Key, prefix)
+			id, _, ok := strings.Cut(relative, "/")
+			if !ok || transfer.ValidateUploadID(id) != nil || active[id] {
+				continue
+			}
+			if *obj.Size > math.MaxInt64-total {
+				return 0, ErrUnavailable
+			}
+			total += *obj.Size
+		}
+		if !aws.ToBool(out.IsTruncated) {
+			return total, nil
+		}
+		if out.NextContinuationToken == nil || (token != nil && *token == *out.NextContinuationToken) {
+			return 0, ErrUnavailable
+		}
+		token = out.NextContinuationToken
+	}
+	return 0, ErrUnavailable
 }

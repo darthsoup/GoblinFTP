@@ -5,6 +5,8 @@ export interface ApiEnvelope<T> {
 }
 
 export interface AuthStatus {
+  connectionId?: string
+  language?: string
   connected: boolean
   ssoAutoConnect: boolean
   csrfToken: string
@@ -38,6 +40,9 @@ export interface HostKeyPrompt {
 }
 
 export interface ConnectData {
+  connectionId?: string
+  host?: string
+  language?: string
   capabilities: { disableChmod: boolean }
   initialDirectory: string
   csrfToken: string

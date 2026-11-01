@@ -177,7 +177,7 @@ function openNewFile() {
 
 function deleteSelected() {
   const dir = filesStore.currentPath.replace(/\/$/, '')
-  const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
+  const paths = [...filesStore.selected].map(name => joinRemotePath(dir, name))
   modalStore.open('delete', { files: paths })
 }
 
@@ -199,7 +199,7 @@ async function onFilesSelected(event: Event) {
 
 async function downloadZip() {
   const dir = filesStore.currentPath.replace(/\/$/, '')
-  const paths = [...filesStore.selected].map(name => `${dir}/${name}`)
+  const paths = [...filesStore.selected].map(name => joinRemotePath(dir, name))
   try {
     await filesStore.downloadZip(paths)
   }

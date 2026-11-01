@@ -119,12 +119,12 @@ func TestSSOLoginSuccess(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusFound, rec.Code)
-	assert.Equal(t, "/login", rec.Header().Get("Location"))
+	assert.Equal(t, "/login?sso_pending=1", rec.Header().Get("Location"))
 
 	cookies := rec.Result().Cookies()
 	var sessionCookie *http.Cookie
 	for _, c := range cookies {
-		if c.Name == api.SessionCookieName {
+		if c.Name == "gftp_sso" {
 			sessionCookie = c
 			break
 		}
@@ -193,14 +193,14 @@ func TestAuthStatusWithSSOPending(t *testing.T) {
 	cookies := loginRec.Result().Cookies()
 	var sessionCookie *http.Cookie
 	for _, c := range cookies {
-		if c.Name == api.SessionCookieName {
+		if c.Name == "gftp_sso" {
 			sessionCookie = c
 			break
 		}
 	}
 	require.NotNil(t, sessionCookie)
 
-	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/sso-pending", nil)
 	statusReq.AddCookie(sessionCookie)
 	statusRec := httptest.NewRecorder()
 	e.ServeHTTP(statusRec, statusReq)
@@ -210,7 +210,7 @@ func TestAuthStatusWithSSOPending(t *testing.T) {
 		Success bool `json:"success"`
 		Data    struct {
 			Connected      bool   `json:"connected"`
-			SSOAutoConnect bool   `json:"ssoAutoConnect"`
+			SSOAutoConnect bool   `json:"pending"`
 			CSRFToken      string `json:"csrfToken"`
 		} `json:"data"`
 	}
@@ -287,7 +287,7 @@ func TestSSOConnectNoPending(t *testing.T) {
 	var resp api.Response
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	assert.False(t, resp.Success)
-	assert.Equal(t, string(gftperrors.ErrUnauthorized), resp.Errors[0].Code)
+	assert.Equal(t, string(gftperrors.ErrCSRFInvalid), resp.Errors[0].Code)
 }
 
 func TestSSOConnectFullFlow(t *testing.T) {
@@ -311,7 +311,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 	cookies := loginRec.Result().Cookies()
 	var sessionCookie *http.Cookie
 	for _, c := range cookies {
-		if c.Name == api.SessionCookieName {
+		if c.Name == "gftp_sso" {
 			sessionCookie = c
 			break
 		}
@@ -319,7 +319,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 	require.NotNil(t, sessionCookie)
 
 	// Step 2: Get auth status to retrieve CSRF token
-	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/sso-pending", nil)
 	statusReq.AddCookie(sessionCookie)
 	statusRec := httptest.NewRecorder()
 	e.ServeHTTP(statusRec, statusReq)
@@ -327,7 +327,7 @@ func TestSSOConnectFullFlow(t *testing.T) {
 
 	var statusResp struct {
 		Data struct {
-			SSOAutoConnect bool   `json:"ssoAutoConnect"`
+			SSOAutoConnect bool   `json:"pending"`
 			CSRFToken      string `json:"csrfToken"`
 		} `json:"data"`
 	}
@@ -387,14 +387,14 @@ func establishSSO(t *testing.T, e http.Handler, tok string) (*http.Cookie, strin
 
 	var sessionCookie *http.Cookie
 	for _, c := range loginRec.Result().Cookies() {
-		if c.Name == api.SessionCookieName {
+		if c.Name == "gftp_sso" {
 			sessionCookie = c
 			break
 		}
 	}
 	require.NotNil(t, sessionCookie)
 
-	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/sso-pending", nil)
 	statusReq.AddCookie(sessionCookie)
 	statusRec := httptest.NewRecorder()
 	e.ServeHTTP(statusRec, statusReq)
