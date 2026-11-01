@@ -71,6 +71,9 @@ func (h *Handler) ListFiles(c echo.Context) error {
 	if path == "" {
 		path = "/"
 	}
+	if !validPath(c, path, true) {
+		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid directory path"))
+	}
 	files, err := client.List(path)
 	if err != nil {
 		return failClient(c, gftperrors.ErrListFailed, err)

@@ -29,6 +29,16 @@ Allow enough free space for each file being uploaded at the same time. You can u
 
 With passive FTP, you do not need to open an incoming FTP port range on the GoblinFTP host.
 
+## Remote server compatibility
+
+Windows FTP and FTPS servers are not supported. Use a server with POSIX filesystem semantics and absolute paths beginning with `/`.
+
+GoblinFTP rejects connections whose working directory uses Windows-style paths. FTP and FTPS operations also reject backslashes, drive prefixes, and path segments ending in a dot or space. SFTP retains POSIX filename semantics, including literal backslashes in filenames.
+
+A server's operating system cannot be reliably identified from its paths. A Windows server can expose POSIX-looking paths, so these checks do not detect every Windows server. Such servers remain unsupported.
+
+This restriction concerns remote servers. Windows browsers and Docker Desktop running Linux containers can still be used.
+
 ## Browser
 
 A recent version of Chrome, Edge, Firefox, or Safari with JavaScript enabled.

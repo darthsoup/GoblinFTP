@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "The archive is damaged or not a supported format",
     "ERR_INVALID_TOKEN": "The link is invalid or has expired",
     "ERR_UPLOAD_NOT_FOUND": "The upload is no longer available, please upload again",
+    "ERR_UNSUPPORTED_SERVER": "Windows-style server paths are not supported. Use a server with absolute POSIX paths.",
     "ERR_INVALID_TYPE": "That operation is not valid for this item",
     "ERR_FORBIDDEN": "You do not have access to this",
     "ERR_BAD_REQUEST": "The request could not be processed",

@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Arkivet er beskadiget eller i et format der ikke understøttes",
     "ERR_INVALID_TOKEN": "Linket er ugyldigt eller udløbet",
     "ERR_UPLOAD_NOT_FOUND": "Uploadet er ikke længere tilgængeligt, upload igen",
+    "ERR_UNSUPPORTED_SERVER": "Serverstier i Windows-format understøttes ikke. Brug en server med absolutte POSIX-stier.",
     "ERR_INVALID_TYPE": "Handlingen er ikke gyldig for dette element",
     "ERR_FORBIDDEN": "Du har ikke adgang til dette",
     "ERR_BAD_REQUEST": "Anmodningen kunne ikke behandles",

@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Das Archiv ist beschädigt oder kein unterstütztes Format",
     "ERR_INVALID_TOKEN": "Der Link ist ungültig oder abgelaufen",
     "ERR_UPLOAD_NOT_FOUND": "Der Upload ist nicht mehr verfügbar, bitte erneut hochladen",
+    "ERR_UNSUPPORTED_SERVER": "Windows-Pfade auf dem Server werden nicht unterstützt. Verwende einen Server mit absoluten POSIX-Pfaden.",
     "ERR_INVALID_TYPE": "Dieser Vorgang ist für dieses Element nicht zulässig",
     "ERR_FORBIDDEN": "Sie haben darauf keinen Zugriff",
     "ERR_BAD_REQUEST": "Die Anfrage konnte nicht verarbeitet werden",

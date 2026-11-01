@@ -143,6 +143,11 @@ func (h *Handler) Connect(c echo.Context) error {
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
 	}
 
+	if gerr := validateServerDirectory(initialDir, req.Protocol); gerr != nil {
+		_ = client.Close()
+		return Fail(c, gerr)
+	}
+
 	disableChmod := !client.SupportsChmod()
 
 	csrfToken, csrfErr := auth.GenerateCSRFToken()

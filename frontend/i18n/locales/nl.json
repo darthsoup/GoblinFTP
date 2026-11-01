@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Het archief is beschadigd of geen ondersteunde indeling",
     "ERR_INVALID_TOKEN": "De link is ongeldig of verlopen",
     "ERR_UPLOAD_NOT_FOUND": "De upload is niet meer beschikbaar, upload opnieuw",
+    "ERR_UNSUPPORTED_SERVER": "Serverpaden in Windows-stijl worden niet ondersteund. Gebruik een server met absolute POSIX-paden.",
     "ERR_INVALID_TYPE": "Die bewerking is niet geldig voor dit item",
     "ERR_FORBIDDEN": "Je hebt hier geen toegang toe",
     "ERR_BAD_REQUEST": "Het verzoek kon niet worden verwerkt",

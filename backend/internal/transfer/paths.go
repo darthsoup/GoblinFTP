@@ -11,22 +11,21 @@ func ValidateRemotePath(p string, windows, allowRoot bool) error {
 	if p == "" || strings.ContainsFunc(p, unicode.IsControl) || strings.HasPrefix(p, "//") || strings.HasPrefix(p, `\\`) {
 		return fmt.Errorf("%w: invalid remote path", ErrInvalidType)
 	}
-	normalized := p
-	if windows {
-		normalized = strings.ReplaceAll(p, `\`, "/")
+	if windows && strings.Contains(p, `\`) {
+		return fmt.Errorf("%w: Windows-style paths are not supported", ErrInvalidType)
 	}
-	if !path.IsAbs(normalized) {
+	if !path.IsAbs(p) {
 		return fmt.Errorf("%w: remote path must be absolute", ErrInvalidType)
 	}
-	if len(strings.Split(normalized, "/")) > 66 {
+	if len(strings.Split(p, "/")) > 66 {
 		return ErrInvalidType
 	}
-	for _, seg := range strings.Split(normalized, "/") {
-		if seg == ".." || seg == "." || (windows && HasDrivePrefix(seg)) || (windows && seg != "" && strings.TrimRight(seg, " .") == "") {
+	for _, seg := range strings.Split(p, "/") {
+		if seg == ".." || seg == "." || (windows && HasDrivePrefix(seg)) || (windows && seg != "" && strings.TrimRight(seg, " .") != seg) {
 			return fmt.Errorf("%w: ambiguous remote path segment", ErrInvalidType)
 		}
 	}
-	if !allowRoot && path.Clean(normalized) == "/" {
+	if !allowRoot && path.Clean(p) == "/" {
 		return fmt.Errorf("%w: refusing the remote root", ErrInvalidType)
 	}
 	return nil
@@ -41,7 +40,7 @@ func ValidateChildName(name string, windows bool) error {
 	if windows {
 		separators += `\`
 	}
-	if strings.ContainsFunc(name, unicode.IsControl) || name == "" || name == "." || name == ".." || strings.ContainsAny(name, separators) || (windows && (strings.TrimRight(name, " .") == "" || strings.Contains(name, ":"))) {
+	if strings.ContainsFunc(name, unicode.IsControl) || name == "" || name == "." || name == ".." || strings.ContainsAny(name, separators) || (windows && (strings.TrimRight(name, " .") != name || strings.Contains(name, ":"))) {
 		return fmt.Errorf("%w: invalid remote directory entry", ErrInvalidType)
 	}
 	return nil

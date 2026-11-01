@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Archív je poškodený alebo v nepodporovanom formáte",
     "ERR_INVALID_TOKEN": "Odkaz je neplatný alebo vypršal",
     "ERR_UPLOAD_NOT_FOUND": "Nahrávanie už nie je dostupné, nahrajte súbor znova",
+    "ERR_UNSUPPORTED_SERVER": "Cesty servera v štýle Windows nie sú podporované. Použite server s absolútnymi cestami POSIX.",
     "ERR_INVALID_TYPE": "Táto operácia nie je pre túto položku platná",
     "ERR_FORBIDDEN": "K tomuto nemáte prístup",
     "ERR_BAD_REQUEST": "Požiadavku sa nepodarilo spracovať",

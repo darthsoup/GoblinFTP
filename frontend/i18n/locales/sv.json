@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Arkivet är skadat eller i ett format som inte stöds",
     "ERR_INVALID_TOKEN": "Länken är ogiltig eller har upphört att gälla",
     "ERR_UPLOAD_NOT_FOUND": "Uppladdningen är inte längre tillgänglig, ladda upp igen",
+    "ERR_UNSUPPORTED_SERVER": "Serversökvägar i Windows-format stöds inte. Använd en server med absoluta POSIX-sökvägar.",
     "ERR_INVALID_TYPE": "Åtgärden är inte giltig för det här objektet",
     "ERR_FORBIDDEN": "Du har inte åtkomst till detta",
     "ERR_BAD_REQUEST": "Begäran kunde inte behandlas",

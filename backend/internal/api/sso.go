@@ -262,6 +262,9 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	if err != nil {
 		return failClient(c, gftperrors.ErrConnectionFailed, err)
 	}
+	if gerr := validateServerDirectory(initialDir, payload.Type); gerr != nil {
+		return Fail(c, gerr)
+	}
 	if payload.InitialDirectory != "" {
 		if err := transfer.ValidateRemotePath(payload.InitialDirectory, payload.Type != "sftp", true); err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid initial directory"))

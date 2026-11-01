@@ -6,6 +6,7 @@ import "net/http"
 type Code string
 
 const (
+	ErrUnsupportedServer       Code = "ERR_UNSUPPORTED_SERVER"
 	ErrCapacity                Code = "ERR_CAPACITY_EXCEEDED"
 	ErrListingLimit            Code = "ERR_LISTING_LIMIT"
 	ErrStaleConnection         Code = "ERR_STALE_CONNECTION"
@@ -132,7 +133,7 @@ func (e *GFTPError) HTTPStatus() int {
 		return http.StatusNotFound
 	case ErrInvalidToken:
 		return http.StatusUnauthorized
-	case ErrArchiveFormat:
+	case ErrArchiveFormat, ErrUnsupportedServer:
 		return http.StatusUnprocessableEntity
 	case ErrEditorDisabled:
 		return http.StatusForbidden

@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Arkisto on vioittunut tai sen muotoa ei tueta",
     "ERR_INVALID_TOKEN": "Linkki on virheellinen tai vanhentunut",
     "ERR_UPLOAD_NOT_FOUND": "Lähetys ei ole enää saatavilla, lähetä uudelleen",
+    "ERR_UNSUPPORTED_SERVER": "Windows-tyylisiä palvelinpolkuja ei tueta. Käytä palvelinta, jossa on absoluuttiset POSIX-polut.",
     "ERR_INVALID_TYPE": "Toiminto ei kelpaa tälle kohteelle",
     "ERR_FORBIDDEN": "Sinulla ei ole käyttöoikeutta tähän",
     "ERR_BAD_REQUEST": "Pyyntöä ei voitu käsitellä",

@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "El archivo comprimido está dañado o no es un formato admitido",
     "ERR_INVALID_TOKEN": "El enlace no es válido o ha caducado",
     "ERR_UPLOAD_NOT_FOUND": "La subida ya no está disponible, vuelve a subirla",
+    "ERR_UNSUPPORTED_SERVER": "No se admiten rutas de servidor de estilo Windows. Usa un servidor con rutas POSIX absolutas.",
     "ERR_INVALID_TYPE": "Esa operación no es válida para este elemento",
     "ERR_FORBIDDEN": "No tienes acceso a esto",
     "ERR_BAD_REQUEST": "No se pudo procesar la solicitud",

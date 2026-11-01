@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "L'archivio è danneggiato o in un formato non supportato",
     "ERR_INVALID_TOKEN": "Il collegamento non è valido o è scaduto",
     "ERR_UPLOAD_NOT_FOUND": "Il caricamento non è più disponibile, ricaricalo",
+    "ERR_UNSUPPORTED_SERVER": "I percorsi del server in stile Windows non sono supportati. Usa un server con percorsi POSIX assoluti.",
     "ERR_INVALID_TYPE": "Questa operazione non è valida per questo elemento",
     "ERR_FORBIDDEN": "Non hai accesso a questo",
     "ERR_BAD_REQUEST": "Impossibile elaborare la richiesta",

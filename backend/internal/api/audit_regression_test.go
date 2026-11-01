@@ -82,22 +82,15 @@ func TestColonArchiveNameIsAllowed(t *testing.T) {
 	}
 }
 
-func TestLegacyWindowsDeletePathAndTraversalBatch(t *testing.T) {
+func TestWindowsDeletePathsAndTraversalRejectBatch(t *testing.T) {
 	mock := workingMock()
-	var deleted []string
-	mock.DeleteFn = func(p string) error { deleted = append(deleted, p); return nil }
-	mock.WorkingDirFn = func() (string, error) { return `\`, nil }
+	mock.DeleteFn = func(string) error { t.Fatal("invalid batch reached remote delete"); return nil }
 	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
 	sess := connectAndGetSession(t, app)
-	rec := doJSON(app, sess, http.MethodDelete, "/api/files", `{"paths":["\\/file.txt"]}`)
-	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	require.Equal(t, []string{`\/file.txt`}, deleted)
-	deleted = nil
-	for _, target := range []string{"/.. ", "/. ", "/...", "/sub/.. "} {
+	for _, target := range []string{`\/file.txt`, `\folder`, `C:/file`, `/C:/file`, "/.. ", "/. ", "/...", "/sub/.. ", "/file.", "/file "} {
 		body, _ := json.Marshal(map[string]any{"paths": []string{"/ordinary", target}})
-		rec = doJSON(app, sess, http.MethodDelete, "/api/files", string(body))
+		rec := doJSON(app, sess, http.MethodDelete, "/api/files", string(body))
 		assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
-		assert.Empty(t, deleted)
 	}
 }
 

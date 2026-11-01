@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "O arquivo está danificado ou num formato não suportado",
     "ERR_INVALID_TOKEN": "A ligação é inválida ou expirou",
     "ERR_UPLOAD_NOT_FOUND": "O carregamento já não está disponível, carregue novamente",
+    "ERR_UNSUPPORTED_SERVER": "Caminhos de servidor no formato Windows não são suportados. Use um servidor com caminhos POSIX absolutos.",
     "ERR_INVALID_TYPE": "Essa operação não é válida para este item",
     "ERR_FORBIDDEN": "Não tem acesso a isto",
     "ERR_BAD_REQUEST": "Não foi possível processar o pedido",

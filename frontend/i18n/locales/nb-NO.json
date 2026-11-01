@@ -274,6 +274,7 @@
     "ERR_ARCHIVE_FORMAT": "Arkivet er skadet eller i et format som ikke støttes",
     "ERR_INVALID_TOKEN": "Lenken er ugyldig eller utløpt",
     "ERR_UPLOAD_NOT_FOUND": "Opplastingen er ikke lenger tilgjengelig, last opp på nytt",
+    "ERR_UNSUPPORTED_SERVER": "Serverstier i Windows-format støttes ikke. Bruk en server med absolutte POSIX-stier.",
     "ERR_INVALID_TYPE": "Handlingen er ikke gyldig for dette elementet",
     "ERR_FORBIDDEN": "Du har ikke tilgang til dette",
     "ERR_BAD_REQUEST": "Forespørselen kunne ikke behandles",

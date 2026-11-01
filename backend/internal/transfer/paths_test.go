@@ -10,13 +10,13 @@ import (
 )
 
 func TestCleanDeletePath(t *testing.T) {
-	for _, p := range []string{"", ".", "..", "file", "/", "//", "/a/..", "/a/../file", "/.. ", "/. ", "/...", "/sub/.. ", `\\server/share`, `C:/file`, "/file\t", "/file\x7f", "/file\u0085", "/file\x00", "/file\r\n"} {
+	for _, p := range []string{"", ".", "..", "file", "/", "//", "/a/..", "/a/../file", "/.. ", "/. ", "/...", "/sub/.. ", "/file.", "/file ", `\/file`, `\folder`, `\\server/share`, `C:/file`, "/file\t", "/file\x7f", "/file\u0085", "/file\x00", "/file\r\n"} {
 		t.Run(p, func(t *testing.T) {
 			_, err := transfer.CleanDeletePath(p)
 			assert.ErrorIs(t, err, transfer.ErrInvalidType)
 		})
 	}
-	for _, p := range []string{"/file", "/a//file", "/ file ", `\/file`, `\folder`} {
+	for _, p := range []string{"/file", "/a//file", "/ file"} {
 		t.Run(p, func(t *testing.T) {
 			got, err := transfer.CleanDeletePath(p)
 			require.NoError(t, err)
