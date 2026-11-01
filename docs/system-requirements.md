@@ -49,7 +49,7 @@ You only need these tools for [manual installation](installation.md#manual-insta
 
 | Tool | Version |
 |---|---|
-| Go | 1.26 or newer |
+| Go | 1.26.10 or newer |
 | Node.js | 24 |
 | pnpm | The version pinned in `package.json`; enable with `corepack enable` |
 

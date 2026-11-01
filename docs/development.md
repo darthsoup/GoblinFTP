@@ -4,7 +4,7 @@ description: Run GoblinFTP locally, test your changes, and edit the docs.
 
 # Development
 
-Install Go 1.26 or newer, Node 24, pnpm, and [just](https://just.systems). You also need Docker to run the test servers. See [System requirements](system-requirements.md#building-from-source) for the tool versions.
+Install Go 1.26.10 or newer, Node 24, pnpm, and [just](https://just.systems). You also need Docker to run the test servers. See [System requirements](system-requirements.md#building-from-source) for the tool versions.
 
 From the repository root:
 

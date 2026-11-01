@@ -21,7 +21,7 @@ RUN pnpm --filter goblinftp-frontend run generate
 RUN find frontend/.output/public -name '*.map' -delete
 
 # Runs on the build platform and cross-compiles for the target, so no emulation.
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS backend-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine@sha256:a2012b4a1d1f9f7e9f44e0d39b805a901e856b1dd80b4e6ee4338db547050308 AS backend-builder
 WORKDIR /build/backend
 ARG TARGETOS
 ARG TARGETARCH
@@ -33,7 +33,7 @@ COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-w -X main.version=${VERSION}" -o /app/gftp ./cmd/gftp
 
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS caddy-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine@sha256:a2012b4a1d1f9f7e9f44e0d39b805a901e856b1dd80b4e6ee4338db547050308 AS caddy-builder
 WORKDIR /build/caddy
 ARG TARGETOS
 ARG TARGETARCH
