@@ -10,7 +10,8 @@
     "connect": "Verbinden",
     "passive": "Passiv-Modus",
     "errorRequired": "Erforderlich",
-    "errorPort": "Ungültiger Port"
+    "errorPort": "Ungültiger Port",
+    "fixedServer": "Vorgegebener Server"
   },
   "hostKey": {
     "title": "Hostschlüssel prüfen",
@@ -169,7 +170,9 @@
       "reload": "Verwerfen und neu laden",
       "banner": "Diese Datei wurde auf dem Server geändert. Automatisches Speichern ist pausiert.",
       "bannerDeleted": "Diese Datei ist auf dem Server nicht mehr vorhanden. Automatisches Speichern ist pausiert."
-    }
+    },
+    "exportDraft": "Entwurf exportieren",
+    "detachedDraft": "Getrennter Entwurf von {host}"
   },
   "modal": {
     "delete": {
@@ -271,13 +274,17 @@
     "ERR_ARCHIVE_FORMAT": "Das Archiv ist beschädigt oder kein unterstütztes Format",
     "ERR_INVALID_TOKEN": "Der Link ist ungültig oder abgelaufen",
     "ERR_UPLOAD_NOT_FOUND": "Der Upload ist nicht mehr verfügbar, bitte erneut hochladen",
+    "ERR_UNSUPPORTED_SERVER": "Windows-Pfade auf dem Server werden nicht unterstützt. Verwende einen Server mit absoluten POSIX-Pfaden.",
     "ERR_INVALID_TYPE": "Dieser Vorgang ist für dieses Element nicht zulässig",
     "ERR_FORBIDDEN": "Sie haben darauf keinen Zugriff",
     "ERR_BAD_REQUEST": "Die Anfrage konnte nicht verarbeitet werden",
     "ERR_INTERNAL": "Auf dem Server ist ein Fehler aufgetreten",
     "ERR_OVERWRITE_LOST_DESTINATION": "Die vorhandene Datei wurde entfernt, der Ersatz konnte aber nicht verschoben werden",
     "ERR_NETWORK": "Der Server ist nicht erreichbar",
-    "ERR_UNKNOWN": "Es ist ein Fehler aufgetreten"
+    "ERR_UNKNOWN": "Es ist ein Fehler aufgetreten",
+    "ERR_CAPACITY_EXCEEDED": "Diese Aktion überschreitet die verfügbare Kapazität. Bitte später erneut versuchen.",
+    "ERR_LISTING_LIMIT": "Dieser Ordner überschreitet das Limit für Verzeichnislisten.",
+    "ERR_STALE_CONNECTION": "Ihre Sitzung ist abgelaufen oder die Verbindung zum Server wurde getrennt. Bitte melden Sie sich erneut an."
   },
   "toast": {
     "folderCreated": "Ordner erstellt",
@@ -315,6 +322,7 @@
     "errorUsed": "Dieser SSO-Login-Link wurde bereits verwendet. Bitte fordere einen neuen an.",
     "errorDisabled": "SSO-Login ist auf diesem Server nicht aktiviert.",
     "errorInternal": "SSO-Login aufgrund eines Serverfehlers fehlgeschlagen. Bitte versuche es erneut.",
-    "errorGeneric": "SSO-Login fehlgeschlagen. Bitte fordere einen neuen Link an."
+    "errorGeneric": "SSO-Login fehlgeschlagen. Bitte fordere einen neuen Link an.",
+    "confirmTitle": "Serververbindung bestätigen"
   }
 }

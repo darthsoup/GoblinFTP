@@ -37,6 +37,12 @@ jobs:
           tags: goblinftp:smoke
           cache-from: type=gha,scope=docker-smoke
           cache-to: type=gha,scope=docker-smoke,mode=max
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: docker/caddy/go.sum
+      - name: Scan shipped executables
+        run: sh docker/scan_go_binaries.sh goblinftp:smoke
       - name: Test container runtime
         run: python3 docker/smoke_test.py goblinftp:smoke
 
@@ -81,7 +87,7 @@ jobs:
       # golangci's gosec finds our bugs; govulncheck finds our dependencies'.
       - name: govulncheck
         working-directory: backend
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   frontend:
     name: Frontend build

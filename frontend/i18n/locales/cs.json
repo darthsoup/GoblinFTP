@@ -10,7 +10,8 @@
     "connect": "Připojit",
     "passive": "Pasivní režim",
     "errorRequired": "Povinné",
-    "errorPort": "Neplatný port"
+    "errorPort": "Neplatný port",
+    "fixedServer": "Pevně nastavený server"
   },
   "hostKey": {
     "title": "Ověřit klíč hostitele",
@@ -169,7 +170,9 @@
       "reload": "Zahodit a načíst znovu",
       "banner": "Tento soubor byl na serveru změněn. Automatické ukládání je pozastaveno.",
       "bannerDeleted": "Tento soubor na serveru již není. Automatické ukládání je pozastaveno."
-    }
+    },
+    "exportDraft": "Exportovat koncept",
+    "detachedDraft": "Odpojený koncept ze serveru {host}"
   },
   "modal": {
     "delete": {
@@ -271,13 +274,17 @@
     "ERR_ARCHIVE_FORMAT": "Archiv je poškozený nebo v nepodporovaném formátu",
     "ERR_INVALID_TOKEN": "Odkaz je neplatný nebo vypršel",
     "ERR_UPLOAD_NOT_FOUND": "Nahrávání už není dostupné, nahrajte soubor znovu",
+    "ERR_UNSUPPORTED_SERVER": "Cesty serveru ve stylu Windows nejsou podporovány. Použijte server s absolutními cestami POSIX.",
     "ERR_INVALID_TYPE": "Tato operace není pro tuto položku platná",
     "ERR_FORBIDDEN": "K tomuto nemáte přístup",
     "ERR_BAD_REQUEST": "Požadavek se nepodařilo zpracovat",
     "ERR_INTERNAL": "Na serveru došlo k chybě",
     "ERR_OVERWRITE_LOST_DESTINATION": "Původní soubor byl odstraněn, ale náhradu se nepodařilo přesunout na jeho místo",
     "ERR_NETWORK": "Server je nedostupný",
-    "ERR_UNKNOWN": "Došlo k chybě"
+    "ERR_UNKNOWN": "Došlo k chybě",
+    "ERR_CAPACITY_EXCEEDED": "Tato operace překračuje dostupnou kapacitu. Zkuste to později.",
+    "ERR_LISTING_LIMIT": "Tato složka překračuje limit výpisu adresáře.",
+    "ERR_STALE_CONNECTION": "Vaše relace vypršela nebo bylo spojení se serverem ztraceno. Přihlaste se prosím znovu."
   },
   "toast": {
     "folderCreated": "Složka vytvořena",
@@ -315,6 +322,7 @@
     "errorUsed": "Tento přihlašovací odkaz SSO již byl použit. Vyžádejte si prosím nový.",
     "errorDisabled": "Přihlášení přes SSO není na tomto serveru povoleno.",
     "errorInternal": "Přihlášení přes SSO selhalo kvůli chybě serveru. Zkuste to prosím znovu.",
-    "errorGeneric": "Přihlášení přes SSO selhalo. Vyžádejte si prosím nový odkaz."
+    "errorGeneric": "Přihlášení přes SSO selhalo. Vyžádejte si prosím nový odkaz.",
+    "confirmTitle": "Potvrdit připojení k serveru"
   }
 }

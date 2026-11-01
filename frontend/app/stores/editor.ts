@@ -5,6 +5,9 @@ import { ApiError } from '~/types/api'
 import { clearEditorSession, dropTabState } from '~/utils/editorSession'
 
 export interface EditorTab {
+  connectionId?: string
+  originHost?: string
+  detached?: boolean
   id: string
   path: string
   name: string
@@ -75,7 +78,7 @@ export const useEditorStore = defineStore('editor', () => {
   // interactive raises the modal; autosave must never interrupt mid-keystroke.
   async function saveTab(id: string, { interactive = false, force = false } = {}) {
     const tab = tabs.value.find(t => t.id === id)
-    if (!tab || tab.saving || tab.loading)
+    if (!tab || tab.detached || tab.connectionId !== useAuthStore().connectionId || tab.saving || tab.loading)
       return
     // No baseline means the read never completed. Saving here would write the
     // empty buffer over a healthy file; the backend rejects it anyway.
@@ -143,7 +146,7 @@ export const useEditorStore = defineStore('editor', () => {
   // revision bump is what makes EditorPane rebuild its editor state.
   async function reloadTab(id: string) {
     const tab = tabs.value.find(t => t.id === id)
-    if (!tab)
+    if (!tab || tab.detached || tab.connectionId !== useAuthStore().connectionId)
       return
     tab.loading = true
     try {
@@ -194,7 +197,7 @@ export const useEditorStore = defineStore('editor', () => {
   async function openFile(path: string) {
     // The tab is pushed synchronously before the first await, so a rapid second
     // call finds it here and there is no duplicate-tab race.
-    const existing = tabs.value.find(t => t.path === path)
+    const existing = tabs.value.find(t => t.path === path && !t.detached && t.connectionId === useAuthStore().connectionId)
     if (existing) {
       activeId.value = existing.id
       return
@@ -202,7 +205,7 @@ export const useEditorStore = defineStore('editor', () => {
 
     const id = uid()
     const name = path.split('/').pop() ?? path
-    const tab: EditorTab = { id, path, name, content: '', savedContent: '', loading: true, saving: false, revision: 0 }
+    const tab: EditorTab = { id, path, name, connectionId: useAuthStore().connectionId, originHost: useAuthStore().serverHost, content: '', savedContent: '', loading: true, saving: false, revision: 0 }
     tabs.value = [...tabs.value, tab]
     activeId.value = id
 
@@ -248,6 +251,19 @@ export const useEditorStore = defineStore('editor', () => {
     activeId.value = id
   }
 
+  function detach() {
+    clearAllAutoSave()
+    for (const tab of tabs.value) {
+      tab.detached = true
+      tab.loading = false
+      tab.saving = false
+    }
+  }
+  function exportDraft(id: string) {
+    const tab = tabs.value.find(t => t.id === id)
+    if (tab)
+      useApi().saveBlob(new Blob([tab.content], { type: 'text/plain;charset=utf-8' }), tab.name)
+  }
   function $reset() {
     clearAllAutoSave()
     clearEditorSession()
@@ -260,7 +276,8 @@ export const useEditorStore = defineStore('editor', () => {
       return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        paths: tabs.value.map(t => t.path),
+        connectionId: useAuthStore().connectionId,
+        paths: tabs.value.filter(t => !t.detached).map(t => t.path),
         activePath: activeTab.value?.path ?? null,
       }))
     }
@@ -272,12 +289,12 @@ export const useEditorStore = defineStore('editor', () => {
   async function restore() {
     if (tabs.value.length)
       return
-    let saved: { paths?: string[], activePath?: string | null } | null = null
+    let saved: { connectionId?: string, paths?: string[], activePath?: string | null } | null = null
     try {
       saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
     }
     catch {}
-    if (!saved?.paths?.length)
+    if (!saved?.paths?.length || saved.connectionId !== useAuthStore().connectionId)
       return
 
     restoring = true
@@ -297,5 +314,5 @@ export const useEditorStore = defineStore('editor', () => {
   // Persist when the set of open tabs or the active tab changes (not on edits).
   watch([() => tabs.value.map(t => t.path).join('\n'), activeId], () => persist())
 
-  return { tabs, activeId, activeTab, hasOpenTabs, dirtyCount, hasDirty, openFile, saveTab, resolveConflict, reloadTab, updateContent, closeTab, setActive, restore, $reset }
+  return { detach, exportDraft, tabs, activeId, activeTab, hasOpenTabs, dirtyCount, hasDirty, openFile, saveTab, resolveConflict, reloadTab, updateContent, closeTab, setActive, restore, $reset }
 })

@@ -210,7 +210,7 @@ func run() int {
 	if cfg.MetricsEnabled {
 		// Bound here rather than inside the goroutine: a clash used to be logged
 		// from a background goroutine while startup carried on regardless.
-		ln, lnErr := net.Listen("tcp", ":"+cfg.MetricsPort)
+		ln, lnErr := net.Listen("tcp", net.JoinHostPort(cfg.MetricsBindAddress, cfg.MetricsPort))
 		if lnErr != nil {
 			logger.Error("could not bind the metrics listener, check GFTP_METRICS_PORT",
 				"port", cfg.MetricsPort, "error", lnErr.Error())

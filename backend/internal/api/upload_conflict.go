@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"path"
 	"strconv"
 	"strings"
@@ -55,7 +56,7 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 	var order []string
 	byDir := make(map[string][]string)
 	for _, p := range req.Paths {
-		if !strings.HasPrefix(p, "/") {
+		if !validPath(c, p, false) {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "paths must be absolute"))
 		}
 		clean := path.Clean(p)
@@ -72,32 +73,38 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 	for _, dir := range order {
 		entries, err := client.List(dir)
 		if err != nil {
-			if isConnLost(err) {
+			if !errors.Is(err, transfer.ErrNotFound) {
 				return failClient(c, gftperrors.ErrListFailed, err)
 			}
 			// The directory does not exist yet (ensureDirAll will create it), so
-			// nothing conflicts. A permission failure looks the same and reports "free".
+			// nothing conflicts. Other failures must never imply a free destination.
 			continue
+		}
+		key := func(name string) string {
+			if windowsPaths(c) {
+				return strings.ToLower(name)
+			}
+			return name
 		}
 		existing := make(map[string]transfer.FileInfo, len(entries))
 		taken := make(map[string]struct{}, len(entries)+len(byDir[dir]))
 		for _, e := range entries {
-			existing[e.Name] = e
-			taken[e.Name] = struct{}{}
+			existing[key(e.Name)] = e
+			taken[key(e.Name)] = struct{}{}
 		}
 		// Reserve every name this batch is about to write into the directory, so
 		// a suggestion never lands on a sibling that is also queued.
 		for _, p := range byDir[dir] {
-			taken[path.Base(p)] = struct{}{}
+			taken[key(path.Base(p))] = struct{}{}
 		}
 		for _, p := range byDir[dir] {
 			name := path.Base(p)
-			fi, clash := existing[name]
+			fi, clash := existing[key(name)]
 			if !clash {
 				continue
 			}
-			suggested := uniqueName(name, taken)
-			taken[suggested] = struct{}{}
+			suggested := uniqueName(name, taken, windowsPaths(c))
+			taken[key(suggested)] = struct{}{}
 			result.Conflicts = append(result.Conflicts, uploadConflict{
 				Path:          p,
 				Name:          name,
@@ -113,8 +120,14 @@ func (h *Handler) UploadCheck(c echo.Context) error {
 
 // uniqueName returns name if free, else inserts " (1)", " (2)", … before the
 // extension. Not the paste flow's "(copy)": an upload is a duplicate arrival.
-func uniqueName(name string, taken map[string]struct{}) string {
-	if _, clash := taken[name]; !clash {
+func uniqueName(name string, taken map[string]struct{}, folds ...bool) string {
+	key := func(name string) string {
+		if len(folds) > 0 && folds[0] {
+			return strings.ToLower(name)
+		}
+		return name
+	}
+	if _, clash := taken[key(name)]; !clash {
 		return name
 	}
 	base, ext := name, ""
@@ -124,7 +137,7 @@ func uniqueName(name string, taken map[string]struct{}) string {
 	}
 	for i := 1; ; i++ {
 		candidate := base + " (" + strconv.Itoa(i) + ")" + ext
-		if _, clash := taken[candidate]; !clash {
+		if _, clash := taken[key(candidate)]; !clash {
 			return candidate
 		}
 	}

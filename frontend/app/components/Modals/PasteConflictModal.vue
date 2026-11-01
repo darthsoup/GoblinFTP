@@ -14,7 +14,7 @@
           :key="name"
           class="text-sm text-highlighted truncate"
         >
-          {{ name }}
+          <bdi>{{ displayName(name) }}</bdi>
         </li>
       </ul>
     </template>

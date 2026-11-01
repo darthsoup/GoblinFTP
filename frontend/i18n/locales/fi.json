@@ -10,7 +10,8 @@
     "connect": "Yhdistä",
     "passive": "Passiivinen tila",
     "errorRequired": "Pakollinen",
-    "errorPort": "Virheellinen portti"
+    "errorPort": "Virheellinen portti",
+    "fixedServer": "Kiinteä palvelin"
   },
   "hostKey": {
     "title": "Vahvista isäntäavain",
@@ -169,7 +170,9 @@
       "reload": "Hylkää omani ja lataa uudelleen",
       "banner": "Tämä tiedosto muuttui palvelimella. Automaattitallennus on keskeytetty.",
       "bannerDeleted": "Tätä tiedostoa ei enää ole palvelimella. Automaattitallennus on keskeytetty."
-    }
+    },
+    "exportDraft": "Vie luonnos",
+    "detachedDraft": "Irrotettu luonnos palvelimelta {host}"
   },
   "modal": {
     "delete": {
@@ -271,13 +274,17 @@
     "ERR_ARCHIVE_FORMAT": "Arkisto on vioittunut tai sen muotoa ei tueta",
     "ERR_INVALID_TOKEN": "Linkki on virheellinen tai vanhentunut",
     "ERR_UPLOAD_NOT_FOUND": "Lähetys ei ole enää saatavilla, lähetä uudelleen",
+    "ERR_UNSUPPORTED_SERVER": "Windows-tyylisiä palvelinpolkuja ei tueta. Käytä palvelinta, jossa on absoluuttiset POSIX-polut.",
     "ERR_INVALID_TYPE": "Toiminto ei kelpaa tälle kohteelle",
     "ERR_FORBIDDEN": "Sinulla ei ole käyttöoikeutta tähän",
     "ERR_BAD_REQUEST": "Pyyntöä ei voitu käsitellä",
     "ERR_INTERNAL": "Palvelimella tapahtui virhe",
     "ERR_OVERWRITE_LOST_DESTINATION": "Aiempi tiedosto poistettiin, mutta korvaavaa ei voitu siirtää tilalle",
     "ERR_NETWORK": "Palvelimeen ei saada yhteyttä",
-    "ERR_UNKNOWN": "Jokin meni vikaan"
+    "ERR_UNKNOWN": "Jokin meni vikaan",
+    "ERR_CAPACITY_EXCEEDED": "Toiminto ylittää käytettävissä olevan kapasiteetin. Yritä myöhemmin uudelleen.",
+    "ERR_LISTING_LIMIT": "Tämä kansio ylittää hakemistoluettelon rajan.",
+    "ERR_STALE_CONNECTION": "Istuntosi on vanhentunut tai yhteys palvelimeen katkesi. Kirjaudu sisään uudelleen."
   },
   "toast": {
     "folderCreated": "Kansio luotu",
@@ -315,6 +322,7 @@
     "errorUsed": "Tämä SSO-kirjautumislinkki on jo käytetty. Pyydä uusi.",
     "errorDisabled": "SSO-kirjautuminen ei ole käytössä tällä palvelimella.",
     "errorInternal": "SSO-kirjautuminen epäonnistui palvelinvirheen vuoksi. Yritä uudelleen.",
-    "errorGeneric": "SSO-kirjautuminen epäonnistui. Pyydä uusi linkki."
+    "errorGeneric": "SSO-kirjautuminen epäonnistui. Pyydä uusi linkki.",
+    "confirmTitle": "Vahvista palvelinyhteys"
   }
 }

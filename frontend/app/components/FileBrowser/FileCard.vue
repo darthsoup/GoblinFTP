@@ -3,7 +3,7 @@
     role="listitem"
     :tabindex="index === 0 ? 0 : -1"
     :aria-selected="selected"
-    :aria-label="file.isDir ? t('files.folderNamed', { name: file.name }) : t('files.fileNamed', { name: file.name })"
+    :aria-label="file.isDir ? t('files.folderNamed', { name: displayName(file.name) }) : t('files.fileNamed', { name: displayName(file.name) })"
     data-file-card
     class="file-card group relative flex flex-col cursor-pointer rounded-lg border border-default bg-elevated transition-all duration-150 hover:bg-accented/40 hover:border-accented hover:-translate-y-0.5 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-primary"
     :class="[
@@ -24,7 +24,7 @@
       <img
         v-if="showThumb"
         :src="thumbUrl!"
-        :alt="file.name"
+        :alt="displayName(file.name)"
         class="w-full h-full object-cover"
         @error="failed = true"
       >
@@ -44,7 +44,7 @@
         size="md"
         class="absolute top-1 left-1 transition-opacity"
         :class="selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        :aria-label="t('files.selectItem', { name: file.name })"
+        :aria-label="t('files.selectItem', { name: displayName(file.name) })"
         tabindex="-1"
         @click.stop
         @update:model-value="emit('select', file.name)"
@@ -67,7 +67,7 @@
       ref="inputRef"
       v-model="draft"
       class="w-full bg-default border border-primary rounded px-1.5 py-0.5 text-sm text-default outline-none focus:ring-1 focus:ring-primary"
-      :aria-label="t('files.renameItem', { name: file.name })"
+      :aria-label="t('files.renameItem', { name: displayName(file.name) })"
       @click.stop
       @keydown.enter.prevent="commit"
       @keydown.escape.prevent="cancel"
@@ -80,10 +80,10 @@
         compact ? 'text-xs' : 'text-sm',
         file.isDir ? 'font-semibold text-highlighted' : 'text-default',
       ]"
-      :title="file.name"
+      :title="displayName(file.name)"
       @dblclick.stop="onNameDblClick"
     >
-      {{ file.name }}
+      <bdi>{{ displayName(file.name) }}</bdi>
     </div>
 
     <div class="text-xs text-muted text-center truncate">
@@ -122,7 +122,7 @@ const filesStore = useFilesStore()
 const settingsStore = useSettingsStore()
 
 const iconDef = computed(() => getFileIcon(props.file))
-const fullPath = computed(() => `${props.currentPath.replace(/\/$/, '')}/${props.file.name}`)
+const fullPath = computed(() => joinRemotePath(props.currentPath, props.file.name))
 
 const { inputRef, draft, commit, cancel } = useInlineRename({
   editing: () => props.editing,
@@ -147,6 +147,10 @@ const meta = computed(() => {
 
 const thumbEl = ref<HTMLElement | null>(null)
 const thumbUrl = ref<string | null>(null)
+onBeforeUnmount(() => {
+  if (thumbUrl.value)
+    forgetObjectUrl(thumbUrl.value)
+})
 const failed = ref(false)
 const visible = ref(false)
 let loading = false
@@ -172,7 +176,7 @@ watchEffect(() => {
   if (!visible.value || !thumbnailEligible.value || thumbUrl.value || loading)
     return
   loading = true
-  filesStore.downloadUrl(fullPath.value)
+  filesStore.fetchObjectUrl(fullPath.value, THUMBNAIL_MAX_BYTES)
     .then((url) => { thumbUrl.value = url })
     .catch(() => { failed.value = true })
     .finally(() => { loading = false })

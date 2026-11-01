@@ -102,9 +102,9 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("GFTP_PORT", "9090")
 	t.Setenv("GFTP_LOG_LEVEL", "debug")
 	t.Setenv("GFTP_SESSION_SECRET", "my-session-secret")
-	t.Setenv("GFTP_DOWNLOAD_TOKEN_SECRET", "my-token-secret")
+	t.Setenv("GFTP_DOWNLOAD_TOKEN_SECRET", "my-token-secret-0123456789abcdefghij")
 	t.Setenv("GFTP_SSO_ENABLED", "true")
-	t.Setenv("GFTP_SSO_SECRET", "sso-secret")
+	t.Setenv("GFTP_SSO_SECRET", "sso-secret-0123456789abcdefghijklmn")
 	t.Setenv("GFTP_UPLOAD_CHUNK_SIZE", "1048576")
 	t.Setenv("GFTP_UPLOAD_MAX_CONCURRENT", "7")
 	t.Setenv("GFTP_LOGIN_MAX_ATTEMPTS", "3")
@@ -119,7 +119,7 @@ func TestLoadFromEnv(t *testing.T) {
 	assert.Equal(t, "9090", cfg.Port)
 	assert.Equal(t, "debug", cfg.LogLevel)
 	assert.Equal(t, []byte("my-session-secret"), cfg.SessionSecret)
-	assert.Equal(t, []byte("my-token-secret"), cfg.DownloadTokenSecret)
+	assert.Equal(t, []byte("my-token-secret-0123456789abcdefghij"), cfg.DownloadTokenSecret)
 	assert.True(t, cfg.SSOEnabled)
 	assert.Equal(t, int64(1048576), cfg.ChunkSize)
 	assert.Equal(t, 7, cfg.MaxConcurrentUploads)
@@ -176,7 +176,11 @@ func TestBindAddress(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			assert.Equal(t, address, cfg.BindAddress)
+			want := address
+			if want == "" {
+				want = "127.0.0.1"
+			}
+			assert.Equal(t, want, cfg.BindAddress)
 		})
 	}
 }
@@ -435,7 +439,7 @@ func TestLoadEmbedChromeless(t *testing.T) {
 func TestLoadBoolAcceptsParseBoolForms(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("GFTP_SSO_ENABLED", "1")
-	t.Setenv("GFTP_SSO_SECRET", "s")
+	t.Setenv("GFTP_SSO_SECRET", "0123456789abcdefghijklmnopqrstuv")
 	cfg, err := config.Load(nil)
 	require.NoError(t, err)
 	assert.True(t, cfg.SSOEnabled)
@@ -484,4 +488,34 @@ func TestLoadRejectsStaleSettingsFile(t *testing.T) {
 	require.Error(t, err, "a mounted settings.json must fail startup instead of being silently ignored")
 	assert.Contains(t, err.Error(), "settings.json")
 	assert.Contains(t, err.Error(), "environment variables")
+}
+
+func TestUnknownEnvironmentFailsClosed(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("GFTP_CONNECTION_LOCK_HSOT", "true")
+	_, err := config.Load(nil)
+	require.ErrorContains(t, err, "GFTP_CONNECTION_LOCK_HSOT")
+}
+func TestShortSecuritySecretsFailClosed(t *testing.T) {
+	for _, name := range []string{"GFTP_SSO_SECRET", "GFTP_DOWNLOAD_TOKEN_SECRET"} {
+		t.Run(name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv(name, "short")
+			if name == "GFTP_SSO_SECRET" {
+				t.Setenv("GFTP_SSO_ENABLED", "true")
+			}
+			_, err := config.Load(nil)
+			require.ErrorContains(t, err, name)
+		})
+	}
+}
+func TestResourceLimitsRejectZero(t *testing.T) {
+	for _, name := range []string{"GFTP_MAX_SESSIONS", "GFTP_MAX_SESSIONS_PER_IP", "GFTP_MAX_CONNECTING", "GFTP_MAX_CONNECTING_PER_IP", "GFTP_STAGING_MAX_BYTES", "GFTP_STAGING_MAX_SESSION_BYTES", "GFTP_UPLOAD_MAX_PENDING"} {
+		t.Run(name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv(name, "0")
+			_, err := config.Load(nil)
+			require.ErrorContains(t, err, name)
+		})
+	}
 }

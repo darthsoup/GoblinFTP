@@ -52,18 +52,21 @@ const paths = computed<string[]>(() => {
     return modalStore.context.files
   if (modalStore.context.file) {
     const dir = filesStore.currentPath.replace(/\/$/, '')
-    return [`${dir}/${modalStore.context.file.name}`]
+    return [joinRemotePath(dir, modalStore.context.file.name)]
   }
   return []
 })
 
 const message = computed(() => {
   if (paths.value.length === 1 && modalStore.context.file)
-    return t('modal.delete.message', { name: modalStore.context.file.name })
+    return t('modal.delete.message', { name: displayName(modalStore.context.file.name) })
   return t('modal.delete.messageMulti', { n: paths.value.length })
 })
 
 async function confirm() {
+  if (!modalStore.isCurrent())
+    return
+  const epoch = connectionEpoch()
   if (!paths.value.length || loading.value)
     return
   loading.value = true
@@ -79,6 +82,7 @@ async function confirm() {
         formatFailures(res.failed.map(f => ({ label: basename(f.path), reason: localizeError(f.code, f.message) }))),
       )
     }
+    assertConnection(epoch)
     modalStore.close()
   }
   catch (e) {

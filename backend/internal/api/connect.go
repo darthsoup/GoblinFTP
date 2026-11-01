@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +28,9 @@ type ConnectRequest struct {
 
 // ConnectData is the successful response payload for POST /api/auth/connect.
 type ConnectData struct {
+	ConnectionID     string       `json:"connectionId,omitempty"`
+	Host             string       `json:"host,omitempty"`
+	Language         string       `json:"language,omitempty"`
 	Capabilities     Capabilities `json:"capabilities"`
 	InitialDirectory string       `json:"initialDirectory"`
 	CSRFToken        string       `json:"csrfToken"`
@@ -39,10 +43,6 @@ type ConnectData struct {
 type Capabilities struct {
 	DisableChmod bool `json:"disableChmod"`
 }
-
-// loginIPAttemptMultiplier widens the per-IP budget relative to the
-// per-host+username one: many users can legitimately share an egress address.
-const loginIPAttemptMultiplier = 4
 
 // Connect handles POST /api/auth/connect.
 func (h *Handler) Connect(c echo.Context) error {
@@ -65,7 +65,22 @@ func (h *Handler) Connect(c echo.Context) error {
 			fmt.Sprintf("connection type %q is not allowed", req.Protocol)))
 	}
 
-	if req.Host == "" || req.Username == "" {
+	conn := h.cfg.Settings.Connection
+	if conn.LockHost && conn.PresetHost != nil {
+		if req.Host == "" {
+			req.Host = *conn.PresetHost
+		}
+		if req.Port == 0 && conn.PresetPort != nil {
+			req.Port = *conn.PresetPort
+		}
+		if req.Port == 0 {
+			req.Port = 21
+			if req.Protocol == "sftp" {
+				req.Port = 22
+			}
+		}
+	}
+	if req.Host == "" || req.Username == "" || len(req.Host) > 255 || len(req.Username) > 1024 {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "host and username are required"))
 	}
 	if req.Port <= 0 || req.Port > 65535 {
@@ -84,17 +99,21 @@ func (h *Handler) Connect(c echo.Context) error {
 
 	// Two throttle dimensions: host+username alone is evaded by varying the
 	// username (a password spray), so the client IP is counted too, on a wider budget.
-	throttleKey := req.Host + ":" + req.Username
+	throttleKey := accountThrottleKey(req.Host, req.Username)
 	ipKey := "ip:" + c.RealIP()
-	ipMaxAttempts := h.cfg.LoginMaxAttempts * loginIPAttemptMultiplier
-	if h.throttle.IsThrottled(throttleKey, h.cfg.LoginMaxAttempts) ||
-		h.throttle.IsThrottled(ipKey, ipMaxAttempts) {
-		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "throttled").Inc()
-		return Fail(c, gftperrors.New(gftperrors.ErrLoginThrottled,
-			"too many failed login attempts, please try again later"))
+	free, allowed := h.store.Reserve(c.RealIP(), h.cfg.MaxSessions, h.cfg.MaxSessionsPerIP, h.cfg.MaxConnecting, h.cfg.MaxConnectingPerIP)
+	if !allowed {
+		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "connection capacity reached"))
 	}
+	defer free()
+	settle, allowed := h.throttle.Reserve(throttleKey, ipKey, h.cfg.LoginMaxAttempts, time.Duration(h.cfg.LoginCooldownSeconds)*time.Second)
+	if !allowed {
+		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "throttled").Inc()
+		return Fail(c, gftperrors.New(gftperrors.ErrLoginThrottled, "too many connection attempts, please try again later"))
+	}
+	defer settle(false)
 
-	addr := fmt.Sprintf("%s:%d", req.Host, req.Port)
+	addr := net.JoinHostPort(req.Host, strconv.Itoa(req.Port))
 	client, hostKey, dialErr := h.dial(DialRequest{
 		Context:       c.Request().Context(),
 		Protocol:      req.Protocol,
@@ -106,33 +125,27 @@ func (h *Handler) Connect(c echo.Context) error {
 		AcceptHostKey: req.AcceptHostKey,
 	})
 	if hostKey != nil {
-		// Unknown SFTP host key: confirm before sending credentials. Not a failed
-		// attempt, so the throttle is untouched.
+		// Host-key prompts consume IP admission without recording a credential failure.
 		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, hostKeyLabel(hostKey)).Inc()
 		noteHostKeyChange(c, h.logger, req.Host, hostKey)
 		return OK(c, ConnectData{HostKeyPrompt: hostKey})
 	}
 	if dialErr != nil {
 		failure := classifyDial(dialErr)
-		cooldown := time.Duration(h.cfg.LoginCooldownSeconds) * time.Second
-		// Every failed dial charges the per-IP budget, because this endpoint
-		// connects to arbitrary hosts and must stay rate limited. Only a real
-		// credential rejection charges the per-account one, so a certificate
-		// problem no longer locks a user out of their own account.
-		h.throttle.Record(ipKey, cooldown)
-		if failure.credentialAttempt {
-			h.throttle.Record(throttleKey, cooldown)
-		}
+		settle(failure.credentialAttempt)
 		h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, failure.metricLabel).Inc()
 		return Fail(c, failure.err)
 	}
-	h.throttle.Reset(throttleKey)
-	h.throttle.Reset(ipKey)
 
 	initialDir, wdErr := client.WorkingDir()
 	if wdErr != nil {
 		_ = client.Close()
 		return Fail(c, gftperrors.New(gftperrors.ErrConnectionFailed, "could not get working directory").WithCause(wdErr))
+	}
+
+	if gerr := validateServerDirectory(initialDir, req.Protocol); gerr != nil {
+		_ = client.Close()
+		return Fail(c, gerr)
 	}
 
 	disableChmod := !client.SupportsChmod()
@@ -148,6 +161,7 @@ func (h *Handler) Connect(c echo.Context) error {
 		_ = client.Close()
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not create session").WithCause(sessErr))
 	}
+	sess.Set("clientIP", c.RealIP())
 	sess.Set("client", client)
 	sess.Set(auth.CSRFSessionKey, csrfToken)
 	sess.Set("initialDir", initialDir)
@@ -159,9 +173,16 @@ func (h *Handler) Connect(c echo.Context) error {
 
 	h.metrics.ConnectAttempts.WithLabelValues(req.Protocol, "success").Inc()
 
-	c.SetCookie(sessionCookie(c, h.cfg, sess.ID, 0))
+	if old, ok := lookupSession(c, h.store); ok && old.ID != sess.ID {
+		old.LockTransfer()
+		h.evictSession(old)
+		old.UnlockTransfer()
+		h.store.Delete(old.ID)
+	}
+	setSessionCookie(c, h.cfg, sess.ID, 0)
 
 	return OK(c, ConnectData{
+		ConnectionID: sess.ConnectionID, Host: addr,
 		Capabilities:     Capabilities{DisableChmod: disableChmod},
 		InitialDirectory: initialDir,
 		CSRFToken:        csrfToken,
@@ -183,7 +204,7 @@ func (h *Handler) Disconnect(c echo.Context) error {
 	h.evictSession(sess)
 	sess.UnlockTransfer()
 	h.store.Delete(sess.ID)
-	c.SetCookie(sessionCookie(c, h.cfg, "", -1))
+	setSessionCookie(c, h.cfg, "", -1)
 	return OK(c, nil)
 }
 
@@ -235,4 +256,8 @@ func (h *Handler) checkIPAllowlist(c echo.Context) *gftperrors.GFTPError {
 		}
 	}
 	return gftperrors.New(gftperrors.ErrForbidden, "client IP address is not in the allowlist")
+}
+
+func accountThrottleKey(host, user string) string {
+	return "account:" + strconv.Quote(strings.ToLower(strings.TrimSuffix(host, "."))) + ":" + strconv.Quote(user)
 }

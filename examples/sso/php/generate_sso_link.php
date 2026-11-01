@@ -5,7 +5,7 @@
 // Token format (must match backend/internal/sso/token.go): key = HKDF-SHA256(secret,
 // salt empty, info "gftp-sso", 32); token = base64url(iv(12) || tag(16) || AES-256-GCM).
 //
-// CLI usage: GFTP_SSO_SECRET=change-me php generate_sso_link.php --host=ftp.example.com
+// CLI usage: php generate_sso_link.php --host=ftp.example.com (set GFTP_SSO_SECRET first).
 //   --username=alice --password=s3cret --base-url=https://files.example.com
 //
 // Or call gftp_sso_link() from your own application code.
@@ -20,6 +20,10 @@
  */
 function gftp_sso_link(string $secret, string $baseUrl, array $conn): string
 {
+    if (strlen($secret) < 32) {
+        throw new InvalidArgumentException('SSO secret must contain at least 32 bytes');
+    }
+
     $protocol = $conn['protocol'] ?? 'ftp';
     $payload = [
         'type' => $protocol,

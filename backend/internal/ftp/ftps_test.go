@@ -29,13 +29,13 @@ func TestFTPSProtectsEveryDataConnection(t *testing.T) {
 	require.NoError(t, err)
 	roots := x509.NewCertPool()
 	roots.AddCert(cert)
-	serverTLS := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}, MinVersion: tls.VersionTLS12}
+	serverTLS := &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	defer func() { _ = ln.Close() }()
 	done := make(chan error, 1)
 	go func() { done <- serveProtectedFTP(ln, serverTLS) }()
-	client, err := Dial(ln.Addr().String(), "u", "p", true, &tls.Config{RootCAs: roots, ServerName: "127.0.0.1", MinVersion: tls.VersionTLS12})
+	client, err := Dial(ln.Addr().String(), "u", "p", true, &tls.Config{RootCAs: roots, ServerName: "127.0.0.1", MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12})
 	require.NoError(t, err)
 	defer func() { _ = client.Close() }()
 	require.NoError(t, client.Upload("/file.txt", strings.NewReader("private upload")))
@@ -122,6 +122,9 @@ func serveProtectedFTP(ln net.Listener, cfg *tls.Config) error {
 			if err = secure.Handshake(); err != nil {
 				_ = raw.Close()
 				return fmt.Errorf("%s data TLS: %w", command, err)
+			}
+			if !secure.ConnectionState().DidResume {
+				return fmt.Errorf("%s data connection did not reuse the TLS session", command)
 			}
 			switch command {
 			case "STOR":

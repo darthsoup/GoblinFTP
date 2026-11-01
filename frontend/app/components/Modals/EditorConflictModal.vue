@@ -12,8 +12,8 @@
     <template #body>
       <p v-if="info" class="text-sm text-muted">
         {{ deleted
-          ? t('editor.conflict.deletedMessage', { name: info.name })
-          : t('editor.conflict.message', { name: info.name }) }}
+          ? t('editor.conflict.deletedMessage', { name: displayName(info.name) })
+          : t('editor.conflict.message', { name: displayName(info.name) }) }}
       </p>
       <p v-if="baseline" class="mt-3 rounded border border-default bg-muted/40 px-3 py-2 text-xs text-dimmed">
         {{ baseline }}

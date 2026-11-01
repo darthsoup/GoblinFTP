@@ -14,6 +14,8 @@ import (
 // friendlyMessage is the single source of user-facing text per code, so a code
 // substituted by failClient can never contradict the message beside it.
 var friendlyMessage = map[gftperrors.Code]string{
+	gftperrors.ErrCapacity:                "The operation exceeds the available resource capacity.",
+	gftperrors.ErrListingLimit:            "The directory listing exceeds the maximum size.",
 	gftperrors.ErrConnectionLost:          "The connection to the server was lost.",
 	gftperrors.ErrConnectionTimeout:       "The server stopped responding.",
 	gftperrors.ErrDataConnectionFailed:    "The data connection to the server failed. Passive mode, NAT, or a firewall may be blocking it.",
@@ -57,6 +59,10 @@ func classifyCode(err error) gftperrors.Code {
 	}
 
 	switch {
+	case errors.Is(err, errStorageLimit):
+		return gftperrors.ErrCapacity
+	case errors.Is(err, transfer.ErrListingLimit):
+		return gftperrors.ErrListingLimit
 	case isConnLost(err):
 		return gftperrors.ErrConnectionLost
 	case errors.Is(err, transfer.ErrConnectionTimeout), isTimeoutErr(err):
