@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/darthsoup/goblinftp/internal/config"
@@ -177,7 +178,7 @@ func (h *Handler) AuthStatus(c echo.Context) error {
 			// Only ping when idle: a NOOP injected mid data-stream would corrupt it,
 			// and TryLock avoids blocking the checker behind a long transfer.
 			if sess.TryLockTransfer() {
-				pingErr := client.Ping()
+				pingErr := requestClient(c, client).Ping()
 				if pingErr != nil {
 					_ = client.Close()
 				}
@@ -216,7 +217,8 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	if !pendingSession.TryLockTransfer() {
 		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "login is already being finalized"))
 	}
-	defer pendingSession.UnlockTransfer()
+	unlockPending := sync.OnceFunc(pendingSession.UnlockTransfer)
+	defer unlockPending()
 	value, ok := pendingSession.Get(ssoPendingKey)
 	payload, valid := value.(sso.Payload)
 	if !ok || !valid || time.Now().Unix() >= payload.Exp {
@@ -269,7 +271,7 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 		if err := transfer.ValidateRemotePath(payload.InitialDirectory, payload.Type != "sftp", true); err != nil {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid initial directory"))
 		}
-		info, err := client.Stat(payload.InitialDirectory)
+		info, err := requestClient(c, client).Stat(payload.InitialDirectory)
 		if err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}
@@ -298,14 +300,15 @@ func (h *Handler) SSOConnect(c echo.Context) error {
 	if tenant := sanitizeTenant(payload.Tenant); tenant != "" {
 		sess.Set(tenantSessionKey, tenant)
 	}
+	h.store.Delete(pendingSession.ID)
+	pendingSession.Delete(ssoPendingKey)
+	unlockPending()
 	if old, ok := lookupSession(c, h.store); ok {
 		old.LockTransfer()
 		h.evictSession(old)
 		old.UnlockTransfer()
 		h.store.Delete(old.ID)
 	}
-	pendingSession.Delete(ssoPendingKey)
-	h.store.Delete(pendingSession.ID)
 	writeSessionCookie(c, pendingCookie(c, h.cfg, "", -1))
 	setSessionCookie(c, h.cfg, sess.ID, 0)
 	success = true

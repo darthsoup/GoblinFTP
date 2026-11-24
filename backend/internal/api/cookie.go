@@ -33,7 +33,14 @@ func lookupNamedSession(c echo.Context, store *auth.Store, name string) (*auth.S
 }
 
 func lookupSession(c echo.Context, store *auth.Store) (*auth.Session, bool) {
-	return lookupNamedSession(c, store, requestCookieName(c))
+	sess, ok := lookupNamedSession(c, store, requestCookieName(c))
+	if !ok {
+		return nil, false
+	}
+	if _, pending := sess.Get(ssoPendingKey); pending {
+		return nil, false
+	}
+	return sess, true
 }
 
 func hasSessionCookie(c echo.Context) bool {

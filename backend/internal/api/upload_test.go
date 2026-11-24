@@ -531,3 +531,24 @@ func TestUploadChunkStorageUnavailable(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 	assert.Contains(t, rec.Body.String(), "ERR_STORAGE_UNAVAILABLE")
 }
+
+type unavailableInventory struct {
+	*memChunkStore
+	calls int
+}
+
+func (s *unavailableInventory) StagedBytes(context.Context, map[string]bool) (int64, error) {
+	s.calls++
+	return 0, staging.ErrUnavailable
+}
+
+func TestInventoryFailureIsCachedAndFailsClosed(t *testing.T) {
+	store := &unavailableInventory{memChunkStore: newMemChunkStore()}
+	app, _, _ := newTestApp(t, defaultTestConfig(), staticDialOption(), api.WithChunkStore(store))
+	sess := connectAndGetSession(t, app)
+	for range 2 {
+		rec := doJSON(app, sess, http.MethodPost, "/api/files/upload/reserve", `{"path":"/file","totalSize":1,"totalChunks":1,"chunkSize":1,"overwrite":true}`)
+		require.Equal(t, http.StatusTooManyRequests, rec.Code)
+	}
+	require.Equal(t, 1, store.calls)
+}

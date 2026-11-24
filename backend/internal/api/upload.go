@@ -122,23 +122,16 @@ func (h *Handler) UploadReserve(c echo.Context) error {
 	if req.TotalSize == 0 || req.ChunkSize > h.cfg.ChunkSize || (req.TotalSize-1)/req.ChunkSize+1 != int64(req.TotalChunks) {
 		return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "upload size and chunk count are inconsistent"))
 	}
-	sess.LockTransfer()
-	defer sess.UnlockTransfer()
+	client, release, connected := lockedClient(c)
+	if !connected {
+		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
+	}
+	defer release()
 	if len(sess.UploadIDs()) >= h.cfg.UploadMaxPending {
 		return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "too many pending uploads"))
 	}
-	// Reject a conflict before the client stages a single chunk. The lock is
-	// required because a LIST issued mid-transfer desyncs the FTP control connection.
 	if !req.Overwrite {
-		client, _, connected := clientFromContext(c)
-		var taken bool
-		var err error
-		if connected {
-			taken, _, err = destinationTaken(client, req.Path)
-		}
-		if !connected {
-			return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
-		}
+		taken, _, err := destinationTaken(client, req.Path)
 		if err != nil {
 			return failClient(c, gftperrors.ErrOperationFailed, err)
 		}

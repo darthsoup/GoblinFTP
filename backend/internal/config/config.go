@@ -24,8 +24,9 @@ type EditorSettings struct {
 
 // ConnectionSettings holds the GFTP_CONNECTION_* values.
 type ConnectionSettings struct {
-	AllowedTypes []string
-	DisableChmod bool
+	ArchiveAccounts map[string]map[string]uint32
+	AllowedTypes    []string
+	DisableChmod    bool
 	// PresetHost/PresetPort prefill the login form; LockHost makes the
 	// host+port fields read-only. PassiveMode is the FTP passive default.
 	PresetHost  *string

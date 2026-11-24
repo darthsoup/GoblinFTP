@@ -1,6 +1,8 @@
 package config
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -346,6 +348,34 @@ func custom(env string, fromEnv func(c *Config, raw string) error, opts ...keyOp
 	return k
 }
 
+func archiveAccounts(c *Config, raw string) error {
+	if raw == "" {
+		return nil
+	}
+	var entries map[string]map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &entries); err != nil || entries == nil {
+		return fmt.Errorf("expected a JSON object mapping SSH fingerprints to accounts")
+	}
+	accounts := make(map[string]map[string]uint32, len(entries))
+	for fingerprint, users := range entries {
+		digest, ok := strings.CutPrefix(fingerprint, "SHA256:")
+		decoded, err := base64.RawStdEncoding.Strict().DecodeString(digest)
+		if !ok || err != nil || len(decoded) != 32 || len(users) == 0 {
+			return fmt.Errorf("invalid SSH fingerprint or missing accounts")
+		}
+		accounts[fingerprint] = make(map[string]uint32, len(users))
+		for user, id := range users {
+			uid, err := strconv.ParseUint(string(id), 10, 32)
+			if user == "" || err != nil {
+				return fmt.Errorf("expected a username and numeric POSIX UID")
+			}
+			accounts[fingerprint][user] = uint32(uid)
+		}
+	}
+	c.Settings.Connection.ArchiveAccounts = accounts
+	return nil
+}
+
 // group stamps a section title and doc page on a block of keys.
 func group(section, docPage string, keys ...Key) []Key {
 	for i := range keys {
@@ -398,6 +428,8 @@ var Registry = slices.Concat(
 			doc("Allow users to view files in the editor, but not save changes.")),
 	),
 	group("Connections and TLS", "configuration",
+		custom("GFTP_SFTP_ARCHIVE_ACCOUNTS", archiveAccounts, samples(`{"SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA":{"alice":1001}}`, "invalid"),
+			doc("SFTP accounts verified to use POSIX ownership and permissions for archive extraction. JSON maps SSH host key fingerprints to usernames and numeric UIDs. Empty disables SFTP extraction.")),
 		list("GFTP_CONNECTION_ALLOWED_TYPES", func(c *Config) *[]string { return &c.Settings.Connection.AllowedTypes },
 			subsetOf("ftp", "ftps", "sftp"), spaPath("connection.allowedTypes"),
 			doc("Connection types available on the login form: ftp, ftps, and sftp.")),

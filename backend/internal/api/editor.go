@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/labstack/echo/v4"
 
@@ -136,6 +137,9 @@ func (h *Handler) ReadFile(c echo.Context) error {
 		return failClient(c, gftperrors.ErrTransferIncomplete, closeErr)
 	}
 
+	if !utf8.Valid(data) {
+		return Fail(c, gftperrors.New(gftperrors.ErrInvalidType, "editor requires UTF-8 text"))
+	}
 	return OK(c, readFileResult{
 		Path:     path,
 		Content:  string(data),

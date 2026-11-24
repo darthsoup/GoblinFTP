@@ -90,6 +90,7 @@ Each failed login restarts the waiting period. A successful login clears the fai
 <!-- confgen:begin env-table "Connections and TLS" -->
 | Variable | Default | Description |
 |---|---|---|
+| `GFTP_SFTP_ARCHIVE_ACCOUNTS` | (none) | SFTP accounts verified to use POSIX ownership and permissions for archive extraction. JSON maps SSH host key fingerprints to usernames and numeric UIDs. Empty disables SFTP extraction. |
 | `GFTP_CONNECTION_ALLOWED_TYPES` | `ftp,ftps,sftp` | Connection types available on the login form: ftp, ftps, and sftp. |
 | `GFTP_CONNECTION_DISABLE_CHMOD` | `false` | Hide the option to change file permissions. |
 | `GFTP_CONNECTION_PRESET_HOST` | (none) | Default server address on the login form. |
@@ -99,7 +100,11 @@ Each failed login restarts the waiting period. A successful login clears the fai
 | `GFTP_CONNECTION_FTP_TLS_INSECURE_SKIP_VERIFY` | `false` | Allow FTPS connections without checking the certificate. Use only for trusted servers with self-signed certificates. Does not affect SFTP. |
 <!-- confgen:end -->
 
-On your first SFTP connection, GoblinFTP asks you to trust the server key and saves it in `<GFTP_DATA_DIR>/known_hosts`. Later connections must use the same key. A changed key is rejected.
+On your first SFTP connection, GoblinFTP asks you to trust the server key and saves it in `<GFTP_DATA_DIR>/known_hosts`. Later connections must use the same key. A changed key is rejected. To rotate a key, an operator must independently verify the replacement fingerprint and update the shared `known_hosts` file.
+
+SFTP archive extraction requires an operator-verified POSIX account. Set `GFTP_SFTP_ARCHIVE_ACCOUNTS` to a JSON object such as `{"SHA256:<server-key-digest>":{"alice":1001}}`, using the server's actual SSH fingerprint and Alice's remote numeric UID. Only register servers where POSIX ownership and mode bits accurately reflect effective write access. Omit accounts with shared UIDs or filesystem permissions that grant additional writers outside those mode bits.
+
+Extraction checks every directory from the SFTP root to each archive member. Each must belong to the registered UID or root and allow writes only by its owner. The server must support a second SFTP channel and report ownership and permissions. Files are created exclusively, so a name collision stops extraction. Files already extracted remain in place.
 
 ### White-label branding
 
