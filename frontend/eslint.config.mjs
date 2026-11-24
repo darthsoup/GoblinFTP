@@ -6,6 +6,7 @@ export default antfu({
   formatters: true,
 }, {
   rules: {
+    'antfu/reasonable-newline': 'off',
     // antfu defaults to script-first; we read templates first.
     'vue/block-order': ['error', { order: ['template', 'script', 'style'] }],
   },
