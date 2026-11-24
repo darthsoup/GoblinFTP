@@ -1,22 +1,14 @@
 package sftp
 
 import (
-	"crypto/hmac"
-	"crypto/sha1" //nolint:gosec // G505: known_hosts hashing is defined as HMAC-SHA1 by OpenSSH
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
-	"slices"
-	"strings"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
-
-	"github.com/darthsoup/goblinftp/internal/transfer"
 )
 
 // HostKeyPrompt describes an SSH host key the user must confirm before connecting:
@@ -39,13 +31,15 @@ var errHostKeyHalt = errors.New("host key not verified")
 // hostKeyResult is populated as a side effect of the host-key callback so Dial
 // can decide what to return after ssh.Dial aborts.
 type hostKeyResult struct {
-	prompt   *HostKeyPrompt // key is unknown or changed, not yet accepted
-	revoked  bool           // the key is explicitly @revoked: never offer to pin it
-	writeErr error          // known_hosts could not be read or written
+	fingerprint string
+	prompt      *HostKeyPrompt // key is unknown or changed, not yet accepted
+	mismatch    bool
+	revoked     bool  // the key is explicitly @revoked: never offer to pin it
+	writeErr    error // known_hosts could not be read or written
 }
 
 // buildHostKeyCallback verifies the server key against knownHostsPath with trust-on-first-use:
-// a pinned match accepts, an acceptFingerprint match pins or re-pins, anything else halts with res.prompt.
+// an accepted first-use fingerprint pins a new host; changed keys fail closed.
 func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *hostKeyResult) (ssh.HostKeyCallback, error) {
 	_, err := loadKnownHosts(knownHostsPath)
 	if err != nil {
@@ -59,6 +53,7 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 			res.writeErr = loadErr
 			return errHostKeyHalt
 		}
+		res.fingerprint = ssh.FingerprintSHA256(key)
 		err := verify(hostname, remote, key)
 		if err == nil {
 			return nil // pinned key matches
@@ -74,26 +69,10 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 		if !errors.As(err, &keyErr) {
 			return err // malformed entry → reject
 		}
-		fp := ssh.FingerprintSHA256(key)
-		// Only a pin of the SAME algorithm means the host key changed. A server
-		// that added an algorithm is an unknown key, not a man-in-the-middle.
-		sameType := sameAlgorithm(keyErr.Want, key.Type())
-		if len(sameType) > 0 {
-			// A different key is pinned (server reinstalled, or MITM). Replacing it
-			// needs explicit confirmation against the new key's fingerprint.
-			if acceptFingerprint != "" && acceptFingerprint == fp {
-				if err := replaceKnownHostLocked(knownHostsPath, addr, key, remote.String()); err != nil {
-					res.writeErr = err
-					return errHostKeyHalt
-				}
-				return reverifyPin(knownHostsPath, hostname, remote, key, res)
-			}
-			res.prompt = &HostKeyPrompt{
-				Fingerprint:    fp,
-				KeyType:        key.Type(),
-				Changed:        true,
-				OldFingerprint: ssh.FingerprintSHA256(sameType[0].Key),
-			}
+		fp := res.fingerprint
+		// A shared host pin can only be rotated by the operator.
+		if len(keyErr.Want) != 0 {
+			res.mismatch = true
 			return errHostKeyHalt
 		}
 		// Unknown host.
@@ -107,18 +86,6 @@ func buildHostKeyCallback(addr, knownHostsPath, acceptFingerprint string, res *h
 		res.prompt = &HostKeyPrompt{Fingerprint: fp, KeyType: key.Type()}
 		return errHostKeyHalt
 	}, nil
-}
-
-// sameAlgorithm keeps only the pinned keys using keyType, so an added host-key
-// algorithm reads as a first-use prompt instead of a MITM warning.
-func sameAlgorithm(want []knownhosts.KnownKey, keyType string) []knownhosts.KnownKey {
-	out := make([]knownhosts.KnownKey, 0, len(want))
-	for _, w := range want {
-		if w.Key.Type() == keyType {
-			out = append(out, w)
-		}
-	}
-	return out
 }
 
 // loadKnownHosts ensures the file exists and parses it into a callback, holding
@@ -157,131 +124,6 @@ func appendKnownHostLocked(path, addr string, key ssh.PublicKey) error {
 	defer f.Close()
 	_, err = f.WriteString(line + "\n")
 	return err
-}
-
-// replaceKnownHost re-pins addr to key. Plain and hashed (|1|salt|hash) entries
-// for addr are both dropped: leaving a hashed one in place made re-pinning a
-// silent no-op that kept trusting the old key.
-func replaceKnownHost(path, addr string, key ssh.PublicKey) error {
-	knownHostsMu.Lock()
-	defer knownHostsMu.Unlock()
-	return replaceKnownHostLocked(path, addr, key)
-}
-
-func replaceKnownHostLocked(path, addr string, key ssh.PublicKey, aliases ...string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	norm := knownhosts.Normalize(addr)
-	norms := []string{norm}
-	for _, alias := range aliases {
-		norms = append(norms, knownhosts.Normalize(alias))
-	}
-	var out []string
-	stale := 0
-	for line := range strings.Lines(string(data)) {
-		line = strings.TrimRight(line, "\n")
-		fields := strings.Fields(line)
-		if len(fields) < 3 {
-			if strings.TrimSpace(line) != "" {
-				out = append(out, line)
-			}
-			continue
-		}
-		if strings.ContainsAny(fields[0], "*?!") {
-			return fmt.Errorf("%w: wildcard known_hosts rules require manual re-pinning", transfer.ErrHostKeyStoreUnavailable)
-		}
-		switch {
-		case strings.HasPrefix(fields[0], "@"):
-			// @cert-authority and @revoked are deliberate operator statements and
-			// are left alone, but a surviving one for this host is not safe to
-			// ignore: the caller is told rather than silently trusting the old key.
-			if markerCoversHost(fields, norm) {
-				stale++
-			}
-			out = append(out, line)
-		case strings.HasPrefix(fields[0], "|"):
-			if slices.ContainsFunc(norms, func(n string) bool { return hashedHostMatches(fields[0], n) }) {
-				continue
-			}
-			out = append(out, line)
-		default:
-			hosts := slices.DeleteFunc(strings.Split(fields[0], ","), func(h string) bool { return slices.Contains(norms, h) })
-			if len(hosts) == 0 {
-				continue
-			}
-			fields[0] = strings.Join(hosts, ",")
-			out = append(out, strings.Join(fields, " "))
-		}
-	}
-	if stale > 0 {
-		return fmt.Errorf("%w: known_hosts still carries a marker entry for %s, clean it up by hand",
-			transfer.ErrHostKeyStoreUnavailable, norm)
-	}
-	out = append(out, knownhosts.Line([]string{norm}, key))
-	return writeFileAtomic(path, []byte(strings.Join(out, "\n")+"\n"))
-}
-
-// hashedHostMatches recomputes the |1|salt|hash form with the line's OWN salt.
-// knownhosts.HashHostname generates a fresh salt each call, so it can never be
-// used to match an existing entry.
-func hashedHostMatches(field, host string) bool {
-	parts := strings.Split(field, "|")
-	// "" | "1" | salt | hash
-	if len(parts) != 4 || parts[1] != "1" {
-		return false
-	}
-	salt, err := base64.StdEncoding.DecodeString(parts[2])
-	if err != nil {
-		return false
-	}
-	want, err := base64.StdEncoding.DecodeString(parts[3])
-	if err != nil {
-		return false
-	}
-	mac := hmac.New(sha1.New, salt)
-	mac.Write([]byte(host))
-	return hmac.Equal(mac.Sum(nil), want)
-}
-
-// markerCoversHost reports whether an @-marker line names host.
-func markerCoversHost(fields []string, host string) bool {
-	if len(fields) < 2 {
-		return false
-	}
-	return slices.Contains(strings.Split(fields[1], ","), host)
-}
-
-// writeFileAtomic replaces path via a same-filesystem temp file plus rename(2). os.WriteFile
-// truncates first, so a crash mid-write left an empty known_hosts: silent first-use trust, no error.
-func writeFileAtomic(path string, data []byte) error {
-	dir := filepath.Dir(path)
-	tmp, err := os.CreateTemp(dir, filepath.Base(path)+".tmp-*")
-	if err != nil {
-		return err
-	}
-	tmpName := tmp.Name()
-	defer func() { _ = os.Remove(tmpName) }() // no-op once the rename succeeded
-
-	if err := tmp.Chmod(0o600); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	// Durability before the rename: otherwise a power loss can leave the
-	// renamed entry pointing at unwritten data.
-	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmpName, path)
 }
 
 func reverifyPin(path, hostname string, remote net.Addr, key ssh.PublicKey, res *hostKeyResult) error {

@@ -19,13 +19,17 @@ import (
 
 // Client wraps pkg/sftp and implements transfer.Client.
 type Client struct {
-	ssh        *ssh.Client
-	sftp       *sftp.Client
-	initialDir string
+	hostFingerprint string
+	archiveUID      *uint32
+	raw             *activityConn
+	ctx             context.Context
+	ssh             *ssh.Client
+	sftp            *sftp.Client
+	initialDir      string
 }
 
 // Dial opens an SSH/SFTP session, verifying the host key against knownHostsPath. An
-// unknown or changed key returns a *HostKeyPrompt and no client; re-Dial with acceptFingerprint to pin it.
+// unknown key requires confirmation. A changed pin requires operator intervention.
 func Dial(addr, user, pass, acceptFingerprint, knownHostsPath string) (*Client, *HostKeyPrompt, error) {
 	return DialContext(context.Background(), addr, user, pass, acceptFingerprint, knownHostsPath)
 }
@@ -63,7 +67,8 @@ func DialContext(ctx context.Context, addr, user, pass, acceptFingerprint, known
 	}
 	stop := context.AfterFunc(ctx, func() { _ = raw.Close() })
 	defer stop()
-	conn, channels, requests, err := ssh.NewClientConn(raw, addr, cfg)
+	transport := &activityConn{Conn: raw}
+	conn, channels, requests, err := ssh.NewClientConn(transport, addr, cfg)
 	if err != nil {
 		// Order matters: a failed known_hosts write reports "permission denied",
 		// which isAuthErr would otherwise read as bad credentials and throttle
@@ -71,6 +76,8 @@ func DialContext(ctx context.Context, addr, user, pass, acceptFingerprint, known
 		switch {
 		case res.writeErr != nil:
 			return nil, nil, fmt.Errorf("%w: %w", transfer.ErrHostKeyStoreUnavailable, res.writeErr)
+		case res.mismatch:
+			return nil, nil, fmt.Errorf("%w: host key changed; contact the administrator", transfer.ErrHostKeyMismatch)
 		case res.revoked:
 			return nil, nil, fmt.Errorf("%w: the server's host key is marked revoked in known_hosts",
 				transfer.ErrHostKeyMismatch)
@@ -106,7 +113,7 @@ func DialContext(ctx context.Context, addr, user, pass, acceptFingerprint, known
 		return nil, nil, setupError(ctx, err, transfer.ErrConnectionFailed)
 	}
 	connected = true
-	return &Client{ssh: sshConn, sftp: sftpClient, initialDir: initialDir}, nil, nil
+	return &Client{hostFingerprint: res.fingerprint, raw: transport, ctx: context.Background(), ssh: sshConn, sftp: sftpClient, initialDir: initialDir}, nil, nil
 }
 
 func setupError(ctx context.Context, err, fallback error) error {
@@ -124,13 +131,43 @@ func setupError(ctx context.Context, err, fallback error) error {
 
 const dialTimeout = 10 * time.Second
 
+// WithContext scopes cancellation to requests using the serialized connection.
+func (c Client) WithContext(ctx context.Context) transfer.Client {
+	c.ctx = ctx
+	return &c
+}
+
+func (c *Client) context() context.Context {
+	if c.ctx != nil {
+		return c.ctx
+	}
+	return context.Background()
+}
+
+func (c *Client) boundIO() func() {
+	if c.raw == nil {
+		return func() {}
+	}
+	return c.raw.begin(c.context())
+}
+
+type timedFile struct {
+	file   *sftp.File
+	client *Client
+}
+
+func (f timedFile) Read(p []byte) (int, error)  { defer f.client.boundIO()(); return f.file.Read(p) }
+func (f timedFile) Write(p []byte) (int, error) { defer f.client.boundIO()(); return f.file.Write(p) }
+func (f timedFile) Close() error                { defer f.client.boundIO()(); return f.file.Close() }
+
 func (c *Client) WorkingDir() (string, error) {
 	// The adapter never changes directories; setup already validated this lookup.
 	return c.initialDir, nil
 }
 
 func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
-	entries, err := c.sftp.ReadDirWithLimits(context.Background(), dir, 100000, 16<<20)
+	defer c.boundIO()()
+	entries, err := c.sftp.ReadDirWithLimits(c.context(), dir, 100000, 16<<20)
 	if err != nil {
 		return nil, wrapErr(err)
 	}
@@ -142,6 +179,7 @@ func (c *Client) List(dir string) ([]transfer.FileInfo, error) {
 }
 
 func (c *Client) Stat(p string) (transfer.FileInfo, error) {
+	defer c.boundIO()()
 	fi, err := c.sftp.Stat(p)
 	if err != nil {
 		return transfer.FileInfo{}, wrapErr(err)
@@ -150,6 +188,7 @@ func (c *Client) Stat(p string) (transfer.FileInfo, error) {
 }
 
 func (c *Client) MakeDir(p string) error {
+	defer c.boundIO()()
 	return wrapErr(c.sftp.MkdirAll(p))
 }
 
@@ -170,14 +209,18 @@ func (c *Client) deleteBudget(p string, depth int, budget *int) error {
 	if depth > 64 {
 		return fmt.Errorf("%w: directory tree is nested too deeply", transfer.ErrInvalidType)
 	}
+	done := c.boundIO()
 	fi, err := c.sftp.Lstat(p)
 	if err != nil {
+		done()
 		return wrapErr(err)
 	}
 	if !fi.IsDir() || fi.Mode()&fs.ModeSymlink != 0 {
+		defer done()
 		return wrapErr(c.sftp.Remove(p))
 	}
-	entries, err := c.sftp.ReadDirWithLimits(context.Background(), p, 100000, 16<<20)
+	entries, err := c.sftp.ReadDirWithLimits(c.context(), p, 100000, 16<<20)
+	done()
 	if err != nil {
 		return wrapErr(err)
 	}
@@ -193,10 +236,12 @@ func (c *Client) deleteBudget(p string, depth int, budget *int) error {
 			return err
 		}
 	}
+	defer c.boundIO()()
 	return wrapErr(c.sftp.RemoveDirectory(p))
 }
 
 func (c *Client) Rename(src, dst string) error {
+	defer c.boundIO()()
 	return wrapErr(c.sftp.Rename(src, dst))
 }
 
@@ -205,10 +250,12 @@ func (c *Client) Rename(src, dst string) error {
 func (c *Client) SupportsChmod() bool { return true }
 
 func (c *Client) Chmod(p string, mode uint32) error {
+	defer c.boundIO()()
 	return wrapErr(c.sftp.Chmod(p, fs.FileMode(mode)))
 }
 
 func (c *Client) Download(p string) (io.ReadCloser, error) {
+	defer c.boundIO()()
 	fi, err := c.sftp.Stat(p)
 	if err != nil {
 		return nil, wrapErr(err)
@@ -220,18 +267,25 @@ func (c *Client) Download(p string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, wrapErr(err)
 	}
-	return f, nil
+	return timedFile{f, c}, nil
 }
 
 func (c *Client) Upload(p string, r io.Reader) error {
+	done := c.boundIO()
 	f, err := c.sftp.Create(p)
+	done()
 	if err != nil {
 		return wrapErr(err)
 	}
+	return c.writeFile(f, r)
+}
+
+func (c *Client) writeFile(f *sftp.File, r io.Reader) error {
 	// Close carries the server's status for the final flush, so discarding it
 	// reports a quota or I/O failure at end-of-write as a successful upload.
-	_, copyErr := io.Copy(f, r)
-	closeErr := f.Close()
+	file := timedFile{f, c}
+	_, copyErr := io.Copy(file, r)
+	closeErr := file.Close()
 	if copyErr != nil {
 		return fmt.Errorf("%w: %w", transfer.ErrTransferIncomplete, wrapErr(copyErr))
 	}
@@ -242,11 +296,13 @@ func (c *Client) Upload(p string, r io.Reader) error {
 }
 
 func (c *Client) Ping() error {
+	defer c.boundIO()()
 	_, err := c.sftp.Getwd()
 	return wrapErr(err)
 }
 
 func (c *Client) Close() error {
+	defer c.boundIO()()
 	sftpErr := c.sftp.Close()
 	sshErr := c.ssh.Close()
 	if sftpErr != nil {

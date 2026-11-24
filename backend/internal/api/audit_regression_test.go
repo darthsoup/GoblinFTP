@@ -149,12 +149,14 @@ func TestTemporaryStorageQuotaRejectsBeforeMultipartParsing(t *testing.T) {
 	cfg.StagingMaxSessionBytes = 16
 	app, _, _ := newTestApp(t, cfg, staticDialOption())
 	sess := connectAndGetSession(t, app)
-	req := httptest.NewRequest(http.MethodPost, "/api/files/upload", strings.NewReader(strings.Repeat("x", 17)))
-	req.Header.Set("Content-Type", "multipart/form-data; boundary=x")
-	addSession(req, sess)
-	rec := httptest.NewRecorder()
-	app.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusTooManyRequests, rec.Code, rec.Body.String())
+	for _, media := range []string{"multipart/form-data", "Multipart/Form-Data"} {
+		req := httptest.NewRequest(http.MethodPost, "/api/files/upload", strings.NewReader(strings.Repeat("x", 17)))
+		req.Header.Set("Content-Type", media+"; boundary=x")
+		addSession(req, sess)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusTooManyRequests, rec.Code, rec.Body.String())
+	}
 }
 
 func TestSSOAppliesDirectoryLanguageAndRotatesSession(t *testing.T) {
@@ -301,4 +303,51 @@ func TestCopySpoolingCannotBypassQuotaThroughReaderFrom(t *testing.T) {
 	sess := connectAndGetSession(t, app)
 	rec := doJSON(app, sess, http.MethodPatch, "/api/files/copy", `{"from":"/source","to":"/destination"}`)
 	require.Equal(t, http.StatusTooManyRequests, rec.Code, rec.Body.String())
+}
+
+func TestPendingCookieCannotActAsAnActiveSession(t *testing.T) {
+	cfg := ssoEnabledConfig()
+	app, _, _ := newTestApp(t, cfg, staticDialOption())
+	pending, csrf := establishSSO(t, app, validSSO(t, cfg.SSOSecret))
+	active := *pending
+	active.Name = api.SessionCookieName
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/sso-connect", strings.NewReader("{}"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(auth.CSRFHeaderName, csrf)
+	req.AddCookie(&active)
+	req.AddCookie(pending)
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"connectionId"`)
+}
+
+func TestDisconnectedSessionCannotReserveOverwrite(t *testing.T) {
+	cfg := defaultTestConfig()
+	cfg.DataDir = t.TempDir()
+	cfg.StagingMaxBytes = 10
+	app, _, _ := newTestApp(t, cfg, staticDialOption())
+	sess := connectAndGetSession(t, app)
+	body, writer := io.Pipe()
+	defer body.Close()
+	defer writer.Close()
+	const route = "/api/files/upload/reserve"
+	req := httptest.NewRequest(http.MethodPost, route, body)
+	req.Header.Set("Content-Type", "application/json")
+	addSession(req, sess)
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() { app.ServeHTTP(rec, req); close(done) }()
+	const fields = `"path":"/file","totalSize":10,"totalChunks":2,"chunkSize":5,"overwrite":true}`
+	// The decoder's first read establishes that the request already passed session middleware.
+	_, err := io.WriteString(writer, "{")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, doJSON(app, sess, http.MethodPost, "/api/auth/disconnect", "{}").Code)
+	_, err = io.WriteString(writer, fields)
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	<-done
+	require.Contains(t, rec.Body.String(), "ERR_SESSION_NOT_FOUND")
+	next := connectAndGetSession(t, app)
+	require.Equal(t, http.StatusOK, doJSON(app, next, http.MethodPost, route, "{"+fields).Code)
 }

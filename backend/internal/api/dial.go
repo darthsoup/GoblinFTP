@@ -53,6 +53,7 @@ func newDefaultDial(cfg *config.Config) DialFunc {
 			if err != nil {
 				return nil, nil, err
 			}
+			c.SetArchiveAccount(req.User, cfg.Settings.Connection.ArchiveAccounts)
 			return c, nil, nil
 		default:
 			return nil, nil, fmt.Errorf("%w: unknown protocol %q", transfer.ErrConnectionFailed, req.Protocol)

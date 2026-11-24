@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -127,6 +128,27 @@ func setupSSHServer(t *testing.T, stage string) (string, string, <-chan struct{}
 		defer func() { _ = conn.Close() }()
 		go ssh.DiscardRequests(requests)
 		for incoming := range channels {
+			if stage == "archive" {
+				ch, requests, err := incoming.Accept()
+				if err != nil {
+					return
+				}
+				go func() {
+					defer func() { _ = ch.Close() }()
+					for req := range requests {
+						if req.Type != "subsystem" {
+							_ = req.Reply(false, nil)
+							continue
+						}
+						_ = req.Reply(true, nil)
+						server := pkgsftp.NewRequestServer(ch, pkgsftp.InMemHandler())
+						_ = server.Serve()
+						_ = server.Close()
+						return
+					}
+				}()
+				continue
+			}
 			channel, channelRequests, channelErr := incoming.Accept()
 			if channelErr != nil {
 				return
@@ -168,4 +190,25 @@ func setupSSHServer(t *testing.T, stage string) (string, string, <-chan struct{}
 		}
 	}()
 	return listener.Addr().String(), kh, closed
+}
+
+func TestArchiveWritesOnVerifiedSFTPChannel(t *testing.T) {
+	addr, kh, _ := setupSSHServer(t, "archive")
+	client, _, err := Dial(addr, "test", "pass", "", kh)
+	require.NoError(t, err)
+	defer func() { _ = client.Close() }()
+	_, _, err = client.ArchiveTarget()
+	require.ErrorIs(t, err, transfer.ErrPermissionDenied)
+	client.SetArchiveAccount("test", map[string]map[string]uint32{client.hostFingerprint: {"test": 65534}})
+	target, finish, err := client.ArchiveTarget()
+	require.NoError(t, err)
+	defer finish()
+	require.NoError(t, target.EnsureDir("/private/nested"))
+	require.NoError(t, target.Upload("/private/nested/data", strings.NewReader("first")))
+	require.Error(t, target.Upload("/private/nested/data", strings.NewReader("second")))
+	scoped := target.(*archiveTarget)
+	require.NoError(t, scoped.c.sftp.Symlink("/private/nested", "/private/link"))
+	require.ErrorIs(t, target.EnsureDir("/private/link/another"), transfer.ErrPermissionDenied)
+	scoped.uid = 12345
+	require.ErrorIs(t, target.EnsureDir("/private/nested"), transfer.ErrPermissionDenied)
 }

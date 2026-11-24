@@ -1,13 +1,13 @@
 package api
 
 import (
-	"archive/zip"
 	"errors"
 	"io"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -68,18 +68,12 @@ func (h *Handler) DownloadFile(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "session not found"))
 	}
-	clientVal, ok := sess.Get("client")
+	c.Set("session", sess)
+	client, release, ok := lockedClient(c)
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
-	client, ok := clientVal.(transfer.Client)
-	if !ok {
-		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
-	}
-	// Serialize against other transfers on this session's single control
-	// connection for the whole streamed download.
-	sess.LockTransfer()
-	defer sess.UnlockTransfer()
+	defer release()
 	// FTP metadata commands cannot share the control socket with an open RETR.
 	fi, statErr := client.Stat(filePath)
 	if statErr == nil && fi.IsDir {
@@ -162,6 +156,7 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	if !ok {
 		return Fail(c, gftperrors.New(gftperrors.ErrSessionNotFound, "no active connection"))
 	}
+	release = sync.OnceFunc(release)
 	defer release()
 	var req struct {
 		Paths []string `json:"paths"`
@@ -177,18 +172,6 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "invalid archive source"))
 		}
 	}
-	walk := h.quota(c)
-	var totalSize int64
-	for _, p := range req.Paths {
-		size, err := zipInputSizeDepth(client, p, 0, walk)
-		if err != nil {
-			return failClient(c, gftperrors.ErrOperationFailed, err)
-		}
-		totalSize += size
-		if totalSize > maxZipSize {
-			return Fail(c, gftperrors.New(gftperrors.ErrBadRequest, "archive exceeds maximum size"))
-		}
-	}
 	sess, _ := c.Get("session").(*auth.Session)
 	counter := h.metrics.TransferBytes.WithLabelValues("download", protocolFromSession(sess))
 
@@ -198,21 +181,11 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "could not stage archive").WithCause(err))
 	}
-	defer func() {
-		_ = tmp.Close()
-		tmp.dispose()
-	}()
-
-	zw := zip.NewWriter(tmp)
-	walk = h.quota(c)
-	for _, p := range req.Paths {
-		if err := addToZipDepth(zw, client, p, "", counter, 0, walk); err != nil {
-			return failClient(c, gftperrors.ErrOperationFailed, err)
-		}
+	defer tmp.dispose()
+	if err := stageZip(client, tmp, req.Paths, counter, h.quota(c)); err != nil {
+		return zipFailure(c, err)
 	}
-	if err := zw.Close(); err != nil {
-		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to finalize archive").WithCause(err))
-	}
+	release()
 	size, err := tmp.Seek(0, io.SeekEnd)
 	if err != nil {
 		return Fail(c, gftperrors.New(gftperrors.ErrInternal, "failed to stage archive").WithCause(err))
@@ -227,47 +200,4 @@ func (h *Handler) DownloadZip(c echo.Context) error {
 	c.Response().WriteHeader(http.StatusOK)
 	_, copyErr := io.Copy(&deadlineWriter{c: c, w: c.Response()}, tmp)
 	return copyErr
-}
-
-func zipInputSizeDepth(client transfer.Client, remotePath string, depth int, walks ...*diskQuota) (int64, error) {
-	if len(walks) == 0 {
-		walks = []*diskQuota{{remaining: 100000}}
-	}
-	if err := walks[0].visit(); err != nil {
-		return 0, err
-	}
-	// The maxZipSize guard below counts file bytes only, so a loop of empty
-	// directories accumulates nothing and would recurse until the stack blows.
-	if depth > maxTreeDepth {
-		return 0, errTreeTooDeep
-	}
-	fi, err := client.Stat(remotePath)
-	if err != nil {
-		return 0, err
-	}
-	if !fi.IsDir {
-		if fi.Size < 0 || fi.Size > maxZipSize {
-			return maxZipSize + 1, nil
-		}
-		return fi.Size, nil
-	}
-	entries, err := client.List(remotePath)
-	if err != nil {
-		return 0, err
-	}
-	var total int64
-	for _, entry := range entries {
-		if err := transfer.ValidateChildName(entry.Name, true); err != nil {
-			return 0, err
-		}
-		size, err := zipInputSizeDepth(client, path.Join(remotePath, entry.Name), depth+1, walks...)
-		if err != nil {
-			return 0, err
-		}
-		total += size
-		if total > maxZipSize {
-			return total, nil
-		}
-	}
-	return total, nil
 }

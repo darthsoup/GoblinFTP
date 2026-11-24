@@ -221,3 +221,30 @@ func TestDownloadTokenDoesNotCarrySessionID(t *testing.T) {
 	assert.NotEqual(t, http.StatusOK, replayRec.Code,
 		"the token subject must not authenticate as a session")
 }
+
+func TestDownloadZipReusesListedMetadataAndIncludesEmptyDirectory(t *testing.T) {
+	mock := &testutil.MockClient{
+		WorkingDirFn: func() (string, error) { return "/", nil },
+		StatFn: func(p string) (transfer.FileInfo, error) {
+			require.Equal(t, "/root", p)
+			return transfer.FileInfo{Name: "root", IsDir: true}, nil
+		},
+		ListFn: func(p string) ([]transfer.FileInfo, error) {
+			if p == "/root" {
+				return []transfer.FileInfo{{Name: "empty", IsDir: true}, {Name: "file"}}, nil
+			}
+			require.Equal(t, "/root/empty", p)
+			return nil, nil
+		},
+		DownloadFn: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("file")), nil },
+	}
+	app, _, _ := newTestApp(t, defaultTestConfig(), api.WithDial(staticDial(mock)))
+	rec := doJSON(app, connectAndGetSession(t, app), http.MethodPost, "/api/files/download-zip", `{"paths":["/root"]}`)
+	require.Equal(t, http.StatusOK, rec.Code)
+	data := rec.Body.Bytes()
+	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	require.NoError(t, err)
+	_, err = archive.Open("root/empty")
+	require.NoError(t, err)
+	require.Len(t, archive.File, 3)
+}

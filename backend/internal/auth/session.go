@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"sync"
@@ -24,7 +25,8 @@ type Session struct {
 
 	// Serializes the one transfer.Client: a single control connection cannot
 	// service two transfers at once. Lock order is transferMu before mu.
-	transferMu sync.Mutex
+	transferOnce sync.Once
+	transferGate chan struct{}
 }
 
 // Get returns the value stored under key, and whether it was present.
@@ -94,16 +96,35 @@ func (s *Session) DeleteUpload(id string) {
 	delete(s.uploads, id)
 }
 
-// LockTransfer acquires the per-session transfer lock. Handlers hold it around
-// every transfer.Client call so two requests never interleave on one connection.
-func (s *Session) LockTransfer() { s.transferMu.Lock() }
+func (s *Session) gate() chan struct{} {
+	s.transferOnce.Do(func() { s.transferGate = make(chan struct{}, 1) })
+	return s.transferGate
+}
+
+func (s *Session) LockTransfer() { s.gate() <- struct{}{} }
+
+func (s *Session) LockTransferContext(ctx context.Context) bool {
+	select {
+	case s.gate() <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
 
 // UnlockTransfer releases the transfer lock.
-func (s *Session) UnlockTransfer() { s.transferMu.Unlock() }
+func (s *Session) UnlockTransfer() { <-s.gate() }
 
 // TryLockTransfer reports whether the transfer lock was acquired without blocking.
 // The liveness ping skips rather than queue behind (and corrupt) a live transfer.
-func (s *Session) TryLockTransfer() bool { return s.transferMu.TryLock() }
+func (s *Session) TryLockTransfer() bool {
+	select {
+	case s.gate() <- struct{}{}:
+		return true
+	default:
+		return false
+	}
+}
 
 // Store is a thread-safe in-memory session store with TTL-based expiry.
 type Store struct {

@@ -14,6 +14,12 @@ type FileInfo struct {
 	Permissions string // e.g. "drwxr-xr-x"
 }
 
+// ArchiveTarget provides the directory and file operations used during extraction.
+type ArchiveTarget interface {
+	EnsureDir(string) error
+	Upload(string, io.Reader) error
+}
+
 // Client is the unified interface that both FTP and SFTP adapters implement.
 // All methods that accept a path expect an absolute path on the remote server.
 type Client interface {

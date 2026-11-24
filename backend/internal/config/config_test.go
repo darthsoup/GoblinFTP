@@ -519,3 +519,18 @@ func TestResourceLimitsRejectZero(t *testing.T) {
 		})
 	}
 }
+
+func TestArchiveAccountConfiguration(t *testing.T) {
+	clearEnv(t)
+	const key = "GFTP_SFTP_ARCHIVE_ACCOUNTS"
+	const host = "SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	t.Setenv(key, `{"`+host+`":{"alice":1001}}`)
+	cfg, err := config.Load(nil)
+	require.NoError(t, err)
+	require.Equal(t, uint32(1001), cfg.Settings.Connection.ArchiveAccounts[host]["alice"])
+	for _, value := range []string{`{"short":{"alice":1001}}`, `{"` + host + `":{"alice":null}}`, `{"` + host + `":{"alice":-1}}`} {
+		t.Setenv(key, value)
+		_, err := config.Load(nil)
+		require.Error(t, err)
+	}
+}

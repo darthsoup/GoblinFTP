@@ -68,6 +68,15 @@ func TestReadFile(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), `"hello world"`)
 }
 
+func TestEditorRejectsNonUTF8Text(t *testing.T) {
+	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{DownloadFn: func(string) (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("caf\xe9")), nil }}))
+	req := httptest.NewRequest(http.MethodGet, "/api/files/read?path=/remote/file.txt", nil)
+	addSession(req, connectAndGetSession(t, app))
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, req)
+	assert.Contains(t, rec.Body.String(), string(gftperrors.ErrInvalidType))
+}
+
 func TestReadFileDisallowedExtension(t *testing.T) {
 	app, _, _ := newTestApp(t, editorTestConfig(), editorDialOption(&testutil.MockClient{}))
 	sess := connectAndGetSession(t, app)

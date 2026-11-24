@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"maps"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -25,6 +27,8 @@ type resourceBudget struct {
 	remote         interface {
 		StagedBytes(context.Context, map[string]bool) (int64, error)
 	}
+	refreshMu             sync.Mutex
+	remoteErr             error
 	remoteBytes           int64
 	remoteChecked         time.Time
 	uploads               map[string]bool
@@ -80,20 +84,40 @@ func newResourceBudget(dir string, max, perSession int64) *resourceBudget {
 	return b
 }
 
+func (b *resourceBudget) refreshRemote() error {
+	if b.remote == nil {
+		return nil
+	}
+	b.refreshMu.Lock()
+	defer b.refreshMu.Unlock()
+	if time.Since(b.remoteChecked) < time.Minute {
+		return b.remoteErr
+	}
+	b.mu.Lock()
+	active := maps.Clone(b.uploads)
+	b.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	size, err := b.remote.StagedBytes(ctx, active)
+	b.remoteChecked = time.Now()
+	if err != nil {
+		b.remoteErr = errStorageLimit
+		return b.remoteErr
+	}
+	b.mu.Lock()
+	b.used += size - b.remoteBytes
+	b.remoteBytes = size
+	b.mu.Unlock()
+	b.remoteErr = nil
+	return nil
+}
+
 func (b *resourceBudget) reserve(owner string, size int64) (func(), error) {
+	if err := b.refreshRemote(); err != nil {
+		return nil, err
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.remote != nil && time.Since(b.remoteChecked) > time.Minute {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		bytes, err := b.remote.StagedBytes(ctx, b.uploads)
-		cancel()
-		if err != nil {
-			return nil, errStorageLimit
-		}
-		b.used += bytes - b.remoteBytes
-		b.remoteBytes = bytes
-		b.remoteChecked = time.Now()
-	}
 	for p, size := range b.orphans {
 		if _, err := os.Stat(p); os.IsNotExist(err) {
 			b.used -= size
@@ -187,7 +211,8 @@ func (h *Handler) resourceMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return Fail(c, gftperrors.New(gftperrors.ErrCapacity, "operation capacity reached"))
 			}
 		}
-		if strings.HasPrefix(c.Request().Header.Get("Content-Type"), "multipart/") {
+		mediaType, _, _ := mime.ParseMediaType(c.Request().Header.Get("Content-Type"))
+		if mediaType == "multipart/form-data" {
 			sess, ok := lookupSession(c, h.store)
 			if !ok {
 				return Fail(c, gftperrors.New(gftperrors.ErrUnauthorized, "no active session"))

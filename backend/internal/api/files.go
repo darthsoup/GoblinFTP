@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -53,12 +54,25 @@ func clientFromContext(c echo.Context) (transfer.Client, *auth.Session, bool) {
 // lockedClient returns the session's transfer client with the per-session lock
 // HELD plus a release func the caller MUST defer: ServerConn is not concurrency-safe.
 func lockedClient(c echo.Context) (transfer.Client, func(), bool) {
-	client, sess, ok := clientFromContext(c)
-	if !ok {
+	sess, ok := c.Get("session").(*auth.Session)
+	if !ok || !sess.LockTransferContext(c.Request().Context()) {
 		return nil, nil, false
 	}
-	sess.LockTransfer()
-	return client, sess.UnlockTransfer, true
+	client, _, ok := clientFromContext(c)
+	if !ok {
+		sess.UnlockTransfer()
+		return nil, nil, false
+	}
+	return requestClient(c, client), sess.UnlockTransfer, true
+}
+
+func requestClient(c echo.Context, client transfer.Client) transfer.Client {
+	if scoped, ok := client.(interface {
+		WithContext(context.Context) transfer.Client
+	}); ok {
+		return scoped.WithContext(c.Request().Context())
+	}
+	return client
 }
 
 func (h *Handler) ListFiles(c echo.Context) error {
